@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../store';
 import MoveText from '../components/MoveText';
 import { isDue } from '../lib/srs';
@@ -8,9 +8,9 @@ import {
 
 // Every variation, with the tags and stars it inherits from its chapter and
 // opening. Tagging or starring a container applies to everything inside it.
-function flatten(state) {
+function flatten(openings) {
   const rows = [];
-  for (const opening of state.openings) {
+  for (const opening of openings) {
     for (const chapter of opening.chapters) {
       for (const variation of chapter.variations) {
         rows.push({
@@ -160,21 +160,32 @@ function SubList({ label, children, count }) {
   );
 }
 
-export default function GroupsView({ onOpenChapter, onPractice }) {
+export default function GroupsView({ onOpenChapter, onPractice, initialScope }) {
   const { state, dispatch } = useStore();
   const [openKeys, setOpenKeys] = useState({ __fav: true });
   const [filter, setFilter] = useState('');
   const [fading, setFading] = useState({});
 
-  const rows = useMemo(() => flatten(state), [state]);
+  // 'me' or a student's player id — same split as the Library, so a
+  // student's favorites/themes stay theirs, not mixed into yours.
+  const [scope, setScope] = useState('me');
+  useEffect(() => { if (initialScope) setScope(initialScope); }, [initialScope]);
+  const students = state.players.filter((p) => p.kind === 'student');
+  const openings = useMemo(
+    () => state.openings.filter((o) => (o.ownerId ?? null) === (scope === 'me' ? null : scope)),
+    [state.openings, scope],
+  );
+  const scopedStudent = scope !== 'me' ? students.find((p) => p.id === scope) : null;
+
+  const rows = useMemo(() => flatten(openings), [openings]);
 
   // Favorites, split by what was actually starred. A line inside a starred
   // chapter is covered by that chapter's entry rather than listed twice.
   const favorites = useMemo(() => {
-    const openings = state.openings.filter((o) => o.starred);
+    const starredOpenings = openings.filter((o) => o.starred);
     const chapters = [];
     const variations = [];
-    for (const opening of state.openings) {
+    for (const opening of openings) {
       for (const chapter of opening.chapters) {
         if (chapter.starred && !opening.starred) chapters.push({ opening, chapter });
         for (const variation of chapter.variations) {
@@ -184,8 +195,8 @@ export default function GroupsView({ onOpenChapter, onPractice }) {
         }
       }
     }
-    return { openings, chapters, variations };
-  }, [state.openings]);
+    return { openings: starredOpenings, chapters, variations };
+  }, [openings]);
 
   const favCount = rows.filter((r) => r.starred).length;
 
@@ -196,7 +207,7 @@ export default function GroupsView({ onOpenChapter, onPractice }) {
       if (!map.has(tag)) map.set(tag, { openings: [], chapters: [], variations: [], lines: 0 });
       return map.get(tag);
     };
-    for (const opening of state.openings) {
+    for (const opening of openings) {
       for (const tag of opening.tags ?? []) bucket(tag).openings.push(opening);
       for (const chapter of opening.chapters) {
         for (const tag of chapter.tags ?? []) bucket(tag).chapters.push({ opening, chapter });
@@ -213,7 +224,7 @@ export default function GroupsView({ onOpenChapter, onPractice }) {
     return [...map.entries()]
       .sort((a, b) => b[1].lines - a[1].lines || a[0].localeCompare(b[0]))
       .map(([tag, items]) => ({ tag, ...items }));
-  }, [rows, state.openings]);
+  }, [rows, openings]);
 
   const visibleTags = filter.trim()
     ? tagGroups.filter(({ tag }) => tag.toLowerCase().includes(filter.trim().toLowerCase()))
@@ -254,7 +265,7 @@ export default function GroupsView({ onOpenChapter, onPractice }) {
   return (
     <div className="page">
       <div className="page-head">
-        <h1>Collections</h1>
+        <h1>{scopedStudent ? `${scopedStudent.name}'s Collections` : 'Collections'}</h1>
         <span className="muted-note">
           Favorites and themes, gathered from every opening, chapter and variation
         </span>
@@ -270,6 +281,23 @@ export default function GroupsView({ onOpenChapter, onPractice }) {
         )}
       </div>
 
+      <div className="tabs">
+        <button className={scope === 'me' ? 'active' : ''} onClick={() => setScope('me')}>
+          My collections
+        </button>
+        {students.length > 0 && (
+          <select
+            className={scope !== 'me' ? 'active' : ''}
+            value={scope === 'me' ? '' : scope}
+            title="A student's favorites and themes — set from their own repertoire in the Library"
+            onChange={(e) => setScope(e.target.value)}
+          >
+            <option value="" disabled>Student…</option>
+            {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        )}
+      </div>
+
       <GroupBlock
         title="Favorites"
         icon={<StarIcon size={17} filled className="group-icon star" />}
@@ -278,7 +306,7 @@ export default function GroupsView({ onOpenChapter, onPractice }) {
         open={!!openKeys.__fav}
         onToggle={() => toggle('__fav')}
         canPractice={favCount > 0}
-        onPracticeAll={() => onPractice({ starred: true, mode: 'practice' })}
+        onPracticeAll={() => onPractice({ starred: true, mode: 'practice', ownerId: scope === 'me' ? null : scope })}
       >
         {favCount === 0 ? (
           <div className="empty-note">
@@ -334,7 +362,7 @@ export default function GroupsView({ onOpenChapter, onPractice }) {
           open={!!openKeys[tag]}
           onToggle={() => toggle(tag)}
           canPractice={lines > 0}
-          onPracticeAll={() => onPractice({ tag, mode: 'practice' })}
+          onPracticeAll={() => onPractice({ tag, mode: 'practice', ownerId: scope === 'me' ? null : scope })}
         >
           <div className="group-actions">
             <button
@@ -352,7 +380,7 @@ export default function GroupsView({ onOpenChapter, onPractice }) {
             <button
               className="small ghost"
               title="Learn mode — moves shown first, then recalled"
-              onClick={() => onPractice({ tag, mode: 'learn' })}
+              onClick={() => onPractice({ tag, mode: 'learn', ownerId: scope === 'me' ? null : scope })}
             >
               <CapIcon size={14} /> Learn these
             </button>

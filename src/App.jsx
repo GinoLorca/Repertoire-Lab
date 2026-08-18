@@ -28,6 +28,8 @@ function AppInner() {
   // Seeds the Library's own "My repertoire / Students" tab once, when you
   // arrive from a student's Coaches profile — see openLibraryFor below.
   const [libraryScope, setLibraryScope] = useState(null);
+  // Same idea, for Collections — see openCollectionsFor below.
+  const [collectionsScope, setCollectionsScope] = useState(null);
 
   const themeSettings = state?.settings;
   useEffect(() => {
@@ -190,6 +192,11 @@ function AppInner() {
     go(() => setView('library'));
   };
 
+  const openCollectionsFor = (studentId) => {
+    setCollectionsScope(studentId);
+    go(() => setView('groups'));
+  };
+
   const navTo = (v) => {
     if (v === view) return;
     go(() => {
@@ -249,7 +256,7 @@ function AppInner() {
             Games
           </button>
           <button className={view === 'coaches' ? 'active' : ''} onClick={() => navTo('coaches')}>
-            Coaches
+            Coach
           </button>
           <button className={view === 'analysis' ? 'active' : ''} onClick={() => navTo('analysis')}>
             Analysis
@@ -289,7 +296,9 @@ function AppInner() {
           initialScope={libraryScope}
         />
       )}
-      {view === 'groups' && <GroupsView onOpenChapter={openChapter} onPractice={startPractice} />}
+      {view === 'groups' && (
+        <GroupsView onOpenChapter={openChapter} onPractice={startPractice} initialScope={collectionsScope} />
+      )}
       {view === 'chapter' && chapterNav && (
         <ChapterView
           openingId={chapterNav.openingId}
@@ -322,7 +331,9 @@ function AppInner() {
         />
       )}
       {view === 'games' && <GamesView onAnalyze={analyze} />}
-      {view === 'coaches' && <CoachesView onAnalyze={analyze} onOpenLibrary={openLibraryFor} />}
+      {view === 'coaches' && (
+        <CoachesView onAnalyze={analyze} onOpenLibrary={openLibraryFor} onOpenCollections={openCollectionsFor} />
+      )}
       {view === 'settings' && <SettingsView />}
       <MigratePlayersModal />
 

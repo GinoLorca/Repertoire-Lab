@@ -47,7 +47,16 @@ const plyLabel = (ply) => `${Math.floor(ply / 2) + 1}${ply % 2 === 0 ? '.' : '�
 //   'drill'    — a whole-line run; queued once after the spot drills to finish off
 function collectItems(state, scope) {
   const items = [];
+  // A scope naming a specific opening/chapter/variation is unambiguous
+  // regardless of who owns it. A broad one (the whole repertoire, every
+  // favorite, everything tagged X) isn't — without this it would silently
+  // mix a student's chapters into your own practice queue, and vice versa.
+  // Yours (ownerId null) unless the scope says otherwise, e.g. Collections'
+  // per-student "Practice" buttons.
+  const broad = !(scope?.openingId || scope?.chapterId || scope?.chapterIds || scope?.variationId);
+  const wantOwner = scope?.ownerId ?? null;
   for (const opening of state.openings) {
+    if (broad && (opening.ownerId ?? null) !== wantOwner) continue;
     if (scope?.openingId && opening.id !== scope.openingId) continue;
     for (const chapter of opening.chapters) {
       if (scope?.chapterId && chapter.id !== scope.chapterId) continue;

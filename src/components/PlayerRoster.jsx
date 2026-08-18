@@ -14,7 +14,7 @@ import PlayerEditor from '../components/PlayerEditor';
 import Avatar from '../components/Avatar';
 import { useBackGuard } from '../lib/backGuard';
 import {
-  BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon,
+  BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon, StarIcon,
 } from '../components/Icons';
 
 // The handles a player is known by, with whatever live ratings we last fetched
@@ -190,7 +190,7 @@ function GameRow({
 }
 
 function PlayerPage({
-  player, rosterTitle, onBack, onAnalyze, onEditProfile, onOpenLibrary,
+  player, rosterTitle, onBack, onAnalyze, onEditProfile, onOpenLibrary, onOpenCollections,
 }) {
   const { state, dispatch } = useStore();
   const [viewingGameId, setViewingGameId] = useState(null);
@@ -214,6 +214,16 @@ function PlayerPage({
   );
   const index = useMemo(() => buildPositionIndex(myOpenings), [myOpenings]);
   const viewingGame = player.games.find((g) => g.id === viewingGameId);
+
+  // Favorites and themes the coach has starred/tagged inside this student's
+  // own repertoire — a quick "what are they working on" summary.
+  const favCount = useMemo(() => myOpenings.reduce((n, o) => n + o.chapters.reduce(
+    (cn, c) => cn + c.variations.filter((v) => v.starred || c.starred || o.starred).length, 0,
+  ), 0), [myOpenings]);
+  const themeCount = useMemo(() => new Set(myOpenings.flatMap((o) => [
+    ...(o.tags ?? []),
+    ...o.chapters.flatMap((c) => [...(c.tags ?? []), ...c.variations.flatMap((v) => v.tags ?? [])]),
+  ])).size, [myOpenings]);
 
   // Ratings go stale on their own; one press asks all three sites again.
   const [refreshing, setRefreshing] = useState(false);
@@ -314,6 +324,23 @@ function PlayerPage({
           </div>
           <button className="small" onClick={() => onOpenLibrary(player.id)}>
             {myOpenings.length === 0 ? 'Build it' : 'Open in Library'}
+          </button>
+        </div>
+      )}
+
+      {player.kind === 'student' && (
+        <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)' }}>
+          <div className="scope-info">
+            <h3><StarIcon size={15} /> Collections</h3>
+            <div className="sub">
+              {favCount === 0 && themeCount === 0
+                ? 'Nothing starred or themed for them yet'
+                : `${favCount} favorite line${favCount === 1 ? '' : 's'} · ${themeCount} theme${themeCount === 1 ? '' : 's'}`}
+              {' · '}star or tag any of their lines in the Library, right where you build them
+            </div>
+          </div>
+          <button className="small" onClick={() => onOpenCollections(player.id)}>
+            Open in Collections
           </button>
         </div>
       )}
@@ -447,7 +474,7 @@ function PlayerPage({
 // (Coaches). Shared by both tabs; `kind` picks which half of state.players
 // shows and colours the copy.
 export default function PlayerRoster({
-  kind, title, subtitle, addLabel, emptyLabel, onAnalyze, onOpenLibrary,
+  kind, title, subtitle, addLabel, emptyLabel, onAnalyze, onOpenLibrary, onOpenCollections,
 }) {
   const { state, dispatch } = useStore();
   const [openPlayerId, setOpenPlayerId] = useState(null);
@@ -469,6 +496,7 @@ export default function PlayerRoster({
           onAnalyze={onAnalyze}
           onEditProfile={() => setEditingPlayer(openPlayer)}
           onOpenLibrary={onOpenLibrary}
+          onOpenCollections={onOpenCollections}
         />
         {editingPlayer && (
           <PlayerEditor
