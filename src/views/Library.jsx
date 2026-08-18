@@ -386,11 +386,19 @@ function ChapterCard({
   );
 }
 
-export default function Library({ onOpenChapter, onPractice, revealChapterId }) {
+export default function Library({ onOpenChapter, onPractice, revealChapterId, initialScope }) {
   // Practicing a section/sub-section = every chapter inside it.
   const onPracticeGroup = (openingId, chapters) =>
     onPractice({ openingId, chapterIds: chapters.map((c) => c.id), mode: 'practice' });
   const { state, dispatch } = useStore();
+
+  // 'me' or a student's player id — which slice of state.openings is on
+  // screen. Whichever is active when you add an opening is who it's for.
+  const [scope, setScope] = useState('me');
+  useEffect(() => { if (initialScope) setScope(initialScope); }, [initialScope]);
+  const students = state.players.filter((p) => p.kind === 'student');
+  const openings = state.openings.filter((o) => (o.ownerId ?? null) === (scope === 'me' ? null : scope));
+  const scopedStudent = scope !== 'me' ? students.find((p) => p.id === scope) : null;
 
   // Coming back from a chapter: make sure it's actually on screen — expand its
   // opening and the section it sits in, so Back never lands on a closed shelf.
@@ -399,6 +407,8 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId }) 
     for (const opening of state.openings) {
       const chapter = opening.chapters.find((c) => c.id === revealChapterId);
       if (!chapter) continue;
+      // The chapter might belong to a student's shelf, not yours.
+      setScope((opening.ownerId ?? null) === null ? 'me' : opening.ownerId);
       if (opening.collapsed) {
         dispatch({ type: 'toggleOpeningCollapse', openingId: opening.id });
       }
@@ -423,9 +433,12 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId }) 
   const artTargetRef = useRef(null);
   const restoreRef = useRef(null);
 
+  // Scoped to whichever tab is open — exporting a student's repertoire
+  // shouldn't silently bundle in your own.
   const exportAll = () => {
-    const pgn = state.openings.map(openingToPgn).join('\n');
-    downloadText('repertoire-all.pgn', pgn);
+    const pgn = openings.map(openingToPgn).join('\n');
+    const stamp = scopedStudent ? safeFilename(scopedStudent.name) : 'all';
+    downloadText(`repertoire-${stamp}.pgn`, pgn);
   };
 
   // Everything: openings with progress and artwork, player profiles and their
@@ -555,7 +568,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId }) 
       />
 
       <div className="page-head">
-        <h1>My Repertoire</h1>
+        <h1>{scopedStudent ? `${scopedStudent.name}'s Repertoire` : 'My Repertoire'}</h1>
         <button
           className="ghost"
           title="Download everything — openings, progress, artwork, player profiles, games and settings — as one file"
@@ -585,17 +598,41 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId }) 
         >
           Reset
         </button>
-        <button onClick={() => setModal({ kind: 'addOpening' })}>+ Add Opening</button>
+        <button onClick={() => setModal({ kind: 'addOpening' })}>
+          + Add Opening{scopedStudent ? ` for ${scopedStudent.name}` : ''}
+        </button>
         <button
           className="primary"
-          disabled={state.openings.every((o) => o.chapters.length === 0)}
+          disabled={openings.every((o) => o.chapters.length === 0)}
           onClick={exportAll}
         >
           <DownloadIcon size={15} /> Export All (PGN)
         </button>
       </div>
 
-      {state.openings.length === 0 && (
+      <div className="tabs">
+        <button className={scope === 'me' ? 'active' : ''} onClick={() => setScope('me')}>
+          My repertoire
+        </button>
+        {students.length > 0 && (
+          <select
+            className={scope !== 'me' ? 'active' : ''}
+            value={scope === 'me' ? '' : scope}
+            title="A student's repertoire — built here, it's what shows when you analyze their games"
+            onChange={(e) => setScope(e.target.value)}
+          >
+            <option value="" disabled>Student…</option>
+            {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        )}
+      </div>
+      {students.length === 0 && scope === 'me' && (
+        <p className="hint" style={{ marginTop: -12 }}>
+          Add a student from the <strong>Coaches</strong> tab to build a repertoire just for them here.
+        </p>
+      )}
+
+      {openings.length === 0 && scope === 'me' && (
         <div className="empty-note">
           <img
             src="/icons/icon-192.png"
@@ -612,7 +649,17 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId }) 
         </div>
       )}
 
-      {state.openings.map((opening) => {
+      {openings.length === 0 && scopedStudent && (
+        <div className="empty-note">
+          <p style={{ margin: 0 }}>
+            Nothing here yet for {scopedStudent.name}. Press <strong>+ Add Opening</strong> above to
+            start building what you've taught them — it'll come up automatically when you analyze
+            their games.
+          </p>
+        </div>
+      )}
+
+      {openings.map((opening) => {
         const totals = openingTotals(opening);
         const pctLearned = totals.variations
           ? Math.round((totals.practiced / totals.variations) * 100)
@@ -1067,7 +1114,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId }) 
           placeholder="Opening name"
           onClose={() => setModal(null)}
           onSubmit={(name) => {
-            dispatch({ type: 'addOpening', name });
+            dispatch({ type: 'addOpening', name, ownerId: scope === 'me' ? null : scope });
             setModal(null);
           }}
         />

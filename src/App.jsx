@@ -12,6 +12,8 @@ import GamesView from './views/GamesView';
 import VerifyView from './views/VerifyView';
 import SearchPanel from './views/SearchPanel';
 import SettingsView from './views/SettingsView';
+import CoachesView from './views/CoachesView';
+import MigratePlayersModal from './components/MigratePlayersModal';
 
 function AppInner() {
   const { state } = useStore();
@@ -23,6 +25,9 @@ function AppInner() {
   const lastChapterId = useRef(null);
   const revealChapter = useRef(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  // Seeds the Library's own "My repertoire / Students" tab once, when you
+  // arrive from a student's Coaches profile — see openLibraryFor below.
+  const [libraryScope, setLibraryScope] = useState(null);
 
   const themeSettings = state?.settings;
   useEffect(() => {
@@ -166,15 +171,23 @@ function AppInner() {
     go(() => {
       // Carry whatever context came with it — a game brings its players,
       // result and opening so the analysis board can say what it's showing.
+      // ownerId (a student's player id, or null for your own) scopes which
+      // repertoire the board checks book moves against.
       setAnalysisLine({
         name: line.name,
         moves: line.moves,
         meta: line.meta ?? null,
         subtitle: line.subtitle ?? null,
         date: line.date ?? null,
+        ownerId: line.ownerId ?? null,
       });
       setView('analysis');
     });
+  };
+
+  const openLibraryFor = (studentId) => {
+    setLibraryScope(studentId);
+    go(() => setView('library'));
   };
 
   const navTo = (v) => {
@@ -235,6 +248,9 @@ function AppInner() {
           <button className={view === 'games' ? 'active' : ''} onClick={() => navTo('games')}>
             Games
           </button>
+          <button className={view === 'coaches' ? 'active' : ''} onClick={() => navTo('coaches')}>
+            Coaches
+          </button>
           <button className={view === 'analysis' ? 'active' : ''} onClick={() => navTo('analysis')}>
             Analysis
           </button>
@@ -270,6 +286,7 @@ function AppInner() {
           onOpenChapter={openChapter}
           onPractice={startPractice}
           revealChapterId={revealChapter.current}
+          initialScope={libraryScope}
         />
       )}
       {view === 'groups' && <GroupsView onOpenChapter={openChapter} onPractice={startPractice} />}
@@ -305,7 +322,9 @@ function AppInner() {
         />
       )}
       {view === 'games' && <GamesView onAnalyze={analyze} />}
+      {view === 'coaches' && <CoachesView onAnalyze={analyze} onOpenLibrary={openLibraryFor} />}
       {view === 'settings' && <SettingsView />}
+      <MigratePlayersModal />
 
       {searchOpen && (
         <SearchPanel

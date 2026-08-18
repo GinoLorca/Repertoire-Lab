@@ -230,6 +230,10 @@ function reducer(state, action) {
         id: action.id ?? uid(),
         name: action.name,
         color: action.color ?? 'white',
+        // null = your own; a student's player id = built for them. Whichever
+        // scope the Library was showing when you hit "+ Add Opening" decides
+        // this — see Library.jsx.
+        ownerId: action.ownerId ?? null,
         chapters: [],
       };
       return { ...state, openings: [...state.openings, opening] };
@@ -420,6 +424,9 @@ function reducer(state, action) {
       const player = {
         id: action.id ?? uid(),
         name: action.name,
+        // 'self' (your own games) or 'student' (Coaches tab). Defaults to
+        // 'self' for the ad-hoc "+ New group" spots that don't ask.
+        kind: action.kind ?? 'self',
         // Who this person is elsewhere — used to fill in game details later.
         profile: action.profile ?? { uscf: '', fide: '', chesscom: '', lichess: '', rating: '' },
         games: [],
@@ -434,7 +441,16 @@ function reducer(state, action) {
       }));
     case 'renamePlayer':
       return mapPlayer(state, action.playerId, (p) => ({ ...p, name: action.name }));
+    // Set from the one-time migration prompt (existing players predate the
+    // self/student split) and from the Coaches/Games "move to the other tab"
+    // action.
+    case 'setPlayerKind':
+      return mapPlayer(state, action.playerId, (p) => ({ ...p, kind: action.kind }));
     case 'deletePlayer':
+      // Openings this student owned aren't deleted with them — they'd just be
+      // silently unreachable otherwise. They stay in state.openings, orphaned
+      // (ownerId pointing at a gone player), until reassigned or removed by
+      // hand from the Library.
       return { ...state, players: state.players.filter((p) => p.id !== action.playerId) };
     case 'addGame': {
       const game = {

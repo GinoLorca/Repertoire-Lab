@@ -283,9 +283,12 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 
 /* ---------- Import ---------- */
 
-.tabs { display: flex; gap: 6px; margin-bottom: 20px; }
+.tabs { display: flex; gap: 6px; margin-bottom: 20px; align-items: center; }
 .tabs button { border-radius: 8px; color: var(--muted); font-weight: 600; }
 .tabs button.active { background: var(--accent-dim); border-color: var(--accent-dim); color: #fff; }
+/* A <select> standing in for a tab — e.g. Library's student picker. */
+.tabs select { border-radius: 8px; font-weight: 600; padding: 7px 10px; }
+.tabs select.active { background: var(--accent-dim); border-color: var(--accent-dim); color: #fff; }
 
 .dropzone {
   border: 2px dashed var(--border); border-radius: var(--radius);

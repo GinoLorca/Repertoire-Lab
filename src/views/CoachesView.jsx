@@ -1,0 +1,22 @@
+import React from 'react';
+import PlayerRoster from '../components/PlayerRoster';
+
+// One section per private student: their profile (USCF/FIDE/chess.com/
+// lichess), their games, and their own repertoire — built once from the
+// Library's "Students" tab, it comes up automatically whenever you analyze
+// one of their games.
+export default function CoachesView({ onAnalyze, onOpenLibrary }) {
+  return (
+    <PlayerRoster
+      kind="student"
+      title="Coaches"
+      subtitle="One section per private student. Add their USCF ID and online accounts to pull in live
+        ratings, log their games, and build a repertoire just for them — it loads automatically when
+        you send one of their games to the analysis board."
+      addLabel="+ Add student"
+      emptyLabel="No students yet. Add one to start tracking their games and repertoire."
+      onAnalyze={onAnalyze}
+      onOpenLibrary={onOpenLibrary}
+    />
+  );
+}
