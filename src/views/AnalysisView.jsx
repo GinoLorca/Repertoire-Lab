@@ -618,11 +618,11 @@ export default function AnalysisView({ initialLine }) {
           </button>
         </div>
         <button
-          title="Keep this position's game in your Games tab"
+          title="Save this game to your Games tab, or a student's profile in Coaches"
           disabled={moves.length === 0}
           onClick={() => setSaving(true)}
         >
-          <DownloadIcon size={15} /> Save to Games
+          <DownloadIcon size={15} /> Save game
         </button>
         <select
           className="line-picker"
@@ -1139,7 +1139,7 @@ function SaveToGames({ moves, meta, state, dispatch, onClose }) {
     return (
       <div className="modal-overlay" onClick={onClose}>
         <div className="modal" onClick={(e) => e.stopPropagation()}>
-          <h3>Save to Games</h3>
+          <h3>Save game</h3>
           <p className="hint">
             Games live in sections — one for you, one per student. Add a section first.
           </p>
@@ -1177,10 +1177,23 @@ function SaveToGames({ moves, meta, state, dispatch, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Save to Games</h3>
+        <h3>Save game</h3>
         <p className="hint">{moves.length} moves from the board. Whose game is it?</p>
         <select value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
-          {state.players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          {state.players.some((p) => (p.kind ?? 'self') === 'self') && (
+            <optgroup label="Games">
+              {state.players.filter((p) => (p.kind ?? 'self') === 'self').map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </optgroup>
+          )}
+          {state.players.some((p) => p.kind === 'student') && (
+            <optgroup label="Coaches">
+              {state.players.filter((p) => p.kind === 'student').map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </optgroup>
+          )}
         </select>
         <div className="modal-actions">
           <button onClick={onClose}>Cancel</button>
