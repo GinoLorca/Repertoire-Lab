@@ -5,6 +5,7 @@ import {
   dueCount, learnedCount, practicedCount, chapterPracticed, openingPracticed,
 } from '../lib/srs';
 import { processArtwork } from '../lib/artwork';
+import { mergeBackup } from '../lib/backup';
 import { useBackGuard } from '../lib/backGuard';
 import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import PgnImport from '../components/PgnImport';
@@ -1157,7 +1158,10 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>Restore this backup?</h3>
             <p className="hint">
-              Everything on this device is replaced by what's in the file.
+              <strong>Merge</strong> keeps whatever's already on this device too — a line learned or
+              practiced on either side stays learned, and nothing here gets deleted just because the
+              file doesn't have it. <strong>Replace everything</strong> wipes this device first, so
+              anything you've done here since your last backup (progress included) is lost.
             </p>
             <div className="gi-grid" style={{ marginBottom: 12 }}>
               <div><span>Openings</span><strong>{modal.parsed.openings.length}</strong></div>
@@ -1168,13 +1172,24 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
             <div className="modal-actions">
               <button onClick={() => setModal(null)}>Cancel</button>
               <button
-                className="primary"
+                className="ghost danger"
+                title="Discards anything on this device the file doesn't already have — including progress"
                 onClick={() => {
                   dispatch({ type: 'hydrate', state: modal.parsed });
                   setModal(null);
                 }}
               >
                 Replace everything
+              </button>
+              <button
+                className="primary"
+                title="Combines the file with what's already here, keeping progress from both sides"
+                onClick={() => {
+                  dispatch({ type: 'hydrate', state: mergeBackup(state, modal.parsed) });
+                  setModal(null);
+                }}
+              >
+                Merge
               </button>
             </div>
           </div>
