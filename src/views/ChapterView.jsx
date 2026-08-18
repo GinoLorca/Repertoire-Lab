@@ -330,7 +330,10 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
                 onClick={() => onPractice({ openingId, chapterId, variationId: variation.id, mode: 'learn' })}
               >
                 Learn
-                <span className="badge">{variation.moves.length}</span>
+                {/* The line's length, worth knowing before you start — once
+                    it's learned this isn't the button to look at any more,
+                    so a leftover number here read as "still not done". */}
+                {!variation.learned && <span className="badge">{variation.moves.length}</span>}
               </button>
               <button
                 className={`learn-btn${variation.learned ? ' primary' : ''}`}
