@@ -159,6 +159,17 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .topbar nav button:hover { color: var(--text); background: var(--card); }
 .topbar nav button.active { color: #fff; background: var(--accent-dim); }
 
+/* Sets Coach apart from the lesson-planning tabs. The auto margin pulls it
+   (and the icons after it) to the far right whenever the bar has slack to
+   give — most of the time, on desktop. Once the bar is too narrow and has
+   to scroll instead (phones, a narrow window), an auto margin has no slack
+   left to claim and collapses to nothing on its own — Coach just becomes
+   the last stop on that scroll, which reads as "further away" all the same. */
+.nav-divider {
+  width: 1px; align-self: stretch; margin: 6px 6px 6px auto;
+  background: var(--border); flex-shrink: 0;
+}
+
 .page { max-width: 1180px; margin: 0 auto; padding: 26px 24px 80px; }
 .page.wide { max-width: 1360px; }
 

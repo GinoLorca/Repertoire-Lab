@@ -260,11 +260,17 @@ function AppInner() {
           <button className={view === 'games' ? 'active' : ''} onClick={() => navTo('games')}>
             Games
           </button>
-          <button className={view === 'coaches' ? 'active' : ''} onClick={() => navTo('coaches')}>
-            Coach
-          </button>
           <button className={view === 'analysis' ? 'active' : ''} onClick={() => navTo('analysis')}>
             Analysis
+          </button>
+          {/* Set apart from the lesson-planning tabs above — a student on the
+              same device has no reason to poke at this one. Pushed to the far
+              end on desktop (there's room); on a phone, where the whole bar
+              already scrolls sideways, being last is itself the separation —
+              it's a deliberate scroll away, not sitting next to Practice. */}
+          <span className="nav-divider" aria-hidden="true" />
+          <button className={view === 'coaches' ? 'active' : ''} onClick={() => navTo('coaches')}>
+            Coach
           </button>
           <button
             className="nav-icon"
