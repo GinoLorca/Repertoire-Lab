@@ -1,0 +1,26 @@
+{
+  "name": "repertoire-lab",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/precache.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.116.0",
+    "canvas-confetti": "^1.9.4",
+    "chess.js": "^1.4.0",
+    "idb-keyval": "^6.2.1",
+    "react": "^18.3.1",
+    "react-chessboard": "^4.7.3",
+    "react-dom": "^18.3.1",
+    "tesseract.js": "^5.1.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "stockfish": "^16.0.0",
+    "vite": "^5.4.11"
+  }
+}

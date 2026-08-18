@@ -1,0 +1,6 @@
+# Only here so the US Chess rating lookup can run as a function on Netlify.
+# If functions aren't enabled for this deploy the app falls back to a public
+# reader, so ratings still work — see src/lib/ratings.js.
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
