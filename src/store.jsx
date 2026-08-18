@@ -488,6 +488,16 @@ function reducer(state, action) {
           ? { ...g, meta: { ...(g.meta ?? {}), flags: action.flags } }
           : g)),
       }));
+    // A photo of the scoresheet — quick to grab in the moment (or for a game
+    // there's no time to sit down and analyze), for reference later even
+    // when there isn't time to enter and analyze the whole thing.
+    case 'setGamePhoto':
+      return mapPlayer(state, action.playerId, (p) => ({
+        ...p,
+        games: p.games.map((g) => (g.id === action.gameId
+          ? { ...g, meta: { ...(g.meta ?? {}), photo: action.photo } }
+          : g)),
+      }));
     case 'moveGameToPlayer': {
       const from = state.players.find((p) => p.id === action.fromPlayerId);
       const game = from?.games.find((g) => g.id === action.gameId);

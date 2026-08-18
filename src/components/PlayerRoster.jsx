@@ -12,6 +12,7 @@ import VariationViewer from '../components/VariationViewer';
 import GameEditor from '../components/GameEditor';
 import PlayerEditor from '../components/PlayerEditor';
 import Avatar from '../components/Avatar';
+import ScoresheetPhoto from '../components/ScoresheetPhoto';
 import { flagLabel, flagColor } from '../lib/gameFlags';
 import { useBackGuard } from '../lib/backGuard';
 import {
@@ -66,7 +67,7 @@ function GameHeader({ game }) {
 }
 
 function GameRow({
-  game, playerId, category, index, state, onAnalyze, onView, onEdit, onSetCategory, onDelete,
+  game, playerId, category, index, state, onAnalyze, onView, onEdit, onSetCategory, onSetPhoto, onDelete,
 }) {
   const m = game.meta ?? {};
   const res = resultFor(game);
@@ -98,6 +99,7 @@ function GameRow({
       <div className="game-card-top">
         <GameHeader game={game} />
         <span style={{ flex: 1 }} />
+        <ScoresheetPhoto photo={m.photo} onChange={onSetPhoto} />
         <button className="small ghost" title="Game details" onClick={() => setOpenInfo((o) => !o)}>
           {openInfo ? 'Hide info' : 'Info'}
         </button>
@@ -438,6 +440,9 @@ function PlayerPage({
           })}
           onSetCategory={(categoryId) => dispatch({
             type: 'setGameCategory', playerId: player.id, gameId: game.id, categoryId,
+          })}
+          onSetPhoto={(photo) => dispatch({
+            type: 'setGamePhoto', playerId: player.id, gameId: game.id, photo,
           })}
           onDelete={() => {
             if (window.confirm(`Delete "${game.name}"?`)) {
