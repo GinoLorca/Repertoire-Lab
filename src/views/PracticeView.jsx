@@ -731,6 +731,16 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
     resetPerItem(next);
   };
 
+  // From the finish bar: back to the teach phase (moves shown, then recalled)
+  // for one more full pass, rather than straight to blind recall like
+  // "Practice again" does. resetPerItem picks the phase from the item's own
+  // kind, which for anything but a fresh 'learn' item lands on 'run' — this
+  // just overrides that afterwards, in the same click.
+  const learnAgain = () => {
+    resetPerItem(current);
+    setPhase('teach');
+  };
+
   // Move straight on when a line is finished, rather than dropping out of the
   // session. A short pause leaves time to read the result and see the confetti.
   useEffect(() => {
@@ -1198,7 +1208,13 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
                 <BookIcon size={15} /> Study
               </button>
               <button
-                title="Practice this variation again, from move 1"
+                title="See the moves again first, then recall them without a preview"
+                onClick={learnAgain}
+              >
+                <CapIcon size={15} /> Learn again
+              </button>
+              <button
+                title="Straight to blind recall, no preview — one more go"
                 onClick={() => goTo(qi)}
               >
                 <SkipStartIcon size={15} /> Practice again
