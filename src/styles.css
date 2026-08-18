@@ -1954,6 +1954,12 @@ input[type="date"] {
 }
 .import-warn { display: inline-flex; align-items: center; gap: 5px; color: var(--warn, #e2a03f); font-size: 13px; }
 
+/* Course-mode import: one scrollable column of event groups, each holding
+   its own (uncapped) list of lines, rather than a stack of small scrollboxes. */
+.import-groups { max-height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+.import-group-head { font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
+.import-group .import-list { max-height: none; overflow: visible; }
+
 /* Repertoire line names are long; the picker takes what's there and no more,
    so it can't push the page sideways on a phone. */
 .line-picker { min-width: 0; max-width: 100%; flex: 1 1 240px; }

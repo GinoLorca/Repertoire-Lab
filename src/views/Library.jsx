@@ -1053,6 +1053,13 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                               </button>
                               <span className="spacer" />
                               <button
+                                className="small ghost"
+                                title="Drop in a course PGN — each distinct Event becomes its own chapter here automatically"
+                                onClick={() => setModal({ kind: 'importCoursePgn', openingId: opening.id, courseId: course.id, courseName: course.name })}
+                              >
+                                <UploadIcon size={14} /> Import PGN
+                              </button>
+                              <button
                                 className={`small${t.due > 0 ? ' primary' : ' ghost'}`}
                                 disabled={t.variations === 0}
                                 title={t.due > 0
@@ -1271,6 +1278,23 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
             chapterId: modal.chapterId,
             variations,
           })}
+        />
+      )}
+      {modal?.kind === 'importCoursePgn' && (
+        <PgnImport
+          courseName={modal.courseName}
+          onClose={() => setModal(null)}
+          onAdd={(groups) => {
+            for (const g of groups) {
+              const chapterId = uid();
+              dispatch({
+                type: 'addChapter', id: chapterId, openingId: modal.openingId, courseId: modal.courseId, name: g.name,
+              });
+              dispatch({
+                type: 'addVariations', openingId: modal.openingId, chapterId, variations: g.variations,
+              });
+            }
+          }}
         />
       )}
       {modal?.kind === 'artwork' && (() => {
