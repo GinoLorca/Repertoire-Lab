@@ -459,6 +459,31 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
     downloadText(`repertoire-lab-backup-${stamp}.json`, JSON.stringify(payload));
   };
 
+  // A small one-course export — just what you've learned and how each line's
+  // due, for whichever course you were just working through — so carrying
+  // progress to another device after a session doesn't mean digging up a
+  // full backup. `kind: 'progress'` marks it as partial: the restore screen
+  // only offers Merge for one of these, never Replace everything (a file
+  // this small "replacing" a whole device's repertoire would be a disaster).
+  const saveCourseProgress = (openingId, courseId, courseName) => {
+    const opening = state.openings.find((o) => o.id === openingId);
+    if (!opening) return;
+    const chapters = opening.chapters.filter((c) => (c.courseId ?? null) === courseId);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const payload = {
+      app: 'repertoire-lab',
+      version: 2,
+      kind: 'progress',
+      savedAt: new Date().toISOString(),
+      openings: [{ ...opening, chapters }],
+      players: [],
+      categories: [],
+      playlists: [],
+      settings: state.settings,
+    };
+    downloadText(`progress-${safeFilename(courseName)}-${stamp}.json`, JSON.stringify(payload));
+  };
+
   const summarise = (parsed) => {
     const variations = (parsed.openings ?? []).reduce(
       (a, o) => a + o.chapters.reduce((b, c) => b + c.variations.length, 0), 0,
@@ -1072,6 +1097,14 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                                 <PlayIcon size={14} /> Practice course{t.due > 0 ? ` (${t.due})` : ''}
                               </button>
                               <button
+                                className="small ghost"
+                                disabled={t.variations === 0}
+                                title={`Save just what you've learned in ${course.name} to a small file — Restore it on another device to merge this course's progress in`}
+                                onClick={() => saveCourseProgress(opening.id, course.id, course.name)}
+                              >
+                                <DownloadIcon size={14} /> Save progress
+                              </button>
+                              <button
                                 className="small ghost danger"
                                 title="Delete the course — its chapters move back up to the opening"
                                 onClick={() => {
@@ -1156,13 +1189,20 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
       {modal?.kind === 'restore' && (
         <div className="modal-overlay" onClick={() => setModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Restore this backup?</h3>
-            <p className="hint">
-              <strong>Merge</strong> keeps whatever's already on this device too — a line learned or
-              practiced on either side stays learned, and nothing here gets deleted just because the
-              file doesn't have it. <strong>Replace everything</strong> wipes this device first, so
-              anything you've done here since your last backup (progress included) is lost.
-            </p>
+            <h3>{modal.parsed.kind === 'progress' ? 'Restore this progress file?' : 'Restore this backup?'}</h3>
+            {modal.parsed.kind === 'progress' ? (
+              <p className="hint">
+                A one-course progress update — merges straight into whatever's already here. Anything
+                learned on either side stays learned; nothing else on this device is touched.
+              </p>
+            ) : (
+              <p className="hint">
+                <strong>Merge</strong> keeps whatever's already on this device too — a line learned or
+                practiced on either side stays learned, and nothing here gets deleted just because the
+                file doesn't have it. <strong>Replace everything</strong> wipes this device first, so
+                anything you've done here since your last backup (progress included) is lost.
+              </p>
+            )}
             <div className="gi-grid" style={{ marginBottom: 12 }}>
               <div><span>Openings</span><strong>{modal.parsed.openings.length}</strong></div>
               <div><span>Variations</span><strong>{modal.summary.variations}</strong></div>
@@ -1171,16 +1211,18 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
             </div>
             <div className="modal-actions">
               <button onClick={() => setModal(null)}>Cancel</button>
-              <button
-                className="ghost danger"
-                title="Discards anything on this device the file doesn't already have — including progress"
-                onClick={() => {
-                  dispatch({ type: 'hydrate', state: modal.parsed });
-                  setModal(null);
-                }}
-              >
-                Replace everything
-              </button>
+              {modal.parsed.kind !== 'progress' && (
+                <button
+                  className="ghost danger"
+                  title="Discards anything on this device the file doesn't already have — including progress"
+                  onClick={() => {
+                    dispatch({ type: 'hydrate', state: modal.parsed });
+                    setModal(null);
+                  }}
+                >
+                  Replace everything
+                </button>
+              )}
               <button
                 className="primary"
                 title="Combines the file with what's already here, keeping progress from both sides"
