@@ -731,14 +731,17 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
     resetPerItem(next);
   };
 
-  // From the finish bar: back to the teach phase (moves shown, then recalled)
-  // for one more full pass, rather than straight to blind recall like
-  // "Practice again" does. resetPerItem picks the phase from the item's own
-  // kind, which for anything but a fresh 'learn' item lands on 'run' — this
-  // just overrides that afterwards, in the same click.
+  // The two finish-bar retries, forcing the phase resetPerItem would
+  // otherwise pick from the item's own kind — which for a just-learned item
+  // (kind 'learn') is 'teach' either way, making both buttons behave
+  // identically right when it matters most (the line you just learned).
   const learnAgain = () => {
     resetPerItem(current);
-    setPhase('teach');
+    setPhase('teach'); // moves shown again first
+  };
+  const practiceAgain = () => {
+    resetPerItem(current);
+    setPhase('run'); // straight to blind recall — the actual test
   };
 
   // Move straight on when a line is finished, rather than dropping out of the
@@ -1215,7 +1218,7 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
               </button>
               <button
                 title="Straight to blind recall, no preview — one more go"
-                onClick={() => goTo(qi)}
+                onClick={practiceAgain}
               >
                 <SkipStartIcon size={15} /> Practice again
               </button>
