@@ -1770,8 +1770,16 @@ input[type="date"] {
   display: flex; align-items: center; justify-content: center;
 }
 .mb-sq.dark { background: var(--board-dark); }
-.mb-piece.white { color: #fff; text-shadow: 0 0 1px #24303f, 0 1px 1px rgba(0,0,0,0.45); }
-.mb-piece.black { color: #10151d; text-shadow: 0 1px 1px rgba(255,255,255,0.18); }
+.mb-piece.white {
+  color: #fff;
+  -webkit-text-stroke: 0.5px #1b2430;
+  text-shadow: 0 0 1px #24303f, 0 1px 1px rgba(0,0,0,0.45);
+}
+.mb-piece.black {
+  color: #10151d;
+  -webkit-text-stroke: 0.5px #eef2f7;
+  text-shadow: 0 1px 1px rgba(255,255,255,0.18);
+}
 
 /* Captured-material readout — chess.com's little row of icons plus a "+N"
    under each player. Reserves its height even empty so the board doesn't
@@ -1780,8 +1788,18 @@ input[type="date"] {
   display: flex; align-items: center; min-height: 20px; font-size: 17px; line-height: 1;
 }
 .material-piece { margin-right: -4px; }
-.material-piece.white { color: #fff; text-shadow: 0 0 1px #24303f, 0 1px 1px rgba(0,0,0,0.45); }
-.material-piece.black { color: #10151d; text-shadow: 0 1px 1px rgba(255,255,255,0.25); }
+/* A real vector rim (not just a shadow) so a piece never disappears into a
+   same-tone background — white pieces in light mode, black in dark mode. */
+.material-piece.white {
+  color: #fff;
+  -webkit-text-stroke: 0.6px #1b2430;
+  text-shadow: 0 0 1px #24303f, 0 1px 1px rgba(0,0,0,0.45);
+}
+.material-piece.black {
+  color: #10151d;
+  -webkit-text-stroke: 0.6px #eef2f7;
+  text-shadow: 0 1px 1px rgba(255,255,255,0.25);
+}
 .material-adv { margin-left: 8px; font-size: 12.5px; font-weight: 700; color: var(--green); }
 
 @media (max-width: 620px) {
