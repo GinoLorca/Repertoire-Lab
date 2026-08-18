@@ -548,10 +548,20 @@ export default function AnalysisView({ initialLine }) {
   useEffect(() => {
     if (!colEl || typeof ResizeObserver === 'undefined') return undefined;
     const read = (w) => { if (w > 200) setColW(w); };
-    const ro = new ResizeObserver(([entry]) => read(entry.contentRect.width));
+    // Debounced past react-chessboard's ~300ms move animation: the scrollbar
+    // flickering in or out as the engine panel repaints right after a move
+    // used to resize the board mid-slide, stranding the piece between
+    // squares — its animation was computed for the old square size, and the
+    // new one landed under it before that slide finished.
+    let pending = null;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width;
+      clearTimeout(pending);
+      pending = setTimeout(() => read(w), 350);
+    });
     ro.observe(colEl);
-    read(colEl.getBoundingClientRect().width);
-    return () => ro.disconnect();
+    read(colEl.getBoundingClientRect().width); // the initial measurement can land immediately
+    return () => { clearTimeout(pending); ro.disconnect(); };
   }, [colEl]);
 
   // Stacking is a coarse decision, so a stray 15px can't flip it.
