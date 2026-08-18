@@ -22,6 +22,9 @@ function AppInner() {
   const [practiceScope, setPracticeScope] = useState(undefined);
   const [analysisLine, setAnalysisLine] = useState(null);
   const [verifyDraft, setVerifyDraft] = useState(null);
+  // A photo archived earlier from "Scan this photo" on a game with no moves
+  // yet — carried to Import so it can be fed straight into the OCR pipeline.
+  const [resumePhoto, setResumePhoto] = useState(null);
   const lastChapterId = useRef(null);
   const revealChapter = useRef(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -192,6 +195,13 @@ function AppInner() {
     });
   };
 
+  const scanPhoto = ({ playerId, gameId, gameName, photo }) => {
+    go(() => {
+      setResumePhoto({ playerId, gameId, gameName, photo });
+      setView('import');
+    });
+  };
+
   const openLibraryFor = (studentId) => {
     setLibraryScope(studentId);
     go(() => setView('library'));
@@ -324,6 +334,8 @@ function AppInner() {
           onDone={(dest) => setView(dest === 'games' ? 'games' : 'library')}
           onAnalyze={analyze}
           onVerify={(d) => { setVerifyDraft(d); setView('verify'); }}
+          resumePhoto={resumePhoto}
+          onResumePhotoUsed={() => setResumePhoto(null)}
         />
       )}
       {view === 'verify' && verifyDraft && (
@@ -341,9 +353,14 @@ function AppInner() {
           onExit={goBack}
         />
       )}
-      {view === 'games' && <GamesView onAnalyze={analyze} />}
+      {view === 'games' && <GamesView onAnalyze={analyze} onScan={scanPhoto} />}
       {view === 'coaches' && (
-        <CoachesView onAnalyze={analyze} onOpenLibrary={openLibraryFor} onOpenCollections={openCollectionsFor} />
+        <CoachesView
+          onAnalyze={analyze}
+          onScan={scanPhoto}
+          onOpenLibrary={openLibraryFor}
+          onOpenCollections={openCollectionsFor}
+        />
       )}
       {view === 'settings' && <SettingsView />}
       <MigratePlayersModal />

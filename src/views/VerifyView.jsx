@@ -90,7 +90,11 @@ export default function VerifyView({ draft, onCancel, onAnalyze, onSaved }) {
   const [selected, setSelected] = useState(draft.moves.length);
   const [textMode, setTextMode] = useState(false);
   const [textDraft, setTextDraft] = useState('');
-  const [playerSel, setPlayerSel] = useState(state.players[0]?.id ?? '');
+  // A photo scanned from an already-archived "photo only" game updates that
+  // same game in place rather than picking (or creating) a destination.
+  const resumeGame = draft.resumeGame ?? null;
+  const resumePlayer = resumeGame ? state.players.find((p) => p.id === resumeGame.playerId) : null;
+  const [playerSel, setPlayerSel] = useState(resumeGame?.playerId ?? state.players[0]?.id ?? '');
   const [newPlayerName, setNewPlayerName] = useState('');
   const viewportWidth = useViewportWidth();
 
@@ -150,6 +154,16 @@ export default function VerifyView({ draft, onCancel, onAnalyze, onSaved }) {
   const verifiedMoves = rows.filter((r) => r.status === 'ok').map((r) => r.san);
 
   const saveToGames = () => {
+    if (resumeGame) {
+      dispatch({
+        type: 'updateGame',
+        playerId: resumeGame.playerId,
+        gameId: resumeGame.gameId,
+        game: { name, moves: verifiedMoves },
+      });
+      onSaved();
+      return;
+    }
     let playerId = playerSel;
     if (playerSel === '__new') {
       playerId = uid();
@@ -160,7 +174,17 @@ export default function VerifyView({ draft, onCancel, onAnalyze, onSaved }) {
   };
 
   const canSave = verifiedMoves.length > 0
-    && (playerSel === '__new' ? newPlayerName.trim() : playerSel);
+    && (resumeGame || (playerSel === '__new' ? newPlayerName.trim() : playerSel));
+
+  // The analysis board's own "edit in place" hookup — only meaningful when
+  // this scan updated a real saved game rather than creating one fresh.
+  const analyzeExtra = resumeGame
+    ? {
+      gameId: resumeGame.gameId,
+      playerId: resumeGame.playerId,
+      ownerId: resumePlayer?.kind === 'student' ? resumePlayer.id : null,
+    }
+    : {};
 
   const boardWidth = viewportWidth >= 1100 ? 380 : Math.min(340, viewportWidth - 60);
   // A photographed scoresheet gets the line-by-line review; a screenshot import
@@ -346,15 +370,19 @@ export default function VerifyView({ draft, onCancel, onAnalyze, onSaved }) {
         <div className="verify-count">
           <strong>{verifiedMoves.length}</strong> verified move{verifiedMoves.length === 1 ? '' : 's'} ready
         </div>
-        <label>
-          Save to
-          <select value={playerSel} onChange={(e) => setPlayerSel(e.target.value)}>
-            <option value="">Don't save</option>
-            {state.players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            <option value="__new">+ New group…</option>
-          </select>
-        </label>
-        {playerSel === '__new' && (
+        {resumeGame ? (
+          <span className="muted-note">Updating {resumePlayer?.name ?? 'this'}’s archived game</span>
+        ) : (
+          <label>
+            Save to
+            <select value={playerSel} onChange={(e) => setPlayerSel(e.target.value)}>
+              <option value="">Don't save</option>
+              {state.players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              <option value="__new">+ New group…</option>
+            </select>
+          </label>
+        )}
+        {!resumeGame && playerSel === '__new' && (
           <label className="grow">
             New group name
             <input
@@ -370,18 +398,22 @@ export default function VerifyView({ draft, onCancel, onAnalyze, onSaved }) {
         {sheetMode && (
           <button
             title="Send the moves through as they were read and fix anything on the analysis board"
-            onClick={() => onAnalyze({ name, moves: rows.filter((r) => r.status === 'ok').map((r) => r.san) })}
+            onClick={() => onAnalyze({
+              name, moves: rows.filter((r) => r.status === 'ok').map((r) => r.san), ...analyzeExtra,
+            })}
           >
             Skip checking
           </button>
         )}
-        <button disabled={!canSave} onClick={saveToGames}>Save to Games</button>
+        <button disabled={!canSave} onClick={saveToGames}>
+          {resumeGame ? 'Save moves' : 'Save to Games'}
+        </button>
         <button
           className="primary"
           disabled={verifiedMoves.length === 0}
           onClick={() => {
             if (canSave) saveToGames();
-            onAnalyze({ name, moves: verifiedMoves });
+            onAnalyze({ name, moves: verifiedMoves, ...analyzeExtra });
           }}
         >
           ✓ Commit &amp; Analyze

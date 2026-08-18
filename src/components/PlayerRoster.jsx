@@ -17,6 +17,7 @@ import { flagLabel, flagColor } from '../lib/gameFlags';
 import { useBackGuard } from '../lib/backGuard';
 import {
   BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon, StarIcon,
+  CameraIcon,
 } from '../components/Icons';
 
 // The handles a player is known by, with whatever live ratings we last fetched
@@ -67,13 +68,15 @@ function GameHeader({ game }) {
 }
 
 function GameRow({
-  game, playerId, category, index, state, onAnalyze, onView, onEdit, onSetCategory, onSetPhoto, onDelete,
+  game, playerId, category, index, state, onAnalyze, onView, onEdit, onSetCategory, onSetPhoto, onDelete, onScan,
 }) {
   const m = game.meta ?? {};
   const res = resultFor(game);
   const match = category.match;
   const options = useMemo(() => categoryOptions(state), [state]);
   const [openInfo, setOpenInfo] = useState(false);
+  // A photo archived for later — grabbed in a hurry, moves not typed in yet.
+  const unscanned = game.moves.length === 0 && !!m.photo;
   // The position the game finished in, for the thumbnail.
   const finalFen = useMemo(() => {
     const fens = lineFens(game.moves);
@@ -93,7 +96,7 @@ function GameRow({
           orientation={m.color === 'black' ? 'black' : 'white'}
           size={112}
         />
-        <span className="mb-caption">{game.moves.length} moves</span>
+        <span className="mb-caption">{unscanned ? 'Photo only' : `${game.moves.length} moves`}</span>
       </button>
       <div className="game-card-main">
       <div className="game-card-top">
@@ -118,6 +121,9 @@ function GameRow({
         {m.timeControl && <span>· {m.timeControl}</span>}
         {m.color && m.color !== 'none' && <span>· you had {m.color}</span>}
         <span>· {game.moves.length} moves</span>
+        {unscanned && (
+          <span className="scoresheet-unscanned"><AlertIcon size={12} /> Not yet scanned</span>
+        )}
       </div>
 
       <div className="game-cat-row">
@@ -187,13 +193,23 @@ function GameRow({
       <div className="row-foot">
         {m.notes && !openInfo && <span className="muted-note gi-peek">“{m.notes.slice(0, 90)}{m.notes.length > 90 ? '…' : ''}”</span>}
         <span style={{ flex: 1 }} />
-        <button
-          className="learn-btn primary"
-          title="Open this game on the analysis board with Stockfish and the explorer"
-          onClick={onAnalyze}
-        >
-          <PlayIcon size={14} /> Send to analysis board
-        </button>
+        {unscanned ? (
+          <button
+            className="learn-btn primary"
+            title="Read the moves off this photo — checked line by line before it's saved"
+            onClick={onScan}
+          >
+            <CameraIcon size={14} /> Scan this photo
+          </button>
+        ) : (
+          <button
+            className="learn-btn primary"
+            title="Open this game on the analysis board with Stockfish and the explorer"
+            onClick={onAnalyze}
+          >
+            <PlayIcon size={14} /> Send to analysis board
+          </button>
+        )}
       </div>
       </div>
       </div>
@@ -202,7 +218,7 @@ function GameRow({
 }
 
 function PlayerPage({
-  player, rosterTitle, onBack, onAnalyze, onEditProfile, onOpenLibrary, onOpenCollections,
+  player, rosterTitle, onBack, onAnalyze, onScan, onEditProfile, onOpenLibrary, onOpenCollections,
 }) {
   const { state, dispatch } = useStore();
   const [viewingGameId, setViewingGameId] = useState(null);
@@ -444,6 +460,12 @@ function PlayerPage({
           onSetPhoto={(photo) => dispatch({
             type: 'setGamePhoto', playerId: player.id, gameId: game.id, photo,
           })}
+          onScan={() => onScan({
+            playerId: player.id,
+            gameId: game.id,
+            gameName: game.name,
+            photo: game.meta?.photo,
+          })}
           onDelete={() => {
             if (window.confirm(`Delete "${game.name}"?`)) {
               dispatch({ type: 'deleteGame', playerId: player.id, gameId: game.id });
@@ -493,7 +515,7 @@ function PlayerPage({
 // (Coaches). Shared by both tabs; `kind` picks which half of state.players
 // shows and colours the copy.
 export default function PlayerRoster({
-  kind, title, subtitle, addLabel, emptyLabel, onAnalyze, onOpenLibrary, onOpenCollections,
+  kind, title, subtitle, addLabel, emptyLabel, onAnalyze, onScan, onOpenLibrary, onOpenCollections,
 }) {
   const { state, dispatch } = useStore();
   const [openPlayerId, setOpenPlayerId] = useState(null);
@@ -513,6 +535,7 @@ export default function PlayerRoster({
           rosterTitle={title}
           onBack={() => setOpenPlayerId(null)}
           onAnalyze={onAnalyze}
+          onScan={onScan}
           onEditProfile={() => setEditingPlayer(openPlayer)}
           onOpenLibrary={onOpenLibrary}
           onOpenCollections={onOpenCollections}

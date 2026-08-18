@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { movetextToLines, validateLine } from '../lib/pgn';
 import MoveText from './MoveText';
+import ScoresheetPhoto from './ScoresheetPhoto';
 import { EVENT_TYPES, RESULTS, categoryOptions, tidyEvent } from '../lib/games';
 import { useBackGuard } from '../lib/backGuard';
 
@@ -53,6 +54,7 @@ export default function GameEditor({ initial, state, player, onSave, onClose }) 
   const [timeControl, setTimeControl] = useState(m0.timeControl ?? '');
   const [notes, setNotes] = useState(m0.notes ?? '');
   const [categoryId, setCategoryId] = useState(m0.categoryId ?? '');
+  const [photo, setPhoto] = useState(m0.photo ?? null);
 
   useBackGuard(true, onClose);
 
@@ -133,17 +135,22 @@ export default function GameEditor({ initial, state, player, onSave, onClose }) 
 
   const name = `${white || 'White'} vs ${black || 'Black'}`;
 
+  // No time to transcribe right now? A photo alone is still worth keeping —
+  // it archives to the profile and can be typed in or scanned later.
+  const canSave = !!parsed?.moves || !!photo;
+
   const save = () => {
-    if (!parsed?.moves) return;
+    if (!canSave) return;
     onSave({
       name,
-      moves: parsed.moves,
-      comments: parsed.comments,
+      moves: parsed?.moves ?? [],
+      comments: parsed?.comments ?? {},
       date: date ? new Date(date).getTime() : Date.now(),
       meta: {
         white, whiteElo, black, blackElo,
         event, eventType, round, result, color, date, timeControl, notes,
         categoryId: categoryId || null,
+        photo,
       },
     });
   };
@@ -237,6 +244,15 @@ export default function GameEditor({ initial, state, player, onSave, onClose }) 
             </span>
           )}
         </div>
+
+        <div className="scoresheet-attach-row">
+          <ScoresheetPhoto photo={photo} onChange={setPhoto} />
+          <span className="hint" style={{ margin: 0 }}>
+            {photo
+              ? 'Photo archived to this game — type or scan the moves in whenever there’s time.'
+              : 'No time to transcribe? Attach a photo of the scoresheet and come back to it later.'}
+          </span>
+        </div>
         {parsed?.moves && (
           <div className="cmp-paste-preview">
             <MoveText moves={parsed.moves.slice(0, 30)} />
@@ -256,8 +272,8 @@ export default function GameEditor({ initial, state, player, onSave, onClose }) 
 
         <div className="modal-actions">
           <button onClick={onClose}>Cancel</button>
-          <button className="primary" disabled={!parsed?.moves} onClick={save}>
-            {initial?.id ? 'Save changes' : 'Save game'}
+          <button className="primary" disabled={!canSave} onClick={save}>
+            {initial?.id ? 'Save changes' : (parsed?.moves ? 'Save game' : 'Archive photo')}
           </button>
         </div>
       </div>

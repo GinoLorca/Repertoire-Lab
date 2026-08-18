@@ -110,7 +110,7 @@ function StatusLine({ entry }) {
   );
 }
 
-export default function ImportView({ onDone, onAnalyze, onVerify }) {
+export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, onResumePhotoUsed }) {
   // One abort handle per card, so a long read can be called off.
   const abortRefs = useRef({});
   // Ticks once a second purely so the elapsed time on a busy card updates.
@@ -213,11 +213,15 @@ export default function ImportView({ onDone, onAnalyze, onVerify }) {
         const raw = rawTokensFrom(text);
         const best = parsed[0];
         onVerify({
-          name: best?.name || 'Scoresheet game',
+          name: best?.name || card.label || 'Scoresheet game',
           moves: raw.length > 0 ? raw : (best?.moves ?? []),
           photos: previewUrls,
           // Handwriting gets the line-by-line review against the photo.
           handwritten: true,
+          // Set when this card came from a photo archived earlier on a
+          // player's game rather than a fresh upload — see startResume below.
+          // Verify then updates that same game instead of creating a new one.
+          resumeGame: card.resumeGame ?? null,
         });
       }
     } catch (err) {
@@ -274,6 +278,37 @@ export default function ImportView({ onDone, onAnalyze, onVerify }) {
       processImages(card, group, 0);
     }
   };
+
+  // A photo archived earlier from a game's "Scan this photo" button arrives
+  // here as a data URL, not a File — turn it back into one and feed it
+  // through the same pipeline a fresh upload would take.
+  const startResume = async (rp) => {
+    setTab('scoresheet');
+    const blob = await (await fetch(rp.photo)).blob();
+    const file = new File([blob], `${rp.gameName || 'scoresheet'}.jpg`, { type: blob.type || 'image/jpeg' });
+    const card = {
+      id: uid(),
+      mode: 'scoresheet',
+      label: rp.gameName || 'Scoresheet game',
+      urls: [URL.createObjectURL(file)],
+      files: [file],
+      rotate: 0,
+      status: 'processing',
+      text: '',
+      resumeGame: { playerId: rp.playerId, gameId: rp.gameId },
+    };
+    setCards((cs) => [...cs, card]);
+    processImages(card, [file], 0);
+  };
+
+  useEffect(() => {
+    if (resumePhoto?.photo) {
+      startResume(resumePhoto);
+      onResumePhotoUsed?.();
+    }
+    // Only ever fires for the photo App.jsx just handed us — not on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumePhoto]);
 
   // Rotate a card's photo(s) and re-read them — scoresheets are often sideways.
   const rotateCard = (card, delta) => {

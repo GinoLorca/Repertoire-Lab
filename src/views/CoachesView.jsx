@@ -5,7 +5,7 @@ import PlayerRoster from '../components/PlayerRoster';
 // lichess), their games, and their own repertoire — built once from the
 // Library's "Students" tab, it comes up automatically whenever you analyze
 // one of their games.
-export default function CoachesView({ onAnalyze, onOpenLibrary, onOpenCollections }) {
+export default function CoachesView({ onAnalyze, onScan, onOpenLibrary, onOpenCollections }) {
   return (
     <PlayerRoster
       kind="student"
@@ -17,6 +17,7 @@ export default function CoachesView({ onAnalyze, onOpenLibrary, onOpenCollection
       addLabel="+ Add student"
       emptyLabel="No students yet. Add one to start tracking their games and repertoire."
       onAnalyze={onAnalyze}
+      onScan={onScan}
       onOpenLibrary={onOpenLibrary}
       onOpenCollections={onOpenCollections}
     />
