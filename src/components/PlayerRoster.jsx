@@ -12,7 +12,7 @@ import VariationViewer from '../components/VariationViewer';
 import GameEditor from '../components/GameEditor';
 import PlayerEditor from '../components/PlayerEditor';
 import Avatar from '../components/Avatar';
-import { TagChips } from '../components/TagEditor';
+import { flagLabel, flagColor } from '../lib/gameFlags';
 import { useBackGuard } from '../lib/backGuard';
 import {
   BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon, StarIcon,
@@ -130,7 +130,15 @@ function GameRow({
             {` · ${match.bookPly} moves deep`}
           </span>
         )}
-        <TagChips tags={m.tags} max={4} />
+        {m.flags?.length > 0 && (
+          <span className="flag-picker">
+            {m.flags.map((f) => (
+              <span key={f} className="flag-chip active" style={{ background: flagColor(f), borderColor: flagColor(f) }}>
+                {flagLabel(f)}
+              </span>
+            ))}
+          </span>
+        )}
         <span style={{ flex: 1 }} />
         <select
           className="cat-select"

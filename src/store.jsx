@@ -407,8 +407,12 @@ function reducer(state, action) {
           : g)),
       }));
     // Quick in-context editing from the analysis board — what a coach jots
-    // down while going over a student's game with them: what to remember,
-    // and themes (blunders, a tactic, an opening idea) to spot it again later.
+    // down while going over a game with a student. Notes are free text;
+    // flags are a fixed, separate vocabulary (blunder, hung mate, time
+    // trouble…) — see lib/gameFlags.js — deliberately not the repertoire's
+    // free-form Themes, so scanning several games for a common pattern
+    // means comparing the same handful of words every time, not whatever
+    // synonym got typed that day.
     case 'setGameNotes':
       return mapPlayer(state, action.playerId, (p) => ({
         ...p,
@@ -416,11 +420,11 @@ function reducer(state, action) {
           ? { ...g, meta: { ...(g.meta ?? {}), notes: action.notes } }
           : g)),
       }));
-    case 'setGameTags':
+    case 'setGameFlags':
       return mapPlayer(state, action.playerId, (p) => ({
         ...p,
         games: p.games.map((g) => (g.id === action.gameId
-          ? { ...g, meta: { ...(g.meta ?? {}), tags: action.tags } }
+          ? { ...g, meta: { ...(g.meta ?? {}), flags: action.flags } }
           : g)),
       }));
     case 'moveGameToPlayer': {
