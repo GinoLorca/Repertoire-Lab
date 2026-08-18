@@ -2016,10 +2016,18 @@ input[type="date"] {
   display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; align-items: center;
   font-size: 14px;
 }
-.shortcut-grid kbd {
+.shortcut-grid kbd, .kbd-edit {
   background: var(--panel); border: 1px solid var(--border); border-bottom-width: 2px;
   border-radius: 6px; padding: 2px 7px; font-size: 12.5px; font-family: inherit;
   color: var(--text); justify-self: start;
+}
+.kbd-edit {
+  cursor: pointer; min-width: 28px; text-align: center;
+}
+.kbd-edit:hover { border-color: var(--accent-dim); }
+.kbd-edit.listening {
+  border-color: var(--accent); color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 .mt-move {
   background: none; border: none; text-align: left;

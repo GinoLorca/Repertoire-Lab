@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../store';
 import SoundsSection from './SoundsView';
 import { resolveTheme, themeForHour } from '../lib/theme';
+import {
+  PENS, SHORTCUTS, shortcutKey,
+} from '../lib/shortcuts';
 
 function Toggle({ label, hint, on, onChange }) {
   return (
@@ -36,6 +39,81 @@ function Section({ title, hint, children, defaultOpen = true }) {
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 const hourLabel = (h) => `${String(h).padStart(2, '0')}:00`;
+
+// The rebindable analysis-board shortcuts, click-to-capture. Binding a key
+// already used elsewhere swaps the two rather than leaving one unreachable.
+function ShortcutEditor({ settings, set }) {
+  const [listening, setListening] = useState(null); // a shortcut id, while waiting for a keypress
+
+  useEffect(() => {
+    if (!listening) return undefined;
+    const onKey = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === 'Escape') { setListening(null); return; }
+      if (e.metaKey || e.ctrlKey || e.altKey) return; // wait for the plain key
+      if (e.key.length !== 1) return; // named keys (Tab, F5, …) aren't bindable
+      const key = e.key.toLowerCase();
+      const current = { ...(settings.shortcuts ?? {}) };
+      const holder = SHORTCUTS.find((s) => s.id !== listening && shortcutKey(settings, s.id) === key);
+      if (holder) current[holder.id] = shortcutKey(settings, listening);
+      current[listening] = key;
+      set({ shortcuts: current });
+      setListening(null);
+    };
+    window.addEventListener('keydown', onKey, { capture: true });
+    return () => window.removeEventListener('keydown', onKey, { capture: true });
+  }, [listening, settings, set]);
+
+  const customized = Object.keys(settings.shortcuts ?? {}).length > 0;
+  const defaultPenId = settings.defaultPen ?? 'green';
+
+  return (
+    <>
+      <div className="settings-row">
+        <span>Default pen colour — what a drag draws in when no pen key is held</span>
+      </div>
+      <span className="pens">
+        {PENS.map((p) => (
+          <button
+            key={p.id}
+            className={`pen${defaultPenId === p.id ? ' active' : ''}`}
+            style={{ background: p.value }}
+            title={p.name}
+            onClick={() => set({ defaultPen: p.id })}
+          />
+        ))}
+      </span>
+      <div className="shortcut-grid" style={{ marginTop: 14 }}>
+        <React.Fragment><kbd>← →</kbd><span>Step back and forward through the moves</span></React.Fragment>
+        <React.Fragment><kbd>↑ ↓</kbd><span>Analysis: start / end · Practice: previous / next line</span></React.Fragment>
+        {SHORTCUTS.map((s) => (
+          <React.Fragment key={s.id}>
+            <button
+              className={`kbd-edit${listening === s.id ? ' listening' : ''}`}
+              onClick={() => setListening(s.id)}
+              title="Click, then press a key"
+            >
+              {listening === s.id ? '…' : shortcutKey(settings, s.id).toUpperCase()}
+            </button>
+            <span>{s.label}</span>
+          </React.Fragment>
+        ))}
+        <React.Fragment><kbd>H</kbd><span>Practice: hint</span></React.Fragment>
+        <React.Fragment><kbd>?</kbd><span>The shortcut list, on the analysis board</span></React.Fragment>
+      </div>
+      <p className="hint">
+        Click a key above, then press its replacement — <kbd>Esc</kbd> cancels. Taking a key that's
+        already in use swaps the two.
+      </p>
+      {customized && (
+        <button className="small ghost" onClick={() => set({ shortcuts: {} })}>
+          Reset all to defaults
+        </button>
+      )}
+    </>
+  );
+}
 
 const SPEEDS = [
   ['fast', 'Fast', 'The reply comes straight back — best when you know the line'],
@@ -209,23 +287,8 @@ export default function SettingsView() {
         />
       </Section>
 
-      <Section title="Keyboard" hint="On the analysis board and in practice">
-        <div className="shortcut-grid">
-          {[
-            ['← →', 'Step back and forward through the moves'],
-            ['↑ ↓', 'Analysis: start / end · Practice: previous / next line'],
-            ['X', 'Flip the board'],
-            ['E', 'Start or stop the engine'],
-            ['A / L / B', 'Engine arrows · engine lines · evaluation bar'],
-            ['K', 'Highlight the king in check'],
-            ['D', 'Drawing mode'],
-            ['O', 'Switch Engine / Explorer'],
-            ['H', 'Practice: hint'],
-            ['?', 'The shortcut list, on the analysis board'],
-          ].map(([key, what]) => (
-            <React.Fragment key={key}><kbd>{key}</kbd><span>{what}</span></React.Fragment>
-          ))}
-        </div>
+      <Section title="Keyboard" hint="On the analysis board — click a key to rebind it">
+        <ShortcutEditor settings={s} set={set} />
       </Section>
 
       <Section title="Opening explorer" defaultOpen={false}>

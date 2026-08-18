@@ -23,27 +23,11 @@ import {
 import {
   BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon,
 } from '../components/Icons';
+import {
+  PENS, SHORTCUTS, defaultPen, shortcutKey, shortcutMap,
+} from '../lib/shortcuts';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-
-// Annotation colours. Shift is deliberately unused — on Firefox it pops the
-// menu bar — so Option and Command carry the alternates instead.
-const PENS = [
-  { name: 'Green (no key)', value: '#2ecc71' },
-  { name: 'Red (Option)', value: '#e5534b' },
-  { name: 'Blue (Command)', value: '#3b9cff' },
-  { name: 'Yellow (Option+Command)', value: '#e8b339' },
-];
-
-// Modifier held while right-click-dragging overrides the selected pen.
-function penFor(e, fallback) {
-  const opt = e.altKey;
-  const cmd = e.metaKey || e.ctrlKey;
-  if (opt && cmd) return '#e8b339';
-  if (opt) return '#e5534b';
-  if (cmd) return '#3b9cff';
-  return fallback;
-}
 
 const EMPTY_MARKS = { arrows: [], squares: {} };
 
@@ -80,7 +64,15 @@ export default function AnalysisView({ initialLine }) {
   // ---------- Board annotations (arrows + square highlights) ----------
   // Kept per position, so stepping back and forth keeps each position's marks.
   const [annotations, setAnnotations] = useState({});
-  const [drawColor, setDrawColor] = useState(PENS[0].value);
+  // The active pen — what a touch drag draws in, and a mouse drag falls back
+  // to when no pen key (below) is held. Starts at, and resets to, whatever
+  // Settings → default pen colour says; the swatches can still change it
+  // in between for a touch user, who has no key to hold.
+  const [drawColor, setDrawColor] = useState(() => defaultPen(state.settings).value);
+  useEffect(() => {
+    setDrawColor(defaultPen(state.settings).value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.settings.defaultPen]);
   const [drawMode, setDrawMode] = useState(false);
   const [drawFrom, setDrawFrom] = useState(null);
   const [picked, setPicked] = useState(null); // click-to-move: the piece you tapped
@@ -129,8 +121,11 @@ export default function AnalysisView({ initialLine }) {
   const fenRef = useRef(fen); // read by the engine listener, which is set up once
   fenRef.current = fen;
 
-  // Keyboard, roughly what chess.com and Lichess use.
+  // Keyboard, roughly what chess.com and Lichess use — the letter/digit keys
+  // below are rebindable from Settings → Keyboard; lib/shortcuts.js holds the
+  // defaults and current bindings.
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const keyMap = useMemo(() => shortcutMap(state.settings), [state.settings.shortcuts]);
   useEffect(() => {
     const onKey = (e) => {
       const tag = e.target.tagName;
@@ -138,32 +133,34 @@ export default function AnalysisView({ initialLine }) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const settings = (patch) => dispatch({ type: 'setSettings', settings: patch });
       switch (e.key) {
-        case 'ArrowLeft': e.preventDefault(); setPly(ply - 1); break;
-        case 'ArrowRight': e.preventDefault(); setPly(ply + 1); break;
-        case 'ArrowUp': e.preventDefault(); setPly(0); break;
-        case 'ArrowDown': e.preventDefault(); setPly(moves.length); break;
-        case 'Home': e.preventDefault(); setPly(0); break;
-        case 'End': e.preventDefault(); setPly(moves.length); break;
-        // X flips the board, the way chess.com does it; F does too, for anyone
-        // coming from Lichess.
-        case 'x': case 'X':
-        case 'f': case 'F': setOrientation((o) => (o === 'white' ? 'black' : 'white')); break;
-        case 'e': case 'E': setEngineOn((v) => !v); break;
-        case 'a': case 'A': settings({ engineArrows: !showEngineArrows }); break;
-        case 'l': case 'L': settings({ engineLines: !showEngineLines }); break;
-        case 'b': case 'B': settings({ evalBar: !showEvalBar }); break;
-        case 'd': case 'D': setDrawMode((d) => !d); break;
-        case 'k': case 'K': settings({ checkHighlight: state.settings.checkHighlight === false }); break;
-        case 'o': case 'O': setSidePane((p) => (p === 'engine' ? 'explorer' : 'engine')); break;
-        case '?': setShortcutsOpen((o) => !o); break;
-        case 'Escape': setShortcutsOpen(false); break;
+        case 'ArrowLeft': e.preventDefault(); setPly(ply - 1); return;
+        case 'ArrowRight': e.preventDefault(); setPly(ply + 1); return;
+        case 'ArrowUp': e.preventDefault(); setPly(0); return;
+        case 'ArrowDown': e.preventDefault(); setPly(moves.length); return;
+        case 'Home': e.preventDefault(); setPly(0); return;
+        case 'End': e.preventDefault(); setPly(moves.length); return;
+        case '?': setShortcutsOpen((o) => !o); return;
+        case 'Escape': setShortcutsOpen(false); return;
+        default: break;
+      }
+      // Pen keys aren't here — they're held during a drag (see currentPenColor
+      // above), not pressed once to fire an action.
+      switch (keyMap[e.key.toLowerCase()]) {
+        case 'flipBoard': setOrientation((o) => (o === 'white' ? 'black' : 'white')); break;
+        case 'toggleEngine': setEngineOn((v) => !v); break;
+        case 'toggleArrows': settings({ engineArrows: !showEngineArrows }); break;
+        case 'toggleLines': settings({ engineLines: !showEngineLines }); break;
+        case 'toggleEvalBar': settings({ evalBar: !showEvalBar }); break;
+        case 'toggleCheckHighlight': settings({ checkHighlight: state.settings.checkHighlight === false }); break;
+        case 'toggleDrawMode': setDrawMode((d) => !d); break;
+        case 'switchExplorer': setSidePane((p) => (p === 'engine' ? 'explorer' : 'engine')); break;
         default: break;
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moves.length, ply, lineNodes, showEngineArrows, showEngineLines, showEvalBar]);
+  }, [moves.length, ply, lineNodes, showEngineArrows, showEngineLines, showEvalBar, keyMap]);
 
   // ---------- Repertoire awareness ----------
 
@@ -243,6 +240,38 @@ export default function AnalysisView({ initialLine }) {
       : [...m.arrows.filter((a) => !(a[0] === from && a[1] === to)), [from, to, color]],
   }));
 
+  // Which pen keys (see lib/shortcuts.js) are currently held down, checked
+  // at the end of a drag rather than a single keydown — so holding one
+  // colours just that one arrow without touching any persistent selection.
+  // Tracked independently of the action shortcuts below: pen keys are meant
+  // to be held through a drag, not fired once.
+  const heldKeysRef = useRef(new Set());
+  useEffect(() => {
+    const isTypingTarget = (e) => ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
+    const onKeyDown = (e) => { if (!isTypingTarget(e)) heldKeysRef.current.add(e.key.toLowerCase()); };
+    const onKeyUp = (e) => heldKeysRef.current.delete(e.key.toLowerCase());
+    const onBlur = () => heldKeysRef.current.clear(); // a held key surviving a tab-switch would get stuck "on"
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
+
+  // The colour a drag ending right now would use: whichever pen's key is
+  // held, or the pen picked as the default (Settings → default pen colour,
+  // and the pen swatches below) if none is.
+  const currentPenColor = () => {
+    for (const pen of PENS) {
+      const key = shortcutKey(state.settings, pen.shortcutId);
+      if (key && heldKeysRef.current.has(key)) return pen.value;
+    }
+    return drawColor;
+  };
+
   // Right-click drag on a mouse: press on the origin square, release on the
   // target. Arrows are owned entirely here, because react-chessboard clears
   // its own whenever the controlled `customArrows` prop changes.
@@ -265,9 +294,46 @@ export default function AnalysisView({ initialLine }) {
     const to = squareAt(e);
     rightFrom.current = null;
     if (!from || !to) return;
-    const color = penFor(e, drawColor);
+    const color = currentPenColor();
     if (from === to) toggleSquare(from, color);
     else addArrow(from, to, color);
+  };
+
+  // Draw mode (mouse, trackpad or touch — needed on iPad, which has no
+  // right-click): press a square and drag to another for an arrow, release
+  // without moving for a highlight. This has to be pointer-driven rather than
+  // built on `click`/`onSquareClick`, because a native click only fires when
+  // press and release land on the same element — a real drag (what everyone
+  // reaches for first, on a mouse or a finger) would otherwise fire nothing
+  // and silently do nothing, which is the "sometimes the arrow just doesn't
+  // come out" behaviour. Touch also implicitly locks a pointer's `target` to
+  // wherever the gesture started, so the square under the finger at release
+  // has to be found with elementFromPoint, not e.target.
+  const squareFromPoint = (x, y) => document.elementFromPoint(x, y)
+    ?.closest?.('[data-square]')?.getAttribute('data-square') ?? null;
+
+  // Right-click still runs its own always-on handler above (with the same
+  // held-pen-key trick), so a mouse's right button is excluded here to avoid
+  // both systems firing on one drag.
+  const isDrawButton = (e) => e.pointerType !== 'mouse' || e.button === 0;
+
+  const onDrawPointerDown = (e) => {
+    if (!drawMode || !e.isPrimary || !isDrawButton(e)) return;
+    const square = squareFromPoint(e.clientX, e.clientY);
+    if (!square) return;
+    e.preventDefault();
+    setDrawFrom(square);
+  };
+
+  const onDrawPointerUp = (e) => {
+    if (!drawMode || !e.isPrimary || !drawFrom || !isDrawButton(e)) return;
+    const square = squareFromPoint(e.clientX, e.clientY);
+    if (square) {
+      const color = currentPenColor();
+      if (square === drawFrom) toggleSquare(square, color);
+      else addArrow(drawFrom, square, color);
+    }
+    setDrawFrom(null);
   };
 
   const toggleSquare = (square, color = drawColor) => updateMarks((m) => {
@@ -391,27 +457,16 @@ export default function AnalysisView({ initialLine }) {
     return true;
   };
 
-  // Draw mode (needed on iPad, where there's no right-click): tap a square to
-  // highlight it, or tap two squares to draw an arrow between them.
   const onSquareClick = (square) => {
-    if (!drawMode) {
-      // Click-to-move, so a trackpad or a finger can play without dragging.
-      if (picked) {
-        const played = onPieceDrop(picked, square);
-        setPicked(played ? null : (position?.get(square) ? square : null));
-        return;
-      }
-      const piece = position?.get(square);
-      if (piece && piece.color === position.turn()) setPicked(square);
+    if (drawMode) return; // press-and-drag owns drawing now, see onDrawPointer* below
+    // Click-to-move, so a trackpad or a finger can play without dragging.
+    if (picked) {
+      const played = onPieceDrop(picked, square);
+      setPicked(played ? null : (position?.get(square) ? square : null));
       return;
     }
-    if (!drawFrom) { setDrawFrom(square); return; }
-    if (drawFrom === square) {
-      toggleSquare(square);
-    } else {
-      addArrow(drawFrom, square);
-    }
-    setDrawFrom(null);
+    const piece = position?.get(square);
+    if (piece && piece.color === position.turn()) setPicked(square);
   };
 
   // Loading anything new replaces the tree and opens at move 1.
@@ -564,6 +619,9 @@ export default function AnalysisView({ initialLine }) {
           className="analysis-board"
           onMouseDown={onMouseDown}
           onMouseUp={onMouseUp}
+          onPointerDown={onDrawPointerDown}
+          onPointerUp={onDrawPointerUp}
+          onPointerCancel={() => setDrawFrom(null)}
           onContextMenu={(e) => e.preventDefault()}
         >
           <div className="board-with-eval">
@@ -574,7 +632,14 @@ export default function AnalysisView({ initialLine }) {
               running={engineOn && engineStatus === 'running'}
             />
           )}
-          <div style={{ position: 'relative', width: boardWidth, height: boardWidth }}>
+          <div
+            style={{
+              position: 'relative', width: boardWidth, height: boardWidth,
+              // Otherwise a finger dragging to draw an arrow reads as a page
+              // scroll on a touchscreen, which cancels the gesture partway.
+              touchAction: drawMode ? 'none' : undefined,
+            }}
+          >
           <Board
             id="analysis"
             position={fen}
@@ -654,7 +719,7 @@ export default function AnalysisView({ initialLine }) {
             <button
               className={`small${drawMode ? ' primary' : ''}`}
               title={drawMode
-                ? 'Drawing: tap a square to highlight, tap two to draw an arrow'
+                ? 'Drawing: press a square and drag to another for an arrow, or release without moving to highlight it'
                 : 'Draw arrows and highlights (also: right-click drag on a mouse)'}
               onClick={() => { setDrawMode((d) => !d); setDrawFrom(null); }}
             >
@@ -666,7 +731,9 @@ export default function AnalysisView({ initialLine }) {
                   key={p.value}
                   className={`pen${drawColor === p.value ? ' active' : ''}`}
                   style={{ background: p.value }}
-                  title={p.name}
+                  title={p.id === (state.settings.defaultPen ?? 'green')
+                    ? `${p.name} (default)`
+                    : `${p.name} (hold ${shortcutKey(state.settings, p.shortcutId).toUpperCase()} while dragging)`}
                   onClick={() => setDrawColor(p.value)}
                 />
               ))}
@@ -683,11 +750,14 @@ export default function AnalysisView({ initialLine }) {
               the screen, and there's no right-click there anyway. */}
           <div className="muted-note draw-hint" style={{ maxWidth: boardWidth }}>
             {tight ? (
-              <>Tap <strong>Draw</strong> to mark up the board · left-click to clear</>
+              <>Press <strong>Draw</strong>, then drag a square to mark up the board · left-click to clear</>
             ) : (
               <>
-                Right-click drag to draw · right-click a square to highlight · hold <kbd>⌥</kbd> for red,
-                <kbd>⌘</kbd> for blue, both for yellow · left-click the board to clear
+                Right-click drag to draw in <strong>{defaultPen(state.settings).name.toLowerCase()}</strong> (the
+                default, set in Settings) · hold {PENS.filter((p) => p.id !== (state.settings.defaultPen ?? 'green')).map((p) => (
+                  <React.Fragment key={p.id}><kbd>{shortcutKey(state.settings, p.shortcutId).toUpperCase()}</kbd> </React.Fragment>
+                ))}while dragging for {PENS.filter((p) => p.id !== (state.settings.defaultPen ?? 'green')).map((p) => p.name.toLowerCase()).join(' / ')} ·
+                left-click the board to clear
               </>
             )}
           </div>
@@ -942,24 +1012,19 @@ export default function AnalysisView({ initialLine }) {
           <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
             <h3>Keyboard shortcuts</h3>
             <div className="shortcut-grid">
-              {[
-                ['← →', 'Step back and forward'],
-                ['↑ ↓', 'Jump to the start / the end'],
-                ['X', 'Flip the board'],
-                ['E', 'Start or stop the engine'],
-                ['A', 'Engine arrows on / off'],
-                ['L', 'Engine lines on / off'],
-                ['B', 'Evaluation bar on / off'],
-                ['K', 'Check highlight on / off'],
-                ['D', 'Drawing mode'],
-                ['O', 'Switch Engine / Explorer'],
-                ['?', 'This list'],
-              ].map(([key, what]) => (
-                <React.Fragment key={key}><kbd>{key}</kbd><span>{what}</span></React.Fragment>
+              <React.Fragment><kbd>← →</kbd><span>Step back and forward</span></React.Fragment>
+              <React.Fragment><kbd>↑ ↓</kbd><span>Jump to the start / the end</span></React.Fragment>
+              {SHORTCUTS.map((s) => (
+                <React.Fragment key={s.id}>
+                  <kbd>{shortcutKey(state.settings, s.id).toUpperCase()}</kbd>
+                  <span>{s.label}</span>
+                </React.Fragment>
               ))}
+              <React.Fragment><kbd>?</kbd><span>This list</span></React.Fragment>
             </div>
             <p className="hint">
-              Right-click a move in the list to promote a variation or delete it.
+              Right-click a move in the list to promote a variation or delete it. Change any key
+              above in Settings → Keyboard.
             </p>
             <div className="modal-actions">
               <button className="primary" onClick={() => setShortcutsOpen(false)}>Close</button>

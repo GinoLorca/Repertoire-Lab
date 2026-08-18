@@ -360,7 +360,7 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
   const [results, setResults] = useState([]);
   const [bookOpen, setBookOpen] = useState(false);
   const [bookPly, setBookPly] = useState(0);
-  const [flipped, setFlipped] = useState(false); // X turns the board round
+  const [flipped, setFlipped] = useState(false); // F turns the board round
   // Guards the end-of-line handling so it runs once per item, after the board settles.
   const finishingRef = useRef(false);
   const [pickedSquare, setPickedSquare] = useState(null);
@@ -752,8 +752,9 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
       const settings = (patch) => dispatch({ type: 'setSettings', settings: patch });
       if (e.key === 'ArrowUp') { e.preventDefault(); goTo(qi - 1); }
       else if (e.key === 'ArrowDown') { e.preventDefault(); goTo(qi + 1); }
-      // The board keys work the same here as on the analysis board.
-      else if (e.key === 'x' || e.key === 'X') setFlipped((f) => !f);
+      // The board keys work the same here as on the analysis board — F flips
+      // (X is freed up there for the hold-to-draw-blue pen shortcut).
+      else if (e.key === 'f' || e.key === 'F') setFlipped((f) => !f);
       else if (e.key === 'k' || e.key === 'K') settings({ checkHighlight: state.settings.checkHighlight === false });
       else if (e.key === 'h' || e.key === 'H') setAttempts((a) => Math.max(a, 2));
       else if (e.key === 'b' || e.key === 'B') setBookOpen((o) => !o);
@@ -1318,7 +1319,9 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
           {(() => {
             // What the course says about this move — the note stays up while
             // you play on, dimmed, so the point of the line isn't lost after a
-            // single move.
+            // single move. Only during the teach phase: once you're being
+            // tested (recall or practice), the answer shouldn't be on screen.
+            if (phase !== 'teach') return null;
             const note = noteFor(current.variation.comments, moves, ply);
             return note ? <MoveNote {...note} /> : null;
           })()}

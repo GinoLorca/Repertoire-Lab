@@ -77,6 +77,24 @@ function knock(c, delay, { freq, dur, vol, clickVol }) {
   src.start(t);
 }
 
+// A bright short ping layered on top of the move/capture knock to mark check,
+// the way chess.com layers its check voice over the capture voice when a move
+// does both at once.
+function checkChime(c, delay) {
+  const t = c.currentTime + delay;
+  const osc = c.createOscillator();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(880, t);
+  osc.frequency.exponentialRampToValueAtTime(1174.66, t + 0.05);
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.22, t + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+  osc.connect(g).connect(out());
+  osc.start(t);
+  osc.stop(t + 0.18);
+}
+
 // Checkmate: the knock of the move that delivered it, then a short rising
 // three-note figure so the end of a game sounds like the end of a game.
 function mateFlourish(c) {
@@ -97,16 +115,25 @@ function mateFlourish(c) {
   });
 }
 
+// Plays just the base move/capture knock — used both for a full synth pass
+// and to fill in the piece a custom sound didn't cover.
+function synthBase(c, isCapture) {
+  if (isCapture) {
+    knock(c, 0, { freq: 145, dur: 0.09, vol: 0.9, clickVol: 0.3 });
+  } else {
+    knock(c, 0, { freq: 195, dur: 0.07, vol: 0.75, clickVol: 0.22 });
+  }
+}
+
 function scheduleFor(c, san) {
   if (san.endsWith('#')) {
     mateFlourish(c);
   } else if (san.startsWith('O-O')) {
     knock(c, 0, { freq: 200, dur: 0.06, vol: 0.6, clickVol: 0.18 });
     knock(c, 0.09, { freq: 170, dur: 0.07, vol: 0.65, clickVol: 0.18 });
-  } else if (san.includes('x')) {
-    knock(c, 0, { freq: 145, dur: 0.09, vol: 0.9, clickVol: 0.3 });
   } else {
-    knock(c, 0, { freq: 195, dur: 0.07, vol: 0.75, clickVol: 0.22 });
+    synthBase(c, san.includes('x'));
+    if (san.endsWith('+')) checkChime(c, 0.02);
   }
 }
 
@@ -158,22 +185,37 @@ async function playCustom(key) {
   }
 }
 
-function eventFor(san) {
-  if (san.endsWith('#')) return 'checkmate'; // before 'check': mate is also "+"-ish
-  if (san.startsWith('O-O')) return 'castle';
-  if (san.includes('x')) return 'capture';
-  if (san.endsWith('+')) return 'check';
-  return 'move';
-}
-
 export function playMoveSound(san) {
   if (!san) return;
-  const key = eventFor(san);
-  playCustom(key).then((done) => {
-    if (done) return;
-    // 'check' has no synthesized voice of its own — fall back to its base move.
-    if (key === 'check') { playCustom('move').then((ok) => { if (!ok) synth(san); }); return; }
-    synth(san);
+  if (san.endsWith('#')) {
+    playCustom('checkmate').then((done) => { if (!done) synth(san); });
+    return;
+  }
+  if (san.startsWith('O-O')) {
+    playCustom('castle').then((done) => { if (!done) synth(san); });
+    return;
+  }
+  // A move that both captures and checks plays both voices at once, the way
+  // chess.com layers its capture and check sounds together instead of
+  // picking just one.
+  const isCapture = san.includes('x');
+  const isCheck = san.endsWith('+');
+  Promise.all([
+    playCustom(isCapture ? 'capture' : 'move'),
+    isCheck ? playCustom('check') : Promise.resolve(true),
+  ]).then(([baseDone, checkDone]) => {
+    if (baseDone && checkDone) return;
+    synthPartial(!baseDone && isCapture, !baseDone, isCheck && !checkDone);
+  });
+}
+
+// Synthesizes only the pieces a custom sound didn't already cover, so a
+// custom capture file paired with no custom check file still gets a chime
+// layered on top rather than silence or a duplicate knock.
+function synthPartial(isCapture, needBase, needCheck) {
+  withAudio((c) => {
+    if (needBase) synthBase(c, isCapture);
+    if (needCheck) checkChime(c, 0.02);
   });
 }
 
@@ -198,17 +240,19 @@ export async function primeSounds() {
   }));
 }
 
-function synth(san) {
+// Resume may be pending from a just-happened gesture — play once it lands.
+function withAudio(fn) {
   try {
     const c = getCtx();
     if (!c) return;
     if (c.state === 'running') {
-      scheduleFor(c, san);
+      fn(c);
     } else {
-      // Resume may be pending from a just-happened gesture — play once it lands.
-      c.resume().then(() => {
-        if (c.state === 'running') scheduleFor(c, san);
-      }).catch(() => {});
+      c.resume().then(() => { if (c.state === 'running') fn(c); }).catch(() => {});
     }
   } catch { /* audio is best-effort */ }
+}
+
+function synth(san) {
+  withAudio((c) => scheduleFor(c, san));
 }

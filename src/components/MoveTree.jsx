@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { mainLineFrom } from '../lib/moveTree';
 
 // "4." for White's move, "4…" for Black's, from the ply it was played at.
@@ -49,12 +49,27 @@ function InlineLine({ start, startPly, headId, onGo, onMenu }) {
 // row underneath the move it answers.
 export default function MoveTree({ root, headId, onGo, onPromote, onPromoteOne, onDelete }) {
   const [menu, setMenu] = useState(null); // { nodeId, x, y }
+  const [menuPos, setMenuPos] = useState(null); // clamped { left, top }, once measured
+  const menuRef = useRef(null);
   const main = mainLineFrom(root);
   const rows = Math.ceil(main.length / 2);
 
   const openMenu = (nodeId, e) => {
+    setMenuPos(null);
     setMenu({ nodeId, x: e.clientX, y: e.clientY });
   };
+
+  // The menu opens at the click point, which on a narrow screen (or a move
+  // near the right edge of the panel) can push it partly off-screen — this
+  // pulls it back in once its real size is known, before the browser paints.
+  useLayoutEffect(() => {
+    if (!menu || !menuRef.current) return;
+    const margin = 8;
+    const rect = menuRef.current.getBoundingClientRect();
+    const left = Math.min(menu.x, window.innerWidth - rect.width - margin);
+    const top = Math.min(menu.y, window.innerHeight - rect.height - margin);
+    setMenuPos({ left: Math.max(margin, left), top: Math.max(margin, top) });
+  }, [menu]);
 
   // Variations that answer the move at this ply (1-based).
   const branchesAt = (ply) => {
@@ -118,7 +133,11 @@ export default function MoveTree({ root, headId, onGo, onPromote, onPromoteOne, 
       {menu && (
         <>
           <div className="menu-scrim" onClick={() => setMenu(null)} onContextMenu={(e) => { e.preventDefault(); setMenu(null); }} />
-          <div className="move-menu" style={{ left: menu.x, top: menu.y }}>
+          <div
+            ref={menuRef}
+            className="move-menu"
+            style={{ left: menuPos ? menuPos.left : menu.x, top: menuPos ? menuPos.top : menu.y }}
+          >
             <button onClick={() => { onPromote(menu.nodeId); setMenu(null); }}>
               Promote to main line
             </button>
