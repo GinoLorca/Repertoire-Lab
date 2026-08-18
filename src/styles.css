@@ -1713,11 +1713,18 @@ input[type="date"] {
 /* The move list sits beside the board so the game reads as you step through. */
 .analysis-movelist-panel { display: flex; flex-direction: column; gap: 8px; }
 .movelist-head {
-  display: flex; align-items: baseline; gap: 10px;
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
   font-size: 12px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
   color: var(--muted);
 }
-.movelist-head .muted-note { text-transform: none; letter-spacing: 0; font-weight: 500; }
+/* The current-move readout ("5...Bd6 · 10 of 11") is the one span here with
+   no natural word breaks worth taking — left free to wrap, a narrow panel
+   splits it mid-phrase across several lines instead of just truncating it. */
+.movelist-head .muted-note {
+  text-transform: none; letter-spacing: 0; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.movelist-head button { flex-shrink: 0; }
 .analysed-game { display: flex; flex-direction: column; gap: 8px; }
 .analysed-game .game-meta-row { margin: 0; }
 
