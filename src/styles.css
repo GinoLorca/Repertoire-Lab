@@ -1637,6 +1637,16 @@ input[type="date"] {
 .field-pair input { min-width: 0; flex: 1; }
 .field-pair .elo { max-width: 74px; flex: 0 0 auto; }
 
+/* ---------- Playlists ---------- */
+
+.shuffle-toggle {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  padding: 8px 13px; border-radius: 8px; font-weight: 600; font-size: 13.5px;
+  color: var(--muted); border: 1px solid var(--border);
+}
+.shuffle-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.shuffle-toggle.on { color: #fff; background: var(--accent-dim); border-color: var(--accent-dim); }
+
 /* ---------- Group membership (yellow tag) ---------- */
 
 /* A lit tag means "this is in a group". In the Groups tab, pressing it takes

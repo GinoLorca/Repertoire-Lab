@@ -58,6 +58,9 @@ export function emptyState() {
     players: [],
     // Your own game categories, for openings the repertoire doesn't cover.
     categories: [],
+    // Hand-picked practice sets, cutting across whatever openings/chapters
+    // the lines actually live in — see the Playlists cases below.
+    playlists: [],
     settings: { ...DEFAULT_SETTINGS },
   };
 }
@@ -181,6 +184,7 @@ function reducer(state, action) {
         ...action.state,
         players: action.state.players ?? [],
         categories: action.state.categories ?? [],
+        playlists: action.state.playlists ?? [],
       };
     // ---------- Courses (a repertoire by one author, inside an opening) ----------
     case 'addCourse': {
@@ -398,6 +402,63 @@ function reducer(state, action) {
             ? { ...g, meta: { ...g.meta, categoryId: null } }
             : g)),
         })),
+      };
+    // ---------- Playlists (hand-picked practice sets, cutting across
+    // whatever openings/chapters the lines actually live in) ----------
+    case 'addPlaylist': {
+      const name = action.name.trim();
+      if (!name) return state;
+      const playlist = { id: action.id ?? uid(), name, items: [], shuffle: false };
+      return { ...state, playlists: [...(state.playlists ?? []), playlist] };
+    }
+    case 'renamePlaylist':
+      return {
+        ...state,
+        playlists: (state.playlists ?? []).map((p) => (
+          p.id === action.playlistId ? { ...p, name: action.name } : p)),
+      };
+    case 'deletePlaylist':
+      return { ...state, playlists: (state.playlists ?? []).filter((p) => p.id !== action.playlistId) };
+    case 'setPlaylistShuffle':
+      return {
+        ...state,
+        playlists: (state.playlists ?? []).map((p) => (
+          p.id === action.playlistId ? { ...p, shuffle: action.shuffle } : p)),
+      };
+    case 'addToPlaylist':
+      return {
+        ...state,
+        playlists: (state.playlists ?? []).map((p) => {
+          if (p.id !== action.playlistId) return p;
+          if (p.items.some((it) => it.variationId === action.variationId)) return p;
+          return {
+            ...p,
+            items: [...p.items, {
+              openingId: action.openingId, chapterId: action.chapterId, variationId: action.variationId,
+            }],
+          };
+        }),
+      };
+    case 'removeFromPlaylist':
+      return {
+        ...state,
+        playlists: (state.playlists ?? []).map((p) => (
+          p.id === action.playlistId
+            ? { ...p, items: p.items.filter((it) => it.variationId !== action.variationId) }
+            : p)),
+      };
+    case 'movePlaylistItem':
+      return {
+        ...state,
+        playlists: (state.playlists ?? []).map((p) => {
+          if (p.id !== action.playlistId) return p;
+          const i = p.items.findIndex((it) => it.variationId === action.variationId);
+          const j = i + action.dir;
+          if (i < 0 || j < 0 || j >= p.items.length) return p;
+          const items = [...p.items];
+          [items[i], items[j]] = [items[j], items[i]];
+          return { ...p, items };
+        }),
       };
     case 'setGameCategory':
       return mapPlayer(state, action.playerId, (p) => ({

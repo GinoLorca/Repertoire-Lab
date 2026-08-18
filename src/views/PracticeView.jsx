@@ -19,8 +19,9 @@ import { useBackGuard } from '../lib/backGuard';
 import {
   BookIcon, TagIcon, StarIcon, SoundOnIcon, SoundOffIcon, ClockIcon, CommentIcon,
   SkipStartIcon, SkipEndIcon, PrevIcon, NextIcon, BulbIcon, TargetIcon, CheckIcon, AlertIcon,
-  PlayIcon, CapIcon,
+  PlayIcon, CapIcon, FolderIcon,
 } from '../components/Icons';
+import PlaylistPicker from '../components/PlaylistPicker';
 
 // Position key: piece placement + side to move + castling + en passant.
 const fen4 = (fen) => fen.split(' ').slice(0, 4).join(' ');
@@ -45,7 +46,39 @@ const plyLabel = (ply) => `${Math.floor(ply / 2) + 1}${ply % 2 === 0 ? '.' : '�
 //   'spot'     — one repeat of a single move that was missed, from the position
 //                just before it; DRILL_REPS of these per missed move
 //   'drill'    — a whole-line run; queued once after the spot drills to finish off
+// Fisher-Yates — used for a playlist set to shuffle, so the order is
+// genuinely random each run rather than array.sort's uneven bias.
+function shuffleArray(arr) {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 function collectItems(state, scope) {
+  // A playlist is an explicit, ordered pick of specific lines from anywhere
+  // in the repertoire — resolved directly, not scanned/filtered like every
+  // other scope below. Lines removed since the playlist was built are
+  // skipped rather than breaking the whole thing.
+  if (scope?.playlistId) {
+    const playlist = (state.playlists ?? []).find((p) => p.id === scope.playlistId);
+    if (!playlist) return [];
+    const resolved = playlist.items
+      .map(({ openingId, chapterId, variationId }) => {
+        const opening = state.openings.find((o) => o.id === openingId);
+        const chapter = opening?.chapters.find((c) => c.id === chapterId);
+        const variation = chapter?.variations.find((v) => v.id === variationId);
+        return variation ? { opening, chapter, variation } : null;
+      })
+      .filter(Boolean);
+    const ordered = scope.shuffle ? shuffleArray(resolved) : resolved;
+    // A line already learned is drilled from memory; anything not yet
+    // learned is taught first, same as it would be anywhere else.
+    return ordered.map((it) => ({ ...it, kind: it.variation.learned ? 'practice' : 'learn' }));
+  }
+
   const items = [];
   // A scope naming a specific opening/chapter/variation is unambiguous
   // regardless of who owns it. A broad one (the whole repertoire, every
@@ -269,8 +302,9 @@ function ChapterPicker({ opening, courseId, onPractice, onBack }) {
   );
 }
 
-function ScopePicker({ state, onPick, onBrowse }) {
+function ScopePicker({ state, onPick, onBrowse, onOpenPlaylists }) {
   const allQueue = collectItems(state, null);
+  const playlistCount = (state.playlists ?? []).length;
   return (
     <div className="page">
       <div className="page-head"><h1>Practice</h1></div>
@@ -280,6 +314,14 @@ function ScopePicker({ state, onPick, onBrowse }) {
           <div className="sub">Due reviews are quizzed; brand-new variations are taught first</div>
         </div>
         <span className={`big-num${allQueue.length === 0 ? ' zero' : ''}`}>{allQueue.length}</span>
+      </div>
+      <div className="scope-card" onClick={onOpenPlaylists}>
+        <div className="scope-info">
+          <h3><FolderIcon size={15} /> Playlists</h3>
+          <div className="sub">Hand-pick lines from anywhere in your repertoire into a set of your own</div>
+        </div>
+        <span className={`big-num${playlistCount === 0 ? ' zero' : ''}`}>{playlistCount}</span>
+        <span className="scope-chevron" aria-hidden="true">›</span>
       </div>
       {(() => {
         const starred = collectItems(state, { starred: true, mode: 'practice' }).length;
@@ -356,6 +398,7 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
   // courses), and picking one lands on that course's chapters.
   const [sheetFor, setSheetFor] = useState(null); // opening id
   const [browse, setBrowse] = useState(null); // { openingId, courseId }
+  const [viewingPlaylists, setViewingPlaylists] = useState(false);
   const [qi, setQi] = useState(0);
   const [ply, setPly] = useState(0);
   const [phase, setPhase] = useState('run'); // 'teach' | 'run'
@@ -842,11 +885,22 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
         />
       );
     }
+    if (viewingPlaylists) {
+      return (
+        <PlaylistPicker
+          state={state}
+          dispatch={dispatch}
+          onPractice={(s) => onScopeChange(s)}
+          onBack={() => setViewingPlaylists(false)}
+        />
+      );
+    }
     return (
       <>
         <ScopePicker
           state={state}
           onPick={(s) => onScopeChange(s ?? {})}
+          onOpenPlaylists={() => setViewingPlaylists(true)}
           onBrowse={(openingId) => {
             const o = state.openings.find((x) => x.id === openingId);
             // Straight to the chapters when there's only one author involved.

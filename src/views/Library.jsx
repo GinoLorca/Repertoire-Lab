@@ -452,6 +452,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
       openings: state.openings,
       players: state.players ?? [],
       categories: state.categories ?? [],
+      playlists: state.playlists ?? [],
       settings: state.settings,
     };
     downloadText(`repertoire-lab-backup-${stamp}.json`, JSON.stringify(payload));
