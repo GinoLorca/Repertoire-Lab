@@ -138,8 +138,10 @@ function scheduleFor(c, san) {
 }
 
 // ---------------------------------------------------------------------------
-// Custom sounds. Users can replace any event with their own audio file; the
-// synthesized knocks above are the fallback when no file is set.
+// Custom sounds. Real recordings ship as the default for five events; users
+// can replace any event (including those five) with their own file, and the
+// synthesized knocks above are the last-resort fallback for whatever neither
+// covers.
 // ---------------------------------------------------------------------------
 
 export const SOUND_EVENTS = [
@@ -153,30 +155,52 @@ export const SOUND_EVENTS = [
   { key: 'complete', label: 'Line complete', hint: 'You finished a variation' },
 ];
 
+// Shipped with the app — no upload required. castle/correct/wrong have no
+// recording and fall through to the synthesized sound (castle) or silence
+// (correct/wrong), same as before.
+export const DEFAULT_SOUNDS = {
+  move: '/sounds/move.mp3',
+  capture: '/sounds/capture.mp3',
+  check: '/sounds/check.mp3',
+  checkmate: '/sounds/checkmate.mp3',
+  complete: '/sounds/complete.mp3',
+};
+
 let customSounds = {};
-const buffers = new Map();
+const buffers = new Map(); // key -> decoded AudioBuffer
+const bufferSrc = new Map(); // key -> the src that buffer was decoded from
 
 // Called by the app whenever settings change.
 export function setCustomSounds(map) {
   customSounds = map ?? {};
-  for (const key of [...buffers.keys()]) {
-    if (!customSounds[key]) buffers.delete(key);
-  }
+}
+
+function sourceFor(key) {
+  return customSounds?.[key] || DEFAULT_SOUNDS[key] || null;
+}
+
+// Fetches and decodes once per distinct src, not once per key — so
+// uploading over a key that already had a shipped default (or a different
+// upload) correctly replaces what plays, instead of the old buffer sticking
+// around because a key-only cache never noticed the source changed.
+async function bufferFor(c, key, src) {
+  if (buffers.has(key) && bufferSrc.get(key) === src) return buffers.get(key);
+  const bytes = await (await fetch(src)).arrayBuffer();
+  const buf = await c.decodeAudioData(bytes);
+  buffers.set(key, buf);
+  bufferSrc.set(key, src);
+  return buf;
 }
 
 async function playCustom(key) {
-  const src = customSounds?.[key];
+  const src = sourceFor(key);
   if (!src) return false;
   const c = getCtx();
   if (!c) return false;
   if (c.state !== 'running') { try { await c.resume(); } catch { return false; } }
   try {
-    if (!buffers.has(key)) {
-      const bytes = await (await fetch(src)).arrayBuffer();
-      buffers.set(key, await c.decodeAudioData(bytes));
-    }
     const node = c.createBufferSource();
-    node.buffer = buffers.get(key);
+    node.buffer = await bufferFor(c, key, src);
     node.connect(out());
     node.start();
     return true;
@@ -219,24 +243,23 @@ function synthPartial(isCapture, needBase, needCheck) {
   });
 }
 
-// Non-move events (correct / wrong / line complete). Silent unless a custom
-// file is set, so nothing changes for people who don't use this.
+// Non-move events (correct / wrong / line complete). Silent unless a shipped
+// default or a custom file covers the key — correct/wrong have neither, so
+// nothing changes for people who don't set one.
 export function playEventSound(key) {
   playCustom(key);
 }
 
-// Decode any custom sounds up front. The first play of an uploaded file
-// otherwise has to fetch and decode it, which lands the sound noticeably after
-// the moment it belongs to — the end of a line, most of all.
+// Decode every event's effective sound (shipped default or an upload) up
+// front. The first play otherwise has to fetch and decode it, which lands
+// the sound noticeably after the moment it belongs to — the end of a line,
+// most of all.
 export async function primeSounds() {
   const c = getCtx();
   if (!c) return;
-  const keys = SOUND_EVENTS.map((e) => e.key).filter((k) => customSounds?.[k] && !buffers.has(k));
+  const keys = SOUND_EVENTS.map((e) => e.key).filter((k) => sourceFor(k));
   await Promise.all(keys.map(async (key) => {
-    try {
-      const bytes = await (await fetch(customSounds[key])).arrayBuffer();
-      buffers.set(key, await c.decodeAudioData(bytes));
-    } catch { /* a bad file simply stays unprimed */ }
+    try { await bufferFor(c, key, sourceFor(key)); } catch { /* a bad file simply stays unprimed */ }
   }));
 }
 

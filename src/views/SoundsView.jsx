@@ -1,6 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { useStore } from '../store';
-import { SOUND_EVENTS, playMoveSound, playEventSound } from '../lib/sound';
+import {
+  SOUND_EVENTS, DEFAULT_SOUNDS, playMoveSound, playEventSound,
+} from '../lib/sound';
 import { SoundOnIcon, SoundOffIcon, VolumeIcon } from '../components/Icons';
 
 const MAX_BYTES = 1.5 * 1024 * 1024;
@@ -120,7 +122,10 @@ export default function SoundsSection({ bare }) {
                 <span className="muted-note">{hint}</span>
               </div>
               <span className={`sound-tag ${custom ? 'custom' : ''}`}>
-                {custom ? 'Custom' : (SAMPLE_SAN[key] ? 'Built-in' : 'Silent')}
+                {/* Built-in covers both a real shipped recording and (castle
+                    only) the synthesized fallback — either way, something
+                    plays without you uploading anything. */}
+                {custom ? 'Custom' : ((DEFAULT_SOUNDS[key] || key in SAMPLE_SAN) ? 'Built-in' : 'Silent')}
               </span>
               <button className="small" onClick={() => preview(key)}>▶ Play</button>
               <button className="small" onClick={() => inputs.current[key]?.click()}>
