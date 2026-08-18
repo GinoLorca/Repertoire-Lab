@@ -138,6 +138,24 @@ export function categoryOptions(state) {
 }
 
 // W/D/L from the player's point of view, using the colour recorded per game.
+// Best-effort guess at which roster entry a name belongs to — a PGN's White/
+// Black, say. Matches the player's own name first, then the online handles on
+// their profile (a chess.com/lichess username is a stronger signal than a
+// display name, which can be anything). Never authoritative — callers use
+// this to pre-select a destination, always left changeable by hand.
+export function matchPlayerByName(name, players) {
+  const needle = (name ?? '').trim().toLowerCase();
+  if (!needle) return null;
+  const byOwnName = players.find((p) => p.name.trim().toLowerCase() === needle);
+  if (byOwnName) return byOwnName;
+  return players.find((p) => {
+    const profile = p.profile ?? {};
+    return [profile.chesscom, profile.lichess].some(
+      (handle) => handle && handle.trim().toLowerCase() === needle,
+    );
+  }) ?? null;
+}
+
 export function playerRecord(games) {
   const tally = { wins: 0, draws: 0, losses: 0, other: 0 };
   for (const game of games) {

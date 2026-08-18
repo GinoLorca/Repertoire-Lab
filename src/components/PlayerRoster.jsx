@@ -299,7 +299,7 @@ function PlayerPage({
       {refreshError && <div className="muted-note"><AlertIcon size={13} /> {refreshError}</div>}
 
       {player.kind === 'student' && (
-        <div className="scope-card" style={{ cursor: 'default' }}>
+        <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)' }}>
           <div className="scope-info">
             <h3><BookIcon size={15} /> Repertoire</h3>
             <div className="sub">

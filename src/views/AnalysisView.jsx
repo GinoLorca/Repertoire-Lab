@@ -11,7 +11,9 @@ import CompareView from './CompareView';
 import GameEditor from '../components/GameEditor';
 import EvalBar from '../components/EvalBar';
 import { playMoveSound } from '../lib/sound';
-import { EVENT_TYPES, resultFor, tidyEvent } from '../lib/games';
+import {
+  EVENT_TYPES, resultFor, tidyEvent, matchPlayerByName,
+} from '../lib/games';
 import { buildPositionIndex, bookMovesAt, matchGameToRepertoire, moveLabel } from '../lib/repertoire';
 import LegalDots from '../components/LegalDots';
 import { lastMoveOf } from '../lib/legalMoves';
@@ -164,7 +166,18 @@ export default function AnalysisView({ initialLine }) {
 
   // ---------- Repertoire awareness ----------
 
-  const positionIndex = useMemo(() => buildPositionIndex(state.openings), [state.openings]);
+  // A student's game (ownerId set when it was sent here — see PlayerRoster's
+  // onAnalyze) checks against their own book, not yours.
+  const repertoireOwnerId = initialLine?.ownerId ?? null;
+  const repertoireOwner = repertoireOwnerId
+    ? state.players.find((p) => p.id === repertoireOwnerId)
+    : null;
+  const positionIndex = useMemo(
+    () => buildPositionIndex(
+      state.openings.filter((o) => (o.ownerId ?? null) === repertoireOwnerId),
+    ),
+    [state.openings, repertoireOwnerId],
+  );
   const fromStart = baseFen === START_FEN;
 
   // Which of your uploaded lines does this game follow, and where did it leave book?
@@ -788,7 +801,7 @@ export default function AnalysisView({ initialLine }) {
           )}
           {fromStart && moves.length > 0 && (
             <div className={`panel book-panel-summary${gameMatch.matched ? '' : ' unmatched'}`}>
-              <h3><BookIcon size={16} /> Your repertoire</h3>
+              <h3><BookIcon size={16} /> {repertoireOwner ? `${repertoireOwner.name}'s repertoire` : 'Your repertoire'}</h3>
               {gameMatch.matched ? (
                 <>
                   <div className="book-match">
@@ -1036,6 +1049,7 @@ export default function AnalysisView({ initialLine }) {
       {saving && (
         <SaveToGames
           moves={moves.slice(0, ply)}
+          meta={initialLine?.meta ?? null}
           state={state}
           dispatch={dispatch}
           onClose={() => setSaving(false)}
@@ -1094,8 +1108,12 @@ function AnalysedGame({ line }) {
 
 // Pick which section the game belongs to, then hand it to the game editor
 // pre-filled with the moves on the board.
-function SaveToGames({ moves, state, dispatch, onClose }) {
-  const [playerId, setPlayerId] = useState(state.players[0]?.id ?? '');
+function SaveToGames({ moves, meta, state, dispatch, onClose }) {
+  // A best-effort guess from the loaded game's White/Black, always changeable
+  // below — falls back to the first section when nothing matches.
+  const guess = matchPlayerByName(meta?.white, state.players)
+    ?? matchPlayerByName(meta?.black, state.players);
+  const [playerId, setPlayerId] = useState(guess?.id ?? state.players[0]?.id ?? '');
   const [editing, setEditing] = useState(false);
 
   if (state.players.length === 0) {
