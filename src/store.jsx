@@ -503,7 +503,7 @@ function reducer(state, action) {
         variations: c.variations.map((v) => (v.id === action.variationId ? { ...v, starred: !v.starred } : v)),
       }));
     // Openings and chapters can be starred too; starring a container marks
-    // everything inside it as a favorite for practice and for the Groups tab.
+    // everything inside it as a favorite for practice and for the Collections tab.
     case 'toggleChapterStar':
       return mapChapter(state, action.openingId, action.chapterId, (c) => ({ ...c, starred: !c.starred }));
     case 'toggleOpeningStar':

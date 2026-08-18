@@ -1234,7 +1234,7 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
               </button>
               <button
                 className={`ghost small book-btn${shown.tags?.length ? ' active' : ''}`}
-                title="Tags for this variation — group it under a nickname like “bishop trapping plan”"
+                title="Themes for this variation — group it under a theme like “bishop trapping plan”"
                 onClick={() => setTagOpen(true)}
               >
                 <TagIcon />

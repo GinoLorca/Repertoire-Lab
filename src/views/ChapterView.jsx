@@ -137,10 +137,10 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
         )}
         <button
           className={`tag-btn${chapter.tags?.length ? ' on' : ''}`}
-          title={chapter.tags?.length ? `Groups: ${chapter.tags.join(', ')}` : 'Add this chapter to a group'}
+          title={chapter.tags?.length ? `Themes: ${chapter.tags.join(', ')}` : 'Add this chapter to a theme'}
           onClick={() => setTagging({ kind: 'chapter' })}
         >
-          <TagIcon size={15} /> Tags
+          <TagIcon size={15} /> Themes
         </button>
         <button
           title="Add lines to this chapter from a PGN file or pasted moves"
@@ -286,8 +286,8 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
               <button
                 className={`small ghost tag-btn${variation.tags?.length ? ' on' : ''}`}
                 title={variation.tags?.length
-                  ? `In ${variation.tags.length} group${variation.tags.length === 1 ? '' : 's'}: ${variation.tags.join(', ')}`
-                  : 'Add this line to a group'}
+                  ? `In ${variation.tags.length} theme${variation.tags.length === 1 ? '' : 's'}: ${variation.tags.join(', ')}`
+                  : 'Add this line to a theme'}
                 onClick={() => setTagging({ kind: 'variation', variationId: variation.id })}
               >
                 <TagIcon size={15} />

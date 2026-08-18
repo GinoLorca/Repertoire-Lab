@@ -168,7 +168,7 @@ export default function SearchPanel({ onClose, onOpenChapter, onAnalyze }) {
                 ['all', 'Everything'],
                 ['chapters', 'Chapters only'],
                 ['variations', 'Variations only'],
-                ['tags', 'Tags only'],
+                ['tags', 'Themes only'],
               ].map(([v, label]) => (
                 <button
                   key={v}
@@ -187,12 +187,12 @@ export default function SearchPanel({ onClose, onOpenChapter, onAnalyze }) {
                 <>
                   <div className="muted-note">
                     Type to search. Matching is loose — “tart” finds “Tartakower Variation”, and chapters
-                    also match on the section they sit in. Start with <strong>#</strong> to search tags
+                    also match on the section they sit in. Start with <strong>#</strong> to search themes
                     and nicknames only.
                   </div>
                   {tagCloud.length > 0 && (
                     <div className="tag-suggest" style={{ marginTop: 12 }}>
-                      <span className="muted-note">Your groups:</span>
+                      <span className="muted-note">Your themes:</span>
                       {tagCloud.map(({ tag, n }) => (
                         <button
                           key={tag}

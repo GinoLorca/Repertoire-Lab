@@ -721,8 +721,8 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                   <button
                     className={`small ghost tag-btn${opening.tags?.length ? ' on' : ''}`}
                     title={opening.tags?.length
-                      ? `Groups: ${opening.tags.join(', ')} — chapters and variations inside inherit them`
-                      : 'Add this opening to a group'}
+                      ? `Themes: ${opening.tags.join(', ')} — chapters and variations inside inherit them`
+                      : 'Add this opening to a theme'}
                     onClick={() => setModal({ kind: 'tagOpening', openingId: opening.id })}
                   >
                     <TagIcon />

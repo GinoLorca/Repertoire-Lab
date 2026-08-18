@@ -240,10 +240,10 @@ function AppInner() {
           </button>
           <button
             className={view === 'groups' ? 'active' : ''}
-            title="Favorites and every tag / nickname, across all openings"
+            title="Favorites and every theme, across all openings"
             onClick={() => navTo('groups')}
           >
-            Groups
+            Collections
           </button>
           <button className={view === 'games' ? 'active' : ''} onClick={() => navTo('games')}>
             Games

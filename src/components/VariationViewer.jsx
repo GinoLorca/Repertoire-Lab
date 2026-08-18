@@ -88,8 +88,8 @@ export default function VariationViewer({
             )}
             <h3 style={{ flex: 1 }}>{variation.name}</h3>
             {onEditTags && (
-              <button className="small ghost" title="Tags / nickname for this variation" onClick={onEditTags}>
-                <TagIcon size={15} /> Tags
+              <button className="small ghost" title="Themes / nickname for this variation" onClick={onEditTags}>
+                <TagIcon size={15} /> Themes
               </button>
             )}
           </div>

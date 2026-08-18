@@ -254,16 +254,16 @@ export default function GroupsView({ onOpenChapter, onPractice }) {
   return (
     <div className="page">
       <div className="page-head">
-        <h1>Groups</h1>
+        <h1>Collections</h1>
         <span className="muted-note">
-          Favorites and tags, gathered from every opening, chapter and variation
+          Favorites and themes, gathered from every opening, chapter and variation
         </span>
         <span style={{ flex: 1 }} />
         {tagGroups.length > 0 && (
           <input
             type="text"
             className="group-filter"
-            placeholder="Filter groups…"
+            placeholder="Filter themes…"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
@@ -319,8 +319,8 @@ export default function GroupsView({ onOpenChapter, onPractice }) {
 
       {tagGroups.length === 0 && (
         <div className="empty-note">
-          No tags yet. Use the tag button on an opening, chapter or variation to group lines under a
-          nickname like “bishop trapping plan” — they show up here, wherever they live.
+          No themes yet. Use the theme button on an opening, chapter or variation to group lines under
+          a theme like “bishop trapping plan” — they show up here, wherever they live.
         </div>
       )}
 
@@ -339,7 +339,7 @@ export default function GroupsView({ onOpenChapter, onPractice }) {
           <div className="group-actions">
             <button
               className="small ghost"
-              title="Rename this tag everywhere it's used"
+              title="Rename this theme everywhere it's used"
               onClick={() => {
                 const name = window.prompt(`Rename “${tag}” everywhere:`, tag);
                 if (name?.trim() && name.trim() !== tag) {
@@ -347,7 +347,7 @@ export default function GroupsView({ onOpenChapter, onPractice }) {
                 }
               }}
             >
-              <PencilIcon size={14} /> Rename group
+              <PencilIcon size={14} /> Rename theme
             </button>
             <button
               className="small ghost"

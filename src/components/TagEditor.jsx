@@ -66,18 +66,18 @@ export default function TagEditor({ title, tags, suggestions, onChange, onClose 
   return (
     <div className="modal-overlay" onClick={commitAndClose}>
       <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
-        <h3>Tags — {title}</h3>
+        <h3>Themes — {title}</h3>
         <p className="hint">
-          Tags group anything across your repertoire — “bishop trapping plan”, “needs work”,
-          “tournament prep”. You can then search or practice a whole tag at once.
+          Themes group anything across your repertoire — “bishop trapping plan”, “needs work”,
+          “tournament prep”. You can then search or practice a whole theme at once.
         </p>
 
         <div className="tag-current">
-          {current.length === 0 && <span className="muted-note">No tags yet.</span>}
+          {current.length === 0 && <span className="muted-note">No themes yet.</span>}
           {current.map((t) => (
             <span key={t} className="tag-chip removable">
               {t}
-              <button onClick={() => remove(t)} title="Remove tag">✕</button>
+              <button onClick={() => remove(t)} title="Remove theme">✕</button>
             </span>
           ))}
         </div>
