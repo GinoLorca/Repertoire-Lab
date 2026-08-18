@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useBackGuard } from '../lib/backGuard';
 import { fetchUscf, fetchChesscom, fetchLichess, ratingAge } from '../lib/ratings';
-import { AlertIcon, CheckIcon } from './Icons';
+import { AlertIcon, CheckIcon, PencilIcon } from './Icons';
+import { uid } from '../store';
+import { defaultMonsterId } from '../lib/monsters';
+import Avatar from './Avatar';
+import AvatarPicker from './AvatarPicker';
 
 const EMPTY = { uscf: '', fide: '', chesscom: '', lichess: '', rating: '' };
 
@@ -52,6 +56,11 @@ export default function PlayerEditor({ initial, onSave, onClose }) {
   const [name, setName] = useState(initial?.name ?? '');
   const [profile, setProfile] = useState({ ...EMPTY, ...(initial?.profile ?? {}) });
   const set = (key) => (e) => setProfile((p) => ({ ...p, [key]: e.target.value }));
+  // A brand-new player needs an id up front so its avatar (picked now, saved
+  // on submit) is seeded from the id it'll actually end up with.
+  const [id] = useState(() => initial?.id ?? uid());
+  const [avatar, setAvatar] = useState(initial?.avatar ?? { kind: 'monster', variant: defaultMonsterId(id) });
+  const [pickingAvatar, setPickingAvatar] = useState(false);
   useBackGuard(true, onClose);
 
   const saved = profile.ratings ?? {};
@@ -75,9 +84,10 @@ export default function PlayerEditor({ initial, onSave, onClose }) {
     ...(chesscom.status === 'done' && chesscom.data ? { chesscom: chesscom.data } : {}),
     ...(lichess.status === 'done' && lichess.data ? { lichess: lichess.data } : {}),
   };
-  const save = () => onSave(name.trim(), { ...profile, ratings: live });
+  const save = () => onSave(name.trim(), { ...profile, ratings: live }, avatar, id);
 
   return (
+    <>
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
         <h3>{initial ? 'Edit player' : 'New player section'}</h3>
@@ -85,6 +95,16 @@ export default function PlayerEditor({ initial, onSave, onClose }) {
           One section per person — yourself, then each student. The IDs are optional; they let a game
           be tied to the right player when you paste a PGN, and ratings are looked up as you type.
         </p>
+
+        <button
+          type="button"
+          className="avatar-pick-btn"
+          title="Change avatar"
+          onClick={() => setPickingAvatar(true)}
+        >
+          <Avatar avatar={avatar} seed={id} size={68} />
+          <span className="avatar-pick-badge"><PencilIcon size={12} /></span>
+        </button>
 
         <div className="game-fields">
           <label>
@@ -140,5 +160,13 @@ export default function PlayerEditor({ initial, onSave, onClose }) {
         </div>
       </div>
     </div>
+    {pickingAvatar && (
+      <AvatarPicker
+        current={avatar}
+        onPick={setAvatar}
+        onClose={() => setPickingAvatar(false)}
+      />
+    )}
+    </>
   );
 }

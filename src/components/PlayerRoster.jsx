@@ -11,6 +11,7 @@ import { fetchUscf, fetchChesscom, fetchLichess } from '../lib/ratings';
 import VariationViewer from '../components/VariationViewer';
 import GameEditor from '../components/GameEditor';
 import PlayerEditor from '../components/PlayerEditor';
+import Avatar from '../components/Avatar';
 import { useBackGuard } from '../lib/backGuard';
 import {
   BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon,
@@ -280,6 +281,7 @@ function PlayerPage({
       </div>
 
       <div className="page-head">
+        <Avatar avatar={player.avatar} seed={player.id} size={44} />
         <h1>{player.name}</h1>
         <span style={{ flex: 1 }} />
         {hasIds && (
@@ -472,8 +474,8 @@ export default function PlayerRoster({
           <PlayerEditor
             initial={editingPlayer === 'new' ? null : editingPlayer}
             onClose={() => setEditingPlayer(null)}
-            onSave={(name, profile) => {
-              dispatch({ type: 'updatePlayer', playerId: editingPlayer.id, name, profile });
+            onSave={(name, profile, avatar) => {
+              dispatch({ type: 'updatePlayer', playerId: editingPlayer.id, name, profile, avatar });
               setEditingPlayer(null);
             }}
           />
@@ -512,6 +514,7 @@ export default function PlayerRoster({
         const offbeat = player.games.filter((g) => categoryOf(g, index, state).id === OFFBEAT).length;
         return (
           <div key={player.id} className="scope-card" onClick={() => setOpenPlayerId(player.id)}>
+            <Avatar avatar={player.avatar} seed={player.id} size={48} />
             <div className="scope-info">
               <h3>{player.name}</h3>
               <div className="sub">
@@ -552,9 +555,9 @@ export default function PlayerRoster({
         <PlayerEditor
           initial={editingPlayer === 'new' ? null : editingPlayer}
           onClose={() => setEditingPlayer(null)}
-          onSave={(name, profile) => {
-            if (editingPlayer === 'new') dispatch({ type: 'addPlayer', name, profile, kind });
-            else dispatch({ type: 'updatePlayer', playerId: editingPlayer.id, name, profile });
+          onSave={(name, profile, avatar, id) => {
+            if (editingPlayer === 'new') dispatch({ type: 'addPlayer', id, name, profile, avatar, kind });
+            else dispatch({ type: 'updatePlayer', playerId: editingPlayer.id, name, profile, avatar });
             setEditingPlayer(null);
           }}
         />

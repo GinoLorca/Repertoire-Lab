@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useReducer, useRef, useSta
 import { get, set } from 'idb-keyval';
 import { movetextToLines, validateLine } from './lib/pgn';
 import { setCustomSounds, setVolume } from './lib/sound';
+import { defaultMonsterId } from './lib/monsters';
 
 const STORAGE_KEY = 'repertoire-lab-state-v1';
 
@@ -421,14 +422,18 @@ function reducer(state, action) {
       };
     }
     case 'addPlayer': {
+      const id = action.id ?? uid();
       const player = {
-        id: action.id ?? uid(),
+        id,
         name: action.name,
         // 'self' (your own games) or 'student' (Coaches tab). Defaults to
         // 'self' for the ad-hoc "+ New group" spots that don't ask.
         kind: action.kind ?? 'self',
         // Who this person is elsewhere — used to fill in game details later.
         profile: action.profile ?? { uscf: '', fide: '', chesscom: '', lichess: '', rating: '' },
+        // { kind: 'monster', variant } or { kind: 'photo', data }. Defaults to
+        // a monster picked stably from their id — see lib/monsters.js.
+        avatar: action.avatar ?? { kind: 'monster', variant: defaultMonsterId(id) },
         games: [],
       };
       return { ...state, players: [...state.players, player] };
@@ -438,6 +443,7 @@ function reducer(state, action) {
         ...p,
         name: action.name ?? p.name,
         profile: { ...(p.profile ?? {}), ...(action.profile ?? {}) },
+        avatar: action.avatar ?? p.avatar,
       }));
     case 'renamePlayer':
       return mapPlayer(state, action.playerId, (p) => ({ ...p, name: action.name }));
