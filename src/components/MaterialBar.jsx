@@ -1,7 +1,10 @@
 import React from 'react';
 
-// Same solid-glyph-tinted-by-CSS trick as MiniBoard, at icon size.
-const GLYPH = { p: '♟', n: '♞', b: '♝', r: '♜', q: '♛' };
+// Same solid-glyph-tinted-by-CSS trick as MiniBoard, at icon size. The
+// trailing U+FE0E forces text (outline) presentation — without it some
+// fonts substitute a fixed-colour emoji glyph that ignores our CSS `color`
+// entirely, so both sides silently render the same shade.
+const GLYPH = { p: '♟︎', n: '♞︎', b: '♝︎', r: '♜︎', q: '♛︎' };
 
 // One side's captured-material readout: the opponent's pieces taken so far
 // (shown in the captured piece's own colour, not this side's) and, only when

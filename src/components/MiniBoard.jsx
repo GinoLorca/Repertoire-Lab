@@ -1,9 +1,11 @@
 import React from 'react';
 
 // Solid glyphs for both sides, coloured rather than outlined — they read well
-// at thumbnail size and cost nothing to render.
+// at thumbnail size and cost nothing to render. The trailing U+FE0E forces
+// text presentation, so a font that would otherwise substitute a fixed-colour
+// emoji glyph (ignoring our CSS `color`) renders the plain outline instead.
 const GLYPH = {
-  p: '♟', n: '♞', b: '♝', r: '♜', q: '♛', k: '♚',
+  p: '♟︎', n: '♞︎', b: '♝︎', r: '♜︎', q: '♛︎', k: '♚︎',
 };
 
 function squaresFromFen(fen) {
