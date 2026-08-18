@@ -3,7 +3,7 @@ import { useStore } from '../store';
 import SoundsSection from './SoundsView';
 import { resolveTheme, themeForHour } from '../lib/theme';
 import {
-  PENS, SHORTCUTS, shortcutKey,
+  PENS, SHORTCUTS, shortcutKey, formatShortcutKey, isPenShortcut, modifierToken, MODIFIER_ORDER,
 } from '../lib/shortcuts';
 
 function Toggle({ label, hint, on, onChange }) {
@@ -47,13 +47,17 @@ function ShortcutEditor({ settings, set }) {
 
   useEffect(() => {
     if (!listening) return undefined;
-    const onKey = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.key === 'Escape') { setListening(null); return; }
-      if (e.metaKey || e.ctrlKey || e.altKey) return; // wait for the plain key
-      if (e.key.length !== 1) return; // named keys (Tab, F5, …) aren't bindable
-      const key = e.key.toLowerCase();
+    // Pen shortcuts can also bind to a pure modifier chord — Option alone, or
+    // Option+Control together, no letter — since those sit right under the
+    // fingers already on the mouse/trackpad hand. Captured by holding
+    // whichever modifiers you want and releasing them all: the widest combo
+    // reached during the hold becomes the binding. A plain letter still
+    // finalizes immediately on its own keydown, same as any other shortcut.
+    const comboCapable = isPenShortcut(listening);
+    const heldMods = new Set();
+    const maxCombo = new Set();
+
+    const finalize = (key) => {
       const current = { ...(settings.shortcuts ?? {}) };
       const holder = SHORTCUTS.find((s) => s.id !== listening && shortcutKey(settings, s.id) === key);
       if (holder) current[holder.id] = shortcutKey(settings, listening);
@@ -61,8 +65,34 @@ function ShortcutEditor({ settings, set }) {
       set({ shortcuts: current });
       setListening(null);
     };
-    window.addEventListener('keydown', onKey, { capture: true });
-    return () => window.removeEventListener('keydown', onKey, { capture: true });
+
+    const onKeyDown = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === 'Escape') { setListening(null); return; }
+      const mod = modifierToken(e.key);
+      if (mod && comboCapable) { heldMods.add(mod); maxCombo.add(mod); return; }
+      if (e.metaKey || e.ctrlKey || e.altKey) return; // wait for the plain key (or a release, for a combo)
+      if (e.key.length !== 1) return; // named keys (Tab, F5, …) aren't bindable
+      finalize(e.key.toLowerCase());
+    };
+
+    const onKeyUp = (e) => {
+      if (!comboCapable) return;
+      const mod = modifierToken(e.key);
+      if (!mod) return;
+      heldMods.delete(mod);
+      if (heldMods.size === 0 && maxCombo.size > 0) {
+        finalize(MODIFIER_ORDER.filter((m) => maxCombo.has(m)).join('+'));
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown, { capture: true });
+    window.addEventListener('keyup', onKeyUp, { capture: true });
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, { capture: true });
+      window.removeEventListener('keyup', onKeyUp, { capture: true });
+    };
   }, [listening, settings, set]);
 
   const customized = Object.keys(settings.shortcuts ?? {}).length > 0;
@@ -92,9 +122,11 @@ function ShortcutEditor({ settings, set }) {
             <button
               className={`kbd-edit${listening === s.id ? ' listening' : ''}`}
               onClick={() => setListening(s.id)}
-              title="Click, then press a key"
+              title={isPenShortcut(s.id)
+                ? 'Click, then press a key — or hold Option and/or Control alone, no letter, and release'
+                : 'Click, then press a key'}
             >
-              {listening === s.id ? '…' : shortcutKey(settings, s.id).toUpperCase()}
+              {listening === s.id ? '…' : formatShortcutKey(shortcutKey(settings, s.id))}
             </button>
             <span>{s.label}</span>
           </React.Fragment>
@@ -104,7 +136,8 @@ function ShortcutEditor({ settings, set }) {
       </div>
       <p className="hint">
         Click a key above, then press its replacement — <kbd>Esc</kbd> cancels. Taking a key that's
-        already in use swaps the two.
+        already in use swaps the two. The four pen rows can also take Option and/or Control alone
+        (no letter) — hold whichever you want, then let go.
       </p>
       {customized && (
         <button className="small ghost" onClick={() => set({ shortcuts: {} })}>

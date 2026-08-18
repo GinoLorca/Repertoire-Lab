@@ -26,7 +26,7 @@ import {
   BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon,
 } from '../components/Icons';
 import {
-  PENS, SHORTCUTS, defaultPen, shortcutKey, shortcutMap,
+  PENS, SHORTCUTS, defaultPen, shortcutKey, shortcutMap, isComboKey, comboMatchesEvent, formatShortcutKey,
 } from '../lib/shortcuts';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -276,11 +276,20 @@ export default function AnalysisView({ initialLine }) {
 
   // The colour a drag ending right now would use: whichever pen's key is
   // held, or the pen picked as the default (Settings → default pen colour,
-  // and the pen swatches below) if none is.
-  const currentPenColor = () => {
+  // and the pen swatches below) if none is. A pen's binding is either a
+  // plain letter (checked against what's been held via keydown/up above) or
+  // a pure modifier chord like ⌥ or ⌃⌥ — those are read straight off the
+  // release event's own altKey/ctrlKey/etc, which the browser already
+  // tracks accurately, rather than through our own key-tracking.
+  const currentPenColor = (e) => {
     for (const pen of PENS) {
       const key = shortcutKey(state.settings, pen.shortcutId);
-      if (key && heldKeysRef.current.has(key)) return pen.value;
+      if (!key) continue;
+      if (isComboKey(key)) {
+        if (e && comboMatchesEvent(key, e)) return pen.value;
+      } else if (heldKeysRef.current.has(key)) {
+        return pen.value;
+      }
     }
     return drawColor;
   };
@@ -307,7 +316,7 @@ export default function AnalysisView({ initialLine }) {
     const to = squareAt(e);
     rightFrom.current = null;
     if (!from || !to) return;
-    const color = currentPenColor();
+    const color = currentPenColor(e);
     if (from === to) toggleSquare(from, color);
     else addArrow(from, to, color);
   };
@@ -342,7 +351,7 @@ export default function AnalysisView({ initialLine }) {
     if (!drawMode || !e.isPrimary || !drawFrom || !isDrawButton(e)) return;
     const square = squareFromPoint(e.clientX, e.clientY);
     if (square) {
-      const color = currentPenColor();
+      const color = currentPenColor(e);
       if (square === drawFrom) toggleSquare(square, color);
       else addArrow(drawFrom, square, color);
     }
@@ -746,7 +755,7 @@ export default function AnalysisView({ initialLine }) {
                   style={{ background: p.value }}
                   title={p.id === (state.settings.defaultPen ?? 'green')
                     ? `${p.name} (default)`
-                    : `${p.name} (hold ${shortcutKey(state.settings, p.shortcutId).toUpperCase()} while dragging)`}
+                    : `${p.name} (hold ${formatShortcutKey(shortcutKey(state.settings, p.shortcutId))} while dragging)`}
                   onClick={() => setDrawColor(p.value)}
                 />
               ))}
@@ -768,7 +777,7 @@ export default function AnalysisView({ initialLine }) {
               <>
                 Right-click drag to draw in <strong>{defaultPen(state.settings).name.toLowerCase()}</strong> (the
                 default, set in Settings) · hold {PENS.filter((p) => p.id !== (state.settings.defaultPen ?? 'green')).map((p) => (
-                  <React.Fragment key={p.id}><kbd>{shortcutKey(state.settings, p.shortcutId).toUpperCase()}</kbd> </React.Fragment>
+                  <React.Fragment key={p.id}><kbd>{formatShortcutKey(shortcutKey(state.settings, p.shortcutId))}</kbd> </React.Fragment>
                 ))}while dragging for {PENS.filter((p) => p.id !== (state.settings.defaultPen ?? 'green')).map((p) => p.name.toLowerCase()).join(' / ')} ·
                 left-click the board to clear
               </>
@@ -1029,7 +1038,7 @@ export default function AnalysisView({ initialLine }) {
               <React.Fragment><kbd>↑ ↓</kbd><span>Jump to the start / the end</span></React.Fragment>
               {SHORTCUTS.map((s) => (
                 <React.Fragment key={s.id}>
-                  <kbd>{shortcutKey(state.settings, s.id).toUpperCase()}</kbd>
+                  <kbd>{formatShortcutKey(shortcutKey(state.settings, s.id))}</kbd>
                   <span>{s.label}</span>
                 </React.Fragment>
               ))}
