@@ -602,7 +602,11 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 
 /* The evaluation bar sits flush against the left edge of the board. */
-.board-with-eval { display: flex; gap: 10px; align-items: flex-start; }
+/* stretch, not flex-start: the eval bar has no height of its own any more —
+   the column beside it (material bars + board) is taller than just the
+   board now, and stretch keeps the two matched without a hardcoded number. */
+.board-with-eval { display: flex; gap: 10px; align-items: stretch; }
+.board-column { display: flex; flex-direction: column; gap: 4px; }
 .eval-bar {
   position: relative; width: 16px; flex: 0 0 auto;
   border-radius: 4px; overflow: hidden;
@@ -1704,6 +1708,17 @@ input[type="date"] {
 .mb-sq.dark { background: var(--board-dark); }
 .mb-piece.white { color: #fff; text-shadow: 0 0 1px #24303f, 0 1px 1px rgba(0,0,0,0.45); }
 .mb-piece.black { color: #10151d; text-shadow: 0 1px 1px rgba(255,255,255,0.18); }
+
+/* Captured-material readout — chess.com's little row of icons plus a "+N"
+   under each player. Reserves its height even empty so the board doesn't
+   hop down the instant the first piece is taken. */
+.material-bar {
+  display: flex; align-items: center; min-height: 20px; font-size: 17px; line-height: 1;
+}
+.material-piece { margin-right: -4px; }
+.material-piece.white { color: #fff; text-shadow: 0 0 1px #24303f, 0 1px 1px rgba(0,0,0,0.45); }
+.material-piece.black { color: #10151d; text-shadow: 0 1px 1px rgba(255,255,255,0.25); }
+.material-adv { margin-left: 8px; font-size: 12.5px; font-weight: 700; color: var(--green); }
 
 @media (max-width: 620px) {
   .game-card-body { flex-direction: column; }

@@ -10,6 +10,8 @@ import BoardArrows from '../components/BoardArrows';
 import CompareView from './CompareView';
 import GameEditor from '../components/GameEditor';
 import EvalBar from '../components/EvalBar';
+import MaterialBar from '../components/MaterialBar';
+import { materialDiff } from '../lib/material';
 import { playMoveSound } from '../lib/sound';
 import {
   EVENT_TYPES, resultFor, tidyEvent, matchPlayerByName,
@@ -381,6 +383,13 @@ export default function AnalysisView({ initialLine }) {
     try { return new Chess(fen); } catch { return null; }
   }, [fen]);
 
+  // Captured material, chess.com style — from the position itself, so it's
+  // right for any FEN, not just a game played out from the start.
+  const material = useMemo(
+    () => (position ? materialDiff(position) : { capturedByWhite: [], capturedByBlack: [], diff: 0 }),
+    [position],
+  );
+
   const showLegal = state.settings.showLegalMoves !== false;
   // The move that produced this position, marked on the board.
   const lastMove = useMemo(
@@ -660,10 +669,15 @@ export default function AnalysisView({ initialLine }) {
           {showEvalBar && (
             <EvalBar
               score={engineLines[1]?.score}
-              height={boardWidth}
               running={engineOn && engineStatus === 'running'}
             />
           )}
+          <div className="board-column" style={{ width: boardWidth }}>
+          <MaterialBar
+            pieces={orientation === 'white' ? material.capturedByBlack : material.capturedByWhite}
+            capturedColor={orientation === 'white' ? 'white' : 'black'}
+            advantage={orientation === 'white' ? Math.max(0, -material.diff) : Math.max(0, material.diff)}
+          />
           <div
             style={{
               position: 'relative', width: boardWidth, height: boardWidth,
@@ -701,6 +715,12 @@ export default function AnalysisView({ initialLine }) {
               orientation={orientation}
             />
           )}
+          </div>
+          <MaterialBar
+            pieces={orientation === 'white' ? material.capturedByWhite : material.capturedByBlack}
+            capturedColor={orientation === 'white' ? 'black' : 'white'}
+            advantage={orientation === 'white' ? Math.max(0, material.diff) : Math.max(0, -material.diff)}
+          />
           </div>
           </div>
 
