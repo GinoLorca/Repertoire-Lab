@@ -1112,10 +1112,14 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
   const doneIds = new Set(results.map((r) => r.variationId).filter(Boolean));
   const courseName = (current.opening.courses ?? [])
     .find((c) => c.id === current.chapter.courseId)?.name ?? null;
+  // A shuffled playlist is meant to be a surprise, one line at a time — the
+  // list would spoil what's coming up next, so it doesn't get a place here
+  // at all (not even collapsed), regardless of the viewport-width case below.
+  const isShuffledPlaylist = !!(scope?.playlistId && scope?.shuffle);
   // The list only earns its place when the board and the status panel still
   // have room — below this it squeezes the panel down to a one-word-per-line
   // column, which is worse than not having the list at all.
-  const showList = viewportWidth >= 1180;
+  const showList = viewportWidth >= 1180 && !isShuffledPlaylist;
   const listOpen = showList && state.settings.practiceList !== false;
   // Share the row out deliberately: the list, then the card that names the line
   // and reads out the coaching, then whatever's left is the board. Sizing the
