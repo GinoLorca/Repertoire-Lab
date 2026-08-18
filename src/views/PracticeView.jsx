@@ -1192,10 +1192,16 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
           {completed && (!inRetry || !autoAdvance || waitsHere) && (
             <div className="finish-bar" style={{ maxWidth: boardWidth }}>
               <button
-                title="Put the board back to move 1 so you can step through the line — this doesn't restart the exercise"
-                onClick={() => setReviewPly(0)}
+                title="Study the line — the cheat sheet, at your own pace, with no testing"
+                onClick={() => setBookOpen(true)}
               >
-                <SkipStartIcon size={15} /> Replay from move 1
+                <BookIcon size={15} /> Study
+              </button>
+              <button
+                title="Practice this variation again, from move 1"
+                onClick={() => goTo(qi)}
+              >
+                <SkipStartIcon size={15} /> Practice again
               </button>
               <button className="primary" onClick={nextVariation}>
                 {qi + 1 >= queue.length

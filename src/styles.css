@@ -1421,8 +1421,8 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .setting-toggle.on .switch .knob { transform: translateX(19px); background: #fff; }
 
 /* Two buttons under the board when a line is done. */
-.finish-bar { display: flex; gap: 10px; margin-top: 12px; }
-.finish-bar button { flex: 1; min-height: 44px; font-weight: 600; }
+.finish-bar { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.finish-bar button { flex: 1; min-width: 120px; min-height: 44px; font-weight: 600; }
 
 /* ---------- Avatars ---------- */
 
