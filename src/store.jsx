@@ -406,6 +406,23 @@ function reducer(state, action) {
           ? { ...g, meta: { ...(g.meta ?? {}), categoryId: action.categoryId } }
           : g)),
       }));
+    // Quick in-context editing from the analysis board — what a coach jots
+    // down while going over a student's game with them: what to remember,
+    // and themes (blunders, a tactic, an opening idea) to spot it again later.
+    case 'setGameNotes':
+      return mapPlayer(state, action.playerId, (p) => ({
+        ...p,
+        games: p.games.map((g) => (g.id === action.gameId
+          ? { ...g, meta: { ...(g.meta ?? {}), notes: action.notes } }
+          : g)),
+      }));
+    case 'setGameTags':
+      return mapPlayer(state, action.playerId, (p) => ({
+        ...p,
+        games: p.games.map((g) => (g.id === action.gameId
+          ? { ...g, meta: { ...(g.meta ?? {}), tags: action.tags } }
+          : g)),
+      }));
     case 'moveGameToPlayer': {
       const from = state.players.find((p) => p.id === action.fromPlayerId);
       const game = from?.games.find((g) => g.id === action.gameId);

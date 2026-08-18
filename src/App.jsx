@@ -175,6 +175,9 @@ function AppInner() {
       // result and opening so the analysis board can say what it's showing.
       // ownerId (a student's player id, or null for your own) scopes which
       // repertoire the board checks book moves against.
+      // gameId/playerId (only set for a real saved game, not a repertoire
+      // line or a blank board) let the board edit that game's notes/themes
+      // in place instead of just displaying a snapshot of them.
       setAnalysisLine({
         name: line.name,
         moves: line.moves,
@@ -182,6 +185,8 @@ function AppInner() {
         subtitle: line.subtitle ?? null,
         date: line.date ?? null,
         ownerId: line.ownerId ?? null,
+        gameId: line.gameId ?? null,
+        playerId: line.playerId ?? null,
       });
       setView('analysis');
     });

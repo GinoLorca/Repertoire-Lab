@@ -18,6 +18,7 @@ import {
 } from '../lib/games';
 import { buildPositionIndex, bookMovesAt, matchGameToRepertoire, moveLabel } from '../lib/repertoire';
 import LegalDots from '../components/LegalDots';
+import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import { lastMoveOf } from '../lib/legalMoves';
 import MoveTree from '../components/MoveTree';
 import {
@@ -25,7 +26,7 @@ import {
   keepMainLineOnly, hasVariations,
 } from '../lib/moveTree';
 import {
-  BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon,
+  BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon, TagIcon,
 } from '../components/Icons';
 import {
   PENS, SHORTCUTS, defaultPen, shortcutKey, shortcutMap, isComboKey, comboMatchesEvent, formatShortcutKey,
@@ -82,6 +83,16 @@ export default function AnalysisView({ initialLine }) {
   const [picked, setPicked] = useState(null); // click-to-move: the piece you tapped
   const [saving, setSaving] = useState(false); // "save to Games" dialog
   const [sidePane, setSidePane] = useState('engine'); // engine | explorer
+  const [taggingGame, setTaggingGame] = useState(false); // themes popover, on a saved game
+
+  // The saved game this board is showing, if any — initialLine is a snapshot
+  // from the moment "Analyze" was pressed, but notes/themes edited here need
+  // to read (and write) the live copy, not that snapshot.
+  const liveGame = useMemo(() => {
+    if (!initialLine?.gameId || !initialLine?.playerId) return null;
+    const owner = state.players.find((p) => p.id === initialLine.playerId);
+    return owner?.games.find((g) => g.id === initialLine.gameId) ?? null;
+  }, [state.players, initialLine?.gameId, initialLine?.playerId]);
 
   // Board options, shared with the Settings tab.
   const showEvalBar = state.settings.evalBar !== false;
@@ -813,6 +824,50 @@ export default function AnalysisView({ initialLine }) {
               </>
             )}
           </div>
+
+          {liveGame && (
+            <div className="panel game-notes-panel" style={{ maxWidth: boardWidth }}>
+              <div className="game-notes-head">
+                <strong>Coach notes</strong>
+                <TagChips tags={liveGame.meta?.tags} max={6} />
+                <span style={{ flex: 1 }} />
+                <button
+                  className="small ghost"
+                  title="Theme this game — a blunder, a tactic, an opening idea to remember"
+                  onClick={() => setTaggingGame(true)}
+                >
+                  <TagIcon size={14} /> Themes
+                </button>
+              </div>
+              <textarea
+                key={liveGame.id}
+                className="game-notes-input"
+                rows={3}
+                defaultValue={liveGame.meta?.notes ?? ''}
+                placeholder="Notes for this game — blunders, tactics, ideas to revisit…"
+                onBlur={(e) => {
+                  if (e.target.value === (liveGame.meta?.notes ?? '')) return;
+                  dispatch({
+                    type: 'setGameNotes',
+                    playerId: initialLine.playerId,
+                    gameId: initialLine.gameId,
+                    notes: e.target.value,
+                  });
+                }}
+              />
+            </div>
+          )}
+          {taggingGame && liveGame && (
+            <TagEditor
+              title={liveGame.name || 'this game'}
+              tags={liveGame.meta?.tags}
+              suggestions={allTags(state)}
+              onChange={(tags) => dispatch({
+                type: 'setGameTags', playerId: initialLine.playerId, gameId: initialLine.gameId, tags,
+              })}
+              onClose={() => setTaggingGame(false)}
+            />
+          )}
 
           <div className="viewer-controls">
             <button title="Start" onClick={() => setPly(0)}><SkipStartIcon size={16} /></button>

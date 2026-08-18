@@ -12,6 +12,7 @@ import VariationViewer from '../components/VariationViewer';
 import GameEditor from '../components/GameEditor';
 import PlayerEditor from '../components/PlayerEditor';
 import Avatar from '../components/Avatar';
+import { TagChips } from '../components/TagEditor';
 import { useBackGuard } from '../lib/backGuard';
 import {
   BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon, StarIcon,
@@ -129,6 +130,7 @@ function GameRow({
             {` · ${match.bookPly} moves deep`}
           </span>
         )}
+        <TagChips tags={m.tags} max={4} />
         <span style={{ flex: 1 }} />
         <select
           className="cat-select"
@@ -423,6 +425,8 @@ function PlayerPage({
             date: game.date,
             subtitle: category.label,
             ownerId: player.kind === 'student' ? player.id : null,
+            gameId: game.id,
+            playerId: player.id,
           })}
           onSetCategory={(categoryId) => dispatch({
             type: 'setGameCategory', playerId: player.id, gameId: game.id, categoryId,
@@ -462,6 +466,8 @@ function PlayerPage({
               meta: g.meta,
               date: g.date,
               ownerId: player.kind === 'student' ? player.id : null,
+              gameId: g.id,
+              playerId: player.id,
             });
           }}
         />
