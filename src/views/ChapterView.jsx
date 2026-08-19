@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useStore } from '../store';
+import ChapterVideo from '../components/ChapterVideo';
+import { fmtTime } from '../lib/videoLinks';
 import { chapterToPgn, downloadText, safeFilename } from '../lib/pgn';
 import {
   isDue, unlearnedCount, isPracticed, dueLabel, levelLabel, intervalLabel, practicedCount, dueCount,
@@ -10,7 +12,7 @@ import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import PgnImport from '../components/PgnImport';
 import {
   TagIcon, StarIcon, PencilIcon, ClockIcon, CheckIcon, DownloadIcon, CapIcon, PlayIcon, FolderIcon,
-  UploadIcon, CheckboxIcon,
+  UploadIcon, CheckboxIcon, VideoIcon,
 } from '../components/Icons';
 
 export default function ChapterView({ openingId, chapterId, onBack, onPractice, onAnalyze }) {
@@ -28,6 +30,9 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
   const [chosen, setChosen] = useState({}); // { [variationId]: true }
   const [confirmDelete, setConfirmDelete] = useState(false);
   const viewing = chapter?.variations.find((v) => v.id === viewingId);
+  const videoRef = useRef(null);
+  const videoBlockRef = useRef(null);
+  const showVideo = state.settings.showChapterVideos !== false;
 
   const chosenIds = Object.keys(chosen).filter((id) => chosen[id]);
   const toggleChosen = (id) => setChosen((c) => ({ ...c, [id]: !c[id] }));
@@ -185,6 +190,22 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
         </button>
       </div>
 
+      {/* Nothing renders here at all when the setting is off, or wrapped in a
+          ref div only while there's something to scroll to — a chapter with
+          no video and the feature enabled still gets the slim "add a video"
+          row, since that's the only way to attach the first one, but a
+          chapter that will never have one (the setting's off) costs it
+          nothing. */}
+      {showVideo && (
+        <div ref={videoBlockRef}>
+          <ChapterVideo
+            ref={videoRef}
+            video={chapter.video}
+            onChange={(video) => dispatch({ type: 'setChapterVideo', openingId, chapterId, video })}
+          />
+        </div>
+      )}
+
       {chapter.variations.length === 0 && (
         <div className="empty-note">
           No variations yet — use <a onClick={() => setImporting(true)}>Add PGN</a> above for a file
@@ -267,6 +288,41 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
                   {!due && dueLabel(variation) ? ` · ${dueLabel(variation)}` : ''}
                 </span>
               )}
+              {showVideo && chapter.video && (
+                <button
+                  className={`small ghost video-link-btn${variation.videoTimestamp != null ? ' on' : ''}`}
+                  title={variation.videoTimestamp != null
+                    ? `Watch the video from ${fmtTime(variation.videoTimestamp)} — click to jump there`
+                    : 'Pause the video where the explanation for this line starts, then click here to link it'}
+                  onClick={() => {
+                    if (variation.videoTimestamp != null) {
+                      videoBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      videoRef.current?.seekTo(variation.videoTimestamp);
+                      return;
+                    }
+                    const seconds = videoRef.current?.getCurrentTime?.() ?? 0;
+                    dispatch({
+                      type: 'setVariationTimestamp', openingId, chapterId, variationId: variation.id, seconds,
+                    });
+                  }}
+                >
+                  <VideoIcon size={15} />
+                  {variation.videoTimestamp != null && (
+                    <span className="video-link-time">{fmtTime(variation.videoTimestamp)}</span>
+                  )}
+                </button>
+              )}
+              {showVideo && chapter.video && variation.videoTimestamp != null && (
+                <button
+                  className="small ghost"
+                  title="Unlink this line from the video"
+                  onClick={() => dispatch({
+                    type: 'setVariationTimestamp', openingId, chapterId, variationId: variation.id, seconds: null,
+                  })}
+                >
+                  ✕
+                </button>
+              )}
               <span className="reorder">
                 <button
                   className="small ghost"
@@ -321,7 +377,11 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
               title="Click to review on the board"
               onClick={() => setViewingId(variation.id)}
             >
-              <MoveText moves={variation.moves} comments={variation.comments} />
+              <MoveText
+                moves={variation.moves}
+                comments={variation.comments}
+                badges={variation.badges}
+              />
             </div>
             <div className="row-foot">
               <button
@@ -425,6 +485,14 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
           }}
           onToggleStar={() => dispatch({ type: 'toggleStar', openingId, chapterId, variationId: viewing.id })}
           onEditTags={() => setTagging({ kind: 'variation', variationId: viewing.id })}
+          onSetBadge={(ply, badge) => dispatch({
+            type: 'setMoveBadge',
+            openingId,
+            chapterId,
+            variationId: viewing.id,
+            ply,
+            badge,
+          })}
           onSaveComment={(moveIndex, text) => dispatch({
             type: 'setMoveComment',
             openingId,

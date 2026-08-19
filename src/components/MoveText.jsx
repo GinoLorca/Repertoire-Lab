@@ -1,8 +1,13 @@
 import React from 'react';
+import MoveBadge from './MoveBadge';
+import { useStore } from '../store';
 
 // Render a SAN move list with move numbers, optionally clickable/highlightable.
-// Moves that carry a comment get a dotted underline and a hover tooltip.
-export default function MoveText({ moves, comments, currentIndex = -1, onClickMove }) {
+// Moves that carry a comment get a dotted underline and a hover tooltip; a move
+// the coach has badged carries its glyph, unless Settings has turned that off.
+export default function MoveText({ moves, comments, badges, currentIndex = -1, onClickMove }) {
+  const { state } = useStore();
+  const showBadges = state.settings.showMoveListBadges !== false;
   return (
     <>
       {moves.map((san, i) => (
@@ -14,6 +19,7 @@ export default function MoveText({ moves, comments, currentIndex = -1, onClickMo
             onClick={onClickMove ? () => onClickMove(i) : undefined}
           >
             {san}
+            {showBadges && badges?.[i] && <MoveBadge id={badges[i]} size={13} />}
           </span>{' '}
         </span>
       ))}

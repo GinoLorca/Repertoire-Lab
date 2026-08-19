@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import SoundsSection from './SoundsView';
 import { resolveTheme, themeForHour } from '../lib/theme';
+import { processBackground } from '../lib/background';
+import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
+import { DEFAULT_SQUARE_LIGHT, DEFAULT_SQUARE_DARK } from '../components/Board';
 import {
   PENS, SHORTCUTS, shortcutKey, formatShortcutKey, isPenShortcut, modifierToken, MODIFIER_ORDER,
 } from '../lib/shortcuts';
@@ -19,23 +22,34 @@ function Toggle({ label, hint, on, onChange }) {
   );
 }
 
-// One collapsible group of settings. Everything is open to begin with; the page
-// is long enough now that being able to fold a section away matters.
-function Section({ title, hint, children, defaultOpen = true }) {
-  const [open, setOpen] = useState(defaultOpen);
+// One group of settings, shown when its tab is the selected one. These used to
+// stack as collapsible folds, but with eight groups the page became a long
+// scroll where nothing was more than a few lines tall — a tab strip puts every
+// group one click away instead of one hunt away.
+function Section({ id, tab, title, hint, children }) {
+  if (tab !== id) return null;
   return (
-    <div className={`settings-section${open ? ' open' : ''}`}>
-      <button className="settings-head" onClick={() => setOpen((o) => !o)}>
-        <span className="folder-caret">{open ? '▾' : '▸'}</span>
+    <div className="settings-section open">
+      <div className="settings-head static">
         <span className="settings-head-text">
           <h2>{title}</h2>
           {hint && <span className="muted-note">{hint}</span>}
         </span>
-      </button>
-      {open && <div className="settings-body">{children}</div>}
+      </div>
+      <div className="settings-body">{children}</div>
     </div>
   );
 }
+
+const TABS = [
+  ['appearance', 'Appearance'],
+  ['board', 'The board'],
+  ['trainer', 'Move trainer'],
+  ['analysis', 'Analysis board'],
+  ['keyboard', 'Keyboard'],
+  ['explorer', 'Explorer'],
+  ['sounds', 'Sounds'],
+];
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 const hourLabel = (h) => `${String(h).padStart(2, '0')}:00`;
@@ -148,6 +162,52 @@ function ShortcutEditor({ settings, set }) {
   );
 }
 
+// A colour with its hex shown, so a value can be read and typed as well as picked.
+function Swatch({ label, value, onChange }) {
+  return (
+    <label className="colour-field">
+      <input type="color" value={value} onChange={(e) => onChange(e.target.value)} />
+      <span className="cf-text">
+        <strong>{label}</strong>
+        <span className="muted-note">{value}</span>
+      </span>
+    </label>
+  );
+}
+
+// Four squares and two pieces — enough to judge a scheme without leaving the page.
+function BoardPreview({ squareLight, squareDark, pieceLight, pieceDark }) {
+  const pieces = makePieces(pieceLight, pieceDark);
+  const cell = (sq, code, key) => (
+    <div key={key} className="bpv-sq" style={{ background: sq }}>
+      {code ? pieces[code]({ squareWidth: 44 }) : null}
+    </div>
+  );
+  return (
+    <div className="board-preview">
+      {cell(squareLight, 'bN', 0)}
+      {cell(squareDark, 'bQ', 1)}
+      {cell(squareDark, 'wK', 2)}
+      {cell(squareLight, 'wP', 3)}
+    </div>
+  );
+}
+
+const BOARD_PRESETS = [
+  { name: 'Default', light: DEFAULT_SQUARE_LIGHT, dark: DEFAULT_SQUARE_DARK, pw: '#ffffff', pb: '#000000' },
+  { name: 'Green', light: '#eeeed2', dark: '#769656', pw: '#ffffff', pb: '#000000' },
+  { name: 'Walnut', light: '#f0d9b5', dark: '#b58863', pw: '#fffdf6', pb: '#2b2118' },
+  { name: 'Slate', light: '#dfe3ea', dark: '#8397ab', pw: '#ffffff', pb: '#1b2430' },
+  { name: 'Ink', light: '#c9c9c9', dark: '#3f3f46', pw: '#f4f4f5', pb: '#09090b' },
+];
+
+const MOVE_SECONDS = [
+  [5, '5 seconds', 'Blitz recall — for lines you already know cold'],
+  [10, '10 seconds', 'Enough to see the position, not to work it out'],
+  [15, '15 seconds', 'Room to think, still a clock'],
+  [30, '30 seconds', 'Gentle — a nudge rather than a test of speed'],
+];
+
 const SPEEDS = [
   ['fast', 'Fast', 'The reply comes straight back — best when you know the line'],
   ['medium', 'Medium', 'A beat between moves, enough to say what just happened'],
@@ -160,12 +220,29 @@ export default function SettingsView() {
   const set = (settings) => dispatch({ type: 'setSettings', settings });
   const active = resolveTheme(s);
   const speed = s.trainerSpeed ?? 'fast';
+  const bgFileRef = useRef(null);
+  const [bgError, setBgError] = useState(null);
+  const [tab, setTab] = useState('appearance');
 
   return (
     <div className="page">
       <div className="page-head"><h1>Settings</h1></div>
 
-      <Section title="Appearance" hint="Theme">
+      <div className="settings-tabs" role="tablist">
+        {TABS.map(([id, label]) => (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={tab === id}
+            className={`settings-tab${tab === id ? ' active' : ''}`}
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <Section id="appearance" tab={tab} title="Appearance" hint="Theme and background">
         <div className="theme-choices">
           {[
             ['dark', 'Dark', 'Always the dark palette'],
@@ -203,14 +280,189 @@ export default function SettingsView() {
             Showing the <strong>{active}</strong> palette. Choose Auto to let it follow the clock.
           </p>
         )}
+
+        <div className="settings-row" style={{ marginTop: 18 }}>
+          <span><strong>Background picture</strong></span>
+        </div>
+        {s.background && (
+          <div className="bg-preview" style={{ backgroundImage: `url("${s.background}")` }} />
+        )}
+        {bgError && <p className="hint" style={{ color: 'var(--red)' }}>{bgError}</p>}
+        <p className="hint">
+          Your own image behind the app. It's stored on this device and travels in a Backup, so keep
+          an eye on the file size — it's shrunk to 2560px and re-encoded, but a picture is still far
+          bigger than the rest of your settings put together.
+        </p>
+        {s.background && (
+          <>
+            <div className="bg-veil-row">
+              <span className="muted-note" title="How much of the theme colour is laid over the picture">
+                Veil
+              </span>
+              <input
+                type="range"
+                min="0"
+                max="95"
+                value={s.backgroundVeil ?? 70}
+                onChange={(e) => set({ backgroundVeil: Number(e.target.value) })}
+              />
+              <span className="val">{s.backgroundVeil ?? 70}%</span>
+            </div>
+            <div className="bg-veil-row">
+              <span className="muted-note" title="How solid the cards and panels are over the picture">
+                Panels
+              </span>
+              <input
+                type="range"
+                min="40"
+                max="100"
+                value={s.surfaceOpacity ?? 100}
+                onChange={(e) => set({ surfaceOpacity: Number(e.target.value) })}
+              />
+              <span className="val">{s.surfaceOpacity ?? 100}%</span>
+            </div>
+            <div className="bg-veil-row">
+              <span className="muted-note" title="How solid the chess board is over the picture">
+                Board
+              </span>
+              <input
+                type="range"
+                min="30"
+                max="100"
+                value={s.boardOpacity ?? 100}
+                onChange={(e) => set({ boardOpacity: Number(e.target.value) })}
+              />
+              <span className="val">{s.boardOpacity ?? 100}%</span>
+            </div>
+            <p className="hint">
+              <strong>Veil</strong> dims the picture itself. <strong>Panels</strong> and{' '}
+              <strong>Board</strong> let it show through what sits on top — panels are frosted so
+              their text stays readable, and the board has its own control because how far you can
+              push it depends entirely on the picture behind it.
+            </p>
+          </>
+        )}
+        <div className="settings-row">
+          <button className="small" onClick={() => bgFileRef.current?.click()}>
+            {s.background ? 'Replace picture' : 'Choose a picture'}
+          </button>
+          {s.background && (
+            <button
+              className="small ghost danger"
+              onClick={() => { setBgError(null); set({ background: null }); }}
+            >
+              Remove
+            </button>
+          )}
+          <input
+            ref={bgFileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            hidden
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (!file) return;
+              setBgError(null);
+              try {
+                set({ background: await processBackground(file) });
+              } catch (err) {
+                setBgError(err.message);
+              }
+            }}
+          />
+        </div>
       </Section>
 
-      <Section title="The board" hint="Everywhere a board appears">
+      <Section id="board" tab={tab} title="The board" hint="Everywhere a board appears">
+        <div className="settings-row"><span><strong>Colours</strong></span></div>
+        <div className="board-colours">
+          <BoardPreview
+            squareLight={s.squareLight ?? DEFAULT_SQUARE_LIGHT}
+            squareDark={s.squareDark ?? DEFAULT_SQUARE_DARK}
+            pieceLight={s.pieceLight ?? DEFAULT_PIECE_LIGHT}
+            pieceDark={s.pieceDark ?? DEFAULT_PIECE_DARK}
+          />
+          <div className="colour-fields">
+            <Swatch
+              label="Light squares"
+              value={s.squareLight ?? DEFAULT_SQUARE_LIGHT}
+              onChange={(v) => set({ squareLight: v })}
+            />
+            <Swatch
+              label="Dark squares"
+              value={s.squareDark ?? DEFAULT_SQUARE_DARK}
+              onChange={(v) => set({ squareDark: v })}
+            />
+            <Swatch
+              label="White pieces"
+              value={s.pieceLight ?? DEFAULT_PIECE_LIGHT}
+              onChange={(v) => set({ pieceLight: v })}
+            />
+            <Swatch
+              label="Black pieces"
+              value={s.pieceDark ?? DEFAULT_PIECE_DARK}
+              onChange={(v) => set({ pieceDark: v })}
+            />
+          </div>
+        </div>
+        <div className="settings-row">
+          {BOARD_PRESETS.map((p) => (
+            <button
+              key={p.name}
+              className="board-preset"
+              title={p.name}
+              onClick={() => set({
+                squareLight: p.light, squareDark: p.dark, pieceLight: p.pw, pieceDark: p.pb,
+              })}
+            >
+              <span className="bp-swatch" style={{ background: `linear-gradient(135deg, ${p.light} 50%, ${p.dark} 50%)` }} />
+              {p.name}
+            </button>
+          ))}
+          <button
+            className="small ghost"
+            onClick={() => set({
+              squareLight: null, squareDark: null, pieceLight: null, pieceDark: null,
+            })}
+          >
+            Reset
+          </button>
+        </div>
+        <p className="hint">
+          Applies to every board in the app — analysis, practice, the cheat sheet and compare.
+          The piece colours are the two inks of the set: a white piece is filled with the first and
+          outlined in the second, and a black piece is the other way round.
+        </p>
+
         <Toggle
           label="Show legal moves"
           hint="Tap or click a piece and every square it can go to is marked with a dot."
           on={s.showLegalMoves !== false}
           onChange={(v) => set({ showLegalMoves: v })}
+        />
+        <Toggle
+          label="Chapter videos"
+          hint="The video at the top of a chapter's page, and the camera icon that jumps a line to its
+            moment in it. Off hides the whole block — a chapter with no video attached never shows
+            anything there either way."
+          on={s.showChapterVideos !== false}
+          onChange={(v) => set({ showChapterVideos: v })}
+        />
+        <Toggle
+          label="Move badges — on the board"
+          hint="A badged move's coloured square and glyph, wherever a board is showing that move —
+            analysis, practice, the line viewer, compare. Editing badges from Coaches Corner or a
+            chapter's line viewer still works with this off; it only changes what's shown."
+          on={s.showBoardBadges !== false}
+          onChange={(v) => set({ showBoardBadges: v })}
+        />
+        <Toggle
+          label="Move badges — in move lists and notes"
+          hint="The small glyph next to a badged move in a move list, and on the note card under the
+            analysis board. Independent of the board toggle above — turn off either one, or both."
+          on={s.showMoveListBadges !== false}
+          onChange={(v) => set({ showMoveListBadges: v })}
         />
         <Toggle
           label="Highlight the last move"
@@ -227,7 +479,7 @@ export default function SettingsView() {
         />
       </Section>
 
-      <Section title="Move trainer" hint="Learn and Practice">
+      <Section id="trainer" tab={tab} title="Move trainer" hint="Learn and Practice">
         <div className="speed-choices">
           {SPEEDS.map(([value, label, hint]) => (
             <button
@@ -240,6 +492,29 @@ export default function SettingsView() {
             </button>
           ))}
         </div>
+        <Toggle
+          label="Time each move"
+          hint="Puts a clock on every move you owe. Run out and the correct move is played for you,
+            with the author's note on it if the course has one. In Learn — where the move is already
+            shown — running out costs nothing; while you're being tested it counts as a miss and
+            earns the same drill as playing it wrong."
+          on={!!s.moveTimer}
+          onChange={(v) => set({ moveTimer: v })}
+        />
+        {s.moveTimer && (
+          <div className="speed-choices">
+            {MOVE_SECONDS.map(([value, label, hint]) => (
+              <button
+                key={value}
+                className={`theme-card${(s.moveTimerSeconds ?? 15) === value ? ' active' : ''}`}
+                onClick={() => set({ moveTimerSeconds: value })}
+              >
+                <strong>{label}</strong>
+                <span className="muted-note">{hint}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <Toggle
           label="Pause between drill repeats"
           hint="A finished line always waits for you to press Next. Turn this on to stop between the
@@ -263,7 +538,7 @@ export default function SettingsView() {
         />
       </Section>
 
-      <Section title="Analysis board" hint="Engine, evaluation and book moves">
+      <Section id="analysis" tab={tab} title="Analysis board" hint="Engine, evaluation and book moves">
         <Toggle
           label="Engine on when the board opens"
           hint="Stockfish starts thinking as soon as you open an analysis board — the arrows and the
@@ -320,11 +595,11 @@ export default function SettingsView() {
         />
       </Section>
 
-      <Section title="Keyboard" hint="On the analysis board — click a key to rebind it">
+      <Section id="keyboard" tab={tab} title="Keyboard" hint="On the analysis board — click a key to rebind it">
         <ShortcutEditor settings={s} set={set} />
       </Section>
 
-      <Section title="Opening explorer" defaultOpen={false}>
+      <Section id="explorer" tab={tab} title="Opening explorer">
         <p className="hint">
           Lichess has started refusing anonymous explorer requests (a 401). Paste a personal API
           token from lichess.org → Preferences → API access tokens to use it again. No scopes are
@@ -338,7 +613,7 @@ export default function SettingsView() {
         />
       </Section>
 
-      <Section title="Sounds" defaultOpen={false}>
+      <Section id="sounds" tab={tab} title="Sounds">
         <SoundsSection bare />
       </Section>
     </div>

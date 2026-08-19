@@ -1,7 +1,8 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { pgnTextToEntries } from '../lib/pgnImport';
 import { useBackGuard } from '../lib/backGuard';
-import { UploadIcon, ClipboardIcon, AlertIcon } from './Icons';
+import { parseStudyUrl, fetchStudyPgn } from '../lib/lichess';
+import { UploadIcon, ClipboardIcon, AlertIcon, LinkIcon } from './Icons';
 
 // One selectable line, shared by the flat (chapter) and grouped (course)
 // layouts below.
@@ -64,6 +65,29 @@ export default function PgnImport({ chapterName, courseName, onAdd, onClose }) {
   const entryGroups = useMemo(() => (byCourse ? groupByEvent(entries) : null), [byCourse, entries]);
   const chosenGroups = useMemo(() => (byCourse ? groupByEvent(chosen) : null), [byCourse, chosen]);
 
+  const [studyInput, setStudyInput] = useState('');
+  const [studyBusy, setStudyBusy] = useState(false);
+  const [studyError, setStudyError] = useState(null);
+
+  const pullStudy = async () => {
+    const parsed = parseStudyUrl(studyInput);
+    if (!parsed) return;
+    setStudyBusy(true);
+    setStudyError(null);
+    try {
+      const pgn = await fetchStudyPgn(parsed);
+      setText(pgn);
+      setFileName(parsed.chapterId
+        ? `Lichess study ${parsed.studyId} (one chapter)`
+        : `Lichess study ${parsed.studyId}`);
+      setSkip({});
+    } catch (err) {
+      setStudyError(err.message);
+    } finally {
+      setStudyBusy(false);
+    }
+  };
+
   const readFile = async (file) => {
     if (!file) return;
     setFileName(file.name);
@@ -75,6 +99,7 @@ export default function PgnImport({ chapterName, courseName, onAdd, onClose }) {
     name: (names[e.id] ?? e.name).trim() || 'Variation',
     moves: e.moves,
     comments: e.comments,
+    badges: e.badges,
   });
 
   const add = () => {
@@ -119,6 +144,26 @@ export default function PgnImport({ chapterName, courseName, onAdd, onClose }) {
             hidden
             onChange={(e) => { readFile(e.target.files[0]); e.target.value = ''; }}
           />
+        </div>
+
+        {/* A Lichess study is a PGN with one game per chapter, so pulling one
+            in is the same import with a different source — no separate flow to
+            learn, and the same preview before anything is added. */}
+        <div className="lichess-row">
+          <span className="muted-note"><LinkIcon size={14} /> …or a Lichess study link</span>
+          <div className="lichess-input">
+            <input
+              type="text"
+              placeholder="https://lichess.org/study/xxxxxxxx"
+              value={studyInput}
+              onChange={(e) => { setStudyInput(e.target.value); setStudyError(null); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') pullStudy(); }}
+            />
+            <button className="small" disabled={!parseStudyUrl(studyInput) || studyBusy} onClick={pullStudy}>
+              {studyBusy ? 'Fetching…' : 'Fetch'}
+            </button>
+          </div>
+          {studyError && <span className="muted-note lichess-error">{studyError}</span>}
         </div>
 
         <label className="paste-label">

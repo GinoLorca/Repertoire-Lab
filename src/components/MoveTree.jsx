@@ -1,12 +1,14 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { mainLineFrom } from '../lib/moveTree';
+import MoveBadge from './MoveBadge';
+import { useStore } from '../store';
 
 // "4." for White's move, "4…" for Black's, from the ply it was played at.
 const numFor = (ply) => `${Math.floor((ply - 1) / 2) + 1}${ply % 2 === 1 ? '.' : '…'}`;
 
 // One variation, written the way a book writes it: 3…Bd6 4.e3 Nf6, with any
 // further branches inside it in their own brackets.
-function InlineLine({ start, startPly, headId, onGo, onMenu }) {
+function InlineLine({ start, startPly, headId, badges, onGo, onMenu }) {
   const nodes = [start, ...mainLineFrom(start)];
   return (
     <>
@@ -24,6 +26,7 @@ function InlineLine({ start, startPly, headId, onGo, onMenu }) {
               onContextMenu={(e) => { e.preventDefault(); onMenu(node.id, e); }}
             >
               {node.san}
+              {badges?.[node.id] && <MoveBadge id={badges[node.id]} size={11} />}
             </button>
             {siblings.map((sib) => (
               <span key={sib.id} className="mt-nested">
@@ -32,6 +35,7 @@ function InlineLine({ start, startPly, headId, onGo, onMenu }) {
                   start={sib}
                   startPly={ply}
                   headId={headId}
+                  badges={badges}
                   onGo={onGo}
                   onMenu={onMenu}
                 />
@@ -47,7 +51,12 @@ function InlineLine({ start, startPly, headId, onGo, onMenu }) {
 
 // The main line as a numbered table, with each variation on its own indented
 // row underneath the move it answers.
-export default function MoveTree({ root, headId, onGo, onPromote, onPromoteOne, onDelete }) {
+export default function MoveTree({ root, headId, badges: badgesIn, onGo, onPromote, onPromoteOne, onDelete }) {
+  const { state } = useStore();
+  // Gated once, here, rather than in every downstream renderer (InlineLine
+  // recurses into its own branches) — undefined reads as "no badges" wherever
+  // it's checked, so nothing further needs to know the setting exists.
+  const badges = state.settings.showMoveListBadges !== false ? badgesIn : undefined;
   const [menu, setMenu] = useState(null); // { nodeId, x, y }
   const [menuPos, setMenuPos] = useState(null); // clamped { left, top }, once measured
   const menuRef = useRef(null);
@@ -88,6 +97,7 @@ export default function MoveTree({ root, headId, onGo, onPromote, onPromoteOne, 
         onContextMenu={(e) => { e.preventDefault(); openMenu(node.id, e); }}
       >
         {node.san}
+        {badges?.[node.id] && <MoveBadge id={badges[node.id]} size={12} />}
       </button>
     );
   };
@@ -120,6 +130,7 @@ export default function MoveTree({ root, headId, onGo, onPromote, onPromoteOne, 
                     start={branch}
                     startPly={ply}
                     headId={headId}
+                    badges={badges}
                     onGo={onGo}
                     onMenu={openMenu}
                   />

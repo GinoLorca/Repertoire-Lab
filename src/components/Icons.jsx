@@ -81,6 +81,30 @@ export const BookIcon = (p) => (
   </Icon>
 );
 
+export const LinkIcon = (p) => (
+  <Icon {...p}>
+    <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" />
+    <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
+  </Icon>
+);
+
+export const UsersIcon = (p) => (
+  <Icon {...p}>
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </Icon>
+);
+
+export const FlaskIcon = (p) => (
+  <Icon {...p}>
+    <path d="M9 3h6" />
+    <path d="M10 3v6.2L4.6 18A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-3L14 9.2V3" />
+    <path d="M7.5 15h9" />
+  </Icon>
+);
+
 export const CommentIcon = (p) => (
   <Icon {...p}>
     <path d="M20.5 15a2.5 2.5 0 0 1-2.5 2.5H8L4 21V5.5A2.5 2.5 0 0 1 6.5 3H18a2.5 2.5 0 0 1 2.5 2.5z" />
@@ -98,6 +122,16 @@ export const CameraIcon = (p) => (
   <Icon {...p}>
     <path d="M3 8.5h3.5L8.5 6h7l2 2.5H21a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1z" />
     <circle cx="12" cy="13.5" r="3.6" />
+  </Icon>
+);
+
+// A camcorder, not a still camera — the body-plus-lens-flap shape everyone
+// reads as "video" (Feather/Lucide's "video" glyph), so the button that jumps
+// to a moment in a chapter's video doesn't look like it takes a photo of it.
+export const VideoIcon = (p) => (
+  <Icon {...p}>
+    <rect x="2.5" y="6.5" width="13" height="11" rx="2" />
+    <path d="M15.5 10.3 21 7v10l-5.5-3.3z" />
   </Icon>
 );
 

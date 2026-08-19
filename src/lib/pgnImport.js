@@ -4,7 +4,7 @@ import { splitPgnGames, movetextToLines, validateLine } from './pgn';
 // added to a chapter. Handles a full PGN with headers, several games in one
 // file, and bare movetext — nested variations become their own lines.
 //
-// Each entry is { id, name, moves, comments, ok, failedToken, event }.
+// Each entry is { id, name, moves, comments, badges, ok, failedToken, event }.
 let seq = 0;
 const nextId = () => `imp${(seq += 1)}-${Date.now().toString(36)}`;
 
@@ -29,6 +29,7 @@ function gameEntries(games) {
         name: li > 0 ? `${baseName} (alt ${li})` : baseName,
         event: h.Event || null,
         comments: line.comments,
+        badges: line.badges,
         ...result,
       });
     });
@@ -59,6 +60,7 @@ function looseEntries(text) {
       name: lines.length > 1 ? `Line ${i + 1}` : 'Pasted line',
       event: null,
       comments: line.comments,
+      badges: line.badges,
       ...result,
     };
   }).filter((e) => e.moves.length > 0);

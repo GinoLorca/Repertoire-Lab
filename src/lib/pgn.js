@@ -1,4 +1,5 @@
 import { Chess } from 'chess.js';
+import { badgeIdForNag, badgeIdForGlyph, badgeSuffix, BADGE_BY_ID } from './badges';
 
 // ---------- Tokenizing movetext ----------
 
@@ -26,7 +27,14 @@ function tokenize(input) {
     if (c === ')') { tokens.push({ type: 'close' }); i += 1; continue; }
     if (c === '$') {
       i += 1;
+      let start = i;
       while (i < movetext.length && /\d/.test(movetext[i])) i += 1;
+      const n = Number(movetext.slice(start, i));
+      // A numeric NAG is the standards-compliant way a badge round-trips
+      // through PGN — Lichess/chess.com write these, not just the glyph
+      // suffix — so it has to attach to whatever move came before it, the
+      // same as a {comment} does.
+      if (Number.isFinite(n)) tokens.push({ type: 'nag', n });
       continue;
     }
     let j = i;
@@ -36,8 +44,15 @@ function tokenize(input) {
     if (/^(1-0|0-1|1\/2-1\/2|½-½|\*)$/.test(word)) continue;
     // strip attached move numbers: "12.", "12...", "12.e4"
     const m = word.match(/^\d+\.{0,3}(.*)$/);
-    const san = m ? m[1] : word;
-    if (san) tokens.push({ type: 'san', san });
+    let san = m ? m[1] : word;
+    // …and a trailing annotation glyph ("Nf6??", "d4!") — chess.js accepts
+    // and silently discards these itself, which is exactly how a badge used
+    // to vanish on import. Longest match first, so "?!" reads as one glyph
+    // rather than "?" with a stray "!" left dangling.
+    let glyph = null;
+    const gm = san.match(/(\?\?|!!|!\?|\?!|[!?])$/);
+    if (gm) { glyph = gm[1]; san = san.slice(0, -glyph.length); }
+    if (san) tokens.push({ type: 'san', san, glyph });
   }
   return tokens;
 }
@@ -62,7 +77,19 @@ function parseSequence(tokens, pos) {
       pos += 1;
       continue;
     }
-    moves.push({ san: t.san, comment: null, variations: [] });
+    if (t.type === 'nag') {
+      // A $N always refers to the move immediately before it; a glyph
+      // attached straight to the SAN ("Nf6??") already set the badge when the
+      // token was pushed below, so a redundant $4 alongside it — which real
+      // PGN exports do write — isn't allowed to overwrite that with a
+      // possibly-different reading of the same move.
+      if (moves.length > 0 && !moves[moves.length - 1].badge) {
+        moves[moves.length - 1].badge = badgeIdForNag(t.n);
+      }
+      pos += 1;
+      continue;
+    }
+    moves.push({ san: t.san, comment: null, badge: badgeIdForGlyph(t.glyph), variations: [] });
     pos += 1;
   }
   return { moves, pos };
@@ -78,14 +105,15 @@ function expandTree(moves, prefix) {
     for (const v of m.variations) {
       sublines.push(...expandTree(v, [...mainLine]));
     }
-    mainLine.push({ san: m.san, comment: m.comment });
+    mainLine.push({ san: m.san, comment: m.comment, badge: m.badge });
   }
   return [mainLine, ...sublines];
 }
 
 // Parse a movetext string into one or more flat lines. Each line is
-// { moves: [san], comments: { moveIndex: text } }. Handles comments, NAGs,
-// move numbers, results, and nested variations (each branch = its own line).
+// { moves: [san], comments: { moveIndex: text }, badges: { moveIndex: id } }.
+// Handles comments, NAGs, annotation glyphs, move numbers, results, and
+// nested variations (each branch = its own line).
 export function movetextToLines(movetext) {
   const tokens = tokenize(movetext);
   const { moves } = parseSequence(tokens, 0);
@@ -95,6 +123,9 @@ export function movetextToLines(movetext) {
       moves: line.map((x) => x.san),
       comments: Object.fromEntries(
         line.map((x, i) => [i, x.comment]).filter(([, c]) => c),
+      ),
+      badges: Object.fromEntries(
+        line.map((x, i) => [i, x.badge]).filter(([, b]) => b),
       ),
     }));
 }
@@ -154,14 +185,22 @@ export function splitPgnGames(text) {
 
 // ---------- Generation ----------
 
-export function movesToMovetext(moves, comments = {}) {
+export function movesToMovetext(moves, comments = {}, badges = {}) {
   const parts = [];
   let forceNumber = false;
   moves.forEach((san, i) => {
-    if (i % 2 === 0) parts.push(`${i / 2 + 1}.${san}`);
-    else if (forceNumber) parts.push(`${(i - 1) / 2 + 1}...${san}`);
-    else parts.push(san);
+    // The glyph rides directly on the move ("Nf6??"), the way a human
+    // annotates a game — the $N NAG comes right after, since that's the
+    // unambiguous form other software (Lichess, ChessBase) actually reads.
+    // Together they read naturally and survive either parser.
+    const badge = BADGE_BY_ID[badges?.[i]];
+    const suffix = badgeSuffix(badge);
+    const sanOut = suffix ? `${san}${suffix}` : san;
+    if (i % 2 === 0) parts.push(`${i / 2 + 1}.${sanOut}`);
+    else if (forceNumber) parts.push(`${(i - 1) / 2 + 1}...${sanOut}`);
+    else parts.push(sanOut);
     forceNumber = false;
+    if (suffix && badge.nag != null) parts.push(`$${badge.nag}`);
     const c = comments?.[i];
     if (c) {
       parts.push(`{${String(c).replace(/[{}]/g, '')}}`);
@@ -188,7 +227,7 @@ export function variationToPgn(variation, { event, white, black }) {
     ['Result', '*'],
   ];
   const headerText = headers.map(([k, v]) => `[${k} "${v.replace(/"/g, "'")}"]`).join('\n');
-  return `${headerText}\n\n${movesToMovetext(variation.moves, variation.comments)} *\n`;
+  return `${headerText}\n\n${movesToMovetext(variation.moves, variation.comments, variation.badges)} *\n`;
 }
 
 export function chapterToPgn(opening, chapter) {

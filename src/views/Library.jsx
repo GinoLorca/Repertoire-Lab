@@ -9,8 +9,10 @@ import { mergeBackup } from '../lib/backup';
 import { useBackGuard } from '../lib/backGuard';
 import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import PgnImport from '../components/PgnImport';
+import MonsterAvatar from '../components/MonsterAvatar';
 import {
   ImageIcon, TagIcon, StarIcon, PencilIcon, ClockIcon, CheckIcon, DownloadIcon, UploadIcon, PlayIcon,
+  UsersIcon,
   FolderIcon,
 } from '../components/Icons';
 
@@ -90,7 +92,7 @@ function tallyChapters(chapters) {
 
 // A section / sub-section shown as a box in the same grid as chapter cards.
 // Clicking it opens the group to reveal what's inside.
-function FolderCard({ title, chapters, chips, open, onToggle, actions, practiceLabel, onPractice }) {
+function FolderCard({ title, chapters, chips, open, onToggle, actions, practiceLabel, onPractice, onSave }) {
   const t = tallyChapters(chapters);
   const pct = t.variations ? Math.round((t.practiced / t.variations) * 100) : 0;
   const green = chapters.length > 0 && chapters.every(chapterPracticed);
@@ -132,6 +134,9 @@ function FolderCard({ title, chapters, chips, open, onToggle, actions, practiceL
         >
           <PlayIcon size={14} />
         </button>
+        {/* Icon-only here: a folder card's action row is far narrower than a
+            course's, and the label would push the rest of the row off it. */}
+        {onSave}
         {actions}
       </div>
     </div>
@@ -398,6 +403,9 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
   const [scope, setScope] = useState('me');
   useEffect(() => { if (initialScope) setScope(initialScope); }, [initialScope]);
   const students = state.players.filter((p) => p.kind === 'student');
+  // Your own openings stay in view regardless of which repertoire is on screen —
+  // they're the source when handing lines to a student.
+  const myOpenings = state.openings.filter((o) => (o.ownerId ?? null) === null);
   const openings = state.openings.filter((o) => (o.ownerId ?? null) === (scope === 'me' ? null : scope));
   const scopedStudent = scope !== 'me' ? students.find((p) => p.id === scope) : null;
 
@@ -433,6 +441,36 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
   const artInputRef = useRef(null);
   const artTargetRef = useRef(null);
   const restoreRef = useRef(null);
+  const studentRestoreRef = useRef(null);
+
+  // Loading a study pack into one student. Unlike the full Restore this never
+  // touches anything else: the file's openings are re-homed onto this student,
+  // and the coach's own repertoire, other students, games and settings are
+  // left exactly as they were.
+  const onStudentRestoreFile = async (e, student) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      const incoming = parsed.openings ?? [];
+      if (incoming.length === 0) {
+        window.alert('That file has no openings in it.');
+        return;
+      }
+      const lines = incoming.reduce(
+        (a, o) => a + o.chapters.reduce((b, c) => b + c.variations.length, 0), 0);
+      const ok = window.confirm(
+        `Add ${incoming.length} opening${incoming.length === 1 ? '' : 's'} `
+        + `(${lines} line${lines === 1 ? '' : 's'}) to ${student.name}'s repertoire?\n\n`
+        + 'Nothing else on this device is touched.',
+      );
+      if (!ok) return;
+      dispatch({ type: 'importOpeningsForPlayer', playerId: student.id, openings: incoming });
+    } catch {
+      window.alert("That file couldn't be read as a Repertoire Lab backup.");
+    }
+  };
 
   // Scoped to whichever tab is open — exporting a student's repertoire
   // shouldn't silently bundle in your own.
@@ -459,16 +497,49 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
     downloadText(`repertoire-lab-backup-${stamp}.json`, JSON.stringify(payload));
   };
 
+  // A student's study pack: their openings as a file they can Restore into
+  // their own copy of the app and practise on their own.
+  //
+  // ownerId is stripped on the way out. On the coach's device these openings
+  // belong to a student; on the student's device they're simply theirs, and
+  // arriving filed under a "student" who doesn't exist there would leave them
+  // invisible. Progress goes too — if the coach has demonstrated lines, that's
+  // a starting point, not something to hide.
+  const exportForStudent = (student) => {
+    const theirs = state.openings
+      .filter((o) => (o.ownerId ?? null) === student.id)
+      .map((o) => ({ ...o, ownerId: null }));
+    const stamp = new Date().toISOString().slice(0, 10);
+    const payload = {
+      app: 'repertoire-lab',
+      version: 2,
+      kind: 'study-pack',
+      preparedFor: student.name,
+      savedAt: new Date().toISOString(),
+      openings: theirs,
+      players: [],
+      categories: [],
+      playlists: [],
+      // Deliberately omitted: the coach's own settings, API keys and
+      // background picture have no business travelling to a student.
+      settings: {},
+    };
+    downloadText(`${safeFilename(student.name)}-study-pack-${stamp}.json`, JSON.stringify(payload));
+  };
+
   // A small one-course export — just what you've learned and how each line's
   // due, for whichever course you were just working through — so carrying
   // progress to another device after a session doesn't mean digging up a
   // full backup. `kind: 'progress'` marks it as partial: the restore screen
   // only offers Merge for one of these, never Replace everything (a file
   // this small "replacing" a whole device's repertoire would be a disaster).
-  const saveCourseProgress = (openingId, courseId, courseName) => {
+  // Save what's been learned in one slice of the library to a small file, to be
+  // Restored on another device. Any grouping that can be practiced can be saved
+  // — a whole opening, a section, a sub-section or a course — so it doesn't
+  // matter how a repertoire happens to be organised.
+  const saveProgress = (openingId, chapters, label) => {
     const opening = state.openings.find((o) => o.id === openingId);
     if (!opening) return;
-    const chapters = opening.chapters.filter((c) => (c.courseId ?? null) === courseId);
     const stamp = new Date().toISOString().slice(0, 10);
     const payload = {
       app: 'repertoire-lab',
@@ -481,8 +552,21 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
       playlists: [],
       settings: state.settings,
     };
-    downloadText(`progress-${safeFilename(courseName)}-${stamp}.json`, JSON.stringify(payload));
+    downloadText(`progress-${safeFilename(label)}-${stamp}.json`, JSON.stringify(payload));
   };
+
+  // The button itself, so every grouping gets an identical one rather than four
+  // near-copies that drift apart.
+  const SaveProgressButton = ({ openingId, chapters, label, compact }) => (
+    <button
+      className="small ghost"
+      disabled={tallyChapters(chapters).variations === 0}
+      title={`Save just what you've learned in ${label} to a small file — Restore it on another device to merge this progress in`}
+      onClick={(e) => { e.stopPropagation(); saveProgress(openingId, chapters, label); }}
+    >
+      <DownloadIcon size={14} />{compact ? '' : ' Save progress'}
+    </button>
+  );
 
   const summarise = (parsed) => {
     const variations = (parsed.openings ?? []).reduce(
@@ -596,21 +680,56 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
 
       <div className="page-head">
         <h1>{scopedStudent ? `${scopedStudent.name}'s Repertoire` : 'My Repertoire'}</h1>
-        <button
-          className="ghost"
-          title="Download everything — openings, progress, artwork, player profiles, games and settings — as one file"
-          onClick={backup}
-        >
-          <DownloadIcon size={15} /> Backup
-        </button>
-        <button
-          className="ghost"
-          title="Load a backup file: openings, players and games all come back"
-          onClick={() => restoreRef.current?.click()}
-        >
-          <UploadIcon size={15} /> Restore
-        </button>
-        <input ref={restoreRef} type="file" accept="application/json,.json" hidden onChange={onRestoreFile} />
+        {/* Two different jobs that used to wear the same name. On your own page
+            these are the whole app — every student, every game, every setting.
+            On a student's page they're that student's study material only, so
+            they're labelled and scoped as such: a coach handing work to one
+            student should never be one click away from shipping their entire
+            database. */}
+        {scopedStudent ? (
+          <>
+            <button
+              className="ghost"
+              disabled={openings.length === 0}
+              title={`Save ${scopedStudent.name}'s openings as a file — they Restore it in their own copy of the app and practise on their own`}
+              onClick={() => exportForStudent(scopedStudent)}
+            >
+              <MonsterAvatar variant={scopedStudent.avatar?.variant} size={16} /> Student Backup
+            </button>
+            <button
+              className="ghost"
+              title={`Load a study pack into ${scopedStudent.name}'s repertoire — it goes to them, not to you`}
+              onClick={() => studentRestoreRef.current?.click()}
+            >
+              <MonsterAvatar variant={scopedStudent.avatar?.variant} size={16} /> Student Restore
+            </button>
+            <input
+              ref={studentRestoreRef}
+              type="file"
+              accept="application/json,.json"
+              hidden
+              onChange={(e) => onStudentRestoreFile(e, scopedStudent)}
+            />
+          </>
+        ) : (
+          <>
+            <button
+              className="ghost"
+              title="Download everything — every opening including your students', progress, artwork, player profiles, games and settings — as one file"
+              onClick={backup}
+            >
+              <DownloadIcon size={15} /> Backup
+            </button>
+            <button
+              className="ghost"
+              title="Load a full backup: openings, students, games and settings all come back"
+              onClick={() => restoreRef.current?.click()}
+            >
+              <UploadIcon size={15} /> Restore
+            </button>
+            <input ref={restoreRef} type="file" accept="application/json,.json" hidden onChange={onRestoreFile} />
+          </>
+        )}
         <button
           className="ghost danger"
           title="Erase everything on this device and start fresh"
@@ -625,6 +744,20 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
         >
           Reset
         </button>
+        {/* Students who play their coach's lines shouldn't need them typed in
+            again. From your own page this hands openings to any number of
+            students at once; from a student's page it pulls yours in. */}
+        {(myOpenings.length > 0 && students.length > 0) && (
+          <button
+            className="ghost"
+            title={scopedStudent
+              ? `Copy openings from your own repertoire into ${scopedStudent.name}'s`
+              : 'Copy openings from your repertoire into one or more students’'}
+            onClick={() => setModal({ kind: 'shareRepertoire', target: scopedStudent?.id ?? null })}
+          >
+            <UsersIcon size={15} /> {scopedStudent ? 'Copy from mine' : 'Give to students'}
+          </button>
+        )}
         <button onClick={() => setModal({ kind: 'addOpening' })}>
           + Add Opening{scopedStudent ? ` for ${scopedStudent.name}` : ''}
         </button>
@@ -789,6 +922,22 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                   })()}
                   <span className="spacer" />
                   <button
+                    className="small ghost"
+                    title="Drop in a whole course PGN — each distinct Event becomes its own chapter under this opening, with its lines inside"
+                    onClick={() => setModal({
+                      kind: 'importCoursePgn', openingId: opening.id, courseId: null, courseName: opening.name,
+                    })}
+                  >
+                    <UploadIcon size={15} /> Import PGN
+                  </button>
+                  <button
+                    className="small ghost"
+                    title="Group chapters by course or author — two Jobava London courses can live side by side"
+                    onClick={() => setModal({ kind: 'addCourse', openingId: opening.id })}
+                  >
+                    + Course
+                  </button>
+                  <button
                     className="small"
                     title="Add a chapter to this opening"
                     onClick={() => setModal({ kind: 'addChapter', openingId: opening.id, courseId: null })}
@@ -802,6 +951,11 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                   >
                     <DownloadIcon size={15} /> Export opening
                   </button>
+                  <SaveProgressButton
+                    openingId={opening.id}
+                    chapters={opening.chapters}
+                    label={opening.name}
+                  />
                   <button
                     className="small ghost danger"
                     onClick={() => {
@@ -872,6 +1026,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                           onToggle={() => dispatch({ type: 'toggleGroupCollapse', openingId: opening.id, key: `open:${section}` })}
                           practiceLabel={`Practice everything in ${section}`}
                           onPractice={() => onPracticeGroup(opening.id, chapters)}
+                          onSave={<SaveProgressButton openingId={opening.id} chapters={chapters} label={section} compact />}
                           actions={(
                             <>
                               <button
@@ -942,6 +1097,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                                         onToggle={() => dispatch({ type: 'toggleGroupCollapse', openingId: opening.id, key: `open:${key}` })}
                                         practiceLabel={`Practice ${subsection}`}
                                         onPractice={() => onPracticeGroup(opening.id, subChapters)}
+                                        onSave={<SaveProgressButton openingId={opening.id} chapters={subChapters} label={subsection} compact />}
                                         actions={(
                                           <>
                                             <button
@@ -1096,14 +1252,11 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                               >
                                 <PlayIcon size={14} /> Practice course{t.due > 0 ? ` (${t.due})` : ''}
                               </button>
-                              <button
-                                className="small ghost"
-                                disabled={t.variations === 0}
-                                title={`Save just what you've learned in ${course.name} to a small file — Restore it on another device to merge this course's progress in`}
-                                onClick={() => saveCourseProgress(opening.id, course.id, course.name)}
-                              >
-                                <DownloadIcon size={14} /> Save progress
-                              </button>
+                              <SaveProgressButton
+                                openingId={opening.id}
+                                chapters={courseChapters}
+                                label={course.name}
+                              />
                               <button
                                 className="small ghost danger"
                                 title="Delete the course — its chapters move back up to the opening"
@@ -1133,8 +1286,28 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                     );
                   })}
 
-                  {renderGrid(chaptersIn(null), null)}
+                  {/* Chapters that belong to no course. Each course carries its
+                      own "+ Add Chapter" inside the part that collapses, so when
+                      every chapter lives in a course this grid holds nothing but
+                      a stray add tile — one that reads as belonging to the course
+                      above it and stays put when that course is collapsed. It
+                      still shows when there are no courses at all, otherwise a
+                      fresh opening would have no way to take its first chapter. */}
+                  {(chaptersIn(null).length > 0 || courses.length === 0)
+                    && renderGrid(chaptersIn(null), null)}
 
+                  {/* Same reasoning as the add-chapter tile above: this belongs
+                      to the opening, but it renders last, so it lands flush
+                      under whatever the final course happens to be and reads as
+                      part of it. What matters is only that final course — with
+                      two courses, folding the bottom one shut still left this
+                      trailing it, because a different course further up was
+                      open. So the test is the last course specifically, not any
+                      course. Adding one stays possible either way: "+ Course"
+                      sits in the opening's own header row. */}
+                  {(courses.length === 0
+                    || !courses[courses.length - 1].collapsed
+                    || chaptersIn(null).length > 0) && (
                   <button
                     className="add-course"
                     title="Group chapters by course or author — two Jobava London courses can live side by side"
@@ -1142,12 +1315,27 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                   >
                     + Add course / author
                   </button>
+                  )}
                 </>
               );
             })()}
           </section>
         );
       })}
+
+      {modal?.kind === 'shareRepertoire' && (
+        <ShareRepertoire
+          myOpenings={myOpenings}
+          students={students}
+          allOpenings={state.openings}
+          lockedTo={modal.target}
+          onClose={() => setModal(null)}
+          onCopy={({ variationIds, playerIds }) => {
+            dispatch({ type: 'copyOpeningsToPlayers', variationIds, playerIds });
+            setModal(null);
+          }}
+        />
+      )}
 
       {modal?.kind === 'addOpening' && (
         <Modal
@@ -1189,8 +1377,21 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
       {modal?.kind === 'restore' && (
         <div className="modal-overlay" onClick={() => setModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>{modal.parsed.kind === 'progress' ? 'Restore this progress file?' : 'Restore this backup?'}</h3>
-            {modal.parsed.kind === 'progress' ? (
+            <h3>
+              {modal.parsed.kind === 'study-pack'
+                ? 'Add this study pack?'
+                : (modal.parsed.kind === 'progress' ? 'Restore this progress file?' : 'Restore this backup?')}
+            </h3>
+            {/* A pack from a coach. It was exported without an owner, so it
+                arrives as the student's own repertoire rather than filed under
+                a coach or a student who doesn't exist on this device. */}
+            {modal.parsed.kind === 'study-pack' ? (
+              <p className="hint">
+                Study material{modal.parsed.preparedFor ? ` prepared for ${modal.parsed.preparedFor}` : ''} by
+                a coach. It goes straight into <strong>your own library</strong> alongside anything
+                already there — nothing here is removed, and progress you've made stays as it is.
+              </p>
+            ) : modal.parsed.kind === 'progress' ? (
               <p className="hint">
                 A one-course progress update — merges straight into whatever's already here. Anything
                 learned on either side stays learned; nothing else on this device is touched.
@@ -1389,6 +1590,211 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
           </div>
         );
       })()}
+    </div>
+  );
+}
+
+// Handing a coach's lines to students who play the same repertoire.
+//
+// It copies rather than links, because the two have to be able to diverge: a
+// student's notes, their progress and any edits made for them are theirs, and
+// nothing done on either side reaches the other afterwards.
+//
+// The unit is the individual line. An opening or a chapter is just a convenient
+// way to tick a lot of them at once, which is why the checkboxes above them are
+// derived from what's selected underneath rather than being selections of their
+// own.
+function ShareRepertoire({ myOpenings, students, allOpenings, lockedTo, onClose, onCopy }) {
+  const everyLine = React.useMemo(() => myOpenings.flatMap(
+    (o) => o.chapters.flatMap((c) => c.variations.map((v) => v.id)),
+  ), [myOpenings]);
+  const [selected, setSelected] = useState(() => new Set(everyLine));
+  const [playerIds, setPlayerIds] = useState(() => (lockedTo ? [lockedTo] : []));
+  const [open, setOpen] = useState({}); // which openings/chapters are expanded
+  useBackGuard(true, onClose);
+
+  const setMany = (ids, on) => setSelected((prev) => {
+    const next = new Set(prev);
+    for (const id of ids) { if (on) next.add(id); else next.delete(id); }
+    return next;
+  });
+
+  // none / some / all — drives the tri-state boxes on openings and chapters.
+  const stateOf = (ids) => {
+    const hits = ids.filter((id) => selected.has(id)).length;
+    if (hits === 0) return 'none';
+    return hits === ids.length ? 'all' : 'some';
+  };
+
+  const Tri = ({ ids }) => {
+    const st = stateOf(ids);
+    return (
+      <input
+        type="checkbox"
+        checked={st === 'all'}
+        ref={(el) => { if (el) el.indeterminate = st === 'some'; }}
+        onChange={() => setMany(ids, st !== 'all')}
+        onClick={(e) => e.stopPropagation()}
+      />
+    );
+  };
+
+  const toggleOpen = (key) => setOpen((o) => ({ ...o, [key]: !o[key] }));
+
+  // What each student will actually receive, counted the same way the reducer
+  // does it, so the button isn't a leap of faith.
+  const summary = playerIds.map((pid) => {
+    const student = students.find((s) => s.id === pid);
+    const theirs = allOpenings.filter((o) => (o.ownerId ?? null) === pid);
+    const same = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
+    let lines = 0;
+    for (const o of myOpenings) {
+      const mine = theirs.find((t) => same(t.name, o.name));
+      for (const c of o.chapters) {
+        const picked = c.variations.filter((v) => selected.has(v.id));
+        if (picked.length === 0) continue;
+        const theirChapter = mine?.chapters.find((x) => same(x.name, c.name));
+        if (!theirChapter) { lines += picked.length; continue; }
+        const have = new Set(theirChapter.variations.map((v) => v.name.trim().toLowerCase()));
+        lines += picked.filter((v) => !have.has(v.name.trim().toLowerCase())).length;
+      }
+    }
+    return { name: student?.name ?? 'Student', lines };
+  });
+
+  const ready = selected.size > 0 && playerIds.length > 0;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal share-modal" onClick={(e) => e.stopPropagation()}>
+        <h3>Give your lines to students</h3>
+        <p className="hint">
+          Tick a whole opening, a chapter, or single lines. The moves, comments and badges are
+          copied across; progress isn't — recall belongs to whoever does the practising. After this
+          the two repertoires are completely separate: editing one never touches the other.
+        </p>
+
+        <div className="share-cols">
+          <div className="share-col">
+            <div className="share-col-head">
+              <strong>Lines</strong>
+              <span className="muted-note">{selected.size} of {everyLine.length}</span>
+              <button
+                className="small ghost"
+                onClick={() => setSelected(selected.size === everyLine.length ? new Set() : new Set(everyLine))}
+              >
+                {selected.size === everyLine.length ? 'None' : 'All'}
+              </button>
+            </div>
+            <div className="share-list share-tree">
+              {myOpenings.map((o) => {
+                const openingLines = o.chapters.flatMap((c) => c.variations.map((v) => v.id));
+                if (openingLines.length === 0) return null;
+                const oKey = `o:${o.id}`;
+                return (
+                  <div key={o.id} className="tree-opening">
+                    <div className="tree-row">
+                      <button className="tree-caret" onClick={() => toggleOpen(oKey)}>
+                        {open[oKey] ? '▾' : '▸'}
+                      </button>
+                      <Tri ids={openingLines} />
+                      <span className="tree-name"><strong>{o.name}</strong></span>
+                      <span className="muted-note">{openingLines.length}</span>
+                    </div>
+                    {open[oKey] && o.chapters.map((c) => {
+                      const chapterLines = c.variations.map((v) => v.id);
+                      if (chapterLines.length === 0) return null;
+                      const cKey = `c:${c.id}`;
+                      return (
+                        <div key={c.id} className="tree-chapter">
+                          <div className="tree-row">
+                            <button className="tree-caret" onClick={() => toggleOpen(cKey)}>
+                              {open[cKey] ? '▾' : '▸'}
+                            </button>
+                            <Tri ids={chapterLines} />
+                            <span className="tree-name">{c.name}</span>
+                            <span className="muted-note">{chapterLines.length}</span>
+                          </div>
+                          {open[cKey] && c.variations.map((v) => (
+                            <label key={v.id} className="tree-row tree-line">
+                              <input
+                                type="checkbox"
+                                checked={selected.has(v.id)}
+                                onChange={() => setMany([v.id], !selected.has(v.id))}
+                              />
+                              <span className="tree-name">{v.name}</span>
+                              <span className="muted-note">{v.moves.length}</span>
+                            </label>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="share-col">
+            <div className="share-col-head">
+              <strong>Students</strong>
+              {!lockedTo && (
+                <button
+                  className="small ghost"
+                  onClick={() => setPlayerIds(
+                    playerIds.length === students.length ? [] : students.map((s) => s.id),
+                  )}
+                >
+                  {playerIds.length === students.length ? 'None' : 'All'}
+                </button>
+              )}
+            </div>
+            <div className="share-list">
+              {students.map((s) => (
+                <label key={s.id} className={`share-item${lockedTo && lockedTo !== s.id ? ' dimmed' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={playerIds.includes(s.id)}
+                    disabled={!!lockedTo && lockedTo !== s.id}
+                    onChange={() => setPlayerIds(
+                      playerIds.includes(s.id)
+                        ? playerIds.filter((x) => x !== s.id)
+                        : [...playerIds, s.id],
+                    )}
+                  />
+                  <span><strong>{s.name}</strong></span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {summary.length > 0 && (
+          <div className="share-summary">
+            {summary.map((s) => (
+              <div key={s.name}>
+                <strong>{s.name}</strong>{' '}
+                <span className="muted-note">
+                  {s.lines === 0
+                    ? 'already has every line you\u2019ve picked'
+                    : `gets ${s.lines} new line${s.lines === 1 ? '' : 's'}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="modal-actions">
+          <button onClick={onClose}>Cancel</button>
+          <button
+            className="primary"
+            disabled={!ready}
+            onClick={() => onCopy({ variationIds: [...selected], playerIds })}
+          >
+            Copy across
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

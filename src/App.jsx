@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { StoreProvider, useStore } from './store';
-import { resolveTheme, applyTheme } from './lib/theme';
+import { resolveTheme, applyTheme, applyBackground } from './lib/theme';
 import { runTopGuard } from './lib/backGuard';
 import Library from './views/Library';
 import ChapterView from './views/ChapterView';
@@ -33,6 +33,11 @@ function AppInner() {
   const [libraryScope, setLibraryScope] = useState(null);
   // Same idea, for Collections — see openCollectionsFor below.
   const [collectionsScope, setCollectionsScope] = useState(null);
+  // A saved Lab session being reopened on the analysis board.
+  const [analysisLab, setAnalysisLab] = useState(null);
+  // Opened via Coaches Corner's Studio button: a blank board with the
+  // annotate rail and Lichess/repertoire import switched on.
+  const [coachStudio, setCoachStudio] = useState(false);
 
   const themeSettings = state?.settings;
   useEffect(() => {
@@ -41,6 +46,10 @@ function AppInner() {
     const t = setInterval(() => applyTheme(resolveTheme(themeSettings)), 60000);
     return () => clearInterval(t);
   }, [themeSettings?.theme, themeSettings?.lightFrom, themeSettings?.darkFrom]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    applyBackground(themeSettings);
+  }, [themeSettings?.background, themeSettings?.backgroundVeil, themeSettings?.surfaceOpacity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The phone's back gesture / Safari's back button.
   useEffect(() => {
@@ -181,6 +190,8 @@ function AppInner() {
       // gameId/playerId (only set for a real saved game, not a repertoire
       // line or a blank board) let the board edit that game's notes/themes
       // in place instead of just displaying a snapshot of them.
+      setAnalysisLab(null);
+      setCoachStudio(false);
       setAnalysisLine({
         name: line.name,
         moves: line.moves,
@@ -190,7 +201,33 @@ function AppInner() {
         ownerId: line.ownerId ?? null,
         gameId: line.gameId ?? null,
         playerId: line.playerId ?? null,
+        // Whatever a coach badged or wrote on this line in Coaches Corner —
+        // "Analyze this line" is the most common way anyone reaches the
+        // analysis board, so dropping these here is why they weren't showing
+        // up: the board itself always knew how to display them.
+        comments: line.comments ?? null,
+        badges: line.badges ?? null,
       });
+      setView('analysis');
+    });
+  };
+
+  // Reopen a saved Lab session: its own moves, marks and notes, and no
+  // repertoire line underneath it.
+  const openLab = (entry) => {
+    go(() => {
+      setAnalysisLine(null);
+      setAnalysisLab(entry);
+      setCoachStudio(!!entry.coach);
+      setView('analysis');
+    });
+  };
+
+  const openStudio = () => {
+    go(() => {
+      setAnalysisLine(null);
+      setAnalysisLab(null);
+      setCoachStudio(true);
       setView('analysis');
     });
   };
@@ -280,7 +317,7 @@ function AppInner() {
               it's a deliberate scroll away, not sitting next to Practice. */}
           <span className="nav-divider" aria-hidden="true" />
           <button className={view === 'coaches' ? 'active' : ''} onClick={() => navTo('coaches')}>
-            Coach
+            Coaches Corner
           </button>
           <button
             className="nav-icon"
@@ -318,7 +355,12 @@ function AppInner() {
         />
       )}
       {view === 'groups' && (
-        <GroupsView onOpenChapter={openChapter} onPractice={startPractice} initialScope={collectionsScope} />
+        <GroupsView
+          onOpenChapter={openChapter}
+          onPractice={startPractice}
+          onOpenLab={openLab}
+          initialScope={collectionsScope}
+        />
       )}
       {view === 'chapter' && chapterNav && (
         <ChapterView
@@ -360,6 +402,7 @@ function AppInner() {
           onScan={scanPhoto}
           onOpenLibrary={openLibraryFor}
           onOpenCollections={openCollectionsFor}
+          onOpenStudio={openStudio}
         />
       )}
       {view === 'settings' && <SettingsView />}
@@ -372,7 +415,14 @@ function AppInner() {
           onAnalyze={analyze}
         />
       )}
-      {view === 'analysis' && <AnalysisView initialLine={analysisLine} />}
+      {view === 'analysis' && (
+        <AnalysisView
+          key={analysisLab?.id ?? 'board'}
+          initialLine={analysisLine}
+          initialLab={analysisLab}
+          coachMode={coachStudio}
+        />
+      )}
     </>
   );
 }

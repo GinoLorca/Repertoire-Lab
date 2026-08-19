@@ -3,7 +3,7 @@ import { useStore } from '../store';
 import MoveText from '../components/MoveText';
 import { isDue } from '../lib/srs';
 import {
-  StarIcon, TagIcon, ClockIcon, CheckIcon, PencilIcon, PlayIcon, CapIcon,
+  StarIcon, TagIcon, ClockIcon, CheckIcon, PencilIcon, PlayIcon, CapIcon, FlaskIcon,
 } from '../components/Icons';
 
 // Every variation, with the tags and stars it inherits from its chapter and
@@ -160,11 +160,12 @@ function SubList({ label, children, count }) {
   );
 }
 
-export default function GroupsView({ onOpenChapter, onPractice, initialScope }) {
+export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initialScope }) {
   const { state, dispatch } = useStore();
   const [openKeys, setOpenKeys] = useState({ __fav: true });
   const [filter, setFilter] = useState('');
   const [fading, setFading] = useState({});
+  const labEntries = state.labEntries ?? [];
 
   // 'me' or a student's player id — same split as the Library, so a
   // student's favorites/themes stay theirs, not mixed into yours.
@@ -438,6 +439,67 @@ export default function GroupsView({ onOpenChapter, onPractice, initialScope }) 
           </SubList>
         </GroupBlock>
       ))}
+
+      {/* The Lab: analysis kept for its own sake, not because it's part of the
+          repertoire. Sits alongside Favorites and themes because it's the same
+          question — "what did I set aside to come back to?" */}
+      <GroupBlock
+        title="Lab"
+        icon={<FlaskIcon size={17} className="group-icon" />}
+        count={labEntries.length}
+        subtitle="saved analysis"
+        open={!!openKeys.__lab}
+        onToggle={() => setOpenKeys((k) => ({ ...k, __lab: !k.__lab }))}
+        canPractice={false}
+        onPracticeAll={() => {}}
+      >
+        {labEntries.length === 0 ? (
+          <div className="muted-note" style={{ padding: '10px 4px' }}>
+            Nothing here yet. On the analysis board, write in <strong>Lab notes</strong> under the
+            board and press Save — the moves, your arrows and the notes all come with it.
+          </div>
+        ) : labEntries.map((entry) => (
+          <div className="group-row group-row-lab" key={entry.id}>
+            <button
+              className="lab-row-main"
+              title="Open this in the analysis board, with its moves and marks"
+              onClick={() => onOpenLab?.(entry)}
+            >
+              <span className="lab-row-title">{entry.title}</span>
+              <span className="muted-note lab-row-meta">
+                {entry.moves?.length ?? 0} move{(entry.moves?.length ?? 0) === 1 ? '' : 's'}
+                {Object.keys(entry.annotations ?? {}).length > 0
+                  && ` · ${Object.keys(entry.annotations).length} marked`}
+                {entry.source?.name && ` · from ${entry.source.name}`}
+                {entry.updatedAt && ` · ${new Date(entry.updatedAt).toLocaleDateString()}`}
+              </span>
+              {entry.note && <span className="lab-row-note">{entry.note}</span>}
+            </button>
+            <span style={{ flex: 1 }} />
+            <button
+              className="small ghost"
+              title="Rename"
+              onClick={() => {
+                const title = window.prompt('Title:', entry.title);
+                if (title?.trim()) dispatch({ type: 'renameLabEntry', id: entry.id, title: title.trim() });
+              }}
+            >
+              <PencilIcon size={15} />
+            </button>
+            <button
+              className="small ghost danger"
+              title="Delete this note"
+              onClick={() => {
+                if (window.confirm(`Delete “${entry.title}”? The notes and marks go with it.`)) {
+                  dispatch({ type: 'deleteLabEntry', id: entry.id });
+                }
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </GroupBlock>
 
       {untagged > 0 && (
         <div className="muted-note" style={{ marginTop: 14 }}>

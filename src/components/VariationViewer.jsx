@@ -4,6 +4,7 @@ import { lineFens } from '../lib/pgn';
 import { Chess } from 'chess.js';
 import { lastMoveOf } from '../lib/legalMoves';
 import MoveText from './MoveText';
+import { BADGES, badgeAt } from '../lib/badges';
 import { TagChips } from './TagEditor';
 import { useBackGuard } from '../lib/backGuard';
 import {
@@ -18,7 +19,7 @@ function moveLabel(moves, ply) {
 
 // Modal that steps through one variation on a board, with per-move comments.
 export default function VariationViewer({
-  variation, orientation, onClose, onAnalyze, onSaveComment, onToggleStar, onEditTags,
+  variation, orientation, onClose, onAnalyze, onSaveComment, onSetBadge, onToggleStar, onEditTags,
 }) {
   const fens = useMemo(() => lineFens(variation.moves), [variation.moves]);
   // Open at the start so you can play the line through, not at the finish.
@@ -63,6 +64,7 @@ export default function VariationViewer({
             id="viewer"
             position={fens[ply]}
             lastMove={lastMoveOf(Chess, variation.moves, ply)}
+            badge={badgeAt(variation.badges, ply - 1)?.id}
             boardOrientation={orientation}
             arePiecesDraggable={false}
             boardWidth={boardWidth}
@@ -98,6 +100,7 @@ export default function VariationViewer({
             <MoveText
               moves={variation.moves}
               comments={variation.comments}
+              badges={variation.badges}
               currentIndex={ply - 1}
               onClickMove={(i) => setPly(i + 1)}
             />
@@ -108,6 +111,34 @@ export default function VariationViewer({
                 <span className="muted-note">Step to a move to read or write its comment.</span>
               ) : (
                 <>
+                  {/* The badge sits above the comment because it's the quicker
+                      judgement: one click to say what kind of move this was,
+                      then the words explaining why. Clicking the badge that's
+                      already set clears it. */}
+                  {onSetBadge && (
+                    <div className="badge-picker">
+                      <label><span>Badge</span></label>
+                      <div className="badge-row">
+                        {BADGES.map((b) => {
+                          const on = (variation.badges ?? {})[ply - 1] === b.id;
+                          return (
+                            <button
+                              key={b.id}
+                              className={`badge-pick${on ? ' on' : ''}`}
+                              title={b.label}
+                              style={on ? { background: b.color, borderColor: b.color } : undefined}
+                              onClick={() => onSetBadge(ply - 1, on ? null : b.id)}
+                            >
+                              <span className="bp-glyph" style={{ color: on ? '#fff' : b.color }}>
+                                {b.symbol}
+                              </span>
+                              <span className="bp-label">{b.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <label><CommentIcon size={14} /> Comment on {moveLabel(variation.moves, ply)}</label>
                   <textarea
                     rows={2}

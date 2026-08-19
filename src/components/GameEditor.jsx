@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { movetextToLines, validateLine } from '../lib/pgn';
+import { movetextToLines, validateLine, movesToMovetext } from '../lib/pgn';
 import MoveText from './MoveText';
 import ScoresheetPhoto from './ScoresheetPhoto';
 import { EVENT_TYPES, RESULTS, categoryOptions, tidyEvent } from '../lib/games';
@@ -39,7 +39,15 @@ export default function GameEditor({ initial, state, player, onSave, onClose }) 
     if (type === 'lichess' && p.lichess) return p.lichess;
     return player?.name ?? '';
   };
-  const [text, setText] = useState(initial ? initial.moves.join(' ') : '');
+  // Rebuilt as real movetext, not a bare join — the annotated moves (Studio's
+  // badges, any comments) have to survive this round trip through the text
+  // box the same way a pasted PGN's would, since `parsed` below reads them
+  // back out by re-parsing whatever's here. A plain `.join(' ')` was silently
+  // the reason nothing carried through: it had nothing for movetextToLines to
+  // find, however annotated the original board was.
+  const [text, setText] = useState(initial
+    ? movesToMovetext(initial.moves, initial.comments, initial.badges)
+    : '');
   const [white, setWhite] = useState(m0.white ?? '');
   const [whiteElo, setWhiteElo] = useState(m0.whiteElo ?? '');
   const [black, setBlack] = useState(m0.black ?? '');
@@ -95,6 +103,7 @@ export default function GameEditor({ initial, state, player, onSave, onClose }) 
     return {
       moves: line.moves,
       comments: lines[0].comments ?? {},
+      badges: lines[0].badges ?? {},
       warning: line.ok ? null : `Ignored everything from “${line.failedToken}”.`,
     };
   }, [text]);
@@ -145,6 +154,7 @@ export default function GameEditor({ initial, state, player, onSave, onClose }) 
       name,
       moves: parsed?.moves ?? [],
       comments: parsed?.comments ?? {},
+      badges: parsed?.badges ?? {},
       date: date ? new Date(date).getTime() : Date.now(),
       meta: {
         white, whiteElo, black, blackElo,

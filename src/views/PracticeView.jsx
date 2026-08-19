@@ -12,8 +12,10 @@ import { useViewportWidth } from '../components/useViewportWidth';
 import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import VariationList from '../components/VariationList';
 import MoveNote, { noteFor } from '../components/MoveNote';
+import MoveTimer from '../components/MoveTimer';
 import LegalDots from '../components/LegalDots';
 import { lastMoveOf } from '../lib/legalMoves';
+import { badgeAt } from '../lib/badges';
 import BoardArrows from '../components/BoardArrows';
 import { useBackGuard } from '../lib/backGuard';
 import {
@@ -417,6 +419,12 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
   const finishingRef = useRef(false);
   const [pickedSquare, setPickedSquare] = useState(null);
   const [tagOpen, setTagOpen] = useState(false);
+  // Timed moves: when the clock expires the move plays itself. `deadline` is
+  // null whenever the board isn't actually waiting on you.
+  const [deadline, setDeadline] = useState(null);
+  // The move the clock played for you, so its note can be called out rather
+  // than sliding past like any other.
+  const [timedOutPly, setTimedOutPly] = useState(null);
   // A wrong move is shown by flying a copy of the piece to the square you
   // picked and slingshotting it home. The board itself never moves, so there's
   // no waiting on the board library to catch up.
@@ -437,6 +445,8 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
   const hintsOn = !!state.settings.hints;
   // Only the drill repeats run back to back, and Settings can stop even those.
   const autoAdvance = !state.settings.pauseAtEnd;
+  const timedMoves = !!state.settings.moveTimer;
+  const moveTimerMs = Math.max(2, state.settings.moveTimerSeconds ?? 15) * 1000;
   // How quickly the trainer plays the other side and moves the pieces. A coach
   // watching a student wants time to talk over the moves; on your own you want
   // it out of the way.
@@ -474,6 +484,7 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
     setAttempts(0);
     setCompleted(false);
     setWrongMove(null);
+    setTimedOutPly(null);
     setFeedback(item?.kind === 'spot'
       ? { type: 'hint', text: `The move you missed — ${plyLabel(item.spotPly)}?` }
       : null);
@@ -513,7 +524,9 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
 
   const game = useMemo(() => {
     const c = new Chess();
-    for (let i = 0; i < ply; i += 1) c.move(moves[i]);
+    // Clamped: a ply past the end of the line would throw on an undefined move
+    // and take the whole session down with it.
+    for (let i = 0; i < Math.min(ply, moves.length); i += 1) c.move(moves[i]);
     return c;
   }, [current, ply]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -562,6 +575,22 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
     for (let i = 0; i < reviewPly; i += 1) c.move(moves[i]);
     return c.fen();
   }, [reviewing, reviewPly, current]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Arm the move clock only while the board is genuinely waiting on you: not
+  // while the trainer is replying, not while a wrong move is flying home, and
+  // not while you're reading the cheat sheet or stepping back through the line.
+  // Each of those re-arms it at full time when you come back, so nothing runs
+  // down behind a panel you had open.
+  useEffect(() => {
+    if (!timedMoves || !current) {
+      setDeadline(null);
+      return;
+    }
+    const waitingOnYou = userTurn && !completed && !reviewing && !bookOpen
+      && !wrongMove && !!moves[ply];
+    setDeadline(waitingOnYou ? Date.now() + moveTimerMs : null);
+  }, [timedMoves, moveTimerMs, current, userTurn, completed, reviewing, bookOpen,
+    wrongMove, ply, moves.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cheat-sheet ("book") preview position — independent of the practice board.
   const bookFen = useMemo(() => {
@@ -650,20 +679,34 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
       // Repair only the moves that actually went wrong: DRILL_REPS reps of each
       // missed move, then a single run of the whole line to tie it together.
       const spots = fullRun ? [...new Set(wrongPlies)].sort((a, b) => a - b) : [];
-      if (spots.length > 0) {
+      if (fullRun) {
         const base = {
           opening: current.opening,
           chapter: current.chapter,
           variation: current.variation,
         };
-        setQueue((q) => [
-          ...q.slice(0, qi + 1),
-          ...spots.flatMap((spotPly) => Array.from({ length: DRILL_REPS }, (_, i) => ({
-            ...base, kind: 'spot', spotPly, rep: i + 1,
-          }))),
-          { ...base, kind: 'drill', rep: 1, final: true },
-          ...q.slice(qi + 1),
-        ]);
+        const repairs = spots.length > 0
+          ? [
+            ...spots.flatMap((spotPly) => Array.from({ length: DRILL_REPS }, (_, i) => ({
+              ...base, kind: 'spot', spotPly, rep: i + 1,
+            }))),
+            { ...base, kind: 'drill', rep: 1, final: true },
+          ]
+          : [];
+        // This run's mistakes replace the last one's. Learn again / Practice
+        // again replay the same queue slot, so without this the drills from the
+        // earlier attempt stay queued behind it — stacking duplicates when you
+        // slip twice, and, after a clean replay, leaving a repair sitting there
+        // that the finish bar then announces instead of the next line.
+        setQueue((q) => {
+          const rest = q.slice(qi + 1);
+          let stale = 0;
+          while (stale < rest.length
+            && (rest[stale].kind === 'spot' || rest[stale].kind === 'drill')
+            && rest[stale].variation.id === current.variation.id) stale += 1;
+          if (stale === 0 && repairs.length === 0) return q;
+          return [...q.slice(0, qi + 1), ...repairs, ...rest.slice(stale)];
+        });
       }
       setResults((r) => [...r, {
         name: current.variation.name,
@@ -714,6 +757,18 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
       const startedAt = performance.now();
       let raf = 0;
       let stillFrames = 0;
+      let done = false;
+      const settle = () => {
+        if (done) return;
+        done = true;
+        finish();
+      };
+      // requestAnimationFrame stops firing in a hidden tab, so the 900ms ceiling
+      // below is only a ceiling while the app is on screen. Background the app
+      // exactly as a line ends and the card would never arrive. This makes the
+      // ceiling real; whichever path gets there first wins, and `done` keeps the
+      // ending from running twice.
+      const ceiling = setTimeout(settle, 950);
       const tick = () => {
         const waited = performance.now() - startedAt;
         // A short grace period first, so we don't declare it settled before the
@@ -736,10 +791,14 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
         // The board is settled — finish immediately. The last move stays lit on
         // its squares while the card is up, so it can be read without the
         // ending being held back for it.
-        finish();
+        settle();
       };
       raf = requestAnimationFrame(tick);
-      return () => { cancelAnimationFrame(raf); finishingRef.current = false; };
+      return () => {
+        cancelAnimationFrame(raf);
+        clearTimeout(ceiling);
+        finishingRef.current = false;
+      };
     }
     if (!userTurn) {
       // The reply that ends the line comes back quickly: the pause exists to
@@ -1017,6 +1076,27 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
   };
 
 
+  // The clock ran out. Play the move rather than leaving the board stuck: the
+  // point of timing a session is that it keeps moving, and watching the answer
+  // played — with the author's note on it — is the teaching moment.
+  const onTimeUp = () => {
+    setDeadline(null);
+    const san = moves[ply];
+    if (!san || !userTurn || completed) return;
+    setPickedSquare(null);
+    setAttempts(0);
+    // While teaching, the move is already drawn on the board — running out of
+    // time there is slowness, not a failed recall, so it costs nothing. In the
+    // recall phases it counts like any other miss and earns its spot drill.
+    if (phase !== 'teach') {
+      setMistakes((m) => m + 1);
+      markWrong(ply);
+    }
+    setTimedOutPly(ply);
+    setPly((p) => p + 1); // the move sound follows from the ply advancing
+    setFeedback({ type: 'hint', text: `Time — ${san} played for you` });
+  };
+
   // Tap/click a piece then its destination — works with a trackpad, a mouse
   // or a finger, and doesn't depend on drag support at all.
   const onSquareClick = (square) => {
@@ -1040,6 +1120,7 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
     if (mv.san === expectedSan) {
       setPly((p) => p + 1);
       setAttempts(0);
+      setTimedOutPly(null); // you've moved on; the clock's note can go
       if (soundOn) playEventSound('correct');
       setFeedback({ type: 'good', text: 'Correct!' });
       return true;
@@ -1204,6 +1285,11 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
                   ? { ...squares, [pickedSquare]: { background: 'rgba(59, 156, 255, 0.5)' } }
                   : squares)}
             lastMove={lastMove}
+            // Sourced only from the variation's own saved badges — Learn and
+            // Practice never run an engine at all, so there's nothing live
+            // that could ever generate a badge here. What a coach pre-edited
+            // is what shows; recall itself is never auto-graded.
+            badge={badgeAt(current.variation.badges, ply - 1)?.id}
             animationDuration={pace.anim}
             boardWidth={boardWidth}
           />
@@ -1285,9 +1371,12 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
                   ? 'Finish session'
                   : (
                     <>
-                      {/* Say what the press actually starts. */}
+                      {/* Say what the press actually starts. A spot drill is one
+                          move, not the line over again — naming it stops the
+                          button reading as "you failed, go back to the top". */}
                       {nextIsClosingRun ? 'Full run — the whole line'
-                        : retryNext ? 'Retry variation'
+                        : retryNext
+                          ? `Drill ${plyLabel(upcoming.spotPly)}${moves[upcoming.spotPly] ?? ''}`
                           : 'Next variation'}
                       {' '}<NextIcon size={15} />
                     </>
@@ -1353,6 +1442,9 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
             <div className="progress-track" style={{ margin: '10px 0' }}>
               <div className="progress-fill" style={{ width: `${(ply / moves.length) * 100}%` }} />
             </div>
+            {timedMoves && (
+              <MoveTimer deadline={deadline} duration={moveTimerMs} onExpire={onTimeUp} />
+            )}
             <div className={`feedback ${feedback?.type ?? ''}`}>
               {feedback?.text ?? (userTurn
                 ? (phase === 'teach' ? `▶ Play ${expectedSan} (shown on the board)` : 'Your move…')
@@ -1413,9 +1505,15 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
             // you play on, dimmed, so the point of the line isn't lost after a
             // single move. Only during the teach phase: once you're being
             // tested (recall or practice), the answer shouldn't be on screen.
-            if (phase !== 'teach') return null;
+            //
+            // A move the clock played for you is the exception. Its answer has
+            // already been given away, so withholding the reason for it just
+            // wastes the one moment the explanation is worth reading. It stays
+            // up until you play your own next move.
             const note = noteFor(current.variation.comments, moves, ply);
-            return note ? <MoveNote {...note} /> : null;
+            const fromClock = timedOutPly != null && note?.index === timedOutPly;
+            if (phase !== 'teach' && !fromClock) return null;
+            return note ? <MoveNote {...note} highlight={fromClock} /> : null;
           })()}
           <div className="practice-moves-played">
             <MoveText moves={moves.slice(0, ply)} comments={current.variation.comments} />
@@ -1429,9 +1527,10 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
                 )}
                 <button
                   onClick={() => {
+                    if (!expectedSan) return; // never step past the end of the line
                     if (phase !== 'teach') setMistakes((m) => m + 1);
                     markWrong(ply);
-                    setPly((p) => p + 1);
+                    setPly((p) => Math.min(p + 1, moves.length));
                     setAttempts(0);
                     setFeedback({ type: 'hint', text: `${expectedSan} was played for you` });
                   }}

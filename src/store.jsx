@@ -35,9 +35,14 @@ export const DEFAULT_SETTINGS = {
   pauseAtEnd: false, // wait at the end of a line instead of moving straight on
   practiceList: true, // the session's lines listed beside the practice board
   trainerSpeed: 'fast', // 'fast' | 'medium' | 'slow' — how quickly the trainer plays
+  moveTimer: false, // put a clock on each move in Learn and Practice
+  moveTimerSeconds: 15, // …and how long you get before the move plays itself
   checkHighlight: true, // red glow under a king that's in check
   lastMoveHighlight: true, // pale mark on the squares of the move just played
   showLegalMoves: true, // dots on the squares a picked piece can go to
+  showChapterVideos: true, // the video block at the top of a chapter's page
+  showBoardBadges: true, // a badged move's coloured square + glyph, on the board itself
+  showMoveListBadges: true, // …and the small glyph next to the move in a move list or note
   hints: false, // reveal the answer's squares after repeated wrong tries
   evalBar: true, // the vertical engine evaluation beside the analysis board
   engineLines: true, // Stockfish's candidate lines under the board
@@ -48,6 +53,14 @@ export const DEFAULT_SETTINGS = {
   engineAuto: true, // start Stockfish as soon as the analysis board opens
   bookMoves: true, // your own lines shown above the engine's on the board
   theme: 'dark', // 'dark' | 'light' | 'auto' (auto follows the time of day)
+  background: null, // your own picture behind the app, as a data URL
+  backgroundVeil: 70, // how much of the theme colour is laid over it, 0–95%
+  surfaceOpacity: 100, // how solid cards and panels are over that picture, 40–100%
+  boardOpacity: 100, // …and the board itself, on its own control
+  squareLight: null, // board colours; null means the built-in pair
+  squareDark: null,
+  pieceLight: null, // piece inks; null means the built-in black-and-white set
+  pieceDark: null,
   lightFrom: 7, // hour the light theme starts under 'auto'
   darkFrom: 19, // hour the dark theme starts under 'auto'
 };
@@ -61,6 +74,10 @@ export function emptyState() {
     // Hand-picked practice sets, cutting across whatever openings/chapters
     // the lines actually live in — see the Playlists cases below.
     playlists: [],
+    // The Lab: saved analysis sessions — notes, the moves, and the arrows and
+    // highlights drawn on each position. Independent of the repertoire, but a
+    // session started from a repertoire line remembers where it came from.
+    labEntries: [],
     settings: { ...DEFAULT_SETTINGS },
   };
 }
@@ -185,6 +202,193 @@ function reducer(state, action) {
         players: action.state.players ?? [],
         categories: action.state.categories ?? [],
         playlists: action.state.playlists ?? [],
+        labEntries: action.state.labEntries ?? [],
+      };
+    // ---------- Handing a repertoire to students ----------
+    // A coach's students often play the coach's own lines. This copies chosen
+    // openings onto one or more students, with the moves and the teaching
+    // intact but the progress reset — recall is the student's own, and
+    // inheriting someone else's schedule would tell the trainer they already
+    // know lines they've never seen.
+    //
+    // Openings and chapters already there by name are merged into rather than
+    // duplicated, so re-sending an updated repertoire tops it up instead of
+    // leaving two copies side by side.
+    case 'copyOpeningsToPlayers': {
+      // The selection is a set of individual lines, which is the finest thing a
+      // coach might want to hand over — one line, a chapter's worth, or a whole
+      // opening are all just different sized sets of the same unit.
+      const wanted = new Set(action.variationIds ?? []);
+      if (wanted.size === 0) return state;
+
+      // A real copy, not a shared reference. The arrays and objects inside a
+      // variation have to be cloned too: spreading the variation alone would
+      // leave the student's moves, comments and badges pointing at the coach's,
+      // so editing one repertoire could reach into the other. The two are
+      // separate from this moment on — nothing done to either side touches the
+      // other again.
+      const fresh = (variation) => ({
+        ...variation,
+        id: uid(),
+        moves: [...(variation.moves ?? [])],
+        comments: { ...(variation.comments ?? {}) },
+        badges: { ...(variation.badges ?? {}) },
+        tags: [...(variation.tags ?? [])],
+        learned: false,
+        srs: null,
+        starred: false,
+      });
+      const freshChapter = (chapter, courseIds) => ({
+        ...chapter,
+        id: uid(),
+        tags: [...(chapter.tags ?? [])],
+        courseId: chapter.courseId ? (courseIds.get(chapter.courseId) ?? null) : null,
+        variations: chapter.variations.map(fresh),
+        starred: false,
+      });
+      const sameName = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+      let openings = state.openings;
+      for (const targetId of action.playerIds) {
+        // Only the openings that actually hold a selected line, trimmed to just
+        // those lines.
+        const sources = openings
+          .filter((o) => (o.ownerId ?? null) === null)
+          .map((o) => ({
+            ...o,
+            chapters: o.chapters
+              .map((c) => ({ ...c, variations: c.variations.filter((v) => wanted.has(v.id)) }))
+              .filter((c) => c.variations.length > 0),
+          }))
+          .filter((o) => o.chapters.length > 0);
+
+        for (const source of sources) {
+          const existing = openings.find((o) => (o.ownerId ?? null) === targetId
+            && sameName(o.name, source.name));
+
+          const courseIds = new Map();
+          if (!existing) {
+            const courses = (source.courses ?? []).map((c) => {
+              const id = uid();
+              courseIds.set(c.id, id);
+              return { ...c, id, artwork: c.artwork ? { ...c.artwork } : null };
+            });
+            openings = [...openings, {
+              ...source,
+              id: uid(),
+              ownerId: targetId,
+              tags: [...(source.tags ?? [])],
+              artwork: source.artwork ? { ...source.artwork } : null,
+              starred: false,
+              courses,
+              chapters: source.chapters.map((ch) => freshChapter(ch, courseIds)),
+            }];
+            continue;
+          }
+
+          // Courses the student doesn't have yet, so a chapter arriving under
+          // one still lands in the right place.
+          const addedCourses = [];
+          for (const c of source.courses ?? []) {
+            const match = (existing.courses ?? []).find((e) => sameName(e.name, c.name));
+            if (match) { courseIds.set(c.id, match.id); continue; }
+            const id = uid();
+            courseIds.set(c.id, id);
+            addedCourses.push({ ...c, id, artwork: c.artwork ? { ...c.artwork } : null });
+          }
+
+          // Chapter by chapter: a chapter they don't have arrives whole; one
+          // they do have gains only the lines whose names aren't in it yet.
+          // Anything they've already got is left exactly as it is, so a
+          // student's own work on a line is never overwritten by a re-send.
+          const newChapters = [];
+          let chapters = existing.chapters;
+          for (const ch of source.chapters) {
+            const mine = chapters.find((c) => sameName(c.name, ch.name));
+            if (!mine) { newChapters.push(freshChapter(ch, courseIds)); continue; }
+            const have = new Set(mine.variations.map((v) => v.name.trim().toLowerCase()));
+            const missing = ch.variations.filter((v) => !have.has(v.name.trim().toLowerCase()));
+            if (missing.length === 0) continue;
+            chapters = chapters.map((c) => (c.id === mine.id
+              ? { ...c, variations: [...c.variations, ...missing.map(fresh)] }
+              : c));
+          }
+
+          openings = openings.map((o) => (o.id === existing.id ? {
+            ...o,
+            courses: [...(o.courses ?? []), ...addedCourses],
+            chapters: [...chapters, ...newChapters],
+          } : o));
+        }
+      }
+      return { ...state, openings };
+    }
+    case 'importOpeningsForPlayer': {
+      const arriving = action.openings.map((o) => {
+        const courseIds = new Map();
+        const courses = (o.courses ?? []).map((c) => {
+          const id = uid();
+          courseIds.set(c.id, id);
+          return { ...c, id };
+        });
+        return {
+          ...o,
+          id: uid(),
+          ownerId: action.playerId,
+          courses,
+          chapters: (o.chapters ?? []).map((ch) => ({
+            ...ch,
+            id: uid(),
+            courseId: ch.courseId ? (courseIds.get(ch.courseId) ?? null) : null,
+            variations: (ch.variations ?? []).map((v) => ({
+              ...v,
+              id: uid(),
+              moves: [...(v.moves ?? [])],
+              comments: { ...(v.comments ?? {}) },
+              badges: { ...(v.badges ?? {}) },
+            })),
+          })),
+        };
+      });
+      return { ...state, openings: [...state.openings, ...arriving] };
+    }
+    // Badge one move of one variation — the glyph a coach puts on a move.
+    case 'setMoveBadge':
+      return mapChapter(state, action.openingId, action.chapterId, (c) => ({
+        ...c,
+        variations: c.variations.map((v) => {
+          if (v.id !== action.variationId) return v;
+          const badges = { ...(v.badges ?? {}) };
+          if (action.badge) badges[action.ply] = action.badge;
+          else delete badges[action.ply];
+          return { ...v, badges };
+        }),
+      }));
+    // (Move comments already have their own case further down — see
+    // 'setMoveComment', which keys on moveIndex.)
+    // ---------- The Lab (saved analysis sessions) ----------
+    case 'saveLabEntry': {
+      const existing = (state.labEntries ?? []).find((e) => e.id === action.entry.id);
+      const now = new Date().toISOString();
+      if (existing) {
+        return {
+          ...state,
+          labEntries: state.labEntries.map((e) => (
+            e.id === action.entry.id ? { ...e, ...action.entry, updatedAt: now } : e)),
+        };
+      }
+      return {
+        ...state,
+        labEntries: [{ ...action.entry, createdAt: now, updatedAt: now }, ...(state.labEntries ?? [])],
+      };
+    }
+    case 'deleteLabEntry':
+      return { ...state, labEntries: (state.labEntries ?? []).filter((e) => e.id !== action.id) };
+    case 'renameLabEntry':
+      return {
+        ...state,
+        labEntries: (state.labEntries ?? []).map((e) => (
+          e.id === action.id ? { ...e, title: action.title, updatedAt: new Date().toISOString() } : e)),
       };
     // ---------- Courses (a repertoire by one author, inside an opening) ----------
     case 'addCourse': {
@@ -257,6 +461,24 @@ function reducer(state, action) {
         section: action.section || null,
         // Sub-sections only make sense inside a section.
         subsection: action.section ? (action.subsection ?? c.subsection ?? null) : null,
+      }));
+    // The video at the top of a chapter. `video` is metadata only (see
+    // lib/videoStore.js for the actual file) — set to null to remove it. The
+    // caller is responsible for deleting the stored blob first, since the
+    // reducer has no way to run that async cleanup itself.
+    case 'setChapterVideo':
+      return mapChapter(state, action.openingId, action.chapterId, (c) => ({
+        ...c,
+        video: action.video,
+      }));
+    // The moment in that video where a variation's explanation starts. Clears
+    // on its own if the video is ever removed — a stray timestamp with
+    // nothing to seek in is silently ignored rather than tracked as an error.
+    case 'setVariationTimestamp':
+      return mapChapter(state, action.openingId, action.chapterId, (c) => ({
+        ...c,
+        variations: c.variations.map((v) => (
+          v.id === action.variationId ? { ...v, videoTimestamp: action.seconds } : v)),
       }));
     case 'moveOpening':
       return { ...state, openings: moveInArray(state.openings, action.openingId, action.dir) };
@@ -338,6 +560,7 @@ function reducer(state, action) {
         name: v.name || 'Variation',
         moves: v.moves,
         comments: v.comments ?? {},
+        badges: v.badges ?? {},
         learned: false,
         srs: null,
       }));
@@ -481,6 +704,31 @@ function reducer(state, action) {
           ? { ...g, meta: { ...(g.meta ?? {}), notes: action.notes } }
           : g)),
       }));
+    // A game's own per-move comment/badge — the same idea as a repertoire
+    // variation's, so editing one from its own viewer works the same way
+    // wherever the moves came from.
+    case 'setGameMoveComment':
+      return mapPlayer(state, action.playerId, (p) => ({
+        ...p,
+        games: p.games.map((g) => {
+          if (g.id !== action.gameId) return g;
+          const comments = { ...(g.comments ?? {}) };
+          if (action.text?.trim()) comments[action.ply] = action.text.trim();
+          else delete comments[action.ply];
+          return { ...g, comments };
+        }),
+      }));
+    case 'setGameMoveBadge':
+      return mapPlayer(state, action.playerId, (p) => ({
+        ...p,
+        games: p.games.map((g) => {
+          if (g.id !== action.gameId) return g;
+          const badges = { ...(g.badges ?? {}) };
+          if (action.badge) badges[action.ply] = action.badge;
+          else delete badges[action.ply];
+          return { ...g, badges };
+        }),
+      }));
     case 'setGameFlags':
       return mapPlayer(state, action.playerId, (p) => ({
         ...p,
@@ -556,6 +804,7 @@ function reducer(state, action) {
         name: action.game.name || 'Game',
         moves: action.game.moves,
         comments: action.game.comments ?? {},
+        badges: action.game.badges ?? {},
         date: action.game.date ?? Date.now(),
         // OTB details worth keeping with a digitised scoresheet.
         meta: action.game.meta ?? null,

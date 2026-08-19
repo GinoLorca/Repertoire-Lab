@@ -361,6 +361,7 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
           cardId: 'paste',
           name: lines.length > 1 ? `Pasted line ${i + 1}` : 'Pasted line',
           comments: line.comments,
+          badges: line.badges,
           ...result,
         };
       });
@@ -387,6 +388,7 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
           name: lines.length > 1 && li > 0 ? `${baseName} (alt ${li})` : baseName,
           event: h.Event || null,
           comments: line.comments,
+          badges: line.badges,
           ...result,
         });
       });
@@ -797,7 +799,7 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
                 </button>
               </div>
               <div className="variation-moves" style={{ cursor: 'default' }}>
-                <MoveText moves={entry.moves} comments={entry.comments} />
+                <MoveText moves={entry.moves} comments={entry.comments} badges={entry.badges} />
                 {!entry.ok && <span className="status-bad"> ✗ {entry.failedToken}</span>}
               </div>
               <StatusLine entry={entry} />
@@ -806,7 +808,9 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
                   <button
                     className="small"
                     title="Open this game on the analysis board — it identifies which of your openings it follows"
-                    onClick={() => onAnalyze({ name: entry.name, moves: entry.moves })}
+                    onClick={() => onAnalyze({
+                      name: entry.name, moves: entry.moves, comments: entry.comments, badges: entry.badges,
+                    })}
                   >
                     ⇢ Analyze game
                   </button>

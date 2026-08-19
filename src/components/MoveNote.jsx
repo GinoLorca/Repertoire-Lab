@@ -1,5 +1,7 @@
 import React from 'react';
 import { CommentIcon } from './Icons';
+import MoveBadge from './MoveBadge';
+import { useStore } from '../store';
 
 // "4." for White's move, "4…" for Black's, from a 0-based move index.
 const label = (i) => `${Math.floor(i / 2) + 1}${i % 2 === 0 ? '.' : '…'}`;
@@ -9,13 +11,19 @@ const label = (i) => `${Math.floor(i / 2) + 1}${i % 2 === 0 ? '.' : '…'}`;
 //
 // `index` is the move the note belongs to (0-based). `stale` dims a note that
 // belongs to an earlier move, so you can still read it while you play on.
-export default function MoveNote({ text, san, index, stale }) {
+// `badgeId` puts that move's glyph right next to its label — the same
+// judgement the board itself is showing on the square, repeated here in
+// words.
+export default function MoveNote({ text, san, index, stale, highlight, badgeId }) {
+  const { state } = useStore();
+  const showBadges = state.settings.showMoveListBadges !== false;
   if (!text) return null;
   return (
-    <div className={`move-note${stale ? ' stale' : ''}`}>
+    <div className={`move-note${stale ? ' stale' : ''}${highlight ? ' called-out' : ''}`}>
       <span className="mn-move">
         <CommentIcon size={13} />
         {index != null && <strong>{label(index)}{san}</strong>}
+        {showBadges && badgeId && <MoveBadge id={badgeId} size={14} />}
       </span>
       <p>{text}</p>
     </div>

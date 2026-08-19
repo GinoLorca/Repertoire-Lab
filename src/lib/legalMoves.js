@@ -26,7 +26,15 @@ export function checkedKingSquare(game) {
 
 // The pale yellow chess.com leaves on the square a piece came from and the one
 // it landed on. Light enough to read the piece through it on either colour.
-export const LAST_MOVE_STYLE = { background: 'rgba(245, 205, 78, 0.42)' };
+//
+// backgroundColor, not the background shorthand: a badge's own highlight at
+// this same square (the move's destination, almost always) adds
+// backgroundImage/backgroundPosition/backgroundSize longhands on top of this.
+// The background shorthand implicitly resets every one of those sub-properties
+// even when it's declared first and they come after — so this square would
+// render the plain yellow wash with the badge's glyph silently erased. A
+// longhand can't do that; only the specific property it names is ever touched.
+export const LAST_MOVE_STYLE = { backgroundColor: 'rgba(245, 205, 78, 0.42)' };
 
 // The from/to of the move that produced the position at `ply` in a line of SAN
 // moves, for boards that want to mark it. `ply` counts moves played.

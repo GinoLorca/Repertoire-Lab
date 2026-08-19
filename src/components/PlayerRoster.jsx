@@ -17,7 +17,7 @@ import { flagLabel, flagColor } from '../lib/gameFlags';
 import { useBackGuard } from '../lib/backGuard';
 import {
   BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon, StarIcon,
-  CameraIcon,
+  CameraIcon, FlaskIcon,
 } from '../components/Icons';
 
 // The handles a player is known by, with whatever live ratings we last fetched
@@ -447,6 +447,8 @@ function PlayerPage({
           onAnalyze={() => onAnalyze({
             name: game.name,
             moves: game.moves,
+            comments: game.comments,
+            badges: game.badges,
             meta: game.meta,
             date: game.date,
             subtitle: category.label,
@@ -493,11 +495,19 @@ function PlayerPage({
           variation={viewingGame}
           orientation={viewingGame.meta?.color === 'black' ? 'black' : 'white'}
           onClose={() => setViewingGameId(null)}
+          onSetBadge={(ply, badge) => dispatch({
+            type: 'setGameMoveBadge', playerId: player.id, gameId: viewingGame.id, ply, badge,
+          })}
+          onSaveComment={(ply, text) => dispatch({
+            type: 'setGameMoveComment', playerId: player.id, gameId: viewingGame.id, ply, text,
+          })}
           onAnalyze={(g) => {
             setViewingGameId(null);
             onAnalyze({
               name: g.name,
               moves: g.moves,
+              comments: g.comments,
+              badges: g.badges,
               meta: g.meta,
               date: g.date,
               ownerId: player.kind === 'student' ? player.id : null,
@@ -516,6 +526,7 @@ function PlayerPage({
 // shows and colours the copy.
 export default function PlayerRoster({
   kind, title, subtitle, addLabel, emptyLabel, onAnalyze, onScan, onOpenLibrary, onOpenCollections,
+  onOpenStudio,
 }) {
   const { state, dispatch } = useStore();
   const [openPlayerId, setOpenPlayerId] = useState(null);
@@ -564,6 +575,15 @@ export default function PlayerRoster({
         {kind === 'self' && (
           <button onClick={() => setManageCats(true)}>
             <TagIcon size={15} /> Categories
+          </button>
+        )}
+        {kind === 'student' && onOpenStudio && (
+          <button
+            className="ghost"
+            title="A blank analysis board for building study material — badge and annotate any move, then save it to the Lab or straight into a student's chapter"
+            onClick={onOpenStudio}
+          >
+            <FlaskIcon size={15} /> Studio
           </button>
         )}
         <button className="primary" onClick={() => setEditingPlayer('new')}>{addLabel}</button>

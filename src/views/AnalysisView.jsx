@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Chess } from 'chess.js';
 import Board from '../components/Board';
-import { useStore } from '../store';
+import { useStore, uid } from '../store';
 import { Engine, formatScore } from '../lib/engine';
 import { fetchExplorer, explorerTotals, pct } from '../lib/explorer';
 import MoveText from '../components/MoveText';
@@ -20,13 +20,20 @@ import { buildPositionIndex, bookMovesAt, matchGameToRepertoire, moveLabel } fro
 import LegalDots from '../components/LegalDots';
 import GameFlagPicker from '../components/GameFlagPicker';
 import { lastMoveOf } from '../lib/legalMoves';
+import { useBackGuard } from '../lib/backGuard';
+import { parseStudyUrl, fetchStudyPgn } from '../lib/lichess';
+import { pgnTextToEntries } from '../lib/pgnImport';
+import { BADGES } from '../lib/badges';
+import MoveBadge from '../components/MoveBadge';
 import MoveTree from '../components/MoveTree';
+import MoveNote from '../components/MoveNote';
 import {
   makeTree, lineThrough, nodePath, addMove, promote, promoteOne, removeNode,
-  keepMainLineOnly, hasVariations,
+  keepMainLineOnly, hasVariations, mainLineFrom,
 } from '../lib/moveTree';
 import {
   BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon,
+  FlaskIcon, CommentIcon,
 } from '../components/Icons';
 import {
   PENS, SHORTCUTS, defaultPen, shortcutKey, shortcutMap, isComboKey, comboMatchesEvent, formatShortcutKey,
@@ -44,13 +51,14 @@ const ARROW_COLORS = [
   'rgba(226, 142, 46, 0.85)', // amber
 ];
 
-export default function AnalysisView({ initialLine }) {
+export default function AnalysisView({ initialLine, initialLab, coachMode }) {
   const { state, dispatch } = useStore();
   const [mode, setMode] = useState('engine'); // 'engine' | 'compare'
-  const [baseFen, setBaseFen] = useState(START_FEN);
+  const [baseFen, setBaseFen] = useState(initialLab?.baseFen ?? START_FEN);
   // The game is a tree: playing something else from an earlier move keeps what
   // came after as a variation. `head` is the move the board is sitting on.
-  const [tree, setTree] = useState(() => makeTree(initialLine?.moves ?? []));
+  const [tree, setTree] = useState(() => (
+    initialLab?.tree ?? makeTree(initialLab?.moves ?? initialLine?.moves ?? [])));
   const [head, setHead] = useState('root'); // loaded lines open at the start
   const [orientation, setOrientation] = useState('white');
   // The engine runs from the moment the board opens unless you've turned that
@@ -63,12 +71,29 @@ export default function AnalysisView({ initialLine }) {
   const [explorer, setExplorer] = useState(null);
   const [explorerError, setExplorerError] = useState(null);
   const [fenInput, setFenInput] = useState('');
+  // Lab notebook. `labId` is set once this session has been saved, so Save
+  // updates that entry instead of quietly making a second copy of it.
+  const [labId, setLabId] = useState(initialLab?.id ?? null);
+  const [labTitle, setLabTitle] = useState(initialLab?.title ?? '');
+  const [labNote, setLabNote] = useState(initialLab?.note ?? '');
+  const [saveLineOpen, setSaveLineOpen] = useState(false);
+  // Coach's Corner: a badge and a note on the specific move currently
+  // selected, keyed by its node id rather than a ply number — a tree has
+  // branches, and a ply number alone can't tell two of them apart.
+  const [moveBadges, setMoveBadges] = useState(() => initialLab?.moveBadges ?? {});
+  const [moveNotes, setMoveNotes] = useState(() => initialLab?.moveNotes ?? {});
+  const [moveNoteDraft, setMoveNoteDraft] = useState('');
+  const [studyUrl, setStudyUrl] = useState('');
+  const [studyBusy, setStudyBusy] = useState(false);
+  const [studyError, setStudyError] = useState(null);
+  const [studyGames, setStudyGames] = useState(null); // entries from a fetched study, to pick a chapter from
+  const [saveVarOpen, setSaveVarOpen] = useState(false);
   const engineRef = useRef(null);
   const viewportWidth = useViewportWidth();
 
   // ---------- Board annotations (arrows + square highlights) ----------
   // Kept per position, so stepping back and forth keeps each position's marks.
-  const [annotations, setAnnotations] = useState({});
+  const [annotations, setAnnotations] = useState(() => initialLab?.annotations ?? {});
   // The active pen — what a touch drag draws in, and a mouse drag falls back
   // to when no pen key (below) is held. Starts at, and resets to, whatever
   // Settings → default pen colour says; the swatches can still change it
@@ -82,7 +107,7 @@ export default function AnalysisView({ initialLine }) {
   const [drawFrom, setDrawFrom] = useState(null);
   const [picked, setPicked] = useState(null); // click-to-move: the piece you tapped
   const [saving, setSaving] = useState(false); // "save to Games" dialog
-  const [sidePane, setSidePane] = useState('engine'); // engine | explorer
+  const [sidePane, setSidePane] = useState(coachMode ? 'annotate' : 'engine'); // engine | explorer | annotate
 
   // The saved game this board is showing, if any — initialLine is a snapshot
   // from the moment "Analyze" was pressed, but notes/themes edited here need
@@ -110,8 +135,16 @@ export default function AnalysisView({ initialLine }) {
   useEffect(() => {
     if (initialLine) {
       setBaseFen(START_FEN);
-      setTree(makeTree(initialLine.moves));
+      const t = makeTree(initialLine.moves);
+      setTree(t);
       setHead('root');
+      // Whatever a coach badged or wrote on this line comes with it — "Analyze
+      // this line" is the ordinary way anyone reaches this board, not a
+      // Coaches-Corner-only path, so what's shown here can't be gated behind
+      // Studio mode or the annotations would only ever be visible to the
+      // person who made them.
+      setMoveNotes(plyMapToNodeIds(t, initialLine.comments));
+      setMoveBadges(plyMapToNodeIds(t, initialLine.badges));
     }
   }, [initialLine]);
 
@@ -125,6 +158,10 @@ export default function AnalysisView({ initialLine }) {
     const clamped = Math.max(0, Math.min(moves.length, n));
     setHead(clamped === 0 ? 'root' : lineNodes[clamped - 1].id);
   };
+
+  useEffect(() => {
+    setMoveNoteDraft(moveNotes[head] ?? '');
+  }, [head]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const game = useMemo(() => {
     const c = new Chess(baseFen);
@@ -389,6 +426,89 @@ export default function AnalysisView({ initialLine }) {
     return m.arrows.length > 0 || Object.keys(m.squares).length > 0;
   }).length;
 
+  // Something has to be worth keeping: a note, a title, some moves or a drawing.
+  const canSaveLab = !!(labTitle.trim() || labNote.trim() || moves.length > 0 || markedCount > 0);
+
+  // A note still sitting in the draft box, not yet committed with its own
+  // Save button, shouldn't be lost just because a different Save was pressed
+  // instead — this folds it in wherever moveNotes is read for saving.
+  const notesWithDraft = () => {
+    if (moveNoteDraft === (moveNotes[head] ?? '')) return moveNotes;
+    const next = { ...moveNotes };
+    if (moveNoteDraft.trim()) next[head] = moveNoteDraft.trim();
+    else delete next[head];
+    return next;
+  };
+
+  // The line on the board is lineNodes/moves in lockstep — node i made move i
+  // — so whatever's been badged or annotated by node id converts straight to
+  // the ply-indexed shape a saved variation or a saved game uses. Shared by
+  // "Save as a variation" and "Save game": both are committing the same kind
+  // of snapshot, just into a different destination.
+  const lineAnnotationsAsPly = (uptoPly) => {
+    const notes = notesWithDraft();
+    const comments = {};
+    const badges = {};
+    lineNodes.slice(0, uptoPly).forEach((n, i) => {
+      if (notes[n.id]) comments[i] = notes[n.id];
+      if (moveBadges[n.id]) badges[i] = moveBadges[n.id];
+    });
+    return { comments, badges };
+  };
+
+  // The closest annotated move at or before the current position, tree-aware
+  // (lineNodes/moves are already the exact line the board is showing).
+  const currentNote = useMemo(() => {
+    for (let i = ply - 1; i >= 0; i -= 1) {
+      const node = lineNodes[i];
+      if (node && moveNotes[node.id]) {
+        return {
+          text: moveNotes[node.id], san: node.san, index: i, stale: i !== ply - 1,
+          badgeId: moveBadges[node.id],
+        };
+      }
+    }
+    return null;
+  }, [lineNodes, ply, moveNotes, moveBadges]);
+
+  const saveToLab = () => {
+    // Drop positions whose marks were cleared, so an entry doesn't carry a map
+    // of empty ones around forever.
+    const marksToKeep = Object.fromEntries(Object.entries(annotations).filter(([, m]) => (
+      m.arrows.length > 0 || Object.keys(m.squares).length > 0)));
+    const fallbackTitle = moves.length > 0
+      ? `${moves.slice(0, 6).join(' ')}${moves.length > 6 ? '…' : ''}`
+      : 'Untitled position';
+    const id = labId ?? uid();
+    dispatch({
+      type: 'saveLabEntry',
+      entry: {
+        id,
+        title: labTitle.trim() || fallbackTitle,
+        note: labNote,
+        baseFen,
+        moves,
+        tree,
+        annotations: marksToKeep,
+        moveBadges,
+        moveNotes: notesWithDraft(),
+        coach: !!coachMode,
+        // Where this started, when it started somewhere: a repertoire line or a
+        // saved game. Kept so the entry can say what it was about.
+        source: initialLine
+          ? {
+            name: initialLine.name ?? null,
+            gameId: initialLine.gameId ?? null,
+            playerId: initialLine.playerId ?? null,
+          }
+          : (initialLab?.source ?? null),
+      },
+    });
+    // Held on to, so pressing Save again updates this entry rather than
+    // scattering near-identical copies through the Lab.
+    setLabId(id);
+  };
+
   const position = useMemo(() => {
     try { return new Chess(fen); } catch { return null; }
   }, [fen]);
@@ -511,9 +631,35 @@ export default function AnalysisView({ initialLine }) {
   };
 
   // Loading anything new replaces the tree and opens at move 1.
-  const loadMoves = (sans) => {
-    setTree(makeTree(sans));
+  // A freshly built trunk (no branches yet) has its nodes in the same order as
+  // the moves that made it, so a ply-indexed map — the shape a saved
+  // variation's `comments`/`badges` and a PGN's move annotations both carry —
+  // lines up directly against it, node by node.
+  const plyMapToNodeIds = (tree, plyMap) => {
+    if (!plyMap) return {};
+    const trunk = mainLineFrom(tree);
+    const out = {};
+    for (const [ply, value] of Object.entries(plyMap)) {
+      const node = trunk[Number(ply)];
+      if (node && value) out[node.id] = value;
+    }
+    return out;
+  };
+
+  const loadMoves = (sans, opts) => {
+    const t = makeTree(sans);
+    setTree(t);
     setHead('root');
+    // Loading a different line makes this a different subject, so it detaches
+    // from whichever Lab entry was open. Without this, opening a saved note and
+    // then loading a repertoire line would leave Save pointed at the old entry
+    // and quietly overwrite it with the new line's moves.
+    setLabId(null);
+    setLabTitle(opts?.title ?? '');
+    setLabNote('');
+    setAnnotations({});
+    setMoveNotes(plyMapToNodeIds(t, opts?.comments));
+    setMoveBadges(plyMapToNodeIds(t, opts?.badges));
   };
 
   const loadFen = () => {
@@ -533,6 +679,33 @@ export default function AnalysisView({ initialLine }) {
     if (color) setOrientation(color);
   };
 
+  // Pull a Lichess study in as PGN and let the coach pick which chapter to
+  // put on the board — a study is one game per chapter, so this is the same
+  // shape the course importer already understands.
+  const fetchStudy = async () => {
+    const parsed = parseStudyUrl(studyUrl);
+    if (!parsed) return;
+    setStudyBusy(true);
+    setStudyError(null);
+    setStudyGames(null);
+    try {
+      const pgn = await fetchStudyPgn(parsed);
+      const entries = pgnTextToEntries(pgn);
+      if (entries.length === 0) throw new Error('That study came back with no readable moves.');
+      if (entries.length === 1) {
+        setBaseFen(START_FEN);
+        loadMoves(entries[0].moves, { title: entries[0].name, comments: entries[0].comments });
+        setStudyUrl('');
+      } else {
+        setStudyGames(entries);
+      }
+    } catch (err) {
+      setStudyError(err.message);
+    } finally {
+      setStudyBusy(false);
+    }
+  };
+
   const loadVariation = (value) => {
     if (!value) return;
     const [oid, cid, vid] = value.split('|');
@@ -541,7 +714,11 @@ export default function AnalysisView({ initialLine }) {
     const variation = chapter?.variations.find((v) => v.id === vid);
     if (variation) {
       setBaseFen(START_FEN);
-      loadMoves(variation.moves);
+      loadMoves(variation.moves, {
+        title: variation.name,
+        comments: variation.comments,
+        badges: variation.badges,
+      });
       setOrientation(opening.color);
     }
   };
@@ -649,14 +826,70 @@ export default function AnalysisView({ initialLine }) {
           onChange={(e) => { loadVariation(e.target.value); e.target.value = ''; }}
         >
           <option value="" disabled>Load a repertoire line…</option>
-          {state.openings.map((o) =>
-            o.chapters.map((c) =>
-              c.variations.map((v) => (
+          {/* Grouped by whose repertoire it is — in Coach's Corner several
+              students can have an opening with the same name, and a plain
+              flat list would leave no way to tell them apart. */}
+          {Object.entries(
+            state.openings.reduce((groups, o) => {
+              const owner = coachMode
+                ? (state.players.find((p) => p.id === o.ownerId)?.name ?? 'My repertoire')
+                : 'Repertoire';
+              (groups[owner] ??= []).push(o);
+              return groups;
+            }, {}),
+          ).map(([owner, openings]) => (
+            <optgroup key={owner} label={owner}>
+              {openings.map((o) => o.chapters.map((c) => c.variations.map((v) => (
                 <option key={v.id} value={`${o.id}|${c.id}|${v.id}`}>
                   {o.name} / {c.name} / {v.name}
                 </option>
               ))))}
+            </optgroup>
+          ))}
         </select>
+        {coachMode && (
+          <div className="study-import">
+            <input
+              type="text"
+              className="study-url-input"
+              placeholder="Paste a Lichess study link…"
+              value={studyUrl}
+              onChange={(e) => { setStudyUrl(e.target.value); setStudyError(null); setStudyGames(null); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') fetchStudy(); }}
+            />
+            <button
+              className="small"
+              disabled={!parseStudyUrl(studyUrl) || studyBusy}
+              onClick={fetchStudy}
+            >
+              {studyBusy ? 'Fetching…' : 'Fetch'}
+            </button>
+          </div>
+        )}
+        {studyError && <span className="muted-note study-error">{studyError}</span>}
+        {studyGames && (
+          <div className="study-games">
+            <span className="muted-note">
+              {studyGames.length} chapter{studyGames.length === 1 ? '' : 's'} — pick one to load onto the board:
+            </span>
+            <div className="study-games-list">
+              {studyGames.map((g, i) => (
+                <button
+                  key={i}
+                  className="small ghost"
+                  onClick={() => {
+                    setBaseFen(START_FEN);
+                    loadMoves(g.moves, { title: g.name, comments: g.comments });
+                    setStudyGames(null);
+                    setStudyUrl('');
+                  }}
+                >
+                  {g.name || `Chapter ${i + 1}`}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div
@@ -689,6 +922,7 @@ export default function AnalysisView({ initialLine }) {
             advantage={orientation === 'white' ? Math.max(0, -material.diff) : Math.max(0, material.diff)}
           />
           <div
+            className="board-frame"
             style={{
               position: 'relative', width: boardWidth, height: boardWidth,
               // Otherwise a finger dragging to draw an arrow reads as a page
@@ -707,6 +941,7 @@ export default function AnalysisView({ initialLine }) {
             areArrowsAllowed={false}
             customSquareStyles={squareStyles}
             lastMove={lastMove}
+            badge={moveBadges[head]}
             boardOrientation={orientation}
             boardWidth={boardWidth}
           />
@@ -872,9 +1107,77 @@ export default function AnalysisView({ initialLine }) {
             />
             <button onClick={loadFen} disabled={!fenInput.trim()}>Set FEN</button>
           </div>
+
+          {/* The Lab notebook. Always here, whatever the board is showing —
+              working on a repertoire line is exactly when a thought is worth
+              writing down, so this isn't limited to a blank board. */}
+          <div className="panel lab-panel" style={{ maxWidth: boardWidth }}>
+            <div className="lab-head">
+              <FlaskIcon size={16} />
+              <strong>Lab notes</strong>
+              {labId && <span className="lab-saved-pill">saved</span>}
+              <span style={{ flex: 1 }} />
+              {labId && (
+                <button
+                  className="small ghost"
+                  title="Start a fresh note — this keeps the saved one as it is"
+                  onClick={() => { setLabId(null); setLabTitle(''); setLabNote(''); }}
+                >
+                  New
+                </button>
+              )}
+            </div>
+            <input
+              type="text"
+              className="lab-title"
+              placeholder="Title — e.g. “Nf3 sideline, needs a plan for …”"
+              value={labTitle}
+              onChange={(e) => setLabTitle(e.target.value)}
+            />
+            <textarea
+              className="game-notes-input"
+              rows={4}
+              placeholder="Your ideas about this position — plans, what to check, what went wrong…"
+              value={labNote}
+              onChange={(e) => setLabNote(e.target.value)}
+            />
+            <div className="lab-actions">
+              <button className="small primary" onClick={saveToLab} disabled={!canSaveLab}>
+                <FlaskIcon size={14} /> {labId ? 'Update in Lab' : 'Save to Lab'}
+              </button>
+              <button
+                className="small"
+                title="Add the moves on the board to a chapter as a new variation"
+                onClick={() => setSaveLineOpen(true)}
+                disabled={moves.length === 0}
+              >
+                <BookIcon size={14} /> Save line to a chapter…
+              </button>
+              <span style={{ flex: 1 }} />
+              <span className="muted-note">
+                {moves.length} move{moves.length === 1 ? '' : 's'}
+                {markedCount > 0 && ` · ${markedCount} marked position${markedCount === 1 ? '' : 's'}`}
+              </span>
+            </div>
+            <p className="hint">
+              Saving keeps the notes, every move on the board including variations, and the arrows
+              and highlights you've drawn on each position. Find them again under Collections → Lab.
+            </p>
+          </div>
         </div>
 
         <div className="analysis-engine">
+          {/* Whatever's been badged or written on the move that's on the board
+              — a coach's from Coaches Corner, or your own — pinned to the top
+              of this column so it's visible whichever of Engine/Explorer/
+              Annotate is open below, not just tucked under one tab. Nothing
+              renders here at all when there's nothing to say. */}
+          {currentNote && (
+            <div className="side-note">
+              <MoveNote {...currentNote} />
+            </div>
+          )}
+
           {(initialLine?.meta || initialLine?.subtitle) && moves.length > 0 && (
             <AnalysedGame line={initialLine} />
           )}
@@ -927,6 +1230,15 @@ export default function AnalysisView({ initialLine }) {
               >
                 Explorer
               </button>
+              {coachMode && (
+                <button
+                  className={sidePane === 'annotate' ? 'active' : ''}
+                  onClick={() => setSidePane('annotate')}
+                >
+                  <FlaskIcon size={13} /> Annotate
+                  {(moveBadges[head] || moveNotes[head]) && <span className="tab-dot" />}
+                </button>
+              )}
             </div>
 
           {sidePane === 'engine' && (
@@ -1044,6 +1356,96 @@ export default function AnalysisView({ initialLine }) {
             )}
           </div>
           )}
+
+          {sidePane === 'annotate' && coachMode && (
+            <div className="annotate-pane">
+              {head === 'root' ? (
+                <p className="hint">
+                  Play or load a line, then click any move — here or in the move list below — to
+                  badge it and write what a student should take from it.
+                </p>
+              ) : (
+                <>
+                  <h3>
+                    Move {moveLabel(ply - 1)}{moves[ply - 1]}
+                    {moveBadges[head] && <MoveBadge id={moveBadges[head]} size={17} />}
+                  </h3>
+                  <div className="badge-row">
+                    {BADGES.map((b) => {
+                      const on = moveBadges[head] === b.id;
+                      return (
+                        <button
+                          key={b.id}
+                          className={`badge-pick${on ? ' on' : ''}`}
+                          title={b.label}
+                          style={on ? { background: b.color, borderColor: b.color } : undefined}
+                          onClick={() => setMoveBadges((m) => {
+                            const next = { ...m };
+                            if (on) delete next[head];
+                            else next[head] = b.id;
+                            return next;
+                          })}
+                        >
+                          <span className="bp-glyph" style={{ color: on ? '#fff' : b.color }}>{b.symbol}</span>
+                          <span className="bp-label">{b.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <label className="annotate-note-label">
+                    <CommentIcon size={13} /> What should a student take from this move?
+                  </label>
+                  <textarea
+                    rows={5}
+                    className="annotate-textarea"
+                    placeholder="e.g. This is the critical try — White has to know ...Bxf3 leads to a forced draw."
+                    value={moveNoteDraft}
+                    onChange={(e) => setMoveNoteDraft(e.target.value)}
+                  />
+                  {/* An explicit button rather than saving on blur — matching
+                      the chapter comment editor elsewhere in the app, and more
+                      reliable than blur: nothing is silently lost if the note
+                      is still focused when Save session / Save as a variation
+                      below is pressed. */}
+                  {moveNoteDraft !== (moveNotes[head] ?? '') && (
+                    <div className="annotate-note-actions">
+                      <button className="small" onClick={() => setMoveNoteDraft(moveNotes[head] ?? '')}>
+                        Discard
+                      </button>
+                      <button
+                        className="small primary"
+                        onClick={() => setMoveNotes((m) => {
+                          const next = { ...m };
+                          if (moveNoteDraft.trim()) next[head] = moveNoteDraft.trim();
+                          else delete next[head];
+                          return next;
+                        })}
+                      >
+                        Save note
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+              <div className="annotate-foot">
+                <button className="small primary" onClick={saveToLab}>
+                  <FlaskIcon size={14} /> {labId ? 'Update in Lab' : 'Save session to Lab'}
+                </button>
+                <button
+                  className="small"
+                  disabled={moves.length === 0}
+                  onClick={() => setSaveLineOpen(true)}
+                >
+                  <BookIcon size={14} /> Save as a variation…
+                </button>
+              </div>
+              <p className="hint">
+                A badge and note here belong to that exact move on this board's line. Saving to the
+                Lab keeps every badge and note across the whole tree; saving as a variation carries
+                the current line's notes and badges into a chapter, editable there the same way.
+              </p>
+            </div>
+          )}
           </div>
         </div>
 
@@ -1081,6 +1483,7 @@ export default function AnalysisView({ initialLine }) {
                 <MoveTree
                   root={tree}
                   headId={head}
+                  badges={moveBadges}
                   onGo={setHead}
                   onPromote={(id) => setTree(promote(tree, id))}
                   onPromoteOne={(id) => setTree(promoteOne(tree, id))}
@@ -1098,6 +1501,25 @@ export default function AnalysisView({ initialLine }) {
           )}
         </div>
       </div>
+
+      {saveLineOpen && (
+        <SaveLineToChapter
+          moves={moves}
+          suggestedName={labTitle.trim() || (initialLine?.name ?? '')}
+          openings={state.openings}
+          onClose={() => setSaveLineOpen(false)}
+          onSave={({ openingId, chapterId, name }) => {
+            const { comments, badges } = lineAnnotationsAsPly(moves.length);
+            dispatch({
+              type: 'addVariations',
+              openingId,
+              chapterId,
+              variations: [{ name, moves, comments, badges }],
+            });
+            setSaveLineOpen(false);
+          }}
+        />
+      )}
 
       {shortcutsOpen && (
         <div className="modal-overlay" onClick={() => setShortcutsOpen(false)}>
@@ -1128,6 +1550,7 @@ export default function AnalysisView({ initialLine }) {
       {saving && (
         <SaveToGames
           moves={moves.slice(0, ply)}
+          {...lineAnnotationsAsPly(ply)}
           meta={initialLine?.meta ?? null}
           state={state}
           dispatch={dispatch}
@@ -1187,7 +1610,9 @@ function AnalysedGame({ line }) {
 
 // Pick which section the game belongs to, then hand it to the game editor
 // pre-filled with the moves on the board.
-function SaveToGames({ moves, meta, state, dispatch, onClose }) {
+function SaveToGames({
+  moves, comments, badges, meta, state, dispatch, onClose,
+}) {
   // A best-effort guess from the loaded game's White/Black, always changeable
   // below — falls back to the first section when nothing matches.
   const guess = matchPlayerByName(meta?.white, state.players)
@@ -1223,7 +1648,7 @@ function SaveToGames({ moves, meta, state, dispatch, onClose }) {
   if (editing) {
     return (
       <GameEditor
-        initial={{ moves, meta: {} }}
+        initial={{ moves, comments, badges, meta: {} }}
         state={state}
         onClose={onClose}
         onSave={(game) => {
@@ -1259,6 +1684,92 @@ function SaveToGames({ moves, meta, state, dispatch, onClose }) {
           <button onClick={onClose}>Cancel</button>
           <button className="primary" disabled={!playerId} onClick={() => setEditing(true)}>
             Add the details
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Put the moves on the board into a chapter as a new variation. Analysis often
+// turns up a line worth keeping, and retyping it into the Library by hand is
+// the sort of friction that means it never gets kept.
+function SaveLineToChapter({ moves, suggestedName, openings, onClose, onSave }) {
+  const [openingId, setOpeningId] = useState(openings[0]?.id ?? '');
+  const opening = openings.find((o) => o.id === openingId);
+  const [chapterId, setChapterId] = useState(opening?.chapters[0]?.id ?? '');
+  const [name, setName] = useState(suggestedName);
+  useBackGuard(true, onClose);
+
+  // Changing opening invalidates the chapter chosen under the previous one.
+  const pickOpening = (id) => {
+    setOpeningId(id);
+    const next = openings.find((o) => o.id === id);
+    setChapterId(next?.chapters[0]?.id ?? '');
+  };
+
+  const ready = !!openingId && !!chapterId && moves.length > 0;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+        <h3>Save this line to a chapter</h3>
+        {openings.length === 0 ? (
+          <p className="hint">
+            No openings yet — add one in the Library first, and this line can go straight into it.
+          </p>
+        ) : (
+          <>
+            <p className="hint">
+              {moves.length} move{moves.length === 1 ? '' : 's'}: {moves.slice(0, 12).join(' ')}
+              {moves.length > 12 ? '…' : ''}
+            </p>
+            <label className="field">
+              <span>Opening</span>
+              <select value={openingId} onChange={(e) => pickOpening(e.target.value)}>
+                {openings.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+              </select>
+            </label>
+            <label className="field">
+              <span>Chapter</span>
+              <select
+                value={chapterId}
+                onChange={(e) => setChapterId(e.target.value)}
+                disabled={!opening || opening.chapters.length === 0}
+              >
+                {(opening?.chapters ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </label>
+            {opening && opening.chapters.length === 0 && (
+              <p className="hint">
+                “{opening.name}” has no chapters yet — add one in the Library first.
+              </p>
+            )}
+            <label className="field">
+              <span>Variation name</span>
+              <input
+                type="text"
+                value={name}
+                placeholder={moves.slice(0, 6).join(' ')}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </label>
+          </>
+        )}
+        <div className="modal-actions">
+          <button onClick={onClose}>Cancel</button>
+          <button
+            className="primary"
+            disabled={!ready}
+            onClick={() => onSave({
+              openingId,
+              chapterId,
+              name: name.trim() || moves.slice(0, 6).join(' '),
+            })}
+          >
+            Save variation
           </button>
         </div>
       </div>

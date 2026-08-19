@@ -2,6 +2,7 @@ import { Chess } from 'chess.js';
 import React, { useEffect, useMemo, useState } from 'react';
 import Board from '../components/Board';
 import { lastMoveOf } from '../lib/legalMoves';
+import { badgeAt } from '../lib/badges';
 import BoardArrows from '../components/BoardArrows';
 import { useStore } from '../store';
 import { useViewportWidth } from '../components/useViewportWidth';
@@ -205,6 +206,7 @@ function Side({ side, item, at, ply, boardWidth, onJump, onAnalyze }) {
             id={`cmp-${side}`}
             position={fens[shownPly] ?? fens[fens.length - 1]}
             lastMove={lastMoveOf(Chess, moves, Math.min(shownPly, moves.length))}
+            badge={badgeAt(item?.variation.badges, Math.min(shownPly, moves.length) - 1)?.id}
             arePiecesDraggable={false}
             areArrowsAllowed={false}
             customSquareStyles={squares}

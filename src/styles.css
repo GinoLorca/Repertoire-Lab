@@ -18,6 +18,341 @@
   --chip-bg: rgba(0, 0, 0, 0.25);
   --board-light: #c6d3e1;
   --board-dark: #4a6a8f;
+  /* An edge that reads against the *picture* behind a custom background, not
+     against the panel it sits on. --border is tuned to be nearly invisible by
+     design; this one is deliberately the opposite of the theme, so it separates
+     a pale card from a pale photo (and a dark one from a dark photo). */
+  --outline: rgba(238, 243, 255, 0.5);
+}
+
+/* A custom background picture, in two fixed layers behind everything: the photo
+   itself, then a veil of the theme's own background colour over it. The veil is
+   what keeps text readable on a busy image — its strength is a setting, so a
+   dark photo can take a light veil and a bright one a heavy veil.
+
+   Negative z-index keeps both behind all page content without needing any of
+   the app's own elements to be repositioned. */
+:root.has-custom-bg { background: var(--bg); }
+:root.has-custom-bg body { background: transparent; }
+:root.has-custom-bg body::before,
+:root.has-custom-bg body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+:root.has-custom-bg body::before {
+  z-index: -2;
+  background-image: var(--custom-bg);
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+:root.has-custom-bg body::after {
+  z-index: -1;
+  background: var(--bg);
+  opacity: var(--custom-bg-veil, 0.7);
+}
+
+/* With a picture behind the app, anything that was relying on the flat page
+   colour to separate it now sits on whatever the photo happens to be doing at
+   that spot. These rules give those things an edge of their own.
+
+   All of it is scoped to .has-custom-bg so the plain themes are untouched, and
+   every colour comes from the palette, so the same rules read correctly in
+   light and dark. */
+
+/* Boards. The squares supply their own colour but the outer edge dissolves into
+   a busy image, so the board needs a rim and a shadow to sit on the page. */
+:root.has-custom-bg .board-stack,
+:root.has-custom-bg .board-frame,
+:root.has-custom-bg .book-board,
+:root.has-custom-bg .cmp-board {
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px var(--outline), 0 10px 30px var(--shadow);
+}
+/* The evaluation bar is a thin column with no frame of its own. */
+:root.has-custom-bg .eval-bar {
+  box-shadow: 0 0 0 1.5px var(--outline);
+  border-radius: 3px;
+}
+
+/* Cards and panels already carry a border, but a 1px line is not enough
+   separation over a photograph — the shadow is what lifts them off it. */
+:root.has-custom-bg .card,
+:root.has-custom-bg .panel,
+:root.has-custom-bg .chapter-card,
+:root.has-custom-bg .opening-row,
+:root.has-custom-bg .course-row,
+:root.has-custom-bg .modal,
+:root.has-custom-bg .sheet,
+:root.has-custom-bg .settings-section,
+:root.has-custom-bg .variation-list,
+:root.has-custom-bg .practice-status,
+:root.has-custom-bg .book-panel,
+:root.has-custom-bg .move-note {
+  border-color: var(--outline);
+  box-shadow: 0 6px 22px var(--shadow);
+}
+
+/* Loose text and controls that live directly on the page — a heading, a hint
+   line, the draw toolbar under the analysis board. These have no container at
+   all, so they get a soft plate of the page colour to be legible against. */
+:root.has-custom-bg .page > .page-head,
+:root.has-custom-bg .breadcrumb,
+:root.has-custom-bg .annotate-bar,
+:root.has-custom-bg .draw-hint,
+:root.has-custom-bg .settings-tabs,
+:root.has-custom-bg .analysis-board > .hint,
+:root.has-custom-bg .page > .hint,
+:root.has-custom-bg .page > p.muted-note {
+  background: var(--panel);
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  box-shadow: 0 6px 22px var(--shadow);
+}
+
+/* Letting the picture through the things on top of it. color-mix is what makes
+   this possible without rewriting the palette as rgba — the swatch stays one
+   flat colour and gains alpha here. The blur behind is what keeps text legible
+   once a photo is showing through: without it, wallpaper detail reads straight
+   through the words. */
+:root.has-custom-bg .card,
+:root.has-custom-bg .panel,
+:root.has-custom-bg .chapter-card,
+:root.has-custom-bg .opening-row,
+:root.has-custom-bg .course-row,
+:root.has-custom-bg .settings-section,
+:root.has-custom-bg .variation-list,
+:root.has-custom-bg .practice-status,
+:root.has-custom-bg .book-panel,
+:root.has-custom-bg .annotate-bar,
+:root.has-custom-bg .draw-hint,
+:root.has-custom-bg .settings-tabs,
+:root.has-custom-bg .page > .page-head,
+:root.has-custom-bg .breadcrumb {
+  background: color-mix(in srgb, var(--card) var(--surface-opacity, 100%), transparent);
+  backdrop-filter: blur(10px) saturate(1.1);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+}
+:root.has-custom-bg .panel,
+:root.has-custom-bg .settings-section,
+:root.has-custom-bg .page > .page-head,
+:root.has-custom-bg .breadcrumb,
+:root.has-custom-bg .annotate-bar,
+:root.has-custom-bg .settings-tabs,
+:root.has-custom-bg .draw-hint {
+  background: color-mix(in srgb, var(--panel) var(--surface-opacity, 100%), transparent);
+}
+/* The board is the one surface that must stay fully readable — the squares are
+   the content. It follows the setting but never goes below three-quarters. */
+:root.has-custom-bg .board-stack,
+:root.has-custom-bg .board-frame,
+:root.has-custom-bg .cmp-board {
+  opacity: var(--board-opacity, 1);
+}
+
+/* The video at the top of a chapter. */
+.chapter-video { margin: 16px 0; }
+.chapter-video.empty { margin: 10px 0 16px; }
+.cv-add-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 12px; border: 1px dashed var(--border); border-radius: var(--radius);
+}
+.cv-add-row input[type="text"] { flex: 1; min-width: 220px; }
+.cv-error { color: var(--red); margin: 6px 0 0; }
+.cv-player {
+  position: relative; width: 100%; aspect-ratio: 16 / 9;
+  background: #000; border-radius: var(--radius); overflow: hidden;
+  border: 1px solid var(--border);
+}
+.cv-player video, .cv-player iframe {
+  position: absolute; inset: 0; width: 100%; height: 100%; border: none;
+}
+.cv-bar {
+  display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap;
+}
+.cv-source { font-size: 12.5px; }
+.cv-time { font-variant-numeric: tabular-nums; }
+
+/* The camera icon on a variation card. */
+.video-link-btn { display: inline-flex; align-items: center; gap: 4px; }
+.video-link-btn.on { color: var(--accent); border-color: var(--accent); }
+.video-link-time { font-size: 11.5px; font-variant-numeric: tabular-nums; }
+
+/* Coach's Corner Studio: the analyse-and-annotate rail. */
+.side-tabs .tab-dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); margin-left: 4px; vertical-align: middle;
+}
+.annotate-pane { display: flex; flex-direction: column; gap: 10px; }
+.annotate-pane h3 { display: flex; align-items: center; gap: 8px; margin: 0; }
+.annotate-note-label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.annotate-textarea { width: 100%; resize: vertical; }
+.annotate-note-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.annotate-foot { display: flex; gap: 8px; flex-wrap: wrap; }
+.annotate-pane .hint { margin: 0; }
+
+/* Loading a study straight onto the Studio board. */
+.study-import { display: flex; gap: 8px; margin-top: 10px; }
+.study-url-input { flex: 1; min-width: 0; }
+.study-error { color: var(--red); display: block; margin-top: 6px; }
+.study-games { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.study-games-list { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Pulling in a Lichess study. */
+.lichess-row { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
+.lichess-input { display: flex; gap: 8px; }
+.lichess-input input { flex: 1; min-width: 0; }
+.lichess-error { color: var(--red); line-height: 1.45; }
+
+/* Move badges — the glyph a coach puts on a move. */
+.move-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; color: #fff; font-weight: 800; line-height: 1;
+  margin-left: 4px; vertical-align: middle; flex: 0 0 auto;
+}
+.badge-picker { margin-bottom: 10px; }
+.badge-picker label { display: block; margin-bottom: 5px; }
+.badge-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.badge-pick {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: 20px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--card); color: var(--text);
+  font-size: 12.5px;
+}
+.badge-pick:hover { background: var(--card-hover); }
+.badge-pick.on { color: #fff; font-weight: 700; }
+.bp-glyph { font-weight: 800; }
+
+/* Handing openings to students. */
+.share-modal { max-width: 720px; }
+.share-cols { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin: 12px 0; }
+.share-col-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.share-list {
+  max-height: 260px; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 6px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.share-item {
+  display: flex; align-items: flex-start; gap: 9px;
+  padding: 7px 8px; border-radius: 8px; cursor: pointer;
+}
+.share-item:hover { background: var(--card-hover); }
+.share-item.dimmed { opacity: 0.4; cursor: default; }
+.share-item span { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
+.share-item strong { font-size: 13.5px; }
+/* The opening ▸ chapter ▸ line tree in the share dialog. */
+.share-tree { max-height: 320px; }
+.tree-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 6px; border-radius: 7px; cursor: pointer;
+  font-size: 13.5px;
+}
+.tree-row:hover { background: var(--card-hover); }
+.tree-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-caret {
+  width: 18px; flex: 0 0 auto; padding: 0;
+  background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px;
+}
+.tree-caret:hover { color: var(--text); background: none; }
+.tree-chapter { margin-left: 18px; }
+.tree-line { margin-left: 18px; font-size: 13px; color: var(--muted); }
+.tree-line .tree-name { color: var(--text); }
+.share-col-head .muted-note { margin-left: auto; margin-right: 8px; font-size: 12px; }
+
+.share-summary {
+  border-top: 1px solid var(--border); padding-top: 10px;
+  display: flex; flex-direction: column; gap: 3px; font-size: 13px;
+}
+@media (max-width: 620px) {
+  .share-cols { grid-template-columns: 1fr; }
+}
+
+/* The Lab notebook under the analysis board. */
+.lab-panel { display: flex; flex-direction: column; gap: 9px; margin-top: 12px; }
+.lab-head { display: flex; align-items: center; gap: 8px; }
+.lab-head strong { font-size: 15px; }
+.lab-saved-pill {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+  color: var(--green); border: 1px solid var(--green); border-radius: 20px; padding: 1px 7px;
+}
+.lab-title {
+  width: 100%; font-size: 14.5px; font-weight: 600;
+  padding: 8px 11px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--track); color: var(--text);
+}
+.lab-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lab-panel .hint { margin: 0; }
+
+/* A saved session, in Collections → Lab. */
+.group-row-lab { align-items: flex-start; }
+.lab-row-main {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  background: none; border: none; padding: 4px 0; text-align: left;
+  color: inherit; cursor: pointer; min-width: 0; flex: 1;
+}
+.lab-row-main:hover .lab-row-title { color: var(--accent); }
+.lab-row-title { font-weight: 600; font-size: 14.5px; }
+.lab-row-meta { font-size: 12px; }
+.lab-row-note {
+  font-size: 13px; color: var(--muted);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; max-width: 70ch;
+}
+
+/* Board and piece colours. */
+.board-colours { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+.board-preview {
+  display: grid;
+  grid-template-columns: 44px 44px;
+  grid-template-rows: 44px 44px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.bpv-sq { display: flex; align-items: center; justify-content: center; }
+.colour-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 10px;
+  flex: 1;
+  min-width: 240px;
+}
+.colour-field { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.colour-field input[type="color"] {
+  width: 34px; height: 34px; padding: 0; flex: 0 0 auto;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: none; cursor: pointer;
+}
+.cf-text { display: flex; flex-direction: column; line-height: 1.3; }
+.cf-text strong { font-size: 13.5px; }
+.cf-text .muted-note { font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.board-preset {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; padding: 6px 11px;
+  border: 1px solid var(--border); border-radius: 20px;
+  background: var(--card); color: var(--text); cursor: pointer;
+}
+.board-preset:hover { background: var(--card-hover); }
+.bp-swatch { width: 15px; height: 15px; border-radius: 4px; border: 1px solid var(--border); }
+
+.bg-preview {
+  width: 100%;
+  height: 132px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background-size: cover;
+  background-position: center;
+  margin-bottom: 10px;
+}
+.bg-veil-row { display: flex; align-items: center; gap: 12px; margin: 4px 0 12px; }
+.bg-veil-row input[type="range"] { flex: 1; }
+.bg-veil-row .val {
+  min-width: 42px; text-align: right;
+  font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px;
 }
 
 /* Light palette. Applied by <html data-theme="light"> — see lib/theme.js. */
@@ -38,6 +373,7 @@
   --scrim: rgba(26, 31, 41, 0.35);
   --shadow: rgba(31, 41, 61, 0.18);
   --chip-bg: rgba(255, 255, 255, 0.7);
+  --outline: rgba(18, 24, 36, 0.55);
 }
 :root[data-theme="light"] .chapter-card,
 :root[data-theme="light"] .variation-row,
@@ -1947,7 +2283,54 @@ input[type="date"] {
 .settings-head-text { display: flex; flex-direction: column; gap: 2px; }
 .settings-head h2 { margin: 0; font-size: 18px; }
 .settings-body { display: flex; flex-direction: column; gap: 10px; }
+
+/* The settings groups as a tab strip rather than a stack of folds. It scrolls
+   sideways on a phone instead of wrapping to three ragged rows. */
+.settings-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--border);
+}
+.settings-tabs::-webkit-scrollbar { display: none; }
+.settings-tab {
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 8px 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.settings-tab:hover { color: var(--text); background: var(--card-hover); }
+.settings-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: none;
+}
+/* The heading no longer opens or closes anything, so it shouldn't invite a click. */
+.settings-head.static { cursor: default; padding-top: 0; }
 .speed-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+
+/* Wraps the annotation card at the top of the analysis board's side column.
+   Deliberately left OUT of the .has-custom-bg translucency rules above: a
+   coach's note is the one thing on that side of the board that has to stay
+   fully readable, so it keeps a solid backing regardless of the Panels/Board
+   opacity settings — turning those down for the rest of the page never
+   thins this out. */
+.side-note {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 2px;
+  margin-bottom: 12px;
+}
 
 /* An annotation from the course, shown with the move it belongs to. */
 .move-note {
@@ -1965,6 +2348,38 @@ input[type="date"] {
   letter-spacing: 0.3px; margin-bottom: 3px;
 }
 .move-note p { margin: 0; font-size: 14.5px; line-height: 1.55; }
+/* The note on a move the clock played for you — brighter, because it's the one
+   moment that explanation is worth reading. */
+.move-note.called-out {
+  background: rgba(232, 179, 57, 0.16);
+  border-color: rgba(232, 179, 57, 0.6);
+  animation: note-arrive 0.28s ease-out;
+}
+@keyframes note-arrive {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The clock on the move you owe, in timed sessions. */
+.move-timer { display: flex; align-items: center; gap: 9px; margin: 4px 0 2px; }
+.move-timer .mt-track {
+  flex: 1; height: 6px; border-radius: 999px;
+  background: var(--track, rgba(255, 255, 255, 0.09));
+  overflow: hidden;
+}
+.move-timer .mt-fill {
+  height: 100%; border-radius: 999px;
+  background: var(--accent, #3b9cff);
+  /* Matches the 100ms tick, so the bar slides instead of stepping. */
+  transition: width 0.1s linear, background-color 0.2s ease;
+}
+.move-timer .mt-count {
+  min-width: 30px; text-align: right;
+  font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.move-timer.urgent .mt-fill { background: var(--red, #e5534b); }
+.move-timer.urgent .mt-count { color: var(--red, #e5534b); }
 
 /* Settings that only matter while their parent switch is on. */
 .setting-children { margin-left: 18px; padding-left: 14px; border-left: 2px solid var(--border); }
