@@ -14,6 +14,7 @@ import PlayerEditor from '../components/PlayerEditor';
 import Avatar from '../components/Avatar';
 import ScoresheetPhoto from '../components/ScoresheetPhoto';
 import { flagLabel, flagColor } from '../lib/gameFlags';
+import TagEditor, { TagChips, allTags } from './TagEditor';
 import { useBackGuard } from '../lib/backGuard';
 import {
   BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon, StarIcon,
@@ -69,6 +70,7 @@ function GameHeader({ game }) {
 
 function GameRow({
   game, playerId, category, index, state, onAnalyze, onView, onEdit, onSetCategory, onSetPhoto, onDelete, onScan,
+  onEditTags, onTagClick,
 }) {
   const m = game.meta ?? {};
   const res = resultFor(game);
@@ -147,6 +149,10 @@ function GameRow({
             ))}
           </span>
         )}
+        <TagChips tags={game.tags} onClick={onTagClick} max={4} />
+        <button className={`tag-btn small${game.tags?.length ? ' on' : ''}`} title="Tag this game" onClick={onEditTags}>
+          <TagIcon size={13} />
+        </button>
         <span style={{ flex: 1 }} />
         <select
           className="cat-select"
@@ -231,6 +237,7 @@ function PlayerPage({
   const [cat, setCat] = useState('all');
   const [where, setWhere] = useState('all');
   const [query, setQuery] = useState('');
+  const [taggingGameId, setTaggingGameId] = useState(null);
 
   // A student's own book, not yours — so their games are matched (and
   // Analyze pulls up) against what you've actually taught them.
@@ -290,7 +297,7 @@ function PlayerPage({
       const q = query.toLowerCase();
       const hay = [
         game.name, m.white, m.black, m.event, m.notes, category.label,
-        category.variation?.name, game.moves.join(' '),
+        category.variation?.name, game.moves.join(' '), (game.tags ?? []).join(' '),
       ].filter(Boolean).join(' ').toLowerCase();
       if (!hay.includes(q)) return false;
     }
@@ -393,7 +400,7 @@ function PlayerPage({
             <input
               type="text"
               value={query}
-              placeholder="Search players, events, notes, moves…"
+              placeholder="Search players, events, notes, moves, tags…"
               onChange={(e) => setQuery(e.target.value)}
             />
           </span>
@@ -473,8 +480,24 @@ function PlayerPage({
               dispatch({ type: 'deleteGame', playerId: player.id, gameId: game.id });
             }
           }}
+          onEditTags={() => setTaggingGameId(game.id)}
+          onTagClick={(t) => setQuery(t)}
         />
       ))}
+
+      {taggingGameId && (() => {
+        const target = player.games.find((g) => g.id === taggingGameId);
+        if (!target) return null;
+        return (
+          <TagEditor
+            title={target.name}
+            tags={target.tags}
+            suggestions={allTags(state)}
+            onChange={(tags) => dispatch({ type: 'setGameTags', playerId: player.id, gameId: target.id, tags })}
+            onClose={() => setTaggingGameId(null)}
+          />
+        );
+      })()}
 
       {editing && (
         <GameEditor
@@ -588,7 +611,7 @@ export default function PlayerRoster({
         )}
         <button className="primary" onClick={() => setEditingPlayer('new')}>{addLabel}</button>
       </div>
-      <p style={{ color: 'var(--muted)', marginTop: -8 }}>{subtitle}</p>
+      <p className="roster-subtitle">{subtitle}</p>
 
       {players.length === 0 && (
         <div className="empty-note">{emptyLabel}</div>

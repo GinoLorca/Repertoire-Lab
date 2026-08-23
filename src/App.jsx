@@ -393,6 +393,7 @@ function AppInner() {
           scope={practiceScope}
           onScopeChange={(s) => setPracticeScope(s)}
           onExit={goBack}
+          onAnalyze={analyze}
         />
       )}
       {view === 'games' && <GamesView onAnalyze={analyze} onScan={scanPhoto} />}

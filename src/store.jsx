@@ -78,6 +78,11 @@ export function emptyState() {
     // highlights drawn on each position. Independent of the repertoire, but a
     // session started from a repertoire line remembers where it came from.
     labEntries: [],
+    // The Analysis board's unsaved, in-progress session — see 'setAnalysisDraft'.
+    analysisDraft: null,
+    // Board Editor positions saved for reuse — an endgame set up for a class,
+    // a recurring structure, whatever's worth not rebuilding by hand again.
+    savedPositions: [],
     settings: { ...DEFAULT_SETTINGS },
   };
 }
@@ -729,12 +734,29 @@ function reducer(state, action) {
           return { ...g, badges };
         }),
       }));
+    // The whole result of a Game Review in one go, rather than one dispatch
+    // per move — badges keyed by ply, replacing whatever badges (hand-placed
+    // or from an earlier review) were there before.
+    case 'setGameBadges':
+      return mapPlayer(state, action.playerId, (p) => ({
+        ...p,
+        games: p.games.map((g) => (g.id === action.gameId ? { ...g, badges: action.badges } : g)),
+      }));
     case 'setGameFlags':
       return mapPlayer(state, action.playerId, (p) => ({
         ...p,
         games: p.games.map((g) => (g.id === action.gameId
           ? { ...g, meta: { ...(g.meta ?? {}), flags: action.flags } }
           : g)),
+      }));
+    // Free-form themes on a game, same idea (and the same TagEditor) as a
+    // repertoire opening/chapter/variation's — search matches them too, so
+    // "tag every game where the student missed a fork" makes them findable
+    // as a set later.
+    case 'setGameTags':
+      return mapPlayer(state, action.playerId, (p) => ({
+        ...p,
+        games: p.games.map((g) => (g.id === action.gameId ? { ...g, tags: action.tags } : g)),
       }));
     // A photo of the scoresheet — quick to grab in the moment (or for a game
     // there's no time to sit down and analyze), for reference later even
@@ -867,6 +889,23 @@ function reducer(state, action) {
       };
     case 'setSettings':
       return { ...state, settings: { ...state.settings, ...action.settings } };
+    // Whatever's on the Analysis board right now, unsaved — so a backgrounded
+    // tab that iOS reloads from scratch (a real risk on a phone or iPad,
+    // switching apps mid-session) comes back exactly where it was instead of
+    // a blank board. Overwritten on every change; cleared once the session
+    // is explicitly saved to the Lab or abandoned with Reset.
+    case 'setAnalysisDraft':
+      return { ...state, analysisDraft: action.draft };
+    case 'savePosition':
+      return {
+        ...state,
+        savedPositions: [
+          { id: action.id ?? uid(), name: action.name, fen: action.fen, createdAt: new Date().toISOString() },
+          ...(state.savedPositions ?? []),
+        ],
+      };
+    case 'deletePosition':
+      return { ...state, savedPositions: (state.savedPositions ?? []).filter((p) => p.id !== action.id) };
     default:
       return state;
   }
@@ -910,6 +949,33 @@ export function StoreProvider({ children }) {
       set(STORAGE_KEY, state).catch((err) => console.error('Failed to save state:', err));
     }, 400);
   }, [state, loaded]);
+
+  // The 400ms debounce above is fine while the app stays open, but iOS can
+  // (and does) suspend or fully discard a backgrounded tab/home-screen app
+  // within that window — a move played right before switching apps, locking
+  // the screen, or letting the device sleep would otherwise vanish with no
+  // pending write to fall back on. `visibilitychange` fires reliably the
+  // instant the page is hidden (app-switch, screen lock, sleep); `pagehide`
+  // covers the same moment on browsers that skip it. Both flush immediately
+  // instead of waiting on the timer, using a ref so this listener — set up
+  // once — always writes whatever state is current, not what was current
+  // when it was registered.
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  useEffect(() => {
+    if (!loaded) return undefined;
+    const flush = () => {
+      clearTimeout(saveTimer.current);
+      set(STORAGE_KEY, stateRef.current).catch((err) => console.error('Failed to save state:', err));
+    };
+    const onVisibility = () => { if (document.hidden) flush(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', flush);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', flush);
+    };
+  }, [loaded]);
 
   if (!loaded || !state) {
     return <div className="loading-screen">Loading…</div>;

@@ -3,6 +3,7 @@ import { Chess } from 'chess.js';
 import Board from '../components/Board';
 import { useStore, uid } from '../store';
 import { Engine, formatScore } from '../lib/engine';
+import { runGameReview } from '../lib/gameReview';
 import { fetchExplorer, explorerTotals, pct } from '../lib/explorer';
 import MoveText from '../components/MoveText';
 import { useViewportWidth } from '../components/useViewportWidth';
@@ -18,6 +19,8 @@ import {
 } from '../lib/games';
 import { buildPositionIndex, bookMovesAt, matchGameToRepertoire, moveLabel } from '../lib/repertoire';
 import LegalDots from '../components/LegalDots';
+import PromotionPicker from '../components/PromotionPicker';
+import BoardEditor from '../components/BoardEditor';
 import GameFlagPicker from '../components/GameFlagPicker';
 import { lastMoveOf } from '../lib/legalMoves';
 import { useBackGuard } from '../lib/backGuard';
@@ -33,7 +36,7 @@ import {
 } from '../lib/moveTree';
 import {
   BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon,
-  FlaskIcon, CommentIcon,
+  FlaskIcon, CommentIcon, TargetIcon, UploadIcon,
 } from '../components/Icons';
 import {
   PENS, SHORTCUTS, defaultPen, shortcutKey, shortcutMap, isComboKey, comboMatchesEvent, formatShortcutKey,
@@ -42,6 +45,36 @@ import {
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 const EMPTY_MARKS = { arrows: [], squares: {} };
+
+// A flag on `window` itself, not a module-level variable and not component
+// state: it needs to survive anything short of an actual navigation. A plain
+// `let` up here looked right but isn't — Vite's dev-mode Fast Refresh
+// re-executes a changed module's top-level code to hot-swap it, which resets
+// a module-level variable back to its initial value with no reload at all,
+// so mid-session edits kept quietly re-arming "resume" while testing. window
+// is the one thing that's actually scoped to "this tab hasn't navigated
+// since the last real load" — HMR replaces module code without touching it,
+// and only a genuine navigation gets a fresh one.
+const RESUME_FLAG = '__rlAnalysisDraftResumed';
+
+// iOS silently reloading a backgrounded/discarded tab and a person
+// deliberately hitting refresh both land here as a brand-new JS context —
+// RESUME_FLAG alone can't tell them apart. The Navigation Timing entry can:
+// an explicit reload (pull-to-refresh, the browser's reload button,
+// location.reload()) is reported as type 'reload'; the OS quietly re-fetching
+// a tab it discarded under memory pressure comes back as an ordinary
+// 'navigate', the same as opening the app fresh. Only the former should
+// throw the draft away.
+function wasExplicitReload() {
+  try {
+    const [nav] = performance.getEntriesByType('navigation');
+    if (nav) return nav.type === 'reload';
+    // eslint-disable-next-line deprecation/deprecation
+    return performance.navigation?.type === 1;
+  } catch {
+    return false;
+  }
+}
 
 // Best move, second, third — three hues rather than three blues, so a glance at
 // the board tells you which arrow is which line. Read on light and dark squares.
@@ -53,14 +86,22 @@ const ARROW_COLORS = [
 
 export default function AnalysisView({ initialLine, initialLab, coachMode }) {
   const { state, dispatch } = useStore();
+  // Nothing explicit was asked for — a blank "Analysis" open or a Coaches
+  // Corner Studio session — so whatever was still on the board last time
+  // wins. This is what survives a backgrounded tab: iOS can and does reload
+  // an inactive tab or home-screen app from scratch under memory pressure,
+  // which would otherwise wipe every move just played with nothing saved.
+  const draft = (!initialLine && !initialLab && !window[RESUME_FLAG] && !wasExplicitReload())
+    ? (state.analysisDraft ?? null) : null;
+  window[RESUME_FLAG] = true;
   const [mode, setMode] = useState('engine'); // 'engine' | 'compare'
-  const [baseFen, setBaseFen] = useState(initialLab?.baseFen ?? START_FEN);
+  const [baseFen, setBaseFen] = useState(draft?.baseFen ?? initialLab?.baseFen ?? START_FEN);
   // The game is a tree: playing something else from an earlier move keeps what
   // came after as a variation. `head` is the move the board is sitting on.
   const [tree, setTree] = useState(() => (
-    initialLab?.tree ?? makeTree(initialLab?.moves ?? initialLine?.moves ?? [])));
-  const [head, setHead] = useState('root'); // loaded lines open at the start
-  const [orientation, setOrientation] = useState('white');
+    draft?.tree ?? initialLab?.tree ?? makeTree(initialLab?.moves ?? initialLine?.moves ?? [])));
+  const [head, setHead] = useState(draft?.head ?? 'root'); // loaded lines open at the start
+  const [orientation, setOrientation] = useState(draft?.orientation ?? 'white');
   // The engine runs from the moment the board opens unless you've turned that
   // off — arrows and the eval bar are Stockfish's, so nothing to draw until it
   // is thinking.
@@ -73,27 +114,29 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
   const [fenInput, setFenInput] = useState('');
   // Lab notebook. `labId` is set once this session has been saved, so Save
   // updates that entry instead of quietly making a second copy of it.
-  const [labId, setLabId] = useState(initialLab?.id ?? null);
-  const [labTitle, setLabTitle] = useState(initialLab?.title ?? '');
-  const [labNote, setLabNote] = useState(initialLab?.note ?? '');
+  const [labId, setLabId] = useState(draft?.labId ?? initialLab?.id ?? null);
+  const [labTitle, setLabTitle] = useState(draft?.labTitle ?? initialLab?.title ?? '');
+  const [labNote, setLabNote] = useState(draft?.labNote ?? initialLab?.note ?? '');
   const [saveLineOpen, setSaveLineOpen] = useState(false);
   // Coach's Corner: a badge and a note on the specific move currently
   // selected, keyed by its node id rather than a ply number — a tree has
   // branches, and a ply number alone can't tell two of them apart.
-  const [moveBadges, setMoveBadges] = useState(() => initialLab?.moveBadges ?? {});
-  const [moveNotes, setMoveNotes] = useState(() => initialLab?.moveNotes ?? {});
+  const [moveBadges, setMoveBadges] = useState(() => draft?.moveBadges ?? initialLab?.moveBadges ?? {});
+  const [moveNotes, setMoveNotes] = useState(() => draft?.moveNotes ?? initialLab?.moveNotes ?? {});
   const [moveNoteDraft, setMoveNoteDraft] = useState('');
   const [studyUrl, setStudyUrl] = useState('');
   const [studyBusy, setStudyBusy] = useState(false);
   const [studyError, setStudyError] = useState(null);
   const [studyGames, setStudyGames] = useState(null); // entries from a fetched study, to pick a chapter from
+  const [pgnText, setPgnText] = useState(''); // pasted PGN/movetext, loaded straight onto the board
+  const [pgnOpen, setPgnOpen] = useState(false);
   const [saveVarOpen, setSaveVarOpen] = useState(false);
   const engineRef = useRef(null);
   const viewportWidth = useViewportWidth();
 
   // ---------- Board annotations (arrows + square highlights) ----------
   // Kept per position, so stepping back and forth keeps each position's marks.
-  const [annotations, setAnnotations] = useState(() => initialLab?.annotations ?? {});
+  const [annotations, setAnnotations] = useState(() => draft?.annotations ?? initialLab?.annotations ?? {});
   // The active pen — what a touch drag draws in, and a mouse drag falls back
   // to when no pen key (below) is held. Starts at, and resets to, whatever
   // Settings → default pen colour says; the swatches can still change it
@@ -106,7 +149,13 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
   const [drawMode, setDrawMode] = useState(false);
   const [drawFrom, setDrawFrom] = useState(null);
   const [picked, setPicked] = useState(null); // click-to-move: the piece you tapped
+  const [pendingPromotion, setPendingPromotion] = useState(null); // {from, to, color} awaiting a piece choice
   const [saving, setSaving] = useState(false); // "save to Games" dialog
+  // Game Review: a full engine pass over the loaded game, badging every move
+  // the way a coach would by hand — see runReview below.
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewProgress, setReviewProgress] = useState(null); // {done, total}
+  const [reviewResult, setReviewResult] = useState(null); // {accuracy: {white, black}}
   const [sidePane, setSidePane] = useState(coachMode ? 'annotate' : 'engine'); // engine | explorer | annotate
 
   // The saved game this board is showing, if any — initialLine is a snapshot
@@ -163,6 +212,26 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
     setMoveNoteDraft(moveNotes[head] ?? '');
   }, [head]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keep the store's copy of this session current, for the initializers
+  // above to pick back up if the tab gets reloaded from under us. Only for a
+  // session that owns itself — one opened from a specific line or a saved
+  // Lab entry has its own source of truth and shouldn't overwrite the draft
+  // some other blank board is mid-way through.
+  useEffect(() => {
+    if (initialLine || initialLab) return;
+    const empty = moves.length === 0
+      && Object.keys(moveNotes).length === 0
+      && Object.keys(moveBadges).length === 0
+      && Object.keys(annotations).length === 0;
+    dispatch({
+      type: 'setAnalysisDraft',
+      draft: empty ? null : {
+        baseFen, tree, head, orientation, moveNotes, moveBadges, annotations, labId, labTitle, labNote,
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseFen, tree, head, orientation, moveNotes, moveBadges, annotations, labId, labTitle, labNote]);
+
   const game = useMemo(() => {
     const c = new Chess(baseFen);
     for (let i = 0; i < ply; i += 1) c.move(moves[i]);
@@ -171,6 +240,14 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
   const fen = game.fen();
   const fenRef = useRef(fen); // read by the engine listener, which is set up once
   fenRef.current = fen;
+
+  // A Board Editor position (or a pasted FEN) rarely starts the game — the
+  // move list needs to number and colour from wherever it actually begins,
+  // not always assume 1.White, or a mid-game setup reads as a fresh game.
+  const baseMeta = useMemo(() => {
+    const parts = baseFen.trim().split(/\s+/);
+    return { startNumber: Number(parts[5]) || 1, startColor: parts[1] === 'b' ? 'b' : 'w' };
+  }, [baseFen]);
 
   // Keyboard, roughly what chess.com and Lichess use — the letter/digit keys
   // below are rebindable from Settings → Keyboard; lib/shortcuts.js holds the
@@ -471,6 +548,55 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
     return null;
   }, [lineNodes, ply, moveNotes, moveBadges]);
 
+  // Badging or noting a move while analyzing a saved game used to live only
+  // in this session's local state — gone the moment you left unless you
+  // remembered to Save to Lab, which is a different record from the game
+  // itself. This mirrors the same edit onto the game's own badges/comments,
+  // the same fields its "step through this game" viewer already reads and
+  // writes, so it's there next time you open the game, review pass or not.
+  // Only for a move actually played in the game; a branch explored here has
+  // nowhere on the game record to live.
+  const syncGameMove = (kind, value) => {
+    if (!liveGame) return;
+    const trunk = mainLineFrom(tree);
+    const ply = trunk.findIndex((n) => n.id === head);
+    if (ply < 0) return;
+    dispatch(kind === 'badge'
+      ? { type: 'setGameMoveBadge', playerId: initialLine.playerId, gameId: initialLine.gameId, ply, badge: value }
+      : { type: 'setGameMoveComment', playerId: initialLine.playerId, gameId: initialLine.gameId, ply, text: value });
+  };
+
+  // Chess.com-style Game Review: a dedicated, throwaway engine so it never
+  // fights the live analysis engine over the search queue. Always reviews
+  // the tree's main line from the start — wherever the cursor happens to be
+  // sitting, or whatever side branch is being poked at, the actual game
+  // stays anchored on the trunk (see lib/moveTree's promote/promoteOne).
+  const runReview = async () => {
+    if (reviewBusy) return;
+    const trunkMoves = mainLineFrom(tree).map((n) => n.san);
+    if (trunkMoves.length === 0) return;
+    setReviewBusy(true);
+    setReviewProgress({ done: 0, total: trunkMoves.length });
+    setReviewResult(null);
+    const reviewEngine = new Engine();
+    try {
+      const result = await runGameReview(reviewEngine, { baseFen, moves: trunkMoves }, {
+        depth: 15,
+        onProgress: (done, total) => setReviewProgress({ done, total }),
+      });
+      setMoveBadges((m) => ({ ...m, ...plyMapToNodeIds(tree, result.badges) }));
+      if (liveGame) {
+        dispatch({
+          type: 'setGameBadges', playerId: initialLine.playerId, gameId: initialLine.gameId, badges: result.badges,
+        });
+      }
+      setReviewResult(result);
+    } finally {
+      reviewEngine.quit();
+      setReviewBusy(false);
+    }
+  };
+
   const saveToLab = () => {
     // Drop positions whose marks were cleared, so an entry doesn't carry a map
     // of empty ones around forever.
@@ -607,15 +733,32 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
     record(mv.san);
   };
 
-  const onPieceDrop = (from, to) => {
-    if (drawMode) return false; // in draw mode the board is a canvas, not a game
+  // A queen isn't always the right answer — this is the loaded position, not
+  // one from the current view's closure, so it stays correct even if the
+  // picker's onPick fires after a re-render.
+  const commitMove = (from, to, promotion) => {
     const clone = new Chess(fen);
     let mv = null;
-    try { mv = clone.move({ from, to, promotion: 'q' }); } catch { mv = null; }
+    try { mv = clone.move({ from, to, promotion: promotion ?? 'q' }); } catch { mv = null; }
     if (!mv) return false;
     record(mv.san);
     setPicked(null);
+    setPendingPromotion(null);
     return true;
+  };
+
+  const onPieceDrop = (from, to) => {
+    if (drawMode) return false; // in draw mode the board is a canvas, not a game
+    let needsChoice = false;
+    try {
+      const probe = new Chess(fen);
+      needsChoice = probe.moves({ square: from, verbose: true }).some((m) => m.to === to && m.promotion);
+    } catch { needsChoice = false; }
+    if (needsChoice) {
+      setPendingPromotion({ from, to, color: new Chess(fen).turn() });
+      return false; // the board waits; the picker decides which piece lands
+    }
+    return commitMove(from, to);
   };
 
   const onSquareClick = (square) => {
@@ -679,6 +822,21 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
     if (color) setOrientation(color);
   };
 
+  // One game loads straight onto the board; several (a study export, a PGN
+  // with more than one game pasted in) go to the picker below instead. Badges
+  // and comments ride along either way — a coach's NAG-annotated PGN or study
+  // export shouldn't have to lose its "??"s just for coming in this way.
+  const loadEntries = (entries) => {
+    if (entries.length === 1) {
+      setBaseFen(START_FEN);
+      loadMoves(entries[0].moves, {
+        title: entries[0].name, comments: entries[0].comments, badges: entries[0].badges,
+      });
+    } else {
+      setStudyGames(entries);
+    }
+  };
+
   // Pull a Lichess study in as PGN and let the coach pick which chapter to
   // put on the board — a study is one game per chapter, so this is the same
   // shape the course importer already understands.
@@ -692,18 +850,23 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
       const pgn = await fetchStudyPgn(parsed);
       const entries = pgnTextToEntries(pgn);
       if (entries.length === 0) throw new Error('That study came back with no readable moves.');
-      if (entries.length === 1) {
-        setBaseFen(START_FEN);
-        loadMoves(entries[0].moves, { title: entries[0].name, comments: entries[0].comments });
-        setStudyUrl('');
-      } else {
-        setStudyGames(entries);
-      }
+      loadEntries(entries);
+      setStudyUrl('');
     } catch (err) {
       setStudyError(err.message);
     } finally {
       setStudyBusy(false);
     }
+  };
+
+  // A PGN (or plain movetext) pasted straight in — no fetch, no chapter to
+  // build first, just moves onto the board right now.
+  const loadPgnText = () => {
+    const entries = pgnTextToEntries(pgnText);
+    setStudyError(null);
+    if (entries.length === 0) { setStudyError('No legal moves found in that text.'); return; }
+    loadEntries(entries);
+    setPgnText('');
   };
 
   const loadVariation = (value) => {
@@ -793,9 +956,40 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
           <div className="mode-tabs">
             <button onClick={() => setMode('engine')}>Engine</button>
             <button className="active">Compare lines</button>
+            <button onClick={() => setMode('editor')}>Board Editor</button>
           </div>
         </div>
         <CompareView onAnalyze={(v) => { setMode('engine'); loadLine(v); }} />
+      </div>
+    );
+  }
+
+  if (mode === 'editor') {
+    return (
+      <div className="page wide">
+        <div className="page-head">
+          <h1>Analysis</h1>
+          <div className="mode-tabs">
+            <button onClick={() => setMode('engine')}>Engine</button>
+            <button onClick={() => setMode('compare')}>Compare lines</button>
+            <button className="active">Board Editor</button>
+          </div>
+        </div>
+        <BoardEditor
+          // The exact same size Engine mode's board lands on — not a fraction
+          // of it. A scaled-down BOARD_MAX still grows unopposed on a wide
+          // screen (the editor has no side column pushing back on it the way
+          // Engine's colW does), which is what kept reading as "still huge" no
+          // matter how hard the fraction was cut. colW is measured for Engine
+          // mode's own board; using it here directly is what makes the two
+          // actually match on any given screen, Mac or iPad.
+          boardWidth={boardWidth}
+          onSendToAnalysis={({ baseFen: f, moves: m }) => {
+            setMode('engine');
+            setBaseFen(f);
+            loadMoves(m ?? []);
+          }}
+        />
       </div>
     );
   }
@@ -812,6 +1006,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
           >
             Compare lines
           </button>
+          <button onClick={() => setMode('editor')}>Board Editor</button>
         </div>
         <button
           title="Save this game to your Games tab, or a student's profile in Coaches"
@@ -819,6 +1014,14 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
           onClick={() => setSaving(true)}
         >
           <DownloadIcon size={15} /> Save game
+        </button>
+        <button
+          title="Have Stockfish grade every move — Brilliant down to Blunder, badged right on the board"
+          disabled={moves.length === 0 || reviewBusy}
+          onClick={runReview}
+        >
+          <TargetIcon size={15} />
+          {reviewBusy ? `Reviewing… ${reviewProgress?.done ?? 0}/${reviewProgress?.total ?? 0}` : 'Game Review'}
         </button>
         <select
           className="line-picker"
@@ -847,12 +1050,19 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
             </optgroup>
           ))}
         </select>
-        {coachMode && (
+        <button
+          className={`small${pgnOpen ? ' primary' : ''}`}
+          title="Load a PGN — paste it in, or pull a Lichess study straight onto the board"
+          onClick={() => setPgnOpen((o) => !o)}
+        >
+          <UploadIcon size={14} /> Paste PGN
+        </button>
+        {pgnOpen && (
           <div className="study-import">
             <input
               type="text"
               className="study-url-input"
-              placeholder="Paste a Lichess study link…"
+              placeholder="…or a Lichess study link"
               value={studyUrl}
               onChange={(e) => { setStudyUrl(e.target.value); setStudyError(null); setStudyGames(null); }}
               onKeyDown={(e) => { if (e.key === 'Enter') fetchStudy(); }}
@@ -866,11 +1076,25 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
             </button>
           </div>
         )}
+        {pgnOpen && (
+          <div className="pgn-paste-row">
+            <textarea
+              rows={3}
+              className="pgn-paste-textarea"
+              placeholder="1.e4 e5 2.Nf3 Nc6 … or a full PGN, headers and all"
+              value={pgnText}
+              onChange={(e) => { setPgnText(e.target.value); setStudyError(null); }}
+            />
+            <button className="small primary" disabled={!pgnText.trim()} onClick={loadPgnText}>
+              Load
+            </button>
+          </div>
+        )}
         {studyError && <span className="muted-note study-error">{studyError}</span>}
         {studyGames && (
           <div className="study-games">
             <span className="muted-note">
-              {studyGames.length} chapter{studyGames.length === 1 ? '' : 's'} — pick one to load onto the board:
+              {studyGames.length} game{studyGames.length === 1 ? '' : 's'} — pick one to load onto the board:
             </span>
             <div className="study-games-list">
               {studyGames.map((g, i) => (
@@ -879,9 +1103,10 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
                   className="small ghost"
                   onClick={() => {
                     setBaseFen(START_FEN);
-                    loadMoves(g.moves, { title: g.name, comments: g.comments });
+                    loadMoves(g.moves, { title: g.name, comments: g.comments, badges: g.badges });
                     setStudyGames(null);
                     setStudyUrl('');
+                    setPgnText('');
                   }}
                 >
                   {g.name || `Chapter ${i + 1}`}
@@ -891,6 +1116,20 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
           </div>
         )}
       </div>
+
+      {reviewResult && (
+        <div className="review-summary">
+          <TargetIcon size={14} />
+          <strong>Game Review</strong>
+          {reviewResult.accuracy.white != null && (
+            <span className="rs-side"><span className="rs-dot white" /> White {reviewResult.accuracy.white.toFixed(1)}%</span>
+          )}
+          {reviewResult.accuracy.black != null && (
+            <span className="rs-side"><span className="rs-dot black" /> Black {reviewResult.accuracy.black.toFixed(1)}%</span>
+          )}
+          <span className="muted-note">— every move badged below and in the move list</span>
+        </div>
+      )}
 
       <div
         className={`analysis-layout ${layoutClass}${tight ? ' tight' : ''}`}
@@ -937,6 +1176,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
             onSquareClick={onSquareClick}
             onPieceDragBegin={(piece, square) => setPicked(square)}
             onPieceDragEnd={() => setPicked(null)}
+            onPromotionCheck={() => false}
             arePiecesDraggable={!drawMode}
             areArrowsAllowed={false}
             customSquareStyles={squareStyles}
@@ -945,6 +1185,16 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
             boardOrientation={orientation}
             boardWidth={boardWidth}
           />
+          {pendingPromotion && (
+            <PromotionPicker
+              square={pendingPromotion.to}
+              color={pendingPromotion.color}
+              boardWidth={boardWidth}
+              orientation={orientation}
+              onPick={(piece) => commitMove(pendingPromotion.from, pendingPromotion.to, piece)}
+              onCancel={() => setPendingPromotion(null)}
+            />
+          )}
           <BoardArrows
             arrows={[...engineArrows, ...marks.arrows]}
             boardWidth={boardWidth}
@@ -1379,12 +1629,15 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
                           className={`badge-pick${on ? ' on' : ''}`}
                           title={b.label}
                           style={on ? { background: b.color, borderColor: b.color } : undefined}
-                          onClick={() => setMoveBadges((m) => {
-                            const next = { ...m };
-                            if (on) delete next[head];
-                            else next[head] = b.id;
-                            return next;
-                          })}
+                          onClick={() => {
+                            setMoveBadges((m) => {
+                              const next = { ...m };
+                              if (on) delete next[head];
+                              else next[head] = b.id;
+                              return next;
+                            });
+                            syncGameMove('badge', on ? null : b.id);
+                          }}
                         >
                           <span className="bp-glyph" style={{ color: on ? '#fff' : b.color }}>{b.symbol}</span>
                           <span className="bp-label">{b.label}</span>
@@ -1414,12 +1667,16 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
                       </button>
                       <button
                         className="small primary"
-                        onClick={() => setMoveNotes((m) => {
-                          const next = { ...m };
-                          if (moveNoteDraft.trim()) next[head] = moveNoteDraft.trim();
-                          else delete next[head];
-                          return next;
-                        })}
+                        onClick={() => {
+                          const text = moveNoteDraft.trim();
+                          setMoveNotes((m) => {
+                            const next = { ...m };
+                            if (text) next[head] = text;
+                            else delete next[head];
+                            return next;
+                          });
+                          syncGameMove('comment', text);
+                        }}
                       >
                         Save note
                       </button>
@@ -1450,12 +1707,19 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
         </div>
 
         <div className="analysis-moves-col">
-          {moves.length > 0 && (
+          {(moves.length > 0 || baseFen !== START_FEN) && (
             <div className="panel analysis-movelist-panel">
               <div className="movelist-head">
                 <span>Moves</span>
                 <span className="muted-note">
-                  {ply === 0 ? 'start' : `${Math.floor((ply - 1) / 2) + 1}${(ply - 1) % 2 === 0 ? '.' : '…'}${moves[ply - 1]}`}
+                  {(() => {
+                    if (ply === 0) return 'start';
+                    // Matches MoveTree's own numFor exactly — virtualPly is
+                    // the real ply just played, shifted the same way.
+                    const virtualPly = ply + (baseMeta.startColor === 'b' ? 1 : 0);
+                    const num = Math.floor((virtualPly - 1) / 2) + baseMeta.startNumber;
+                    return `${num}${virtualPly % 2 === 1 ? '.' : '…'}${moves[ply - 1]}`;
+                  })()}
                   {' · '}{ply} of {moves.length}
                 </span>
                 <span style={{ flex: 1 }} />
@@ -1484,6 +1748,8 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
                   root={tree}
                   headId={head}
                   badges={moveBadges}
+                  startNumber={baseMeta.startNumber}
+                  startColor={baseMeta.startColor}
                   onGo={setHead}
                   onPromote={(id) => setTree(promote(tree, id))}
                   onPromoteOne={(id) => setTree(promoteOne(tree, id))}

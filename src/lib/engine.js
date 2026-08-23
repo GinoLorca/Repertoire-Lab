@@ -52,10 +52,12 @@ export class Engine {
   startNext() {
     if (this.searching || !this.pendingFen) return;
     this.currentFen = this.pendingFen;
+    const depth = this.pendingDepth ?? 24;
     this.pendingFen = null;
+    this.pendingDepth = null;
     this.searching = true;
     this.send(`position fen ${this.currentFen}`);
-    this.send('go depth 24');
+    this.send(`go depth ${depth}`);
   }
 
   parseInfo(line) {
@@ -103,9 +105,13 @@ export class Engine {
     return () => this.listeners.delete(cb);
   }
 
-  async analyze(fen) {
+  // depth defaults to 24 (live analysis, unbounded browsing); a batch job
+  // like the game reviewer passes a shallower one to keep dozens of
+  // positions from taking minutes each.
+  async analyze(fen, { depth } = {}) {
     await this.ready;
     this.pendingFen = fen;
+    this.pendingDepth = depth;
     // Whatever is running is about to be replaced; `bestmove` starts the new
     // one. Stepping through a game quickly just keeps replacing what's queued.
     if (this.searching) this.send('stop');

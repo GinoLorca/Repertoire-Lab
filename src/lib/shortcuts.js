@@ -15,7 +15,7 @@ export const PENS = [
 // nothing, so its own key here is just a redundant alternate route to the
 // same colour, not the only way to reach it.
 export const SHORTCUTS = [
-  { id: 'flipBoard', label: 'Flip the board', default: 'f' },
+  { id: 'flipBoard', label: 'Flip the board', default: 'x' },
   { id: 'toggleEngine', label: 'Start or stop the engine', default: 'e' },
   { id: 'toggleArrows', label: 'Engine arrows on / off', default: 'a' },
   { id: 'toggleLines', label: 'Engine lines on / off', default: 'l' },
@@ -25,7 +25,7 @@ export const SHORTCUTS = [
   { id: 'switchExplorer', label: 'Switch Engine / Explorer', default: 'o' },
   { id: 'penGreen', label: 'Hold to draw green', default: 'z' },
   { id: 'penRed', label: 'Hold to draw red', default: 'r' },
-  { id: 'penBlue', label: 'Hold to draw blue', default: 'x' },
+  { id: 'penBlue', label: 'Hold to draw blue', default: 'f' },
   { id: 'penYellow', label: 'Hold to draw yellow', default: 'c' },
 ];
 

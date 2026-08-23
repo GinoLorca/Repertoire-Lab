@@ -48,7 +48,6 @@ export default function ScoresheetPhoto({ photo, onChange }) {
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
-        capture="environment"
         hidden
         onClick={stop}
         onChange={(e) => { onFile(e.target.files[0]); e.target.value = ''; }}

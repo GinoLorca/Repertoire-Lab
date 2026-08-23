@@ -105,7 +105,12 @@
 :root.has-custom-bg .settings-tabs,
 :root.has-custom-bg .analysis-board > .hint,
 :root.has-custom-bg .page > .hint,
-:root.has-custom-bg .page > p.muted-note {
+:root.has-custom-bg .page > p.muted-note,
+:root.has-custom-bg .roster-subtitle,
+:root.has-custom-bg .opening-stats,
+:root.has-custom-bg .board-editor-panel,
+:root.has-custom-bg .cv-bar,
+:root.has-custom-bg .empty-note {
   background: var(--panel);
   border: 1px solid var(--outline);
   border-radius: var(--radius);
@@ -195,11 +200,13 @@
 .annotate-pane .hint { margin: 0; }
 
 /* Loading a study straight onto the Studio board. */
-.study-import { display: flex; gap: 8px; margin-top: 10px; }
+.study-import { display: flex; gap: 8px; margin-top: 10px; width: 100%; }
 .study-url-input { flex: 1; min-width: 0; }
 .study-error { color: var(--red); display: block; margin-top: 6px; }
 .study-games { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .study-games-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.pgn-paste-row { display: flex; gap: 8px; margin-top: 8px; width: 100%; align-items: flex-start; }
+.pgn-paste-textarea { flex: 1; min-width: 0; resize: vertical; font-family: inherit; }
 
 /* Pulling in a Lichess study. */
 .lichess-row { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
@@ -374,6 +381,7 @@
   --shadow: rgba(31, 41, 61, 0.18);
   --chip-bg: rgba(255, 255, 255, 0.7);
   --outline: rgba(18, 24, 36, 0.55);
+  --text-halo: rgba(255, 255, 255, 0.88);
 }
 :root[data-theme="light"] .chapter-card,
 :root[data-theme="light"] .variation-row,
@@ -511,6 +519,16 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 
 .page-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
 .page-head h1 { font-size: 24px; margin: 0; flex: 1; min-width: 200px; }
+
+.review-summary {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 14px; margin: -8px 0 18px; border-radius: 8px;
+  background: var(--card); border: 1px solid var(--border); font-size: 13.5px;
+}
+.rs-side { display: flex; align-items: center; gap: 5px; font-weight: 600; }
+.rs-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.rs-dot.white { background: #e9ecf2; border: 1px solid #9aa3b2; }
+.rs-dot.black { background: #14171d; border: 1px solid #9aa3b2; }
 
 /* ---------- Library ---------- */
 
@@ -1060,6 +1078,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .comment-editor { display: flex; flex-direction: column; gap: 8px; }
 .comment-editor label { font-size: 12.5px; color: var(--muted); font-weight: 600; }
 .muted-note { color: var(--muted); font-size: 13px; }
+.roster-subtitle { color: var(--muted); margin-top: -8px; }
 
 /* ---------- Practice phase tags ---------- */
 
@@ -1608,6 +1627,31 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 .mode-tabs button.active { background: var(--accent-dim); color: #fff; }
 
+/* ---------- Board Editor ---------- */
+
+.board-editor { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+.board-editor-board { flex-shrink: 0; }
+.board-editor-panel {
+  flex: 1; min-width: 300px; max-width: 480px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.editor-palette { display: flex; flex-direction: column; gap: 6px; }
+.editor-palette-row { display: flex; gap: 4px; }
+.editor-piece {
+  width: 38px; height: 38px; padding: 3px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+}
+.editor-piece.active { border-color: var(--accent); background: var(--accent-dim); }
+.editor-erase { font-size: 15px; color: var(--red); width: fit-content; padding: 3px 12px; }
+.editor-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.editor-label { font-size: 12.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.editor-check { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); }
+.editor-presets { display: flex; flex-direction: column; gap: 6px; }
+.editor-fen-row { display: flex; gap: 8px; }
+.editor-fen-row input { flex: 1; min-width: 0; font-family: monospace; font-size: 12.5px; }
+.editor-fen-error { color: var(--red); }
+
 .cmp-pickers { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .cmp-picker {
   display: flex; align-items: center; gap: 6px;
@@ -2069,6 +2113,25 @@ input[type="date"] {
 }
 /* Wrapper so overlays (arrows, the wrong-move ghost) sit on the board. */
 .board-stack { position: relative; }
+
+/* Promotion picker: a scrim to catch an outside tap (cancel), and a small
+   stack of piece choices anchored over the pawn's landing square. */
+.promotion-scrim { position: absolute; inset: 0; z-index: 20; cursor: default; }
+.promotion-picker {
+  position: absolute; z-index: 21;
+  display: flex; flex-direction: column;
+  border-radius: 6px; overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+.promotion-option {
+  border: none; padding: 2px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: filter 0.1s ease;
+}
+.promotion-option:hover, .promotion-option:focus-visible {
+  filter: brightness(1.18);
+  outline: 2px solid var(--blue, #3b9cff); outline-offset: -2px;
+}
 
 /* The wrong move: a copy of the piece shoots to the square you picked, hangs
    there for a beat, then slingshots home. The flight itself is driven from

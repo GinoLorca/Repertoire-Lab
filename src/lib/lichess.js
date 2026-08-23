@@ -5,9 +5,10 @@
 // course importer already understands, so a study lands as chapters with their
 // lines and the author's comments intact.
 //
-// Public studies need no credentials. A private or unlisted one returns 404 to
-// an anonymous request; there's no way around that without the owner's OAuth
-// token, so the error says so plainly rather than looking like a broken link.
+// Public studies need no credentials. A private or unlisted one returns 401 to
+// an anonymous request (404 is reserved for a study id that doesn't exist at
+// all); there's no way around that without the owner's OAuth token, so the
+// error says so plainly rather than looking like a broken link.
 
 const STUDY_ID = /[a-zA-Z0-9]{8}/;
 
@@ -42,11 +43,15 @@ export async function fetchStudyPgn({ studyId, chapterId }, { signal } = {}) {
     throw new Error('Could not reach lichess.org — check the connection and try again.');
   }
 
-  if (res.status === 404) {
+  if (res.status === 401) {
     throw new Error(
-      'Lichess returned "not found" for that study. Public studies import fine; private and '
-      + 'unlisted ones are only visible to their owner, so make it public on Lichess first.',
+      'That study is private or unlisted, so Lichess won\'t hand it over anonymously. On '
+      + 'Lichess, open the study, use the share button, and set visibility to "Public" — then '
+      + 'try the link again.',
     );
+  }
+  if (res.status === 404) {
+    throw new Error('Lichess couldn\'t find a study at that link — double-check the URL.');
   }
   if (res.status === 429) {
     throw new Error('Lichess is rate-limiting these requests — wait a minute and try again.');

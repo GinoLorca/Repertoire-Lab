@@ -14,6 +14,7 @@ import VariationList from '../components/VariationList';
 import MoveNote, { noteFor } from '../components/MoveNote';
 import MoveTimer from '../components/MoveTimer';
 import LegalDots from '../components/LegalDots';
+import PromotionPicker from '../components/PromotionPicker';
 import { lastMoveOf } from '../lib/legalMoves';
 import { badgeAt } from '../lib/badges';
 import BoardArrows from '../components/BoardArrows';
@@ -21,7 +22,7 @@ import { useBackGuard } from '../lib/backGuard';
 import {
   BookIcon, TagIcon, StarIcon, SoundOnIcon, SoundOffIcon, ClockIcon, CommentIcon,
   SkipStartIcon, SkipEndIcon, PrevIcon, NextIcon, BulbIcon, TargetIcon, CheckIcon, AlertIcon,
-  PlayIcon, CapIcon, FolderIcon,
+  PlayIcon, CapIcon, FolderIcon, MonitorIcon,
 } from '../components/Icons';
 import PlaylistPicker from '../components/PlaylistPicker';
 
@@ -393,7 +394,7 @@ function ScopePicker({ state, onPick, onBrowse, onOpenPlaylists }) {
   );
 }
 
-export default function PracticeView({ scope, onScopeChange, onExit }) {
+export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }) {
   const { state, dispatch } = useStore();
   const [queue, setQueue] = useState(null);
   // Choosing what to practice: an opening opens its course sheet (when it has
@@ -418,6 +419,7 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
   // Guards the end-of-line handling so it runs once per item, after the board settles.
   const finishingRef = useRef(false);
   const [pickedSquare, setPickedSquare] = useState(null);
+  const [pendingPromotion, setPendingPromotion] = useState(null); // {from, to, color} awaiting a piece choice
   const [tagOpen, setTagOpen] = useState(false);
   // Timed moves: when the clock expires the move plays itself. `deadline` is
   // null whenever the board isn't actually waiting on you.
@@ -659,16 +661,29 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
       // square instead of moving there.
       const finish = () => {
       const totalMistakes = teachSlips + mistakes;
-      // Only a real run of the whole line moves the spaced-repetition schedule;
-      // the repair passes that follow it don't.
+      // A spot drill is just one isolated move, not a real pass at the line —
+      // it never touches the schedule. But the drill rep that CLOSES a repair
+      // pass runs the whole variation again, same as a fresh full run, and a
+      // clean one is exactly the moment "still learning" should clear — leave
+      // it out and a slip you already fixed sits stuck as "learning" until an
+      // unrelated review timer happens to come due, which is what showed up as
+      // a chapter never actually reaching 100% despite everything in it having
+      // been drilled correctly.
       const fullRun = current.kind === 'learn' || current.kind === 'practice';
-      if (fullRun) {
+      const closingDrill = current.kind === 'drill';
+      if (fullRun || closingDrill) {
         const record = {
           type: 'recordPractice',
           openingId: current.opening.id,
           chapterId: current.chapter.id,
           variationId: current.variation.id,
-          srs: schedule(current.variation.srs, totalMistakes === 0),
+          // The closing drill runs after the original attempt's own dispatch
+          // (below) has already landed in the store — schedule off `shown`,
+          // the live variation, not `current.variation`, the snapshot frozen
+          // when this queue was built; that snapshot predates the mistake this
+          // drill is repairing, so scheduling off it would silently discard
+          // the lapse that mistake just recorded.
+          srs: schedule(closingDrill ? shown.srs : current.variation.srs, totalMistakes === 0),
         };
         // Written on the next frame, after the card has painted. Updating the
         // store re-renders everything under it — with a repertoire of several
@@ -717,17 +732,18 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
         spotPly: current.spotPly,
       }]);
       setCompleted(true);
-      if (soundOn) playEventSound('complete');
-      // Confetti marks finishing something, not every repetition: a clean line
-      // first time, or the full run that closes out a set of repairs. The drill
-      // reps in between pass quietly.
+      // The complete sound and the confetti both mark finishing something, not
+      // every repetition: a clean line first time, or the full run that closes
+      // out a set of repairs. The spot-drill reps in between pass quietly —
+      // otherwise "line complete" fires on every one of the DRILL_REPS retries.
       //
       // Fired straight away, with the card: the confetti canvas and its worker
       // were built when the session opened (warmUpConfetti), so starting a
       // burst no longer costs anything and the two land together.
       const closedRepairs = current.kind === 'drill';
-      if (totalMistakes === 0 && (fullRun || closedRepairs)) {
-        celebrate(boardRef.current, 1);
+      if (fullRun || closedRepairs) {
+        if (soundOn) playEventSound('complete');
+        if (totalMistakes === 0) celebrate(boardRef.current, 1);
       }
       const spotWord = spots.length === 1 ? 'move' : 'moves';
       setFeedback({
@@ -1110,12 +1126,14 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
     if (piece && (piece.color === 'w') === userIsWhite) setPickedSquare(square);
   };
 
-  const onPieceDrop = (from, to) => {
-    if (!userTurn || completed) return false;
-    setPickedSquare(null);
+  // Split out from onPieceDrop so a promotion pick — which arrives on its own
+  // tap, after the drop that triggered the picker — can play the same move
+  // once the piece is actually known, instead of always defaulting to queen.
+  const commitMove = (from, to, promotion) => {
+    setPendingPromotion(null);
     const clone = new Chess(game.fen());
     let mv = null;
-    try { mv = clone.move({ from, to, promotion: 'q' }); } catch { mv = null; }
+    try { mv = clone.move({ from, to, promotion: promotion ?? 'q' }); } catch { mv = null; }
     if (!mv) return false;
     if (mv.san === expectedSan) {
       setPly((p) => p + 1);
@@ -1163,6 +1181,20 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
       text: giveAway ? `The move is ${expectedSan}` : `${mv.san} isn't the move here — try again`,
     });
     return false;
+  };
+
+  const onPieceDrop = (from, to) => {
+    if (!userTurn || completed) return false;
+    setPickedSquare(null);
+    let needsChoice = false;
+    try {
+      needsChoice = game.moves({ square: from, verbose: true }).some((m) => m.to === to && m.promotion);
+    } catch { needsChoice = false; }
+    if (needsChoice) {
+      setPendingPromotion({ from, to, color: game.turn() });
+      return false; // the board waits; the picker decides which piece lands
+    }
+    return commitMove(from, to);
   };
 
   const kindTag = current.kind === 'spot'
@@ -1242,6 +1274,23 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
         <a onClick={leaveSession}>{cameFromList ? 'Chapters' : 'Exit practice'}</a>
         <span>▸</span>
         <span>{current.opening.name} · {current.chapter.name}</span>
+        <span style={{ flex: 1 }} />
+        {onAnalyze && (
+          <button
+            className="small ghost"
+            title="Open this variation on the analysis board with Stockfish and the explorer"
+            onClick={() => onAnalyze({
+              name: current.variation.name,
+              subtitle: `${current.opening.name} — ${current.chapter.name}`,
+              moves: current.variation.moves,
+              ownerId: current.opening.ownerId ?? null,
+              comments: current.variation.comments,
+              badges: current.variation.badges,
+            })}
+          >
+            <MonitorIcon size={14} /> Send to analysis
+          </button>
+        )}
       </div>
       <div className={`practice-layout${listOpen ? ' with-list' : ''}`} ref={setLayoutEl}>
         {showList && (
@@ -1270,6 +1319,7 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
             onSquareClick={onSquareClick}
             onPieceDragBegin={(piece, square) => setPickedSquare(square)}
             onPieceDragEnd={() => setPickedSquare(null)}
+            onPromotionCheck={() => false}
             arePiecesDraggable={userTurn && !completed && !reviewing && !wrongMove}
             customSquareStyles={reviewing
               ? {}
@@ -1293,6 +1343,16 @@ export default function PracticeView({ scope, onScopeChange, onExit }) {
             animationDuration={pace.anim}
             boardWidth={boardWidth}
           />
+          {pendingPromotion && (
+            <PromotionPicker
+              square={pendingPromotion.to}
+              color={pendingPromotion.color}
+              boardWidth={boardWidth}
+              orientation={orientation}
+              onPick={(piece) => commitMove(pendingPromotion.from, pendingPromotion.to, piece)}
+              onCancel={() => setPendingPromotion(null)}
+            />
+          )}
           {/* Knight moves bend at a right angle here too, matching Analysis. */}
           <BoardArrows
             arrows={wrongMove ? [] : arrows}

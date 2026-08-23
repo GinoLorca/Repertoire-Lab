@@ -11,6 +11,9 @@ export function allTags(state) {
       for (const v of c.variations) (v.tags ?? []).forEach((t) => set.add(t));
     }
   }
+  for (const p of state.players ?? []) {
+    for (const g of p.games) (g.tags ?? []).forEach((t) => set.add(t));
+  }
   return [...set].sort((a, b) => a.localeCompare(b));
 }
 

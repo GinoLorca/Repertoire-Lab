@@ -28,7 +28,7 @@ function pieceSet(light, dark) {
 // An iPad reports touch support, so it gets the touch backend — which ignores
 // mouse and trackpad input, leaving a Magic Keyboard cursor unable to drag.
 // Using the touch backend WITH enableMouseEvents makes both work at once.
-const isTouchCapable = typeof window !== 'undefined' && 'ontouchstart' in window;
+export const isTouchCapable = typeof window !== 'undefined' && 'ontouchstart' in window;
 const dndProps = isTouchCapable
   ? {
     customDndBackend: TouchBackend,

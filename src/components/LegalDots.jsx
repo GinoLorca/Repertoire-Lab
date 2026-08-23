@@ -11,6 +11,9 @@ export default function LegalDots({ game, square, boardWidth, orientation }) {
   let moves = [];
   try { moves = game.moves({ square, verbose: true }); } catch { return null; }
   if (moves.length === 0) return null;
+  // A promotion offers four SAN variants (=Q/=R/=B/=N) landing on the same
+  // square — one dot per destination, not one per variant.
+  moves = [...new Map(moves.map((mv) => [mv.to, mv])).values()];
 
   const size = boardWidth / 8;
   return (
