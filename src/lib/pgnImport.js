@@ -16,12 +16,13 @@ function nameFor(h, gi) {
   return real(h.White) || real(h.Black) || real(h.Event) || `Game ${gi + 1}`;
 }
 
-function gameEntries(games) {
+function gameEntries(games, { mainLineOnly = false } = {}) {
   const entries = [];
   games.forEach((game, gi) => {
     const h = game.headers;
     const baseName = nameFor(h, gi);
-    movetextToLines(game.movetext).forEach((line, li) => {
+    const lines = movetextToLines(game.movetext);
+    (mainLineOnly ? lines.slice(0, 1) : lines).forEach((line, li) => {
       const result = validateLine(line.moves);
       if (result.moves.length === 0) return;
       entries.push({
@@ -39,7 +40,7 @@ function gameEntries(games) {
 
 // Without headers, a fresh "1." at the start of a line begins a new variation,
 // so several lines can be pasted in one go.
-function looseEntries(text) {
+function looseEntries(text, { mainLineOnly = false } = {}) {
   const blocks = [];
   let current = [];
   for (const ln of text.split(/\r?\n/)) {
@@ -52,7 +53,10 @@ function looseEntries(text) {
   }
   if (current.some((l) => l.trim())) blocks.push(current.join('\n'));
 
-  const lines = blocks.flatMap((block) => movetextToLines(block));
+  const lines = blocks.flatMap((block) => {
+    const blockLines = movetextToLines(block);
+    return mainLineOnly ? blockLines.slice(0, 1) : blockLines;
+  });
   return lines.map((line, i) => {
     const result = validateLine(line.moves);
     return {
@@ -77,8 +81,16 @@ function deduplicate(entries) {
   });
 }
 
-export function pgnTextToEntries(text) {
+// mainLineOnly: skip a game's own parenthetical side-variations instead of
+// offering each one as if it were a whole separate game to pick from. A
+// course PGN's variations really are alternate lines worth choosing between
+// (the default, used for study/course import) — but a game someone just
+// played and pasted in isn't a set of games, whatever engine-analysis
+// branches its export happens to carry alongside the moves actually played.
+export function pgnTextToEntries(text, { mainLineOnly = false } = {}) {
   if (!text?.trim()) return [];
-  const entries = /\[\w+\s+"/.test(text) ? gameEntries(splitPgnGames(text)) : looseEntries(text);
+  const entries = /\[\w+\s+"/.test(text)
+    ? gameEntries(splitPgnGames(text), { mainLineOnly })
+    : looseEntries(text, { mainLineOnly });
   return deduplicate(entries);
 }

@@ -860,9 +860,11 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
   };
 
   // A PGN (or plain movetext) pasted straight in — no fetch, no chapter to
-  // build first, just moves onto the board right now.
+  // build first, just moves onto the board right now. mainLineOnly: this is
+  // one game, not a course — any variations in its export are sidelines on
+  // the game actually played, not alternate games to choose between.
   const loadPgnText = () => {
-    const entries = pgnTextToEntries(pgnText);
+    const entries = pgnTextToEntries(pgnText, { mainLineOnly: true });
     setStudyError(null);
     if (entries.length === 0) { setStudyError('No legal moves found in that text.'); return; }
     loadEntries(entries);
