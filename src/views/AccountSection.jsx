@@ -18,7 +18,6 @@ export default function AccountSection() {
   const {
     configured, ready, user, status, detail, lastSync, sync, signOut,
   } = useCloud();
-  const [mode, setMode] = useState('in'); // 'in' | 'up'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -51,11 +50,13 @@ export default function AccountSection() {
 
   if (!ready) return <p className="hint">Checking…</p>;
 
-  const submit = async (e) => {
-    e.preventDefault();
+  // Two buttons, two actions — rather than one button whose meaning depends on
+  // a mode you set earlier. Someone arriving for the first time shouldn't have
+  // to find the toggle before they can register.
+  const submit = async (action) => {
     setBusy(true); setError(null); setNote(null);
     try {
-      if (mode === 'up') await signUp(email, password);
+      if (action === 'up') await signUp(email, password);
       else await signIn(email, password);
     } catch (err) {
       setError(authMessage(err));
@@ -92,11 +93,14 @@ export default function AccountSection() {
     return (
       <>
         <p className="hint">
-          Sign in on your Mac, iPad and phone and they keep each other up to date — openings,
-          lines, and how far along you are on each. Learn a variation on one and it’s on the
-          others next time you open them.
+          Sign in on every device you use and they keep each other up to date — openings, lines,
+          and how far along you are on each. Learn a variation on one and it’s on the others next
+          time you open them.
         </p>
-        <form className="account-form" onSubmit={submit}>
+        <form
+          className="account-form"
+          onSubmit={(e) => { e.preventDefault(); submit('in'); }}
+        >
           <label className="field-row">
             <span>Email</span>
             <input
@@ -107,8 +111,7 @@ export default function AccountSection() {
           <label className="field-row">
             <span>Password</span>
             <input
-              type="password" value={password}
-              autoComplete={mode === 'up' ? 'new-password' : 'current-password'}
+              type="password" value={password} autoComplete="current-password"
               onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters"
             />
           </label>
@@ -116,15 +119,16 @@ export default function AccountSection() {
           {note && <p className="hint" style={{ color: 'var(--green)' }}>{note}</p>}
           <div className="settings-row">
             <button className="primary" type="submit" disabled={busy}>
-              {busy ? 'Working…' : (mode === 'up' ? 'Create account' : 'Sign in')}
+              {busy ? 'Working…' : 'Sign in'}
             </button>
-            <button type="button" className="small ghost" onClick={() => { setMode(mode === 'up' ? 'in' : 'up'); setError(null); }}>
-              {mode === 'up' ? 'I already have an account' : 'Create an account instead'}
+            <button type="button" disabled={busy} onClick={() => submit('up')}>
+              Create account
             </button>
-            {mode === 'in' && (
-              <button type="button" className="small ghost" onClick={reset}>Forgot password</button>
-            )}
+            <button type="button" className="small ghost" onClick={reset}>Forgot password</button>
           </div>
+          <p className="hint">
+            New here? Fill in an email and password, then <strong>Create account</strong>.
+          </p>
         </form>
       </>
     );
