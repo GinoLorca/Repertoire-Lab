@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { useStore } from '../store';
 import {
-  SOUND_EVENTS, DEFAULT_SOUNDS, playMoveSound, playEventSound,
+  SOUND_EVENTS, DEFAULT_SOUNDS, SKIN_SOUNDS, playMoveSound, playEventSound,
 } from '../lib/sound';
+import { SKINS, skinId } from '../lib/skins';
 import { SoundOnIcon, SoundOffIcon, VolumeIcon } from '../components/Icons';
 
 const MAX_BYTES = 1.5 * 1024 * 1024;
@@ -13,8 +14,15 @@ const AUDIO_ACCEPT = 'audio/*,.mp3,.m4a,.aac,.wav,.aiff,.aif,.caf,.ogg,.oga,.opu
 const AUDIO_EXT = /\.(mp3|m4a|aac|wav|aiff?|caf|ogg|oga|opus|flac)$/i;
 
 const SAMPLE_SAN = {
-  move: 'e4', capture: 'Bxf7', castle: 'O-O', check: 'Qh5+', checkmate: 'Qxf7#',
+  move: 'e4', capture: 'Bxf7', castle: 'O-O', check: 'Qh5+', checkmate: 'Qxf7#', promote: 'e8=Q',
 };
+
+// Events that make a noise with no file behind them, because the synthesizer
+// covers them (see scheduleFor in lib/sound). Promotion has a sample move for
+// previewing but no synthesized voice of its own, so it is deliberately not
+// in here — without a theme or an upload it really is silent, and the tag
+// should say so rather than promising a sound that never comes.
+const SYNTHESIZED = new Set(['move', 'capture', 'castle', 'check', 'checkmate']);
 
 function readAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -61,6 +69,9 @@ export default function SoundsSection({ bare }) {
       setError(err.message);
     }
   };
+
+  const skin = skinId(state.settings);
+  const themeSounds = SKIN_SOUNDS[skin] ?? {};
 
   const preview = (key) => {
     if (SAMPLE_SAN[key]) playMoveSound(SAMPLE_SAN[key]);
@@ -125,7 +136,12 @@ export default function SoundsSection({ bare }) {
                 {/* Built-in covers both a real shipped recording and (castle
                     only) the synthesized fallback — either way, something
                     plays without you uploading anything. */}
-                {custom ? 'Custom' : ((DEFAULT_SOUNDS[key] || key in SAMPLE_SAN) ? 'Built-in' : 'Silent')}
+                {/* A theme that brought its own voice for this event is
+                    named, so it's clear why Play sounds different after
+                    switching themes — and what an upload would replace. */}
+                {custom ? 'Custom'
+                  : (themeSounds[key] ? SKINS[skin].name
+                    : ((DEFAULT_SOUNDS[key] || SYNTHESIZED.has(key)) ? 'Built-in' : 'Silent'))}
               </span>
               <button className="small" onClick={() => preview(key)}>▶ Play</button>
               <button className="small" onClick={() => inputs.current[key]?.click()}>

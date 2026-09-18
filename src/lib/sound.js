@@ -150,6 +150,10 @@ export const SOUND_EVENTS = [
   { key: 'castle', label: 'Castle', hint: 'O-O or O-O-O' },
   { key: 'check', label: 'Check', hint: 'A move giving check' },
   { key: 'checkmate', label: 'Checkmate', hint: 'A move that ends the game' },
+  // New with the Chess Arcade sound sets, which had a voice for each and
+  // nowhere here to put it.
+  { key: 'promote', label: 'Promotion', hint: 'A pawn reaches the last rank' },
+  { key: 'sessionStart', label: 'Session start', hint: 'A Learn or Practice session begins' },
   { key: 'correct', label: 'Correct', hint: 'You played the right move in practice' },
   { key: 'wrong', label: 'Wrong', hint: 'You played a wrong move' },
   { key: 'complete', label: 'Line complete', hint: 'You finished a variation' },
@@ -166,6 +170,40 @@ export const DEFAULT_SOUNDS = {
   complete: '/sounds/complete.mp3',
 };
 
+// The sound sets that came over with the Chess Arcade themes. A theme that
+// brought its own voice for an event uses it; anything it didn't cover falls
+// through to the app's own default, and then to the synthesized knock. Game
+// Boy arrived with a full set, Hustler with a move and a capture — that's
+// what existed there, and inventing the rest would just be this app's sounds
+// wearing a label.
+//
+// `matchStart` in Chess Arcade announced a live online game. The nearest real
+// moment here is a Learn or Practice session opening, so that's what it's
+// wired to, under a name that says so.
+export const SKIN_SOUNDS = {
+  gameboy: {
+    move: '/sounds/themes/gameboy/move.mp3',
+    capture: '/sounds/themes/gameboy/capture.mp3',
+    check: '/sounds/themes/gameboy/check.mp3',
+    checkmate: '/sounds/themes/gameboy/checkmate.mp3',
+    castle: '/sounds/themes/gameboy/castle.mp3',
+    promote: '/sounds/themes/gameboy/promote.mp3',
+    sessionStart: '/sounds/themes/gameboy/matchStart.mp3',
+  },
+  hustler: {
+    move: '/sounds/themes/hustler/move.mp3',
+    capture: '/sounds/themes/hustler/capture.mp3',
+  },
+};
+
+let soundSkin = null;
+
+// Called wherever the theme is applied, so the board starts sounding like the
+// theme it's wearing.
+export function setSoundSkin(skin) {
+  soundSkin = SKIN_SOUNDS[skin] ? skin : null;
+}
+
 let customSounds = {};
 const buffers = new Map(); // key -> decoded AudioBuffer
 const bufferSrc = new Map(); // key -> the src that buffer was decoded from
@@ -176,7 +214,11 @@ export function setCustomSounds(map) {
 }
 
 function sourceFor(key) {
-  return customSounds?.[key] || DEFAULT_SOUNDS[key] || null;
+  // Your own upload first, then the theme's, then the app's own.
+  return customSounds?.[key]
+    || (soundSkin && SKIN_SOUNDS[soundSkin][key])
+    || DEFAULT_SOUNDS[key]
+    || null;
 }
 
 // Fetches and decodes once per distinct src, not once per key — so
@@ -224,6 +266,9 @@ export function playMoveSound(san) {
   // picking just one.
   const isCapture = san.includes('x');
   const isCheck = san.endsWith('+');
+  // A promotion is a move that also becomes a queen; it gets the same
+  // layered treatment as check rather than replacing the move's own voice.
+  if (san.includes('=')) playCustom('promote');
   Promise.all([
     playCustom(isCapture ? 'capture' : 'move'),
     isCheck ? playCustom('check') : Promise.resolve(true),

@@ -481,8 +481,13 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   }, [layoutEl]);
 
   // Build the confetti canvas up front so the celebration at the end of a line
-  // starts instantly instead of a beat after the card.
-  useEffect(() => { warmUpConfetti(); primeSounds(); }, []);
+  // starts instantly instead of a beat after the card. The session's own
+  // sound comes after priming, so it plays from the decoded buffer rather
+  // than arriving late behind a fetch.
+  useEffect(() => {
+    warmUpConfetti();
+    primeSounds().then(() => { if (state.settings.soundEnabled !== false) playEventSound('sessionStart'); });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Back closes the cheat sheet before it leaves the session.
   useBackGuard(bookOpen, () => setBookOpen(false));

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useReducer, useRef, useState } from 'react';
 import { get, set } from 'idb-keyval';
 import { movetextToLines, validateLine } from './lib/pgn';
-import { setCustomSounds, setVolume } from './lib/sound';
+import { setCustomSounds, setVolume, setSoundSkin, primeSounds } from './lib/sound';
 import { defaultMonsterId } from './lib/monsters';
 
 const STORAGE_KEY = 'repertoire-lab-state-v1';
@@ -974,10 +974,20 @@ export function StoreProvider({ children }) {
     })();
   }, []);
 
-  // Keep the audio layer in step with whatever sounds are configured.
+  // Keep the audio layer in step with whatever sounds are configured — both
+  // your own uploads and the set that came with the chosen theme.
   useEffect(() => {
     if (state?.settings) setCustomSounds(state.settings.customSounds);
   }, [state?.settings?.customSounds]);
+
+  useEffect(() => {
+    setSoundSkin(state?.settings?.skin);
+    // Decode the new set now rather than on the first move that needs it.
+    // Priming already runs when a session opens, but that happens before this
+    // effect has told the audio layer which theme is on, so without this the
+    // first themed move of the app's life arrives behind a fetch.
+    primeSounds().catch(() => { /* no audio yet — the first play will fetch */ });
+  }, [state?.settings?.skin]);
 
   useEffect(() => {
     if (state?.settings) setVolume(state.settings.volume ?? 1);
