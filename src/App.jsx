@@ -16,6 +16,7 @@ import SearchPanel from './views/SearchPanel';
 import SettingsView from './views/SettingsView';
 import CoachesView from './views/CoachesView';
 import MigratePlayersModal from './components/MigratePlayersModal';
+import ErrorBoundary from './components/ErrorBoundary';
 import Inbox from './components/Inbox';
 
 function AppInner() {
@@ -465,89 +466,92 @@ function AppInner() {
         </nav>
       </div>
 
-      {view === 'library' && (
-        <Library
-          onOpenChapter={openChapter}
-          onPractice={startPractice}
-          revealChapterId={revealChapter.current}
-          initialScope={libraryScope}
-        />
-      )}
-      {view === 'groups' && (
-        <GroupsView
-          onOpenChapter={openChapter}
-          onPractice={startPractice}
-          onOpenLab={openLab}
-          initialScope={collectionsScope}
-        />
-      )}
-      {view === 'chapter' && chapterNav && (
-        <ChapterView
-          openingId={chapterNav.openingId}
-          chapterId={chapterNav.chapterId}
-          onBack={goBack}
-          onPractice={startPractice}
-          onAnalyze={analyze}
-        />
-      )}
-      {view === 'import' && (
-        <ImportView
-          onDone={(dest) => setView(dest === 'games' ? 'games' : 'library')}
-          onAnalyze={analyze}
-          onVerify={(d) => { setVerifyDraft(d); setView('verify'); }}
-          resumePhoto={resumePhoto}
-          onResumePhotoUsed={() => setResumePhoto(null)}
-        />
-      )}
-      {view === 'verify' && verifyDraft && (
-        <VerifyView
-          draft={verifyDraft}
-          onCancel={() => { setVerifyDraft(null); goBack(); }}
-          onAnalyze={(line) => { setVerifyDraft(null); analyze(line); }}
-          onSaved={() => { setVerifyDraft(null); setView('games'); }}
-        />
-      )}
-      {view === 'practice' && (
-        <PracticeView
-          scope={practiceScope}
-          onScopeChange={(s) => setPracticeScope(s)}
-          onExit={goBack}
-          onAnalyze={analyze}
-        />
-      )}
-      {view === 'games' && (
-        <GamesView onAnalyze={analyze} onGameStudio={analyzeInStudio} onScan={scanPhoto} />
-      )}
-      {view === 'coaches' && (
-        <CoachesView
-          onAnalyze={analyze}
-          onGameStudio={analyzeInStudio}
-          onScan={scanPhoto}
-          onOpenLibrary={openLibraryFor}
-          onOpenCollections={openCollectionsFor}
-          onOpenStudio={openStudio}
-        />
-      )}
-      {view === 'settings' && <SettingsView tab={sub} onTabChange={setSub} />}
-      <MigratePlayersModal />
+      {/* Any one screen can fail without taking the app down with it. */}
+      <ErrorBoundary resetKey={view}>
+        {view === 'library' && (
+          <Library
+            onOpenChapter={openChapter}
+            onPractice={startPractice}
+            revealChapterId={revealChapter.current}
+            initialScope={libraryScope}
+          />
+        )}
+        {view === 'groups' && (
+          <GroupsView
+            onOpenChapter={openChapter}
+            onPractice={startPractice}
+            onOpenLab={openLab}
+            initialScope={collectionsScope}
+          />
+        )}
+        {view === 'chapter' && chapterNav && (
+          <ChapterView
+            openingId={chapterNav.openingId}
+            chapterId={chapterNav.chapterId}
+            onBack={goBack}
+            onPractice={startPractice}
+            onAnalyze={analyze}
+          />
+        )}
+        {view === 'import' && (
+          <ImportView
+            onDone={(dest) => setView(dest === 'games' ? 'games' : 'library')}
+            onAnalyze={analyze}
+            onVerify={(d) => { setVerifyDraft(d); setView('verify'); }}
+            resumePhoto={resumePhoto}
+            onResumePhotoUsed={() => setResumePhoto(null)}
+          />
+        )}
+        {view === 'verify' && verifyDraft && (
+          <VerifyView
+            draft={verifyDraft}
+            onCancel={() => { setVerifyDraft(null); goBack(); }}
+            onAnalyze={(line) => { setVerifyDraft(null); analyze(line); }}
+            onSaved={() => { setVerifyDraft(null); setView('games'); }}
+          />
+        )}
+        {view === 'practice' && (
+          <PracticeView
+            scope={practiceScope}
+            onScopeChange={(s) => setPracticeScope(s)}
+            onExit={goBack}
+            onAnalyze={analyze}
+          />
+        )}
+        {view === 'games' && (
+          <GamesView onAnalyze={analyze} onGameStudio={analyzeInStudio} onScan={scanPhoto} />
+        )}
+        {view === 'coaches' && (
+          <CoachesView
+            onAnalyze={analyze}
+            onGameStudio={analyzeInStudio}
+            onScan={scanPhoto}
+            onOpenLibrary={openLibraryFor}
+            onOpenCollections={openCollectionsFor}
+            onOpenStudio={openStudio}
+          />
+        )}
+        {view === 'settings' && <SettingsView tab={sub} onTabChange={setSub} />}
+        <MigratePlayersModal />
 
-      {searchOpen && (
-        <SearchPanel
-          onClose={() => setSearchOpen(false)}
-          onOpenChapter={openChapter}
-          onAnalyze={analyze}
-        />
-      )}
-      {view === 'analysis' && (
-        <AnalysisView
-          key={analysisLab?.id ?? 'board'}
-          initialLine={analysisLine}
-          initialLab={analysisLab}
-          coachMode={coachStudio}
-          mode={sub}
-          onModeChange={setSub}
-        />
-      )}
+        {searchOpen && (
+          <SearchPanel
+            onClose={() => setSearchOpen(false)}
+            onOpenChapter={openChapter}
+            onAnalyze={analyze}
+          />
+        )}
+        {view === 'analysis' && (
+          <AnalysisView
+            key={analysisLab?.id ?? 'board'}
+            initialLine={analysisLine}
+            initialLab={analysisLab}
+            coachMode={coachStudio}
+            mode={sub}
+            onModeChange={setSub}
+          />
+        )}
+      </ErrorBoundary>
     </>
   );
 }
