@@ -5,19 +5,22 @@ import { watchAuth } from '../lib/cloud/auth';
 import {
   watchInbox, acceptDelivery, dismissDelivery, markRead, applyDelivery,
 } from '../lib/cloud/share';
-import { BellIcon } from './Icons';
+import { watchStudentLinks, approveLink, endLink } from '../lib/cloud/links';
+import { BellIcon, CheckIcon } from './Icons';
 
 const stamp = (t) => {
   const ms = t?.toMillis ? t.toMillis() : t;
   return ms ? new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
 };
 
-// The bell, and what's behind it. Anything a coach has sent shows up here
+// The bell, and what's behind it. Anything a coach has sent, or a coach
+// asking to see this account's real games and repertoire, shows up here
 // without the student doing anything — no file to find, no import to run.
 export default function Inbox() {
   const { state, dispatch } = useStore();
   const [uid, setUid] = useState(null);
   const [items, setItems] = useState([]);
+  const [links, setLinks] = useState([]);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(null);
 
@@ -29,16 +32,20 @@ export default function Inbox() {
   }, []);
 
   useEffect(() => {
-    if (!uid) { setItems([]); return undefined; }
-    let stop = () => {};
-    watchInbox(uid, setItems).then((fn) => { stop = fn; });
-    return () => stop();
+    if (!uid) { setItems([]); setLinks([]); return undefined; }
+    let stopInbox = () => {};
+    let stopLinks = () => {};
+    watchInbox(uid, setItems).then((fn) => { stopInbox = fn; });
+    watchStudentLinks(uid, setLinks).then((fn) => { stopLinks = fn; });
+    return () => { stopInbox(); stopLinks(); };
   }, [uid]);
 
   if (!cloudConfigured || !uid) return null;
 
   const waiting = items.filter((d) => !d.acceptedAt && !d.dismissedAt);
-  const count = waiting.length;
+  const pendingLinks = links.filter((l) => l.status === 'pending');
+  const activeLinks = links.filter((l) => l.status === 'active');
+  const count = waiting.length + pendingLinks.length;
 
   const accept = async (delivery) => {
     setBusy(delivery.id);
@@ -71,7 +78,66 @@ export default function Inbox() {
         <div className="viewer-overlay" onClick={() => setOpen(false)}>
           <div className="modal inbox-modal" onClick={(e) => e.stopPropagation()}>
             <div className="page-head"><h2>Sent to you</h2></div>
-            {items.length === 0 && (
+
+            {pendingLinks.map((l) => (
+              <div key={l.id} className="inbox-item">
+                <div className="inbox-head">
+                  <strong>{l.coachName || 'A coach'}</strong>
+                  <span className="muted-note">{stamp(l.requestedAt)}</span>
+                </div>
+                <div className="muted-note">
+                  wants to see your real games and repertoire — not just what they log for you
+                  themselves, everything in your account, read-only, until you end it.
+                </div>
+                <div className="settings-row">
+                  <button
+                    className="primary"
+                    disabled={busy === l.id}
+                    onClick={async () => {
+                      setBusy(l.id);
+                      try { await approveLink(l.id); } finally { setBusy(null); }
+                    }}
+                  >
+                    {busy === l.id ? 'Linking…' : 'Let them in'}
+                  </button>
+                  <button
+                    className="small ghost"
+                    disabled={busy === l.id}
+                    onClick={async () => {
+                      setBusy(l.id);
+                      try { await endLink(l.id); } finally { setBusy(null); }
+                    }}
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {activeLinks.map((l) => (
+              <div key={l.id} className="inbox-item done">
+                <div className="inbox-head">
+                  <strong>{l.coachName || 'A coach'}</strong>
+                  <span className="practiced-pill"><CheckIcon size={12} /> Linked</span>
+                </div>
+                <div className="muted-note">Can see your real games and repertoire.</div>
+                <div className="settings-row">
+                  <button
+                    className="small ghost"
+                    disabled={busy === l.id}
+                    onClick={async () => {
+                      if (!window.confirm(`Stop letting ${l.coachName || 'this coach'} see your account?`)) return;
+                      setBusy(l.id);
+                      try { await endLink(l.id); } finally { setBusy(null); }
+                    }}
+                  >
+                    End link
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {items.length === 0 && pendingLinks.length === 0 && activeLinks.length === 0 && (
               <p className="hint">
                 Nothing yet. When a coach sends you an opening or a new line, it lands here.
               </p>

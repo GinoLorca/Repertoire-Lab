@@ -21,8 +21,11 @@ import { flagLabel, flagColor } from '../lib/gameFlags';
 import TagEditor, { TagChips, allTags } from './TagEditor';
 import { useBackGuard } from '../lib/backGuard';
 import {
+  requestLink, watchCoachLinks, endLink, loadLinkedAccount,
+} from '../lib/cloud/links';
+import {
   BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon, StarIcon,
-  CameraIcon, FlaskIcon, SendIcon,
+  CameraIcon, FlaskIcon, SendIcon, UsersIcon, LinkIcon,
 } from '../components/Icons';
 
 // The handles a player is known by, with whatever live ratings we last fetched
@@ -322,6 +325,54 @@ function PlayerPage({
     return () => stop();
   }, []);
 
+  // Linking to this student's real account — separate from `me` above
+  // because it only matters once we know who's signed in.
+  const [coachLinks, setCoachLinks] = useState([]);
+  useEffect(() => {
+    if (!me?.uid) { setCoachLinks([]); return undefined; }
+    let stop = () => {};
+    watchCoachLinks(me.uid, setCoachLinks).then((fn) => { stop = fn; });
+    return () => stop();
+  }, [me?.uid]);
+  const linkedUid = player.profile?.linkedUid ?? null;
+  const link = linkedUid ? coachLinks.find((l) => l.studentUid === linkedUid) : null;
+  const linkStatus = link?.status ?? 'none';
+  const [linkName, setLinkName] = useState('');
+  const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState(null);
+  const [showLinked, setShowLinked] = useState(false);
+  const [linkedAccount, setLinkedAccount] = useState(null);
+  const [linkedLoading, setLinkedLoading] = useState(false);
+  const [linkedError, setLinkedError] = useState(null);
+
+  const sendLinkRequest = async () => {
+    setLinkError(null);
+    setLinking(true);
+    try {
+      const { student } = await requestLink(me, linkName);
+      dispatch({ type: 'updatePlayer', playerId: player.id, profile: { linkedUid: student.uid } });
+      setLinkName('');
+    } catch (err) {
+      setLinkError(err.message);
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  const viewLinkedAccount = async () => {
+    setShowLinked(true);
+    if (linkedAccount || linkedLoading) return;
+    setLinkedLoading(true);
+    setLinkedError(null);
+    try {
+      setLinkedAccount(await loadLinkedAccount(linkedUid));
+    } catch (err) {
+      setLinkedError(err.message);
+    } finally {
+      setLinkedLoading(false);
+    }
+  };
+
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState(null);
   const p = player.profile ?? {};
@@ -447,6 +498,88 @@ function PlayerPage({
           <button className="small" onClick={() => onOpenCollections(player.id)}>
             Open in Collections
           </button>
+        </div>
+      )}
+
+      {player.kind === 'student' && me && (
+        <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)' }}>
+          <div className="scope-info">
+            <h3><UsersIcon size={15} /> Their account</h3>
+            <div className="sub">
+              {linkStatus === 'active'
+                ? `Linked — you can see everything in ${player.name}'s real account, including games
+                  they type in themselves, read-only.`
+                : linkStatus === 'pending'
+                  ? `Waiting for ${player.name} to approve — this only works if they have their own
+                    account under that screen name.`
+                  : `The games and profile above are just your own notes on ${player.name}. Ask to see
+                    their real account instead — the games they type in themselves show up here too.`}
+            </div>
+            {linkError && <div className="muted-note" style={{ color: 'var(--red)' }}>{linkError}</div>}
+            {linkedError && <div className="muted-note" style={{ color: 'var(--red)' }}>{linkedError}</div>}
+          </div>
+          {linkStatus === 'none' && (
+            <>
+              <input
+                value={linkName}
+                onChange={(e) => setLinkName(e.target.value)}
+                placeholder="their screen name"
+                style={{ maxWidth: 160 }}
+              />
+              <button className="small primary" disabled={linking || !linkName.trim()} onClick={sendLinkRequest}>
+                {linking ? 'Asking…' : <><LinkIcon size={14} /> Request link</>}
+              </button>
+            </>
+          )}
+          {linkStatus === 'pending' && (
+            <button className="small ghost" onClick={() => endLink(link.id)}>Cancel request</button>
+          )}
+          {linkStatus === 'active' && (
+            <>
+              <button className="small" onClick={viewLinkedAccount}>View their games</button>
+              <button
+                className="small ghost danger"
+                onClick={() => {
+                  if (window.confirm(`Stop seeing ${player.name}'s real account?`)) endLink(link.id);
+                }}
+              >
+                End link
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {showLinked && (
+        <div className="viewer-overlay" onClick={() => setShowLinked(false)}>
+          <div className="modal inbox-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="page-head"><h2>{player.name}'s real games</h2></div>
+            {linkedLoading && <p className="hint">Loading…</p>}
+            {linkedError && <p className="hint" style={{ color: 'var(--red)' }}>{linkedError}</p>}
+            {!linkedLoading && linkedAccount && (() => {
+              const theirGames = (linkedAccount.players ?? [])
+                .flatMap((pl) => pl.games ?? [])
+                .sort((a, b) => b.date - a.date);
+              if (theirGames.length === 0) {
+                return <p className="hint">No games in their account yet.</p>;
+              }
+              return theirGames.map((game) => {
+                const m = game.meta ?? {};
+                return (
+                  <div key={game.id} className="inbox-item">
+                    <GameHeader game={game} />
+                    <div className="muted-note">
+                      {fmtDate(game.date)} · {eventLabel(m.eventType)} · {game.moves.length} moves
+                    </div>
+                    <MoveText moves={game.moves.slice(0, 24)} comments={game.comments} />
+                  </div>
+                );
+              });
+            })()}
+            <div className="modal-actions">
+              <button onClick={() => setShowLinked(false)}>Close</button>
+            </div>
+          </div>
         </div>
       )}
 

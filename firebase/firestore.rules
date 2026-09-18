@@ -1,9 +1,10 @@
 rules_version = '2';
 
-// Three kinds of data, three rules.
+// Four kinds of data, four rules.
 //
 // 1. Your own stuff — the repertoire, progress, games, settings. Nobody else
-//    can read or write it, ever. This is the bulk of the app.
+//    can write it, ever. A coach can read it, but only for as long as an
+//    active link (see 4) says the student let them in.
 // 2. Screen names — a public directory, so a coach can send to "wavy" without
 //    knowing anything else about them. Readable by any signed-in account,
 //    writable only by the account that owns it, and never re-writable to a
@@ -11,11 +12,28 @@ rules_version = '2';
 // 3. Deliveries — a coach sending lines to a student. The sender creates it,
 //    the recipient reads it and marks it accepted. Neither can read anyone
 //    else's, and nobody can rewrite a delivery's contents after the fact.
+// 4. Links — a coach asking to see a student's real account (games,
+//    repertoire, everything) instead of the coach's own manual notes about
+//    them. The coach starts it, only the student can let them in, and either
+//    side can end it by deleting the link.
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Fixed so there's only ever one link per coach/student pair — no way to
+    // create a second one to route around a decline or a revoke.
+    function linkId(coachUid, studentUid) {
+      return coachUid + '_' + studentUid;
+    }
+    function isActiveCoachOf(studentUid) {
+      return exists(/databases/$(database)/documents/links/$(linkId(request.auth.uid, studentUid)))
+        && get(/databases/$(database)/documents/links/$(linkId(request.auth.uid, studentUid))).data.status == 'active';
+    }
+
     match /users/{uid}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+      // A coach the student has linked can see all of it — never write any
+      // of it, and only while the link is active.
+      allow read: if request.auth != null && isActiveCoachOf(uid);
     }
 
     match /screenNames/{name} {
@@ -46,6 +64,33 @@ service cloud.firestore {
                          .hasOnly(['readAt', 'acceptedAt', 'dismissedAt']);
       allow delete: if request.auth != null
                     && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+    }
+
+    match /links/{id} {
+      // Only the two people involved can see it.
+      allow read: if request.auth != null
+                  && (resource.data.coachUid == request.auth.uid || resource.data.studentUid == request.auth.uid);
+      // A coach starts a link, always pending, always as themselves, and
+      // always at the one id their pairing with that student is allowed to
+      // use.
+      allow create: if request.auth != null
+                    && request.resource.data.coachUid == request.auth.uid
+                    && request.resource.data.studentUid is string
+                    && request.resource.data.status == 'pending'
+                    && id == linkId(request.auth.uid, request.resource.data.studentUid);
+      // Only the student can approve a pending request, and that's the only
+      // change this allows — nobody can flip an existing link back to
+      // "active" after it's been declined or revoked, or touch who it's
+      // between.
+      allow update: if request.auth != null
+                    && resource.data.studentUid == request.auth.uid
+                    && resource.data.status == 'pending'
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+                    && request.resource.data.status == 'active';
+      // Either side can end it: the coach withdrawing a request, or the
+      // student declining one or cutting off an existing link.
+      allow delete: if request.auth != null
+                    && (resource.data.coachUid == request.auth.uid || resource.data.studentUid == request.auth.uid);
     }
   }
 }
