@@ -25,6 +25,7 @@ import {
   PlayIcon, CapIcon, FolderIcon, MonitorIcon,
 } from '../components/Icons';
 import PlaylistPicker from '../components/PlaylistPicker';
+import { topInset, bottomInset } from '../lib/safeArea';
 
 // Position key: piece placement + side to move + castling + en passant.
 const fen4 = (fen) => fen.split(' ').slice(0, 4).join(' ');
@@ -1284,7 +1285,12 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
     ? avail - listW - (listW ? GAP : 0) - SIDE_MIN - GAP
     : avail;
   // Tall boards need the same treatment vertically, and whole squares only.
-  const tallCap = Math.max(280, (typeof window === 'undefined' ? 900 : window.innerHeight) - 210);
+  // The window minus what the system covers — an iPad's menu bar sits over the
+  // top of it, so the raw height promises room the board can't have.
+  const tallCap = Math.max(
+    280,
+    (typeof window === 'undefined' ? 900 : window.innerHeight) - topInset() - bottomInset() - 210,
+  );
   const boardWidth = Math.floor(
     Math.max(240, Math.min(720, forBoard, tallCap)) / 8,
   ) * 8;

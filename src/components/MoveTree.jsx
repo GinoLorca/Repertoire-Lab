@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { mainLineFrom, branchRootOf } from '../lib/moveTree';
 import MoveBadge from './MoveBadge';
 import { useStore } from '../store';
+import { topInset, bottomInset, leftInset, rightInset } from '../lib/safeArea';
 
 // "4." for White's move, "4…" for Black's — from a *virtual* ply, one that
 // always starts White's move 1 at 1, whatever real move number the game
@@ -115,9 +116,14 @@ export default function MoveTree({
     if (!menu || !menuRef.current) return;
     const margin = 8;
     const rect = menuRef.current.getBoundingClientRect();
-    const left = Math.min(menu.x, window.innerWidth - rect.width - margin);
-    const top = Math.min(menu.y, window.innerHeight - rect.height - margin);
-    setMenuPos({ left: Math.max(margin, left), top: Math.max(margin, top) });
+    // The edges the system owns count as off-screen too: a menu pinned to the
+    // bottom of an iPad's window otherwise sits under the home indicator.
+    const left = Math.min(menu.x, window.innerWidth - rightInset() - rect.width - margin);
+    const top = Math.min(menu.y, window.innerHeight - bottomInset() - rect.height - margin);
+    setMenuPos({
+      left: Math.max(margin + leftInset(), left),
+      top: Math.max(margin + topInset(), top),
+    });
   }, [menu]);
 
   // Variations that answer the move at this REAL ply (1-based).

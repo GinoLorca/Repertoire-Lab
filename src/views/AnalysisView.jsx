@@ -6,6 +6,7 @@ import { Engine, formatScore } from '../lib/engine';
 import { runGameReview } from '../lib/gameReview';
 import { fetchExplorer, explorerTotals, pct } from '../lib/explorer';
 import { useViewportWidth } from '../components/useViewportWidth';
+import { topInset, bottomInset } from '../lib/safeArea';
 import BoardArrows from '../components/BoardArrows';
 import CompareView from './CompareView';
 import GameEditor from '../components/GameEditor';
@@ -1114,9 +1115,13 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   // Header, the annotation bar, the hint line and the step controls all live
   // under the board — leave them room so the whole thing fits without scrolling.
   const winH = typeof window === 'undefined' ? 900 : window.innerHeight;
+  // Part of that height belongs to the system, not to the app — the iPad's
+  // menu bar at the top, the home indicator at the bottom. Sizing a board
+  // from the raw window height puts its first rank behind the menu bar.
+  const systemChrome = topInset() + bottomInset();
   // A little more room reserved on a tablet, where the whole thing — board,
   // controls and the FEN box — is meant to land on one screen.
-  const heightCap = Math.max(320, winH - (tight ? 330 : 290));
+  const heightCap = Math.max(320, winH - systemChrome - (tight ? 330 : 290));
   // The page itself is the last word. A fixed-width board inside its column can
   // otherwise widen that column and keep itself wide — on a phone that reads as
   // a board hanging off the side of the screen.
@@ -1137,7 +1142,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   // quietly clamping the editor down to roughly Engine's size on an iPad, so
   // the extra never showed up where it was most wanted.
   // 80 = the sticky topbar's 63px, plus a little air under the last rank.
-  const editorHeightCap = Math.max(360, winH - 80);
+  const editorHeightCap = Math.max(360, winH - systemChrome - 80);
   // Measured where possible; the window is the fallback for the first paint
   // (.page.wide is capped at 1360 and carries 24px of padding either side).
   const editorWidthCap = editorAvail || Math.min(1360, viewportWidth) - 48;

@@ -419,6 +419,21 @@
 [data-boardid] img,
 [data-boardid] svg { -webkit-user-drag: none; }
 
+/* iPadOS and iOS hand a standalone web app the WHOLE window — under the
+   status bar, under the menu bar an iPad shows at the top, under the home
+   indicator. That's what `viewport-fit=cover` in index.html asks for, and
+   it's what lets a wallpaper reach every edge. The price is that anything
+   you need to read or touch has to be pushed back inside by hand: without
+   it the app's own header sits directly beneath the iPad's menu bar and the
+   two collide. These are 0px on every other platform, so the calc() below
+   are no-ops there. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
 html { background: var(--bg); }
 body {
   margin: 0;
@@ -470,7 +485,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 
 .topbar {
   display: flex; align-items: center; gap: 18px;
-  padding: 12px 24px;
+  padding: calc(12px + var(--safe-top)) calc(24px + var(--safe-right)) 12px calc(24px + var(--safe-left));
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   position: sticky; top: 0; z-index: 20;
@@ -514,7 +529,10 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   background: var(--border); flex-shrink: 0;
 }
 
-.page { max-width: 1180px; margin: 0 auto; padding: 26px 24px 80px; }
+.page {
+  max-width: 1180px; margin: 0 auto;
+  padding: 26px calc(24px + var(--safe-right)) calc(80px + var(--safe-bottom)) calc(24px + var(--safe-left));
+}
 .page.wide { max-width: 1360px; }
 
 .page-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -633,7 +651,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .viewer-overlay {
   position: fixed; inset: 0; background: var(--scrim);
   display: flex; align-items: center; justify-content: center; z-index: 50;
-  padding: 20px;
+  padding: calc(20px + var(--safe-top)) calc(20px + var(--safe-right)) calc(20px + var(--safe-bottom)) calc(20px + var(--safe-left));
 }
 .viewer-panel {
   background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
@@ -713,7 +731,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .assign-bar {
   background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 16px; display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
-  position: sticky; bottom: 12px;
+  position: sticky; bottom: calc(12px + var(--safe-bottom));
 }
 .assign-bar label { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
 .assign-bar .grow { flex: 1; min-width: 140px; }
@@ -817,7 +835,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 
 /* ---------- Search ---------- */
 
-.search-overlay { align-items: flex-start; padding-top: 8vh; }
+.search-overlay { align-items: flex-start; padding-top: calc(8vh + var(--safe-top)); }
 .search-panel {
   background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
   padding: 18px; width: 100%; max-width: 760px;
@@ -1061,7 +1079,8 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 
 .modal-overlay {
   position: fixed; inset: 0; background: var(--scrim);
-  display: flex; align-items: center; justify-content: center; z-index: 60; padding: 20px;
+  display: flex; align-items: center; justify-content: center; z-index: 60;
+  padding: calc(20px + var(--safe-top)) calc(20px + var(--safe-right)) calc(20px + var(--safe-bottom)) calc(20px + var(--safe-left));
 }
 .modal {
   background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
@@ -1194,7 +1213,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 .verify-suggest .book-hint { color: var(--green); }
 .verify-suggest .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
-.verify-commit { position: sticky; bottom: 12px; margin-top: 18px; }
+.verify-commit { position: sticky; bottom: calc(12px + var(--safe-bottom)); margin-top: 18px; }
 .verify-count { font-size: 14.5px; color: var(--muted); }
 .verify-count strong { color: var(--text); font-size: 16px; }
 
@@ -2209,7 +2228,10 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 /* On a phone the board is the page, and 24px of padding either side is 48px
    of board given up for nothing. */
 @media (max-width: 560px) {
-  .page.editor-page { padding-left: 12px; padding-right: 12px; }
+  .page.editor-page {
+    padding-left: calc(12px + var(--safe-left));
+    padding-right: calc(12px + var(--safe-right));
+  }
 }
 
 .board-editor { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
@@ -3091,7 +3113,7 @@ input[type="date"] {
   position: fixed; inset: 0; z-index: 60;
   background: rgba(0, 0, 0, 0.5);
   display: flex; align-items: center; justify-content: center;
-  padding: 20px;
+  padding: calc(20px + var(--safe-top)) calc(20px + var(--safe-right)) calc(20px + var(--safe-bottom)) calc(20px + var(--safe-left));
   animation: sheet-fade 0.15s ease-out;
 }
 .sheet {
@@ -3162,7 +3184,7 @@ input[type="date"] {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   background: var(--card); border: 1px solid var(--border);
   border-radius: 10px; padding: 9px 12px; margin-bottom: 12px;
-  position: sticky; top: 62px; z-index: 5;
+  position: sticky; top: calc(62px + var(--safe-top)); z-index: 5;
 }
 .row-check { width: 17px; height: 17px; accent-color: var(--accent); flex: 0 0 auto; }
 /* A tick's worth of emphasis — the line still has to be readable. */
