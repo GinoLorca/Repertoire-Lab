@@ -56,9 +56,11 @@ export function useCloud() {
       lastHash.current = after;
       setLastSync(result.at);
       setStatus('idle');
-      const sent = result.written || result.deleted || result.uploaded
-        ? `Sent ${result.written} change${result.written === 1 ? '' : 's'}`
-        : 'Up to date';
+      // Both halves of the round trip, because "Sent 1 change" alone can't
+      // tell you whether this device saw the other one's work.
+      const sent = result.written || result.deleted
+        ? `got ${result.received} · sent ${result.written}`
+        : `got ${result.received} · up to date`;
       // Pictures not travelling is worth saying out loud — but as a footnote
       // to a sync that worked, not as a failure. The lines are what matter.
       setDetail(result.storageUnavailable

@@ -58,13 +58,32 @@ function dropIds(arr, gone) {
 // ---------------------------------------------------------------------------
 
 async function pull(c, uid) {
-  const { collection, getDocs, doc, getDoc } = c.firestore;
+  const {
+    collection, getDocs, getDocsFromServer, doc, getDoc, getDocFromServer,
+  } = c.firestore;
+
+  // From the server, deliberately, not from the local cache.
+  //
+  // Firestore keeps an offline copy and a plain read is allowed to answer out
+  // of it. That is the right default for a document you're displaying and the
+  // wrong one for the read that decides what gets written back: a stale answer
+  // means the merge never sees the other device's work, and the push then
+  // writes this device's older copy over it. Progress can't be lost that way —
+  // the merge refuses to regress — but the two devices sit there disagreeing,
+  // one showing 1/28 and the other 0/28, which is exactly what happened.
+  //
+  // Offline, the server read throws and the cached one is the honest fallback:
+  // sync what we can now, reconcile properly when there's signal.
   const readAll = async (name) => {
-    const snap = await getDocs(collection(c.db, 'users', uid, name));
+    const ref = collection(c.db, 'users', uid, name);
+    let snap;
+    try { snap = await getDocsFromServer(ref); } catch { snap = await getDocs(ref); }
     return snap.docs.map((d) => decodeFromStore(d.data()));
   };
   const readOne = async (name, id) => {
-    const snap = await getDoc(doc(c.db, 'users', uid, name, id));
+    const ref = doc(c.db, 'users', uid, name, id);
+    let snap;
+    try { snap = await getDocFromServer(ref); } catch { snap = await getDoc(ref); }
     return snap.exists() ? decodeFromStore(snap.data()) : null;
   };
   const [openings, chapters, players, labEntries, lists, settings] = await Promise.all([
@@ -78,6 +97,7 @@ async function pull(c, uid) {
     labEntries,
     lists: lists ?? { categories: [], playlists: [], savedPositions: [] },
     settings: settings?.value ?? null,
+    settingsAt: settings?.at ?? 0,
   };
 }
 
@@ -124,7 +144,9 @@ async function push(c, uid, docs, meta, removals, device) {
 
   const settingsHash = hashOf(JSON.stringify(docs.settings));
   if (meta.settingsHash !== settingsHash) {
-    queue((b) => b.set(doc(c.db, 'users', uid, 'singletons', 'settings'), { value: encodeForStore(docs.settings) }));
+    queue((b) => b.set(doc(c.db, 'users', uid, 'singletons', 'settings'), {
+      value: encodeForStore(docs.settings), at: Date.now(), by: device,
+    }));
     written += 1;
   }
 
@@ -183,14 +205,23 @@ export function reconcile(localState, remoteState, remoteDocs, meta) {
     };
   }
 
-  // Settings are one object rather than a set of records, so they can't be
-  // merged field by field without a timestamp on each. Changed here since the
-  // last sync wins; otherwise take what the cloud has. In practice the device
-  // you last changed a setting on is the one that decides, which is what
-  // anyone would expect.
+  // Settings are one object rather than a set of records, so recency decides
+  // rather than sync order. Two rules:
+  //
+  //   · Changed here since the last sync? This device wins. The theme you just
+  //     picked is not undone by a tablet that synced a moment later.
+  //   · Never synced from here at all? This device still wins. A device that
+  //     already has a look set up should not have it replaced the instant it
+  //     signs in — which is exactly what happened: signing in on one machine
+  //     swapped its theme for the other one's.
+  //
+  // Otherwise take the cloud's, but only if it's genuinely newer than the last
+  // settings this device accepted.
   const localSettingsHash = hashOf(JSON.stringify(localState.settings ?? {}));
-  const changedHere = meta.settingsHash !== null && meta.settingsHash !== localSettingsHash;
-  if (!changedHere && remoteState.settings) {
+  const neverSyncedHere = meta.settingsHash === null;
+  const changedHere = !neverSyncedHere && meta.settingsHash !== localSettingsHash;
+  const remoteIsNewer = (remoteDocs.settingsAt ?? 0) > (meta.settingsAt ?? 0);
+  if (!changedHere && !neverSyncedHere && remoteState.settings && remoteIsNewer) {
     merged = { ...merged, settings: { ...localState.settings, ...remoteState.settings } };
   }
 
@@ -294,6 +325,9 @@ export async function syncNow(localState, { onProgress } = {}) {
     // in the cloud exactly as it is here".
     hashes: { ...Object.fromEntries(Object.entries(meta.hashes).filter(([k]) => k.startsWith('blob:'))), ...hashes },
     settingsHash,
+    // When the settings we're now carrying were last written by anyone, so a
+    // later sync can tell "newer than what I have" from "older, ignore it".
+    settingsAt: Math.max(remoteDocs.settingsAt ?? 0, Date.now()),
     lastSync: Date.now(),
     deviceId: me,
   };
@@ -301,6 +335,7 @@ export async function syncNow(localState, { onProgress } = {}) {
 
   return {
     state: merged,
+    received: (remoteDocs.openings?.length ?? 0) + (remoteDocs.chapters?.length ?? 0),
     written,
     deleted,
     uploaded: uploads.length,
