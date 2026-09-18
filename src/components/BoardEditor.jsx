@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Chess } from 'chess.js';
 import { ChessboardDnDProvider, SparePiece } from 'react-chessboard';
 import { TouchBackend } from 'react-dnd-touch-backend';
@@ -103,6 +103,46 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [keyMap]);
+
+  // Right-click (or long-press) a square and it says its own name, big, in the
+  // middle of the screen — the thing you want while setting a position up from
+  // a diagram or a coach's instruction, without counting files across the
+  // board. `at` is only there to restart the animation when the same square is
+  // asked for twice in a row: same text, new element, so it pops again.
+  const [squareName, setSquareName] = useState(null); // { square, at }
+  const flashTimer = useRef(null);
+  const flashSquare = (square) => {
+    if (!square) return;
+    clearTimeout(flashTimer.current);
+    setSquareName({ square, at: Date.now() });
+    flashTimer.current = setTimeout(() => setSquareName(null), 3000);
+  };
+  useEffect(() => () => clearTimeout(flashTimer.current), []);
+
+  // The long-press half, for touch. Held in a ref rather than state so a press
+  // that turns into a drag doesn't re-render the board mid-gesture.
+  const press = useRef(null); // { timer, x, y }
+  const endPress = () => {
+    if (!press.current) return;
+    clearTimeout(press.current.timer);
+    press.current = null;
+  };
+  const onPressStart = (e) => {
+    if (e.pointerType === 'mouse') return; // a mouse has a right button
+    const square = document.elementFromPoint(e.clientX, e.clientY)
+      ?.closest?.('[data-square]')?.getAttribute('data-square');
+    if (!square) return;
+    endPress();
+    press.current = {
+      x: e.clientX,
+      y: e.clientY,
+      timer: setTimeout(() => flashSquare(square), 500),
+    };
+  };
+  const onPressMove = (e) => {
+    if (!press.current) return;
+    if (Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > 8) endPress();
+  };
 
   const chosenColors = boardColors(state.settings);
   const pieceLight = chosenColors.pieceLight ?? DEFAULT_PIECE_LIGHT;
@@ -245,7 +285,32 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
     // provider is what lets a drag start in the tray and end on a square.
     <ChessboardDnDProvider {...EDITOR_DND_PROPS}>
     <div className="board-editor">
-      <div className="board-editor-board" style={{ width: boardWidth }}>
+      <div
+        className="board-editor-board"
+        style={{ width: boardWidth }}
+        // Touch has no right button, so a press that stays still for half a
+        // second names the square instead. Any movement cancels it — that's a
+        // piece being dragged, not a question about the square.
+        onPointerDown={onPressStart}
+        onPointerMove={onPressMove}
+        onPointerUp={endPress}
+        onPointerCancel={endPress}
+        onPointerLeave={endPress}
+        // The right-click half. react-chessboard has an onSquareRightClick of
+        // its own, but it only fires when its mousedown has re-rendered before
+        // the mouseup arrives — press and release inside one frame and the
+        // callback is silently skipped. contextmenu fires either way, and the
+        // square under the pointer is a hit-test away, so this owes the
+        // library nothing. It already preventDefaults on the square itself;
+        // the event still bubbles here.
+        onContextMenu={(e) => {
+          const square = document.elementFromPoint(e.clientX, e.clientY)
+            ?.closest?.('[data-square]')?.getAttribute('data-square');
+          if (!square) return;
+          e.preventDefault();
+          flashSquare(square);
+        }}
+      >
         <Board
           id="board-editor"
           position={map}
@@ -412,6 +477,14 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
         )}
       </div>
     </div>
+    {/* Fixed to the viewport, not the board, so it lands in the middle of the
+        screen wherever the board happens to sit — and keyed on the timestamp
+        so asking for the same square twice replays the pop. */}
+    {squareName && (
+      <div className="square-flash" key={squareName.at} aria-live="polite">
+        <span>{squareName.square}</span>
+      </div>
+    )}
     </ChessboardDnDProvider>
   );
 }

@@ -1589,6 +1589,22 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
     drop-shadow(0 0 2px var(--skin-focus)) drop-shadow(0 0 5px var(--skin-focus));
 }
 
+/* --- Bauhaus: hard black rules, on the board as much as on the cards. Every
+       square is ruled and the board itself is framed, which is what makes the
+       grid read as drawn rather than tiled. The rule is drawn INSIDE each
+       square (outline-offset: -1px) so it costs no layout and can't shift the
+       squares out of alignment with the pieces; the frame is an outline for
+       the same reason, and sits outside the board's own box. --- */
+:root[data-skin="bauhaus"] { --board-rule: #0a0a0a; }
+:root[data-skin="bauhaus"][data-theme="light"] { --board-rule: #141414; }
+:root[data-skin="bauhaus"] [data-square] {
+  outline: 1px solid var(--board-rule);
+  outline-offset: -1px;
+}
+:root[data-skin="bauhaus"] [data-boardid] {
+  box-shadow: 0 0 0 3px var(--board-rule);
+}
+
 /* --- Hustler: quarried black-and-white marble, not painted squares — an SVG
        vein texture (feTurbulence bending straight lines into branching cracks)
        stretched to fill each square exactly, so it never tiles visibly at any
@@ -1772,6 +1788,41 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 :root[data-skin="gameboy"]:not(.has-custom-bg):not(.no-skin-wall) body {
   background-image: linear-gradient(var(--skin-scrim), var(--skin-scrim)), url("/themes/gameboy.jpg");
+}
+
+/* The Board Editor's square name — right-click, or long-press on a touch
+   screen, and the square says what it's called. Fixed and centred so it
+   reads at a glance instead of being hunted for near the cursor, and
+   pointer-events: none so it can't swallow the next click. One animation
+   carries the whole three seconds: a quick pop in, a long hold, a fade. */
+.square-flash {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center;
+  pointer-events: none;
+}
+.square-flash span {
+  font-size: clamp(56px, 11vw, 128px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 18px 34px 22px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 60px var(--shadow);
+  animation: square-flash 3s ease forwards;
+}
+@keyframes square-flash {
+  0% { opacity: 0; transform: scale(0.84); }
+  7% { opacity: 1; transform: scale(1.02); }
+  12% { transform: scale(1); }
+  72% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.03); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .square-flash span { animation: square-flash-fade 3s ease forwards; }
+  @keyframes square-flash-fade { 0%, 72% { opacity: 1; } 100% { opacity: 0; } }
 }
 
 /* ---------- Themes (Chess Arcade skins) ---------- */
