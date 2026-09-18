@@ -107,15 +107,17 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
   // Right-click (or long-press) a square and it says its own name, big, in the
   // middle of the screen — the thing you want while setting a position up from
   // a diagram or a coach's instruction, without counting files across the
-  // board. `at` is only there to restart the animation when the same square is
-  // asked for twice in a row: same text, new element, so it pops again.
+  // board. Two seconds, fading in and out; the timeout has to match the CSS
+  // animation or the element would sit there invisible, or vanish mid-fade.
+  // `at` is only there to restart the animation when the same square is asked
+  // for twice in a row: same text, new element, so it replays.
   const [squareName, setSquareName] = useState(null); // { square, at }
   const flashTimer = useRef(null);
   const flashSquare = (square) => {
     if (!square) return;
     clearTimeout(flashTimer.current);
     setSquareName({ square, at: Date.now() });
-    flashTimer.current = setTimeout(() => setSquareName(null), 3000);
+    flashTimer.current = setTimeout(() => setSquareName(null), 2000);
   };
   useEffect(() => () => clearTimeout(flashTimer.current), []);
 

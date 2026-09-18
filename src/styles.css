@@ -1794,7 +1794,8 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
    screen, and the square says what it's called. Fixed and centred so it
    reads at a glance instead of being hunted for near the cursor, and
    pointer-events: none so it can't swallow the next click. One animation
-   carries the whole three seconds: a quick pop in, a long hold, a fade. */
+   carries the whole two seconds: fades up, holds, fades away — eased at both
+   ends so neither edge snaps. */
 .square-flash {
   position: fixed; inset: 0; z-index: 60;
   display: grid; place-items: center;
@@ -1811,18 +1812,16 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: 0 24px 60px var(--shadow);
-  animation: square-flash 3s ease forwards;
+  animation: square-flash 2s ease-in-out forwards;
 }
+/* 0–280ms up, held to 1.5s, 500ms down. ease-in-out on the animation itself
+   is what makes each of those a soft ramp rather than a linear wipe. Opacity
+   only, so there's nothing here for prefers-reduced-motion to object to. */
 @keyframes square-flash {
-  0% { opacity: 0; transform: scale(0.84); }
-  7% { opacity: 1; transform: scale(1.02); }
-  12% { transform: scale(1); }
-  72% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.03); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .square-flash span { animation: square-flash-fade 3s ease forwards; }
-  @keyframes square-flash-fade { 0%, 72% { opacity: 1; } 100% { opacity: 0; } }
+  0% { opacity: 0; }
+  14% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* ---------- Themes (Chess Arcade skins) ---------- */
