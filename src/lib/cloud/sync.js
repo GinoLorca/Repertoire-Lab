@@ -21,7 +21,17 @@ import { mergeBackup } from '../backup';
 
 const META_KEY = 'repertoire-lab-sync-v1';
 
-const emptyMeta = () => ({ ids: {}, hashes: {}, settingsHash: null, lastSync: null });
+const emptyMeta = () => ({ ids: {}, hashes: {}, settingsHash: null, lastSync: null, deviceId: null });
+
+// A name for this browser, so a device can recognise its own echo. Random and
+// meaningless on purpose — it identifies nothing but "not the other one".
+export async function deviceId() {
+  const meta = await readMeta();
+  if (meta.deviceId) return meta.deviceId;
+  const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  await writeMeta({ ...meta, deviceId: id });
+  return id;
+}
 
 export const readMeta = async () => (await get(META_KEY)) ?? emptyMeta();
 const writeMeta = (meta) => set(META_KEY, meta);
@@ -71,7 +81,7 @@ async function pull(c, uid) {
 
 // Writes only what changed, and removes what this device deleted. Hashes are
 // compared against the previous push so an unchanged chapter costs nothing.
-async function push(c, uid, docs, meta, removals) {
+async function push(c, uid, docs, meta, removals, device) {
   const { doc, setDoc, deleteDoc, writeBatch } = c.firestore;
   const hashes = {};
   let written = 0;
@@ -118,7 +128,19 @@ async function push(c, uid, docs, meta, removals) {
 
   batches.push(batch);
   for (const b of batches) await b.commit();
-  void setDoc; void deleteDoc;
+
+  // The pulse: one tiny document saying "something changed, and it was me".
+  // Every other signed-in device has a listener on it, so a line learned on a
+  // tablet lands on the desktop without anyone pressing anything. Only written
+  // when something actually changed, or devices would keep waking each other
+  // up over nothing.
+  if (written || deleted) {
+    const { serverTimestamp } = c.firestore;
+    await setDoc(doc(c.db, 'users', uid, 'singletons', 'pulse'), {
+      at: serverTimestamp(), by: device,
+    });
+  }
+  void deleteDoc;
   return { hashes, settingsHash, written, deleted };
 }
 
@@ -182,6 +204,7 @@ export async function syncNow(localState, { onProgress } = {}) {
   if (!user) throw new Error('Sign in first.');
   const uid = user.uid;
   const meta = await readMeta();
+  const me = await deviceId();
 
   onProgress?.('Fetching…');
   const remoteDocs = await pull(c, uid);
@@ -195,7 +218,7 @@ export async function syncNow(localState, { onProgress } = {}) {
   // this stops trying and the sync carries on with everything that isn't a
   // picture. The repertoire is the valuable part; it must never be held up by
   // a course cover.
-  let storageWorks = true;
+  let storageWorks = Boolean(c.storageInstance);
   let skipped = 0;
   const download = async (blobRef) => {
     if (!storageWorks) { skipped += 1; return null; }
@@ -207,8 +230,9 @@ export async function syncNow(localState, { onProgress } = {}) {
         reader.onerror = () => reject(reader.error);
         reader.readAsDataURL(blob);
       });
-    } catch (err) {
-      if (String(err?.code ?? '').startsWith('storage/')) storageWorks = false;
+    } catch {
+      // Whatever went wrong, it was storage. Stop trying and carry on.
+      storageWorks = false;
       skipped += 1;
       return null;
     }
@@ -236,8 +260,8 @@ export async function syncNow(localState, { onProgress } = {}) {
       await uploadString(ref(c.storageInstance, full), dataUrl, 'data_url');
       meta.hashes[`blob:${full}`] = hash;
       return { __blob: full, hash, bytes: dataUrl.length };
-    } catch (err) {
-      if (String(err?.code ?? '').startsWith('storage/')) storageWorks = false;
+    } catch {
+      storageWorks = false;
       skipped += 1;
       return SKIP;
     }
@@ -246,7 +270,7 @@ export async function syncNow(localState, { onProgress } = {}) {
 
   const docs = await toCloud(merged, upload);
   await Promise.all(uploads);
-  const { hashes, settingsHash, written, deleted } = await push(c, uid, docs, meta, goneHere);
+  const { hashes, settingsHash, written, deleted } = await push(c, uid, docs, meta, goneHere, me);
 
   const next = {
     ids: {
@@ -260,6 +284,7 @@ export async function syncNow(localState, { onProgress } = {}) {
     hashes: { ...Object.fromEntries(Object.entries(meta.hashes).filter(([k]) => k.startsWith('blob:'))), ...hashes },
     settingsHash,
     lastSync: Date.now(),
+    deviceId: me,
   };
   await writeMeta(next);
 
@@ -275,4 +300,24 @@ export async function syncNow(localState, { onProgress } = {}) {
     storageUnavailable: !storageWorks,
     at: next.lastSync,
   };
+}
+
+// Watch for changes made on another device. One document, one listener — a
+// write by anyone else fires it within a second or so, and the app syncs
+// itself. This is what makes progress follow you between devices without
+// anybody pressing Sync.
+export async function watchRemoteChanges(uid, onRemoteChange) {
+  const c = await cloud();
+  if (!c) return () => {};
+  const me = await deviceId();
+  const { doc, onSnapshot } = c.firestore;
+  return onSnapshot(doc(c.db, 'users', uid, 'singletons', 'pulse'), (snap) => {
+    if (!snap.exists()) return;
+    // Firestore replays our own writes to us first; ignore those, and ignore
+    // anything this device wrote, or two devices would sync each other in a
+    // loop forever.
+    if (snap.metadata.hasPendingWrites) return;
+    if (snap.data()?.by === me) return;
+    onRemoteChange();
+  }, () => { /* a dropped listener is not worth an error; the next sync covers it */ });
 }

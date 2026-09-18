@@ -32,7 +32,12 @@ export function cloud() {
           tabManager: firestore.persistentMultipleTabManager(),
         }),
       });
-      return { app, auth, authInstance, firestore, db, storage, storageInstance: storage.getStorage(app) };
+      // Storage may not exist for this project at all — the free plan has no
+      // bucket. Treat that as "no storage" rather than a broken app: the
+      // repertoire is text and doesn't need it.
+      let storageInstance = null;
+      try { storageInstance = storage.getStorage(app); } catch { storageInstance = null; }
+      return { app, auth, authInstance, firestore, db, storage, storageInstance };
     })().catch((err) => {
       ready = null; // a failed init shouldn't poison every later attempt
       throw err;

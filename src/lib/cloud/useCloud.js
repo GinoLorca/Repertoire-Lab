@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store';
 import { cloudConfigured } from './config';
 import { watchAuth, signOutNow } from './auth';
-import { syncNow, readMeta, forgetMeta } from './sync';
+import { syncNow, readMeta, forgetMeta, watchRemoteChanges } from './sync';
 import { hashOf } from './shape';
 
 // What sync cares about. The analysis draft is excluded on purpose (it's the
@@ -72,14 +72,30 @@ export function useCloud() {
     }
   }, [dispatch]);
 
-  // Sync when signing in, when the app comes back to the front, and a few
-  // quiet seconds after anything changes.
+  // Four ways a sync starts, and only one of them involves a person:
+  //   · signing in
+  //   · the app coming back to the front
+  //   · a few quiet seconds after you change something here
+  //   · another device saying it changed something (the listener below)
+  //
+  // That last one is what makes this feel like it should: finish a line on a
+  // tablet and the desktop updates itself while you're still holding the
+  // tablet. Without it a window sitting open would never hear about anything.
   useEffect(() => {
     if (!user) return undefined;
     run();
-    const onVisible = () => { if (document.visibilityState === 'visible') run(); };
+    // Both directions. Coming back to the app picks up anything that happened
+    // elsewhere; leaving it pushes what you just did, so putting a tablet down
+    // mid-session and walking to a desktop works the way you'd expect rather
+    // than waiting for the quiet timer that never got to finish.
+    const onVisible = () => run();
     document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    let stopWatching = () => {};
+    watchRemoteChanges(user.uid, () => run()).then((fn) => { stopWatching = fn; });
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      stopWatching();
+    };
   }, [user, run]);
 
   useEffect(() => {
