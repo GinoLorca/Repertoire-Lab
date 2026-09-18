@@ -61,10 +61,13 @@ export function useCloud() {
       const sent = result.written || result.deleted
         ? `got ${result.received} · sent ${result.written}`
         : `got ${result.received} · up to date`;
-      // Pictures not travelling is worth saying out loud — but as a footnote
-      // to a sync that worked, not as a failure. The lines are what matter.
-      setDetail(result.storageUnavailable
-        ? `${sent} · pictures stay on this device (Storage isn’t set up)`
+      // Pictures travel with everything else now (see cloud/blobs.js), so
+      // there's nothing to say unless one genuinely couldn't — a scoresheet
+      // photo too big for a document, most likely. Said as a footnote to a
+      // sync that worked, not as a failure: the lines are what matter.
+      const stuck = (result.imagesTooBig ?? 0) + (result.imagesSkipped ?? 0);
+      setDetail(stuck
+        ? `${sent} · ${stuck} picture${stuck === 1 ? '' : 's'} too big to sync — still here`
         : sent);
     } catch (err) {
       setStatus('error');

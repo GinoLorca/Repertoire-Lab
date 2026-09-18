@@ -28,7 +28,12 @@ export function hashOf(str) {
   return (h >>> 0).toString(36);
 }
 
-const isBlobRef = (v) => v && typeof v === 'object' && typeof v.__blob === 'string';
+// Two kinds of reference, because there are two places a picture can live:
+// `__blob` is a path in Cloud Storage, `__doc` is the hash of a document in
+// the account's own `blobs` collection (see the inline uploader in sync.js —
+// it's what a project with no Storage bucket falls back to).
+const isBlobRef = (v) => v && typeof v === 'object'
+  && (typeof v.__blob === 'string' || typeof v.__doc === 'string');
 const isDataUrl = (v) => typeof v === 'string' && v.startsWith('data:');
 
 // Returned by an upload or download that couldn't happen — most often because

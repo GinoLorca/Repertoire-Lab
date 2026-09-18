@@ -17,8 +17,9 @@
 import { get, set } from 'idb-keyval';
 import { cloud } from './app';
 import {
-  toCloud, fromCloud, hashOf, localBlobIndex, keepLocalImages, encodeForStore, decodeFromStore, SKIP,
+  toCloud, fromCloud, hashOf, localBlobIndex, keepLocalImages, encodeForStore, decodeFromStore,
 } from './shape';
+import { makeInlineStore } from './blobs';
 import { mergeBackup } from '../backup';
 
 const META_KEY = 'repertoire-lab-sync-v1';
@@ -254,6 +255,11 @@ export async function syncNow(localState, { onProgress } = {}) {
   let storageWorks = Boolean(c.storageInstance);
   let skipped = 0;
 
+  // Storage is where pictures belong, but this project has no bucket — so
+  // they go into Firestore instead. See blobs.js: it's the difference between
+  // artwork syncing and artwork staying on the device it was added on.
+  const inline = makeInlineStore({ db: c.db, firestore: c.firestore, uid, meta });
+
   // Firebase retries a failed upload with backoff, which is right for a flaky
   // connection and wrong for a bucket that doesn't exist: it hangs for a long
   // time, per picture, and the sync appears to stall at "Uploading…" forever.
@@ -263,6 +269,7 @@ export async function syncNow(localState, { onProgress } = {}) {
     new Promise((_, reject) => setTimeout(() => reject(new Error('storage timed out')), ms)),
   ]);
   const download = async (blobRef) => {
+    if (blobRef.__doc) return inline.download(blobRef);
     if (!storageWorks) { skipped += 1; return null; }
     try {
       const blob = await withDeadline(getBlob(ref(c.storageInstance, blobRef.__blob)), 12000);
@@ -291,7 +298,7 @@ export async function syncNow(localState, { onProgress } = {}) {
   const uploads = [];
   const { uploadString, getMetadata } = c.storage;
   const upload = async (path, dataUrl) => {
-    if (!storageWorks) { skipped += 1; return SKIP; }
+    if (!storageWorks) return inline.upload(dataUrl);
     const full = `users/${uid}/${path}`;
     const hash = hashOf(dataUrl);
     const known = meta.hashes[`blob:${full}`];
@@ -303,9 +310,10 @@ export async function syncNow(localState, { onProgress } = {}) {
       meta.hashes[`blob:${full}`] = hash;
       return { __blob: full, hash, bytes: dataUrl.length };
     } catch {
+      // The bucket isn't there. Everything from here on goes inline instead,
+      // including this one.
       storageWorks = false;
-      skipped += 1;
-      return SKIP;
+      return inline.upload(dataUrl);
     }
   };
   void getMetadata;
@@ -342,7 +350,8 @@ export async function syncNow(localState, { onProgress } = {}) {
     // How many pictures couldn't travel, and whether Storage is the reason —
     // so the Account screen can say so plainly instead of showing a raw
     // Firebase error next to a sync that otherwise worked fine.
-    imagesSkipped: skipped,
+    imagesSkipped: skipped + inline.stats.skipped,
+    imagesTooBig: inline.stats.tooBig,
     storageUnavailable: !storageWorks,
     at: next.lastSync,
   };
