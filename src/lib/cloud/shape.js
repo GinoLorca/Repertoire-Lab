@@ -235,16 +235,43 @@ export function keepLocalImages(merged, local) {
 // applies to everything written, so a nested array added anywhere later can't
 // quietly break sync again.
 const ARRAY_BOX = '__arr';
+const JSON_BOX = '__json';
 
-export function encodeForStore(value) {
+// Firestore also caps nesting at 20 levels, and a move tree is recursive —
+// `children` inside `children`, one level per ply. A thirty-move game is
+// already past the limit before the array boxing above adds its own, which is
+// what produced "Message too deep. Max recursion depth reached in array".
+//
+// So anything still deep at this point stops being a structure and becomes a
+// string: one JSON blob the database stores as a single value and never looks
+// inside. It costs nothing — nothing queries inside a move tree — and it means
+// no shape the app invents later can breach the limit either. Twelve leaves
+// room for the wrappers boxing adds on the way down.
+const MAX_DEPTH = 12;
+
+export function encodeForStore(value, depth = 0) {
+  const isContainer = value && typeof value === 'object';
+  if (isContainer && depth >= MAX_DEPTH) return { [JSON_BOX]: JSON.stringify(value) };
   if (Array.isArray(value)) {
-    return value.map((item) => (Array.isArray(item)
-      ? { [ARRAY_BOX]: encodeForStore(item) }
-      : encodeForStore(item)));
+    return value.map((item) => {
+      if (Array.isArray(item)) return { [ARRAY_BOX]: encodeForStore(item, depth + 2) };
+      // Firestore has no undefined. A hole in an array becomes null, which is
+      // what JSON does with it too.
+      if (item === undefined) return null;
+      return encodeForStore(item, depth + 1);
+    });
   }
-  if (value && typeof value === 'object') {
+  if (isContainer) {
     const out = {};
-    for (const [k, v] of Object.entries(value)) out[k] = encodeForStore(v);
+    for (const [k, v] of Object.entries(value)) {
+      // A key whose value is undefined is dropped rather than sent: Firestore
+      // rejects the whole document over one, and "absent" is what undefined
+      // means here anyway. This app has a lot of optional fields — a variation
+      // with no srs, a game with no result — and any one of them would
+      // otherwise fail a sync with a message about an unsupported value.
+      if (v === undefined) continue;
+      out[k] = encodeForStore(v, depth + 1);
+    }
     return out;
   }
   return value;
@@ -253,10 +280,23 @@ export function encodeForStore(value) {
 export function decodeFromStore(value) {
   if (Array.isArray(value)) return value.map(decodeFromStore);
   if (value && typeof value === 'object') {
+    if (typeof value[JSON_BOX] === 'string') {
+      try { return JSON.parse(value[JSON_BOX]); } catch { return null; }
+    }
     if (Array.isArray(value[ARRAY_BOX])) return decodeFromStore(value[ARRAY_BOX]);
     const out = {};
     for (const [k, v] of Object.entries(value)) out[k] = decodeFromStore(v);
     return out;
   }
   return value;
+}
+
+// How deep a value goes — used by the tests, and handy when something is
+// rejected and you want to know what shape did it.
+export function depthOf(value) {
+  if (!value || typeof value !== 'object') return 0;
+  const kids = Array.isArray(value) ? value : Object.values(value);
+  let deepest = 0;
+  for (const k of kids) deepest = Math.max(deepest, depthOf(k));
+  return deepest + 1;
 }
