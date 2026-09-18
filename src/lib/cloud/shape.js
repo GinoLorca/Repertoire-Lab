@@ -224,3 +224,39 @@ export function keepLocalImages(merged, local) {
   };
   return walk(merged, local);
 }
+
+// Firestore refuses an array that contains another array. The app has them:
+// a board arrow is [from, to, colour], and a position's arrows are a list of
+// those — so any game or Lab session with an arrow drawn on it would reject
+// the entire batch it travelled in, taking every other record with it.
+//
+// Rather than reshaping the app's own data to suit a database limitation,
+// inner arrays are wrapped on the way out and unwrapped on the way back. It
+// applies to everything written, so a nested array added anywhere later can't
+// quietly break sync again.
+const ARRAY_BOX = '__arr';
+
+export function encodeForStore(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => (Array.isArray(item)
+      ? { [ARRAY_BOX]: encodeForStore(item) }
+      : encodeForStore(item)));
+  }
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) out[k] = encodeForStore(v);
+    return out;
+  }
+  return value;
+}
+
+export function decodeFromStore(value) {
+  if (Array.isArray(value)) return value.map(decodeFromStore);
+  if (value && typeof value === 'object') {
+    if (Array.isArray(value[ARRAY_BOX])) return decodeFromStore(value[ARRAY_BOX]);
+    const out = {};
+    for (const [k, v] of Object.entries(value)) out[k] = decodeFromStore(v);
+    return out;
+  }
+  return value;
+}

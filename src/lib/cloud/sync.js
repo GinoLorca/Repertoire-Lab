@@ -16,7 +16,9 @@
 // Anything genuinely new on either side is still just added.
 import { get, set } from 'idb-keyval';
 import { cloud } from './app';
-import { toCloud, fromCloud, hashOf, localBlobIndex, keepLocalImages, SKIP } from './shape';
+import {
+  toCloud, fromCloud, hashOf, localBlobIndex, keepLocalImages, encodeForStore, decodeFromStore, SKIP,
+} from './shape';
 import { mergeBackup } from '../backup';
 
 const META_KEY = 'repertoire-lab-sync-v1';
@@ -59,11 +61,11 @@ async function pull(c, uid) {
   const { collection, getDocs, doc, getDoc } = c.firestore;
   const readAll = async (name) => {
     const snap = await getDocs(collection(c.db, 'users', uid, name));
-    return snap.docs.map((d) => d.data());
+    return snap.docs.map((d) => decodeFromStore(d.data()));
   };
   const readOne = async (name, id) => {
     const snap = await getDoc(doc(c.db, 'users', uid, name, id));
-    return snap.exists() ? snap.data() : null;
+    return snap.exists() ? decodeFromStore(snap.data()) : null;
   };
   const [openings, chapters, players, labEntries, lists, settings] = await Promise.all([
     readAll('openings'), readAll('chapters'), readAll('players'), readAll('labEntries'),
@@ -104,7 +106,7 @@ async function push(c, uid, docs, meta, removals, device) {
       const hash = hashOf(JSON.stringify(item));
       hashes[key] = hash;
       if (meta.hashes[key] === hash) continue;
-      queue((b) => b.set(doc(c.db, 'users', uid, name, item.id), item));
+      queue((b) => b.set(doc(c.db, 'users', uid, name, item.id), encodeForStore(item)));
       written += 1;
     }
     for (const id of removals[name] ?? []) {
@@ -116,13 +118,13 @@ async function push(c, uid, docs, meta, removals, device) {
   const listsHash = hashOf(JSON.stringify(docs.lists));
   hashes['singletons/lists'] = listsHash;
   if (meta.hashes['singletons/lists'] !== listsHash) {
-    queue((b) => b.set(doc(c.db, 'users', uid, 'singletons', 'lists'), docs.lists));
+    queue((b) => b.set(doc(c.db, 'users', uid, 'singletons', 'lists'), encodeForStore(docs.lists)));
     written += 1;
   }
 
   const settingsHash = hashOf(JSON.stringify(docs.settings));
   if (meta.settingsHash !== settingsHash) {
-    queue((b) => b.set(doc(c.db, 'users', uid, 'singletons', 'settings'), { value: docs.settings }));
+    queue((b) => b.set(doc(c.db, 'users', uid, 'singletons', 'settings'), { value: encodeForStore(docs.settings) }));
     written += 1;
   }
 
@@ -220,10 +222,19 @@ export async function syncNow(localState, { onProgress } = {}) {
   // a course cover.
   let storageWorks = Boolean(c.storageInstance);
   let skipped = 0;
+
+  // Firebase retries a failed upload with backoff, which is right for a flaky
+  // connection and wrong for a bucket that doesn't exist: it hangs for a long
+  // time, per picture, and the sync appears to stall at "Uploading…" forever.
+  // A deadline turns that into a quick, honest no.
+  const withDeadline = (promise, ms) => Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('storage timed out')), ms)),
+  ]);
   const download = async (blobRef) => {
     if (!storageWorks) { skipped += 1; return null; }
     try {
-      const blob = await getBlob(ref(c.storageInstance, blobRef.__blob));
+      const blob = await withDeadline(getBlob(ref(c.storageInstance, blobRef.__blob)), 12000);
       return await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
@@ -257,7 +268,7 @@ export async function syncNow(localState, { onProgress } = {}) {
     // Uploaded here rather than in the background, because the document that
     // will point at this object must not be written unless the object exists.
     try {
-      await uploadString(ref(c.storageInstance, full), dataUrl, 'data_url');
+      await withDeadline(uploadString(ref(c.storageInstance, full), dataUrl, 'data_url'), 12000);
       meta.hashes[`blob:${full}`] = hash;
       return { __blob: full, hash, bytes: dataUrl.length };
     } catch {
