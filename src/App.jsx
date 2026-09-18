@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { StoreProvider, useStore } from './store';
 import { resolveTheme, applyTheme, applyBackground, applySkin } from './lib/theme';
 import { runTopGuard } from './lib/backGuard';
+import { parsePath, pathFor, SECTION_LABEL } from './lib/routes';
+import { LinkIcon } from './components/Icons';
 import Library from './views/Library';
 import ChapterView from './views/ChapterView';
 import ImportView from './views/ImportView';
@@ -17,8 +19,18 @@ import MigratePlayersModal from './components/MigratePlayersModal';
 
 function AppInner() {
   const { state } = useStore();
-  const [view, setView] = useState('library');
-  const [chapterNav, setChapterNav] = useState(null);
+  // Where the URL says we are. Read once, at mount: after that the address bar
+  // follows the app (see the sync effect below) rather than driving it, except
+  // on back/forward, which restores state from our own stack anyway.
+  const [route] = useState(() => parsePath(
+    typeof window === 'undefined' ? '/' : window.location.pathname,
+  ));
+  const [view, setView] = useState(route.view);
+  const [chapterNav, setChapterNav] = useState(route.chapterNav ?? null);
+  // The sub-mode inside a section — Analysis's engine/compare/editor, the
+  // Settings tab. Lifted up here only so it can be part of the address; each
+  // view still owns its own switching.
+  const [sub, setSub] = useState(route.sub ?? null);
   const [practiceScope, setPracticeScope] = useState(undefined);
   const [analysisLine, setAnalysisLine] = useState(null);
   const [verifyDraft, setVerifyDraft] = useState(null);
@@ -38,6 +50,8 @@ function AppInner() {
   // Opened via Coaches Corner's Studio button: a blank board with the
   // annotate rail and Lichess/repertoire import switched on.
   const [coachStudio, setCoachStudio] = useState(false);
+  // "Copied" for a second after the link button is used.
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const themeSettings = state?.settings;
   useEffect(() => {
@@ -62,7 +76,12 @@ function AppInner() {
   }, [themeSettings?.background, themeSettings?.backgrounds, themeSettings?.skin,
     themeSettings?.backgroundVeil, themeSettings?.surfaceOpacity, themeSettings?.boardOpacity]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The phone's back gesture / Safari's back button.
+  // The phone's back gesture / Safari's back button — and now the forward
+  // button too, which used to be wrong in a way nothing could see. Every
+  // popstate was treated as a step back, so Forward unwound the app's own
+  // stack a second time instead of redoing the step. With no URL to compare
+  // against, the two just drifted silently; now that each screen has an
+  // address, the address is the thing to trust.
   useEffect(() => {
     const onPop = () => {
       if (poppingRef.current) { poppingRef.current = false; return; }
@@ -72,13 +91,39 @@ function AppInner() {
         try { window.history.pushState({ rlGuard: true }, ''); } catch { /* ignore */ }
         return;
       }
-      if (history.current.length === 0) return; // nothing of ours left to unwind
-      goBack(true);
+      const here = window.location.pathname;
+      const prev = history.current[history.current.length - 1];
+      // Landing exactly where our own stack says we came from: a real step
+      // back, so unwind it properly and get the scroll position with it.
+      if (prev && pathFor(prev) === here) { goBack(true); return; }
+      // Anything else — Forward, or an address typed or pasted into the bar —
+      // is resolved from the URL. No scroll to restore in that case, but the
+      // screen matches what the address says, which is the part that matters.
+      const target = parsePath(here);
+      setSub(target.sub ?? null);
+      setChapterNav(target.chapterNav ?? null);
+      setView(target.view);
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Put where we are into the address bar. replaceState rather than pushState
+  // because `go` has already pushed the entry for this step — this fills in its
+  // URL. Back and forward therefore restore the right address on their own.
+  //
+  // The one path left alone is "/": arriving at the bare domain and being
+  // bounced to "/library" would be a rewrite of the address someone just
+  // typed, for no gain.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const path = pathFor({ view, sub, chapterNav });
+    const here = window.location.pathname;
+    if (here === path) return;
+    if (here === '/' && path === '/library') return;
+    try { window.history.replaceState(window.history.state, '', path); } catch { /* history unavailable */ }
+  }, [view, sub, chapterNav?.openingId, chapterNav?.chapterId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ⌘K / Ctrl-K, or "/" when not already typing, opens search from anywhere.
   useEffect(() => {
@@ -103,6 +148,7 @@ function AppInner() {
 
   const snapshot = () => ({
     view,
+    sub,
     chapterNav,
     practiceScope,
     analysisLine,
@@ -132,6 +178,7 @@ function AppInner() {
       try { window.history.back(); } catch { poppingRef.current = false; }
     }
     if (!prev) { setView('library'); return; }
+    setSub(prev.sub ?? null);
     setChapterNav(prev.chapterNav);
     setPracticeScope(prev.practiceScope);
     setAnalysisLine(prev.analysisLine);
@@ -283,6 +330,7 @@ function AppInner() {
     if (v === view) return;
     go(() => {
       if (v === 'practice') setPracticeScope(undefined);
+      setSub(null);
       setView(v);
     });
   };
@@ -348,6 +396,45 @@ function AppInner() {
           <span className="nav-divider" aria-hidden="true" />
           <button className={view === 'coaches' ? 'active' : ''} onClick={() => navTo('coaches')}>
             Coaches Corner
+          </button>
+          {/* Installed as an app there's no address bar to copy from, which is
+              exactly where a link to "the chapter we're doing today" is most
+              useful. This copies wherever you're standing. */}
+          <button
+            className={`nav-icon${linkCopied ? ' active' : ''}`}
+            title={`Copy a link to ${SECTION_LABEL[view] ?? 'this page'}`}
+            aria-label="Copy a link to this page"
+            onClick={async () => {
+              const url = window.location.href;
+              // Three goes, weakest excuse last. The async clipboard API is
+              // refused on an insecure origin and in some in-app browsers;
+              // execCommand still works in most of those; and if even that
+              // fails, show the link so it can be copied by hand rather than
+              // leaving a button that looks like it did nothing.
+              let ok = false;
+              try {
+                await navigator.clipboard.writeText(url);
+                ok = true;
+              } catch { /* try the old way */ }
+              if (!ok) {
+                try {
+                  const box = document.createElement('textarea');
+                  box.value = url;
+                  box.setAttribute('readonly', '');
+                  box.style.position = 'fixed';
+                  box.style.opacity = '0';
+                  document.body.appendChild(box);
+                  box.select();
+                  ok = document.execCommand('copy');
+                  document.body.removeChild(box);
+                } catch { ok = false; }
+              }
+              if (!ok) { window.prompt('Copy this link', url); return; }
+              setLinkCopied(true);
+              setTimeout(() => setLinkCopied(false), 1400);
+            }}
+          >
+            <LinkIcon size={17} />
           </button>
           <button
             className="nav-icon"
@@ -439,7 +526,7 @@ function AppInner() {
           onOpenStudio={openStudio}
         />
       )}
-      {view === 'settings' && <SettingsView />}
+      {view === 'settings' && <SettingsView tab={sub} onTabChange={setSub} />}
       <MigratePlayersModal />
 
       {searchOpen && (
@@ -455,6 +542,8 @@ function AppInner() {
           initialLine={analysisLine}
           initialLab={analysisLab}
           coachMode={coachStudio}
+          mode={sub}
+          onModeChange={setSub}
         />
       )}
     </>

@@ -85,7 +85,7 @@ const ARROW_COLORS = [
   'rgba(226, 142, 46, 0.85)', // amber
 ];
 
-export default function AnalysisView({ initialLine, initialLab, coachMode }) {
+export default function AnalysisView({ initialLine, initialLab, coachMode, mode: routeMode, onModeChange }) {
   const { state, dispatch } = useStore();
   // Nothing explicit was asked for — a blank "Analysis" open or a Coaches
   // Corner Studio session — so whatever was still on the board last time
@@ -95,7 +95,17 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
   const draft = (!initialLine && !initialLab && !window[RESUME_FLAG] && !wasExplicitReload())
     ? (state.analysisDraft ?? null) : null;
   window[RESUME_FLAG] = true;
-  const [mode, setMode] = useState('engine'); // 'engine' | 'compare'
+  // Seeded from the URL (/analysis/editor opens the editor) and reported back
+  // as it changes, so the address keeps up. Still local state: this view
+  // switches modes in a dozen places and none of them should have to know
+  // about routing.
+  const [mode, setMode] = useState(routeMode ?? 'engine'); // 'engine' | 'compare' | 'editor'
+  useEffect(() => { onModeChange?.(mode === 'engine' ? null : mode); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Back/forward moves the URL without touching this view, so follow it.
+  useEffect(() => {
+    const wanted = routeMode ?? 'engine';
+    if (wanted !== mode) setMode(wanted);
+  }, [routeMode]); // eslint-disable-line react-hooks/exhaustive-deps
   const [baseFen, setBaseFen] = useState(draft?.baseFen ?? initialLab?.baseFen ?? START_FEN);
   // The game is a tree: playing something else from an earlier move keeps what
   // came after as a variation. `head` is the move the board is sitting on.

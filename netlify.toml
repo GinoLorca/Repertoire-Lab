@@ -41,3 +41,13 @@
   for = "/manifest.webmanifest"
   [headers.values]
     Cache-Control = "no-cache"
+
+# Every address in the app is served by the same page — /analysis/editor and
+# /chapter/<ids> are routes React resolves, not files on disk. Without this a
+# cold visit to one (a link someone was sent, before the service worker
+# exists) would 404. Last in the file on purpose: it matches everything, and
+# Netlify takes the first rule that matches.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

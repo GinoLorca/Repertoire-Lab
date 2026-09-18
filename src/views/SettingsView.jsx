@@ -250,7 +250,7 @@ const SPEEDS = [
   ['slow', 'Slow', 'Time to talk a move through with a student before the reply'],
 ];
 
-export default function SettingsView() {
+export default function SettingsView({ tab: routeTab, onTabChange }) {
   const { state, dispatch } = useStore();
   const s = state.settings;
   const set = (settings) => dispatch({ type: 'setSettings', settings });
@@ -269,7 +269,14 @@ export default function SettingsView() {
   const speed = s.trainerSpeed ?? 'fast';
   const bgFileRef = useRef(null);
   const [bgError, setBgError] = useState(null);
-  const [tab, setTab] = useState('appearance');
+  // Same deal as Analysis's mode: the URL seeds it, changes are reported back,
+  // and back/forward is followed. /settings/themes opens on Themes.
+  const [tab, setTab] = useState(routeTab ?? 'appearance');
+  useEffect(() => { onTabChange?.(tab === 'appearance' ? null : tab); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const wanted = routeTab ?? 'appearance';
+    if (wanted !== tab) setTab(wanted);
+  }, [routeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="page">
