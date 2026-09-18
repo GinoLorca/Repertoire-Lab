@@ -1141,8 +1141,20 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   // Measured where possible; the window is the fallback for the first paint
   // (.page.wide is capped at 1360 and carries 24px of padding either side).
   const editorWidthCap = editorAvail || Math.min(1360, viewportWidth) - 48;
+  // Then eased back an eighth. Taking every pixel of height meant a board that
+  // ran past the bottom of the window by the height of the heading above it,
+  // so the last rank was always a scroll away; at 88% it lands inside the
+  // window on the same screens, heading and all, and still dwarfs Engine's.
+  // The width is deliberately NOT eased: on a phone, where the palette wraps
+  // underneath and the width is all there is, the board should still run the
+  // full width of the page — nobody there has height to spare either way.
+  const EDITOR_BOARD_EASE = 0.88;
   const editorBoardWidth = Math.floor(
-    Math.max(280, Math.min(boardWidth * EDITOR_BOARD_SCALE, editorHeightCap, editorWidthCap)) / 8,
+    Math.max(280, Math.min(
+      boardWidth * EDITOR_BOARD_SCALE * EDITOR_BOARD_EASE,
+      editorHeightCap * EDITOR_BOARD_EASE,
+      editorWidthCap,
+    )) / 8,
   ) * 8;
   const totals = explorer ? explorer.white + explorer.draws + explorer.black : 0;
 
