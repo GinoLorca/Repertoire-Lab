@@ -33,8 +33,17 @@ function Tick({ state, onChange, label, sub }) {
 // tree open, so it's one press to send — but narrowing to two chapters is
 // still just unticking the rest.
 export default function SendToStudent({
-  openings, from, student, savedScreenName, onSaveScreenName, onClose, preselectAll = false,
+  openings: allOpenings, from, student, savedScreenName, onSaveScreenName, onClose,
+  preselectAll = false,
 }) {
+  // An empty opening — no chapters, or chapters with no lines — has nothing to
+  // send. Ticking it would send a title and a student would get a notification
+  // for nothing, so it never reaches the list. Half-built courses and the
+  // odd stray one nobody remembers making both fall out here.
+  const openings = useMemo(
+    () => allOpenings.filter((o) => lineIdsUnder(o).length > 0),
+    [allOpenings],
+  );
   const [chosen, setChosen] = useState(
     () => new Set(preselectAll ? openings.flatMap(lineIdsUnder) : []),
   );

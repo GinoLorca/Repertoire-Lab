@@ -1088,6 +1088,27 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
     if (w < 900) return 'stacked';
     return isWide ? 'three-col' : 'two-col';
   }
+  // The editor's own page, measured. Its width is what the board actually has
+  // to fit in, and unlike the window it accounts for the page padding and for
+  // a scrollbar appearing — which narrows the page without firing a resize,
+  // so a board sized from the window is 15px too wide the moment it paints.
+  // Nothing here can feed back: .page is a plain block with a max-width, so a
+  // board too wide for it overflows rather than widening it.
+  const [editorPageEl, setEditorPageEl] = useState(null);
+  const [editorAvail, setEditorAvail] = useState(0);
+  useEffect(() => {
+    if (!editorPageEl || typeof ResizeObserver === 'undefined') return undefined;
+    const read = () => {
+      const pad = getComputedStyle(editorPageEl);
+      const sides = parseFloat(pad.paddingLeft) + parseFloat(pad.paddingRight);
+      setEditorAvail(Math.max(0, editorPageEl.clientWidth - sides));
+    };
+    const ro = new ResizeObserver(read);
+    ro.observe(editorPageEl);
+    read();
+    return () => ro.disconnect();
+  }, [editorPageEl]);
+
   // Keep the whole board on screen: the header, annotation bar and controls need
   // room too, so cap by height as well as width.
   // Header, the annotation bar, the hint line and the step controls all live
@@ -1104,16 +1125,24 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   const boardWidth = Math.floor(
     Math.max(280, Math.min(BOARD_MAX, colW || 520, heightCap, viewportWidth - 26)) / 8,
   ) * 8;
-  // The editor gets a quarter more board than Engine mode. It can afford it:
+  // The editor gets a much bigger board than Engine mode — it can afford it:
   // setting a position up by hand is the one job here that's all board, and
-  // the palette sits BESIDE it (.board-editor is a flex row) rather than under
-  // it, so the height left over isn't Engine mode's — reserving Engine's
-  // 290px of chrome below the board was clamping the extra quarter away
-  // before it could show. Once the palette does wrap underneath, at the
-  // narrower widths `tight` marks, Engine's budget is the right one again.
-  const editorHeightCap = tight ? heightCap : Math.max(320, winH - 210);
+  // the palette sits BESIDE it (.board-editor is a flex row, and it wraps the
+  // palette underneath on its own when the board no longer leaves it room).
+  const EDITOR_BOARD_SCALE = 1.625;
+  // Only the topbar is genuinely always in the way: it's `position: sticky`,
+  // so it stays, while the "Analysis" heading above the board scrolls away
+  // and never comes back until you scroll up. Reserving room for the heading
+  // and for Engine's controls — none of which sit under this board — was
+  // quietly clamping the editor down to roughly Engine's size on an iPad, so
+  // the extra never showed up where it was most wanted.
+  // 80 = the sticky topbar's 63px, plus a little air under the last rank.
+  const editorHeightCap = Math.max(360, winH - 80);
+  // Measured where possible; the window is the fallback for the first paint
+  // (.page.wide is capped at 1360 and carries 24px of padding either side).
+  const editorWidthCap = editorAvail || Math.min(1360, viewportWidth) - 48;
   const editorBoardWidth = Math.floor(
-    Math.max(280, Math.min(boardWidth * 1.25, editorHeightCap, viewportWidth - 26)) / 8,
+    Math.max(280, Math.min(boardWidth * EDITOR_BOARD_SCALE, editorHeightCap, editorWidthCap)) / 8,
   ) * 8;
   const totals = explorer ? explorer.white + explorer.draws + explorer.black : 0;
 
@@ -1135,7 +1164,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
 
   if (mode === 'editor') {
     return (
-      <div className="page wide">
+      <div className="page wide editor-page" ref={setEditorPageEl}>
         <div className="page-head">
           <h1>Analysis</h1>
           <div className="mode-tabs">
@@ -1145,7 +1174,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
           </div>
         </div>
         <BoardEditor
-          // A quarter larger than Engine mode's board — see editorBoardWidth.
+          // Well over half again Engine mode's board — see editorBoardWidth.
           // That width is derived from Engine's own measured column rather
           // than from BOARD_MAX, which is what keeps the two in proportion on
           // any given screen, Mac or iPad, instead of letting the editor grow

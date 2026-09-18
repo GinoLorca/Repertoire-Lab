@@ -287,7 +287,11 @@ function PlayerPage({
   const sendable = useMemo(() => {
     const theirs = myOpenings;
     const mine = state.openings.filter((o) => (o.ownerId ?? null) === null);
-    return [...theirs, ...mine];
+    // An opening with no lines in it can't be sent, so it shouldn't count
+    // towards whether there's anything to send.
+    return [...theirs, ...mine].filter(
+      (o) => o.chapters.some((c) => (c.variations ?? []).length > 0),
+    );
   }, [myOpenings, state.openings]);
   const viewingGame = player.games.find((g) => g.id === viewingGameId);
 

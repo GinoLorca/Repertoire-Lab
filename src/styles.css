@@ -2201,6 +2201,17 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 
 /* ---------- Board Editor ---------- */
 
+/* The editor's board is big enough to want every pixel of height it can get,
+   so the heading above it is kept as short as it can be without crowding the
+   mode tabs. Saves about 20px, which is 20px less scrolling to see rank 8. */
+.page.editor-page { padding-top: 14px; }
+.page.editor-page .page-head { margin-bottom: 12px; }
+/* On a phone the board is the page, and 24px of padding either side is 48px
+   of board given up for nothing. */
+@media (max-width: 560px) {
+  .page.editor-page { padding-left: 12px; padding-right: 12px; }
+}
+
 .board-editor { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
 .board-editor-board { flex-shrink: 0; }
 .board-editor-panel {

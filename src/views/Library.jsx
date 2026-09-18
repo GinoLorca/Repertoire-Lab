@@ -808,7 +808,9 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                   {me && (
                     <button
                       className="small ghost"
-                      disabled={opening.chapters.length === 0}
+                      // Chapters aren't enough — empty ones have nothing in
+                      // them to send.
+                      disabled={!opening.chapters.some((c) => c.variations.length > 0)}
                       title="Send this opening to a student's app"
                       onClick={() => setSending([opening])}
                     >
