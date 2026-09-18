@@ -8,7 +8,6 @@ import { processArtwork } from '../lib/artwork';
 import { useBackGuard } from '../lib/backGuard';
 import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import PgnImport from '../components/PgnImport';
-import MonsterAvatar from '../components/MonsterAvatar';
 import {
   ImageIcon, TagIcon, StarIcon, PencilIcon, ClockIcon, CheckIcon, DownloadIcon, UploadIcon, PlayIcon,
   UsersIcon,

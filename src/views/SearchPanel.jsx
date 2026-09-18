@@ -4,7 +4,7 @@ import { movetextToLines, validateLine } from '../lib/pgn';
 import { rankVariationsByMoves, moveLabel } from '../lib/repertoire';
 import MoveText from '../components/MoveText';
 import { TagChips } from '../components/TagEditor';
-import { SearchIcon, TagIcon, PawnIcon, StarIcon } from '../components/Icons';
+import { SearchIcon, PawnIcon, StarIcon } from '../components/Icons';
 import { useBackGuard } from '../lib/backGuard';
 
 // Case-insensitive subsequence match, so "advfr" finds "Advance French".

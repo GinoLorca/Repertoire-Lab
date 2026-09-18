@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useStore, uid } from '../store';
 import { ocrImage, textToLine } from '../lib/ocr';
 import { transcribeImages, prepareImage, testKey, friendlyError, isHeic } from '../lib/vision';
-import { movetextToLines, validateLine, splitPgnGames, movesToMovetext, variationToPgn, downloadText } from '../lib/pgn';
+import { movetextToLines, validateLine, splitPgnGames, variationToPgn, downloadText } from '../lib/pgn';
 import MoveText from '../components/MoveText';
 import ScanProgress from '../components/ScanProgress';
 import {

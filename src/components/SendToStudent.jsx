@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { findByScreenName } from '../lib/cloud/profile';
 import {
-  sendLines, describePayload, deliveryPayload, subsetOf, lineIdsUnder, tickState,
+  sendLines, describePayload, subsetOf, lineIdsUnder, tickState,
 } from '../lib/cloud/share';
 import { SendIcon, CheckIcon } from './Icons';
 

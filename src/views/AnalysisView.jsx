@@ -5,7 +5,6 @@ import { useStore, uid } from '../store';
 import { Engine, formatScore } from '../lib/engine';
 import { runGameReview } from '../lib/gameReview';
 import { fetchExplorer, explorerTotals, pct } from '../lib/explorer';
-import MoveText from '../components/MoveText';
 import { useViewportWidth } from '../components/useViewportWidth';
 import BoardArrows from '../components/BoardArrows';
 import CompareView from './CompareView';
@@ -70,7 +69,8 @@ function wasExplicitReload() {
   try {
     const [nav] = performance.getEntriesByType('navigation');
     if (nav) return nav.type === 'reload';
-    // eslint-disable-next-line deprecation/deprecation
+    // performance.navigation is deprecated, but it's the only reload signal
+    // old iOS Safari has, and that's exactly the browser this has to work in.
     return performance.navigation?.type === 1;
   } catch {
     return false;
@@ -153,7 +153,6 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   const [studyGames, setStudyGames] = useState(null); // entries from a fetched study, to pick a chapter from
   const [pgnText, setPgnText] = useState(''); // pasted PGN/movetext, loaded straight onto the board
   const [pgnOpen, setPgnOpen] = useState(false);
-  const [saveVarOpen, setSaveVarOpen] = useState(false);
   const engineRef = useRef(null);
   const viewportWidth = useViewportWidth();
 
@@ -1084,8 +1083,6 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
     return () => { clearTimeout(pending); ro.disconnect(); };
   }, [colEl]);
 
-  // Stacking is a coarse decision, so a stray 15px can't flip it.
-  const sideFits = viewportWidth >= 900;
   // eslint-disable-next-line no-inner-declarations
   function sideFitsFor(w, isWide) {
     if (w < 900) return 'stacked';

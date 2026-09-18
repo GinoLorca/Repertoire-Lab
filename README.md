@@ -60,5 +60,11 @@ file list into `sw.js`. Without it the shipped service worker throws on its
 first line and the old one keeps serving the old app — a broken deploy that
 looks fine in `dist/`.
 
+It also runs `npm run lint` first, and a lint error stops the build. The rules
+are deliberately narrow — undefined names and misused hooks, nothing about
+style — because those are the mistakes a bundler happily ships and the browser
+then turns into a blank page: a `useEffect` used without importing it took out
+Coaches Corner on every device at once, and the build was perfectly happy.
+
 `npm run zip` still produces `repertoire-lab-site.zip` for a hand-drop onto
 Netlify, as a fallback if a build ever needs to bypass Git.

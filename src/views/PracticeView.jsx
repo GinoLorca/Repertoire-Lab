@@ -20,8 +20,8 @@ import { badgeAt } from '../lib/badges';
 import BoardArrows from '../components/BoardArrows';
 import { useBackGuard } from '../lib/backGuard';
 import {
-  BookIcon, TagIcon, StarIcon, SoundOnIcon, SoundOffIcon, ClockIcon, CommentIcon,
-  SkipStartIcon, SkipEndIcon, PrevIcon, NextIcon, BulbIcon, TargetIcon, CheckIcon, AlertIcon,
+  BookIcon, TagIcon, StarIcon, SoundOnIcon, SoundOffIcon, ClockIcon,
+  SkipStartIcon, SkipEndIcon, PrevIcon, NextIcon, BulbIcon, CheckIcon, AlertIcon,
   PlayIcon, CapIcon, FolderIcon, MonitorIcon,
 } from '../components/Icons';
 import PlaylistPicker from '../components/PlaylistPicker';

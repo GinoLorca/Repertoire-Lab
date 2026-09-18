@@ -57,7 +57,9 @@ export default function GameEditor({ initial, state, player, onSave, onClose }) 
   const [round, setRound] = useState(m0.round ?? '');
   const [result, setResult] = useState(m0.result ?? '*');
   const [color, setColor] = useState(m0.color ?? 'white');
-  const [rating, setRating] = useState(player?.profile?.rating ?? '');
+  // Shown as it was when the game was played; editing it belongs on the
+  // player's own profile, not on one game.
+  const [rating] = useState(player?.profile?.rating ?? '');
   const [date, setDate] = useState(m0.date ?? todayIso());
   const [timeControl, setTimeControl] = useState(m0.timeControl ?? '');
   const [notes, setNotes] = useState(m0.notes ?? '');
