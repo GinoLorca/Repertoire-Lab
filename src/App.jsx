@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { StoreProvider, useStore } from './store';
-import { resolveTheme, applyTheme, applyBackground } from './lib/theme';
+import { resolveTheme, applyTheme, applyBackground, applySkin } from './lib/theme';
 import { runTopGuard } from './lib/backGuard';
 import Library from './views/Library';
 import ChapterView from './views/ChapterView';
@@ -41,15 +41,26 @@ function AppInner() {
 
   const themeSettings = state?.settings;
   useEffect(() => {
-    applyTheme(resolveTheme(themeSettings));
+    // The skin rides along with the palette: each one has a light and a dark
+    // face, so whatever flips light/dark has to repaint it too — including the
+    // once-a-minute tick that drives Auto.
+    const paint = () => {
+      const mode = resolveTheme(themeSettings);
+      applyTheme(mode);
+      applySkin(themeSettings, mode);
+    };
+    paint();
     if (themeSettings?.theme !== 'auto') return undefined;
-    const t = setInterval(() => applyTheme(resolveTheme(themeSettings)), 60000);
+    const t = setInterval(paint, 60000);
     return () => clearInterval(t);
-  }, [themeSettings?.theme, themeSettings?.lightFrom, themeSettings?.darkFrom]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [themeSettings?.theme, themeSettings?.lightFrom, themeSettings?.darkFrom, themeSettings?.skin, themeSettings?.skinWallpaper]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     applyBackground(themeSettings);
-  }, [themeSettings?.background, themeSettings?.backgroundVeil, themeSettings?.surfaceOpacity]); // eslint-disable-line react-hooks/exhaustive-deps
+    // `skin` is in here because the picture is per theme: changing theme
+    // changes which one is behind the app, or whether there's one at all.
+  }, [themeSettings?.background, themeSettings?.backgrounds, themeSettings?.skin,
+    themeSettings?.backgroundVeil, themeSettings?.surfaceOpacity, themeSettings?.boardOpacity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The phone's back gesture / Safari's back button.
   useEffect(() => {
@@ -181,7 +192,12 @@ function AppInner() {
     });
   };
 
-  const analyze = (line) => {
+  // `studio`: open straight into the Annotate tab (badges/notes) instead of
+  // Engine — used by "Send to studio" on a saved game, so its gameId/playerId
+  // below are what let the badges and notes picked there sync straight onto
+  // that game's own record (see syncGameMove in AnalysisView), the same way
+  // Coaches Corner's Studio already does for a student's line.
+  const analyze = (line, { studio = false } = {}) => {
     go(() => {
       // Carry whatever context came with it — a game brings its players,
       // result and opening so the analysis board can say what it's showing.
@@ -191,7 +207,7 @@ function AppInner() {
       // line or a blank board) let the board edit that game's notes/themes
       // in place instead of just displaying a snapshot of them.
       setAnalysisLab(null);
-      setCoachStudio(false);
+      setCoachStudio(studio);
       setAnalysisLine({
         name: line.name,
         moves: line.moves,
@@ -207,10 +223,24 @@ function AppInner() {
         // up: the board itself always knew how to display them.
         comments: line.comments ?? null,
         badges: line.badges ?? null,
+        // Arrows/highlights saved from a previous Studio "Save changes" —
+        // see AnalysisView's annotations state.
+        annotations: line.annotations ?? null,
+        // The full move tree and any coloured variations on it, if a
+        // previous Studio "Save changes" left them on this game — see
+        // setGameTree in store.jsx. Absent for every other line (a
+        // repertoire variation, a blank board), which rebuild a flat trunk
+        // from `moves` instead.
+        tree: line.tree ?? null,
+        variationHighlights: line.variationHighlights ?? null,
       });
       setView('analysis');
     });
   };
+
+  // Same line, opened straight into Studio's Annotate tab — "Send to
+  // studio" on a saved game, next to the ordinary "Send to analysis board".
+  const analyzeInStudio = (line) => analyze(line, { studio: true });
 
   // Reopen a saved Lab session: its own moves, marks and notes, and no
   // repertoire line underneath it.
@@ -396,10 +426,13 @@ function AppInner() {
           onAnalyze={analyze}
         />
       )}
-      {view === 'games' && <GamesView onAnalyze={analyze} onScan={scanPhoto} />}
+      {view === 'games' && (
+        <GamesView onAnalyze={analyze} onGameStudio={analyzeInStudio} onScan={scanPhoto} />
+      )}
       {view === 'coaches' && (
         <CoachesView
           onAnalyze={analyze}
+          onGameStudio={analyzeInStudio}
           onScan={scanPhoto}
           onOpenLibrary={openLibraryFor}
           onOpenCollections={openCollectionsFor}

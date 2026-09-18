@@ -23,9 +23,13 @@ export default function BoardArrows({ arrows, boardWidth, orientation }) {
   const size = boardWidth / 8;
   const centre = (c) => ({ x: (c.x + 0.5) * size, y: (c.y + 0.5) * size });
 
-  const shaft = size * 0.26;   // thickness of the line
-  const headLen = size * 0.44; // length of the arrowhead
-  const headHalf = size * 0.34; // half-width of the arrowhead
+  // Proportions lifted from chess.com's own arrow polygons, in square-units:
+  // a slim shaft, a modest head, the tip landing dead on the target square's
+  // centre and the tail starting well clear of the piece it comes from.
+  const shaft = size * 0.22;    // thickness of the line
+  const headLen = size * 0.36;  // length of the arrowhead
+  const headHalf = size * 0.26; // half-width of the arrowhead
+  const tailInset = size * 0.36; // how far up the first leg the shaft begins
 
   return (
     <svg
@@ -62,18 +66,25 @@ export default function BoardArrows({ arrows, boardWidth, orientation }) {
         const ux = vx / len;
         const uy = vy / len;
 
-        // Stop the shaft where the head begins, and inset the tail slightly so
-        // the arrow doesn't smother the piece it starts from.
-        const tipX = end.x - ux * (size * 0.08);
-        const tipY = end.y - uy * (size * 0.08);
-        const baseX = tipX - ux * headLen;
-        const baseY = tipY - uy * headLen;
+        // Walk the tail up the *first* leg — the one leaving the origin — so
+        // the arrow clears the piece it starts from without shifting the bend.
+        const legTo = corner ?? end;
+        const tx = legTo.x - start.x;
+        const ty = legTo.y - start.y;
+        const tlen = Math.hypot(tx, ty) || 1;
+        const tailX = start.x + (tx / tlen) * tailInset;
+        const tailY = start.y + (ty / tlen) * tailInset;
+
+        // The tip sits on the target's centre; the shaft stops where the head
+        // begins.
+        const baseX = end.x - ux * headLen;
+        const baseY = end.y - uy * headLen;
         const px = -uy;
         const py = ux;
 
         const points = corner
-          ? `${start.x},${start.y} ${corner.x},${corner.y} ${baseX},${baseY}`
-          : `${start.x},${start.y} ${baseX},${baseY}`;
+          ? `${tailX},${tailY} ${corner.x},${corner.y} ${baseX},${baseY}`
+          : `${tailX},${tailY} ${baseX},${baseY}`;
 
         return (
           <g key={`${from}-${to}-${i}`} opacity="0.85">
@@ -86,7 +97,7 @@ export default function BoardArrows({ arrows, boardWidth, orientation }) {
               strokeLinejoin="miter"
             />
             <polygon
-              points={`${tipX},${tipY} ${baseX + px * headHalf},${baseY + py * headHalf} ${baseX - px * headHalf},${baseY - py * headHalf}`}
+              points={`${end.x},${end.y} ${baseX + px * headHalf},${baseY + py * headHalf} ${baseX - px * headHalf},${baseY - py * headHalf}`}
               fill={stroke}
             />
           </g>

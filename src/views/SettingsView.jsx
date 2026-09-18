@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import SoundsSection from './SoundsView';
-import { resolveTheme, themeForHour } from '../lib/theme';
+import { resolveTheme, themeForHour, backgroundFor } from '../lib/theme';
+import { SKINS, SKIN_ORDER, CUSTOM_SKIN, skinId } from '../lib/skins';
 import { processBackground } from '../lib/background';
 import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
 import { DEFAULT_SQUARE_LIGHT, DEFAULT_SQUARE_DARK } from '../components/Board';
 import {
   PENS, SHORTCUTS, shortcutKey, formatShortcutKey, isPenShortcut, modifierToken, MODIFIER_ORDER,
+  eventKey,
 } from '../lib/shortcuts';
 
 function Toggle({ label, hint, on, onChange }) {
@@ -43,6 +45,7 @@ function Section({ id, tab, title, hint, children }) {
 
 const TABS = [
   ['appearance', 'Appearance'],
+  ['themes', 'Themes'],
   ['board', 'The board'],
   ['trainer', 'Move trainer'],
   ['analysis', 'Analysis board'],
@@ -87,8 +90,12 @@ function ShortcutEditor({ settings, set }) {
       const mod = modifierToken(e.key);
       if (mod && comboCapable) { heldMods.add(mod); maxCombo.add(mod); return; }
       if (e.metaKey || e.ctrlKey || e.altKey) return; // wait for the plain key (or a release, for a combo)
-      if (e.key.length !== 1) return; // named keys (Tab, F5, …) aren't bindable
-      finalize(e.key.toLowerCase());
+      // Via eventKey so a numpad digit binds as its printed digit rather than
+      // as whatever Num Lock makes it report — without it, pressing numpad 1
+      // here arrives as 'End' and gets rejected below as unbindable.
+      const key = eventKey(e);
+      if (key.length !== 1) return; // named keys (Tab, F5, …) aren't bindable
+      finalize(key.toLowerCase());
     };
 
     const onKeyUp = (e) => {
@@ -193,6 +200,35 @@ function BoardPreview({ squareLight, squareDark, pieceLight, pieceDark }) {
   );
 }
 
+// A theme card: the palette's own chrome behind a four-square corner of its
+// board, so each one is judged on what it actually looks like rather than on
+// its name. Painted from the skin's tokens directly instead of from the live
+// page, which is the only way to show five themes at once.
+function SkinCard({ skin, mode, active, onPick }) {
+  const p = skin[mode] ?? skin.dark;
+  return (
+    <button
+      className={`skin-card${active ? ' active' : ''}`}
+      style={{ background: p['--panel'], borderColor: active ? p['--accent'] : p['--border'] }}
+      onClick={onPick}
+    >
+      <BoardPreview
+        squareLight={p.boardLight}
+        squareDark={p.boardDark}
+        pieceLight={p.pieceLight}
+        pieceDark={p.pieceDark}
+      />
+      <span className="skin-name" style={{ color: p['--text'] }}>{skin.name}</span>
+      <span className="skin-blurb" style={{ color: p['--muted'] }}>{skin.blurb}</span>
+      <span className="skin-chips" aria-hidden="true">
+        {['--bg', '--card', '--accent', '--green', '--red'].map((t) => (
+          <span key={t} className="skin-chip" style={{ background: p[t] }} />
+        ))}
+      </span>
+    </button>
+  );
+}
+
 const BOARD_PRESETS = [
   { name: 'Default', light: DEFAULT_SQUARE_LIGHT, dark: DEFAULT_SQUARE_DARK, pw: '#ffffff', pb: '#000000' },
   { name: 'Green', light: '#eeeed2', dark: '#769656', pw: '#ffffff', pb: '#000000' },
@@ -219,6 +255,17 @@ export default function SettingsView() {
   const s = state.settings;
   const set = (settings) => dispatch({ type: 'setSettings', settings });
   const active = resolveTheme(s);
+  const currentSkin = skinId(s);
+  const skinName = currentSkin === 'custom' ? CUSTOM_SKIN.name : SKINS[currentSkin].name;
+  // The picture belongs to the theme that's on, so a theme change is a
+  // wallpaper change — see backgroundFor in lib/theme.
+  const bgImage = backgroundFor(s);
+  const setBackground = (url) => set({
+    backgrounds: { ...(s.backgrounds ?? {}), [currentSkin]: url },
+    // The single pre-per-theme picture was Custom's; once Custom has a real
+    // entry the old key is dead weight, and it's the largest thing in here.
+    ...(currentSkin === 'custom' ? { background: null } : {}),
+  });
   const speed = s.trainerSpeed ?? 'fast';
   const bgFileRef = useRef(null);
   const [bgError, setBgError] = useState(null);
@@ -282,18 +329,20 @@ export default function SettingsView() {
         )}
 
         <div className="settings-row" style={{ marginTop: 18 }}>
-          <span><strong>Background picture</strong></span>
+          <span><strong>Background picture for {skinName}</strong></span>
         </div>
-        {s.background && (
-          <div className="bg-preview" style={{ backgroundImage: `url("${s.background}")` }} />
+        {bgImage && (
+          <div className="bg-preview" style={{ backgroundImage: `url("${bgImage}")` }} />
         )}
         {bgError && <p className="hint" style={{ color: 'var(--red)' }}>{bgError}</p>}
         <p className="hint">
-          Your own image behind the app. It's stored on this device and travels in a Backup, so keep
+          Your own image behind the app, kept <strong>per theme</strong> — this one belongs to{' '}
+          <strong>{skinName}</strong>, and each theme shows its own (or the wallpaper it came with,
+          if you haven't given it one). It's stored on this device and travels in a Backup, so keep
           an eye on the file size — it's shrunk to 2560px and re-encoded, but a picture is still far
           bigger than the rest of your settings put together.
         </p>
-        {s.background && (
+        {bgImage && (
           <>
             <div className="bg-veil-row">
               <span className="muted-note" title="How much of the theme colour is laid over the picture">
@@ -344,12 +393,12 @@ export default function SettingsView() {
         )}
         <div className="settings-row">
           <button className="small" onClick={() => bgFileRef.current?.click()}>
-            {s.background ? 'Replace picture' : 'Choose a picture'}
+            {bgImage ? 'Replace picture' : 'Choose a picture'}
           </button>
-          {s.background && (
+          {bgImage && (
             <button
               className="small ghost danger"
-              onClick={() => { setBgError(null); set({ background: null }); }}
+              onClick={() => { setBgError(null); setBackground(null); }}
             >
               Remove
             </button>
@@ -365,7 +414,7 @@ export default function SettingsView() {
               if (!file) return;
               setBgError(null);
               try {
-                set({ background: await processBackground(file) });
+                setBackground(await processBackground(file));
               } catch (err) {
                 setBgError(err.message);
               }
@@ -374,8 +423,79 @@ export default function SettingsView() {
         </div>
       </Section>
 
+      <Section
+        id="themes"
+        tab={tab}
+        title="Themes"
+        hint="The whole app’s palette — chrome, board and pieces together"
+      >
+        <p className="hint">
+          The themes from <strong>Chess Arcade</strong>, brought across whole. Each one has a light
+          and a dark face, so Dark / Light / Auto in Appearance still does its job — it just does it
+          in the theme you pick here. Showing the <strong>{active}</strong> face below.
+        </p>
+        <div className="skin-grid">
+          {SKIN_ORDER.map((id) => (
+            <SkinCard
+              key={id}
+              skin={SKINS[id]}
+              mode={active}
+              active={currentSkin === id}
+              onPick={() => set({ skin: id })}
+            />
+          ))}
+          {/* Custom is the app's own palette — the one that was here before
+              any of these existed. It paints nothing, which is exactly why
+              an existing setup lands on it and looks untouched. */}
+          <button
+            className={`skin-card${currentSkin === 'custom' ? ' active' : ''}`}
+            onClick={() => set({ skin: 'custom' })}
+          >
+            <BoardPreview
+              squareLight={s.squareLight ?? DEFAULT_SQUARE_LIGHT}
+              squareDark={s.squareDark ?? DEFAULT_SQUARE_DARK}
+              pieceLight={s.pieceLight ?? DEFAULT_PIECE_LIGHT}
+              pieceDark={s.pieceDark ?? DEFAULT_PIECE_DARK}
+            />
+            <span className="skin-name">{CUSTOM_SKIN.name}</span>
+            <span className="skin-blurb">{CUSTOM_SKIN.blurb}</span>
+            <span className="skin-chips" aria-hidden="true">
+              {['--bg', '--card', '--accent', '--green', '--red'].map((t) => (
+                <span
+                  key={t}
+                  className="skin-chip"
+                  style={{ background: (CUSTOM_SKIN[active] ?? CUSTOM_SKIN.dark)[t] }}
+                />
+              ))}
+            </span>
+          </button>
+        </div>
+        {currentSkin !== 'custom' && (
+          <Toggle
+            label="Theme wallpaper"
+            hint={'The page background that came with the theme — Tournament Felt\u2019s baize, '
+              + 'Hustler\u2019s stone floor, Outer Space\u2019s stars, and the artwork Bauhaus and '
+              + 'Game Boy ship with. Your own background picture, if you set one, wins over it either way.'}
+            on={s.skinWallpaper !== false}
+            onChange={(v) => set({ skinWallpaper: v })}
+          />
+        )}
+        <p className="hint">
+          {currentSkin === 'custom'
+            ? 'Custom is on — the colours in The board are the ones in use, and your background picture sits behind them.'
+            : `${SKINS[currentSkin].name} brings its own board and pieces, so the colours in The board are set aside while it's on. Switch back to Custom to use them again.`}
+        </p>
+      </Section>
+
       <Section id="board" tab={tab} title="The board" hint="Everywhere a board appears">
         <div className="settings-row"><span><strong>Colours</strong></span></div>
+        {currentSkin !== 'custom' && (
+          <p className="hint">
+            <strong>{SKINS[currentSkin].name}</strong> is painting the board at the moment, so these
+            are on hold — they're kept, not lost, and come back the moment you choose Custom in
+            Themes.
+          </p>
+        )}
         <div className="board-colours">
           <BoardPreview
             squareLight={s.squareLight ?? DEFAULT_SQUARE_LIGHT}

@@ -2,3 +2,7 @@ node_modules
 dist
 .DS_Store
 repertoire-lab-site.zip
+# Scratch folder from an old cleanup — nothing in it belongs in the repo.
+_to_delete
+# Per-machine Claude Code permissions; launch.json (the dev server) is shared.
+.claude/settings.local.json

@@ -2,7 +2,7 @@ import React from 'react';
 import PlayerRoster from '../components/PlayerRoster';
 
 // Your own games — students live in the Coaches tab instead.
-export default function GamesView({ onAnalyze, onScan }) {
+export default function GamesView({ onAnalyze, onGameStudio, onScan }) {
   return (
     <PlayerRoster
       kind="self"
@@ -12,6 +12,7 @@ export default function GamesView({ onAnalyze, onScan }) {
       addLabel="+ Add section"
       emptyLabel='No sections yet. Add one to get started — e.g. "My games".'
       onAnalyze={onAnalyze}
+      onGameStudio={onGameStudio}
       onScan={onScan}
     />
   );

@@ -8,6 +8,7 @@ import {
   START_MAP, fenToBoardMap, fenMeta, boardMapToFen, PRESETS,
 } from '../lib/boardEditor';
 import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
+import { boardColors } from '../lib/theme';
 import { shortcutMap } from '../lib/shortcuts';
 import { MonitorIcon, ShuffleIcon } from './Icons';
 
@@ -103,8 +104,9 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [keyMap]);
 
-  const pieceLight = state.settings.pieceLight ?? DEFAULT_PIECE_LIGHT;
-  const pieceDark = state.settings.pieceDark ?? DEFAULT_PIECE_DARK;
+  const chosenColors = boardColors(state.settings);
+  const pieceLight = chosenColors.pieceLight ?? DEFAULT_PIECE_LIGHT;
+  const pieceDark = chosenColors.pieceDark ?? DEFAULT_PIECE_DARK;
   const pieces = useMemo(() => makePieces(pieceLight, pieceDark), [pieceLight, pieceDark]);
 
   const fen = useMemo(
@@ -263,6 +265,10 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
           // sliding between them, animating a piece across the board that
           // was never actually there. Instant placement sidesteps that.
           animationDuration={0}
+          // Setting a position up isn't analysis — no arrows to draw here, and
+          // the overlay's pointer handling would only get in the way of
+          // dragging pieces off the board.
+          ownArrows={false}
           boardWidth={boardWidth}
         />
       </div>

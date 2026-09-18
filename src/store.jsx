@@ -53,7 +53,17 @@ export const DEFAULT_SETTINGS = {
   engineAuto: true, // start Stockfish as soon as the analysis board opens
   bookMoves: true, // your own lines shown above the engine's on the board
   theme: 'dark', // 'dark' | 'light' | 'auto' (auto follows the time of day)
-  background: null, // your own picture behind the app, as a data URL
+  // Which palette the whole app wears — a Chess Arcade skin, or 'custom' for
+  // this app's own colours plus whatever's set below. 'custom' is the default
+  // and is also what a settings file saved before skins existed resolves to,
+  // so an update changes nobody's colours until they ask for it.
+  skin: 'custom',
+  skinWallpaper: true, // the chosen theme's own page background, behind everything
+  // Your own picture behind the app, as a data URL, keyed by theme — each
+  // theme shows its own, or the wallpaper it shipped with. `background` below
+  // is the single pre-per-theme picture, read as Custom's; see backgroundFor.
+  backgrounds: {},
+  background: null,
   backgroundVeil: 70, // how much of the theme colour is laid over it, 0–95%
   surfaceOpacity: 100, // how solid cards and panels are over that picture, 40–100%
   boardOpacity: 100, // …and the board itself, on its own control
@@ -741,6 +751,37 @@ function reducer(state, action) {
       return mapPlayer(state, action.playerId, (p) => ({
         ...p,
         games: p.games.map((g) => (g.id === action.gameId ? { ...g, badges: action.badges } : g)),
+      }));
+    // The whole comment map in one go — "Save changes" in Studio, alongside
+    // setGameBadges above, rather than one dispatch per note.
+    case 'setGameComments':
+      return mapPlayer(state, action.playerId, (p) => ({
+        ...p,
+        games: p.games.map((g) => (g.id === action.gameId ? { ...g, comments: action.comments } : g)),
+      }));
+    // Arrows and square highlights drawn on the board, keyed by FEN the same
+    // way a Lab entry's are — a game had nowhere to keep these until "Save
+    // changes" gave it one.
+    case 'setGameAnnotations':
+      return mapPlayer(state, action.playerId, (p) => ({
+        ...p,
+        games: p.games.map((g) => (g.id === action.gameId ? { ...g, annotations: action.annotations } : g)),
+      }));
+    // The full move tree, alongside the flat `moves` every other feature
+    // (the card preview, opening match, VariationViewer) already relies on —
+    // this is purely additive, so it's the one thing "Save changes" writes
+    // that nothing but Studio itself ever reads back. Set only once a game
+    // actually has a variation worth keeping: without it, reopening in
+    // Studio just rebuilds a trunk-only tree from `moves` as it always has.
+    // variationHighlights rides along on the same dispatch since a
+    // highlighted branch is meaningless without the tree it points into —
+    // saving one without the other would leave them able to drift apart.
+    case 'setGameTree':
+      return mapPlayer(state, action.playerId, (p) => ({
+        ...p,
+        games: p.games.map((g) => (g.id === action.gameId
+          ? { ...g, tree: action.tree, variationHighlights: action.variationHighlights }
+          : g)),
       }));
     case 'setGameFlags':
       return mapPlayer(state, action.playerId, (p) => ({

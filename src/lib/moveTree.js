@@ -156,3 +156,62 @@ export function isMainLine(root, id) {
   }
   return false;
 }
+
+// The variation `id` belongs to, at its topmost level — the first node on
+// the way there (walking down from the root) that isn't its parent's main
+// continuation, i.e. where this line first diverges from whatever it
+// branched off of. A highlight always lives on this id, never on some node
+// deeper inside the branch, so "the whole row" has one consistent owner
+// regardless of which move within it was actually clicked or is current.
+// Returns null for a node that's on the main line the entire way — there's
+// no variation there to highlight.
+export function branchRootOf(root, id) {
+  const trail = nodePath(root, id);
+  let parent = root;
+  for (const node of trail) {
+    const i = parent.children.findIndex((c) => c.id === node.id);
+    if (i > 0) return node.id;
+    parent = node;
+  }
+  return null;
+}
+
+// "Back to the main game" from anywhere — including several variations deep,
+// or inside a variation-of-a-variation, where stepping out with ← one move
+// at a time gets tedious. Walks the same root→id path branchRootOf does, but
+// stops one node earlier: at the last one still on the trunk, right before
+// the first divergence, rather than at the divergence itself. A node that
+// was on the main line the whole way (branchRootOf would return null) just
+// returns its own id back — already on the trunk, nowhere to jump to.
+export function lastMainLineAncestor(root, id) {
+  const trail = nodePath(root, id);
+  let parent = root;
+  let last = root;
+  for (const node of trail) {
+    const i = parent.children.findIndex((c) => c.id === node.id);
+    if (i > 0) break;
+    last = node;
+    parent = node;
+  }
+  return last.id;
+}
+
+// The alternatives on offer from where the board is standing — "instead of
+// this, I could have played…" — in a stable order, so the 1st is always the
+// 1st however you arrived. Always children[1..] of the relevant branch
+// point, never children[0]: that first child IS the continuation being
+// offered alternatives TO, not an alternative to itself.
+//
+// Which node is the branch point depends on where `id` sits, and both cases
+// have to work because both are places you naturally stand:
+//   - On the blundered move itself (its parent already holds the
+//     alternatives as siblings) — parent is the branch point.
+//   - On the move just BEFORE it, having stepped up to the decision — the
+//     alternatives hang off `id` itself, so it is the branch point.
+export function alternativesAt(root, id) {
+  const trail = nodePath(root, id);
+  const node = trail.length > 0 ? trail[trail.length - 1] : root;
+  const parent = trail.length > 1 ? trail[trail.length - 2] : root;
+  const branchPoint = (parent.children ?? []).length > 1 ? parent : node;
+  return (branchPoint.children ?? []).slice(1);
+}

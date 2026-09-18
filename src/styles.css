@@ -608,7 +608,16 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .variation-moves .mvnum { color: var(--muted); font-weight: 400; margin-right: 1px; }
 .variation-moves .mv { margin-right: 6px; }
 .variation-moves:hover { color: var(--accent); }
-.variation-row .row-foot { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 10px; }
+/* GameRow's own .row-foot (src/components/PlayerRoster.jsx) has the same
+   note-then-spacer-then-button shape but sits under .game-card, not
+   .variation-row — without this it had no flex layout of its own at all, so
+   the flex:1 spacer between the note and the button did nothing and a long
+   note ran straight into "Send to analysis board". flex-wrap so the button(s)
+   drop to their own line rather than the note text getting squeezed thin. */
+.variation-row .row-foot, .game-card .row-foot {
+  display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap;
+}
+.game-card .row-foot .gi-peek { flex: 1 1 220px; min-width: 0; }
 .learn-btn { position: relative; padding: 8px 22px; font-weight: 600; }
 .learn-btn .badge {
   position: absolute; top: -9px; right: -9px;
@@ -1405,7 +1414,445 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .tag-add-row { display: flex; gap: 8px; align-items: center; }
 .tag-add-row input { flex: 1; }
 .viewer-title { display: flex; align-items: center; gap: 8px; }
+/* Stepping between the chapter's lines, above the title — deliberately not
+   beside the move controls under the board, so "next line" is never mistaken
+   for "next move". */
+.viewer-pager {
+  display: flex; align-items: center; gap: 8px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.viewer-pager button {
+  min-width: 34px; min-height: 30px; padding: 0 8px;
+  display: flex; align-items: center; justify-content: center;
+}
 .tag-count { opacity: 0.65; font-size: 11px; }
+
+/* ---------- Theme typography and shapes (Chess Arcade) ---------- */
+
+/* The last of what a theme is: its face and its corners. Chess Arcade pulls
+   these from Google Fonts at runtime; they're self-hosted here (latin only,
+   116KB for all six files) because this app is offline-first — a theme that
+   loses its lettering on a plane isn't the theme.
+   
+   Each is applied where it does the work and nowhere else. Press Start 2P in
+   particular is enormous per nominal pixel, so it's scaled down wherever it
+   lands rather than let loose at heading sizes. */
+
+@font-face {
+  font-family: 'Press Start 2P'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('/fonts/press-start-2p-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Bebas Neue'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('/fonts/bebas-neue-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Jost'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('/fonts/jost-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Jost'; font-style: normal; font-weight: 500; font-display: swap;
+  src: url('/fonts/jost-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Jost'; font-style: normal; font-weight: 600; font-display: swap;
+  src: url('/fonts/jost-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Jost'; font-style: normal; font-weight: 700; font-display: swap;
+  src: url('/fonts/jost-700.woff2') format('woff2');
+}
+
+/* --- Bauhaus: Jost throughout, the closest available face to the geometric
+       sans the school itself drew. Hard black rules, square corners, and a
+       heavier border than the rest of the app carries. --- */
+:root[data-skin="bauhaus"] body { font-family: 'Jost', system-ui, sans-serif; }
+:root[data-skin="bauhaus"] { --radius: 0px; }
+:root[data-skin="bauhaus"] .card,
+:root[data-skin="bauhaus"] .panel,
+:root[data-skin="bauhaus"] .chapter-card,
+:root[data-skin="bauhaus"] .variation-row,
+:root[data-skin="bauhaus"] .scope-card,
+:root[data-skin="bauhaus"] .opening-row,
+:root[data-skin="bauhaus"] .game-card,
+:root[data-skin="bauhaus"] .settings-section,
+:root[data-skin="bauhaus"] .modal,
+:root[data-skin="bauhaus"] .viewer-panel,
+:root[data-skin="bauhaus"] .skin-card { border-radius: 0; border-width: 2px; }
+:root[data-skin="bauhaus"] button,
+:root[data-skin="bauhaus"] input,
+:root[data-skin="bauhaus"] select,
+:root[data-skin="bauhaus"] textarea { border-radius: 0; }
+
+/* --- Game Boy: the DMG's own pixel face on the chrome that shouts — the
+       wordmark, page titles and section headings — at 0.62em, since Press
+       Start 2P's glyphs run far wider and heavier per pixel than the stack
+       they replace. Soft plastic corners everywhere else. --- */
+:root[data-skin="gameboy"] .topbar .logo,
+:root[data-skin="gameboy"] .page-head h1,
+:root[data-skin="gameboy"] .settings-head h2 {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+/* Sized one by one rather than with an em factor: em resolves against the
+   parent, which put the wordmark at 9px. These are the DMG's own proportions
+   for each spot — a pixel face is meant to be small, just not that small. */
+:root[data-skin="gameboy"] .topbar .logo { font-size: 12px; }
+:root[data-skin="gameboy"] .page-head h1 { font-size: 15px; }
+:root[data-skin="gameboy"] .settings-head h2 { font-size: 12px; }
+:root[data-skin="gameboy"] { --radius: 10px; }
+:root[data-skin="gameboy"] button,
+:root[data-skin="gameboy"] input,
+:root[data-skin="gameboy"] select,
+:root[data-skin="gameboy"] textarea { border-radius: 8px; }
+
+/* --- Outer Space: Bebas Neue on the same chrome — a tall condensed caps face,
+       which is the title-card lettering the palette came from. Tight corners,
+       closer to a HUD panel than a card. --- */
+:root[data-skin="outerspace"] .topbar .logo,
+:root[data-skin="outerspace"] .page-head h1,
+:root[data-skin="outerspace"] .settings-head h2 {
+  font-family: 'Bebas Neue', 'Oswald', system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  font-weight: 400;
+}
+:root[data-skin="outerspace"] .page-head h1 { font-size: 30px; }
+:root[data-skin="outerspace"] { --radius: 6px; }
+:root[data-skin="outerspace"] button,
+:root[data-skin="outerspace"] input,
+:root[data-skin="outerspace"] select,
+:root[data-skin="outerspace"] textarea { border-radius: 3px; }
+
+/* --- Hustler: no face of its own in Chess Arcade either — the stone does the
+       talking. Just the tighter corners of a cut slab. --- */
+:root[data-skin="hustler"] { --radius: 5px; }
+:root[data-skin="hustler"] button,
+:root[data-skin="hustler"] input,
+:root[data-skin="hustler"] select,
+:root[data-skin="hustler"] textarea { border-radius: 4px; }
+
+/* ---------- Theme board textures and piece treatments (Chess Arcade) ---------- */
+
+/* The other half of what makes these themes themselves: the board surface and
+   what the pieces are lit by. Chess Arcade hangs these on its own .sq.light /
+   .sq.dark and .piece-wrap svg; react-chessboard gives us the same two hooks
+   under different names — [data-square-color] on each square (white = light,
+   black = dark) and [data-piece] around each piece's svg.
+   
+   The square's own colour is an inline background-color from the board's
+   theme props, and these rules only add background-image on top, so the two
+   never fight. Square highlights live on a child element, so a texture here
+   sits under a last-move wash or a picked-square tint rather than over it. */
+
+/* --- Game Boy: individual LCD sub-pixels, on a grid fine enough to read as
+       screen texture rather than a pattern stamp. The pieces go through the
+       DMG's own duotone — one green, two values. --- */
+:root[data-skin="gameboy"] { --dmg-dot-a: rgba(0, 0, 0, 0.22); --dmg-dot-b: rgba(255, 255, 255, 0.05); }
+:root[data-skin="gameboy"][data-theme="light"] {
+  --dmg-dot-a: rgba(15, 56, 15, 0.14);
+  --dmg-dot-b: rgba(255, 255, 255, 0.16);
+}
+:root[data-skin="gameboy"] [data-square-color="white"] {
+  background-image: radial-gradient(circle at 50% 50%, var(--dmg-dot-a) 0 1px, transparent 1.2px);
+  background-size: 4px 4px;
+}
+:root[data-skin="gameboy"] [data-square-color="black"] {
+  background-image: radial-gradient(circle at 50% 50%, var(--dmg-dot-b) 0 1px, transparent 1.2px);
+  background-size: 4px 4px;
+}
+:root[data-skin="gameboy"] [data-piece] svg {
+  filter: sepia(1) saturate(6) hue-rotate(45deg) brightness(0.75) contrast(1.1);
+}
+
+/* --- Outer Space: the board is the bounty computer's screen, not a physical
+       set — dark squares are unlit glass under a warm bloom, light squares the
+       amber phosphor, both behind scanlines. Pieces are warmed rather than
+       hue-rotated (white stays white, black stays black) and ringed in the
+       skin's cyan by a stacked drop-shadow pair: a tight core and a soft
+       bloom, which silhouettes the rendered shape itself and so reads on
+       either square colour. --- */
+:root[data-skin="outerspace"] { --scan-line: rgba(0, 0, 0, 0.22); --skin-focus: #5eead4; }
+:root[data-skin="outerspace"][data-theme="light"] { --scan-line: rgba(0, 0, 0, 0.16); --skin-focus: #4fd6c4; }
+:root[data-skin="outerspace"] [data-square-color="white"] {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.12), transparent 40%),
+    repeating-linear-gradient(0deg, var(--scan-line) 0 1px, transparent 1px 3px);
+}
+:root[data-skin="outerspace"] [data-square-color="black"] {
+  background-image:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255, 90, 54, 0.1), transparent 70%),
+    repeating-linear-gradient(0deg, var(--scan-line) 0 1px, transparent 1px 3px);
+}
+:root[data-skin="outerspace"] [data-piece] svg {
+  filter: sepia(0.3) saturate(1.5) hue-rotate(-6deg) contrast(1.1) brightness(1.03)
+    drop-shadow(0 0 2px var(--skin-focus)) drop-shadow(0 0 5px var(--skin-focus));
+}
+
+/* --- Hustler: quarried black-and-white marble, not painted squares — an SVG
+       vein texture (feTurbulence bending straight lines into branching cracks)
+       stretched to fill each square exactly, so it never tiles visibly at any
+       board size. Every square of a colour shares the art, which reads as one
+       slab rather than as a repeat. Pieces go nearly monochrome to match. --- */
+:root[data-skin="hustler"] [data-square-color="white"] {
+  background-image:
+    radial-gradient(ellipse 62% 46% at 24% 28%, rgba(90,132,108,.16), transparent 72%),
+      radial-gradient(ellipse 52% 42% at 76% 74%, rgba(90,132,108,.12), transparent 74%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='hlv'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.05' numOctaves='3' seed='7' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='55'/%3E%3C/filter%3E%3Cg filter='url(%23hlv)'%3E%3Cline x1='-40' y1='40' x2='240' y2='130' stroke='%23a7a196' stroke-width='2.2' opacity='.5'/%3E%3Cline x1='-40' y1='150' x2='240' y2='30' stroke='%23bcb6a9' stroke-width='1.3' opacity='.4'/%3E%3Cline x1='30' y1='-40' x2='150' y2='240' stroke='%23928c7e' stroke-width='1' opacity='.35'/%3E%3Cline x1='-20' y1='190' x2='220' y2='110' stroke='%23c7c2b6' stroke-width='.8' opacity='.3'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 100% 100%, 100% 100%, 100% 100%;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+}
+:root[data-skin="hustler"] [data-square-color="black"] {
+  background-image:
+    radial-gradient(ellipse 62% 46% at 30% 26%, rgba(110,158,132,.18), transparent 72%),
+      radial-gradient(ellipse 52% 42% at 72% 76%, rgba(110,158,132,.13), transparent 74%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='hdv'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.05' numOctaves='3' seed='3' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='55'/%3E%3C/filter%3E%3Cg filter='url(%23hdv)'%3E%3Cline x1='-40' y1='60' x2='240' y2='150' stroke='%235c5c59' stroke-width='2.2' opacity='.55'/%3E%3Cline x1='-40' y1='170' x2='240' y2='50' stroke='%23464644' stroke-width='1.3' opacity='.42'/%3E%3Cline x1='10' y1='-40' x2='130' y2='240' stroke='%236e6e6a' stroke-width='1' opacity='.32'/%3E%3Cline x1='-20' y1='210' x2='220' y2='130' stroke='%233a3a38' stroke-width='.8' opacity='.3'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 100% 100%, 100% 100%, 100% 100%;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+}
+/* Nearly monochrome to match the stone — and then rimmed, because the piece
+   art carries its outline in its OWN ink: a white piece is filled light and
+   stroked dark, but a black piece is filled dark and stroked dark too, so on
+   Hustler's near-black dark squares it was a silhouette on a silhouette. A
+   drop-shadow pair rings the rendered shape from outside instead, light around
+   black pieces and dark around white ones. Kept thin: this is a rim for
+   contrast, not a glow. Written out per colour because a second `filter`
+   declaration replaces the first rather than adding to it. */
+:root[data-skin="hustler"] [data-piece^="b"] svg {
+  filter: grayscale(0.92) contrast(1.12) brightness(1.03) saturate(0.85)
+    drop-shadow(0 0 0.8px rgba(255, 255, 255, 0.95))
+    drop-shadow(0 0 1.6px rgba(255, 255, 255, 0.55));
+}
+:root[data-skin="hustler"] [data-piece^="w"] svg {
+  filter: grayscale(0.92) contrast(1.12) brightness(1.03) saturate(0.85)
+    drop-shadow(0 0 0.8px rgba(0, 0, 0, 0.75))
+    drop-shadow(0 0 1.6px rgba(0, 0, 0, 0.4));
+}
+
+/* ---------- Theme wallpapers (Chess Arcade) ---------- */
+
+/* Each skin brought its own page surface across with its palette — a theme is
+   as much the floor it stands on as the colours on top of it. All of them are
+   procedural (gradients and one SVG filter) bar two, which ship real artwork:
+   Bauhaus's flat-primaries panel and the Game Boy hillside, both in
+   public/themes.
+
+   Every rule is guarded on :not(.has-custom-bg), so your own background
+   picture still wins — a theme lays the floor, it doesn't take the choice
+   away. Wallpaper colours live here rather than in skins.js because they
+   belong beside the rule that uses them, keyed off [data-theme] for the
+   light and dark face of each.
+
+   Scrims: the two image wallpapers are photographs as far as text is
+   concerned, so they get a veil of their own — the same job --custom-bg-veil
+   does for an uploaded picture. */
+
+/* --- Tournament Felt: a woven baize table, not a tinted page. The crosshatch
+       is the thread grain, the three offset speckle grids the fiber nap
+       catching light unevenly. --- */
+:root[data-skin="felt"] {
+  --felt-weave: rgba(0, 0, 0, 0.22);
+  --felt-fleck: rgba(255, 255, 255, 0.03);
+  --felt-nap: rgba(0, 0, 0, 0.22);
+}
+:root[data-skin="felt"][data-theme="light"] {
+  --felt-weave: rgba(10, 24, 15, 0.11);
+  --felt-fleck: rgba(255, 255, 255, 0.06);
+  --felt-nap: rgba(9, 20, 13, 0.12);
+}
+:root[data-skin="felt"]:not(.has-custom-bg):not(.no-skin-wall) body {
+  background-image:
+    repeating-linear-gradient(45deg, var(--felt-weave) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(-45deg, var(--felt-weave) 0 2px, transparent 2px 5px),
+    radial-gradient(circle at 20% 30%, var(--felt-fleck) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 66% 70%, var(--felt-nap) 0 0.6px, transparent 1.3px),
+    radial-gradient(circle at 42% 85%, var(--felt-fleck) 0 1px, transparent 1.6px);
+  background-size: auto, auto, 8px 8px, 13px 13px, 17px 17px;
+  background-attachment: fixed;
+}
+
+/* --- Hustler: a quarried stone floor, laid in identically-veined slabs — the
+       stone chess tables in Washington Square, scaled up to the whole page.
+       The first layer is an SVG filter (feTurbulence displacing straight
+       lines into branching cracks); the rest are the slab seams, cloud
+       blotches and surface grit. --- */
+:root[data-skin="hustler"] {
+  --stone-vein: rgba(255, 255, 255, 0.07);
+  --stone-cloud: rgba(0, 0, 0, 0.26);
+  --grit-a: rgba(255, 255, 255, 0.035);
+  --grit-b: rgba(0, 0, 0, 0.35);
+}
+:root[data-skin="hustler"][data-theme="light"] {
+  --stone-vein: rgba(48, 44, 38, 0.17);
+  --stone-cloud: rgba(255, 255, 255, 0.38);
+  --grit-a: rgba(28, 30, 32, 0.055);
+  --grit-b: rgba(255, 255, 255, 0.5);
+}
+:root[data-skin="hustler"]:not(.has-custom-bg):not(.no-skin-wall) body {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='700'%3E%3Cfilter id='pv'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.006 0.018' numOctaves='4' seed='11' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='90'/%3E%3C/filter%3E%3Cg filter='url(%23pv)' fill='none'%3E%3Cline x1='-100' y1='120' x2='1000' y2='420' stroke='%23302c26' stroke-width='2.4' opacity='.16'/%3E%3Cline x1='-100' y1='480' x2='1000' y2='90' stroke='%23302c26' stroke-width='1.6' opacity='.12'/%3E%3Cline x1='150' y1='-80' x2='620' y2='780' stroke='%23302c26' stroke-width='1.4' opacity='.13'/%3E%3Cline x1='500' y1='-80' x2='950' y2='780' stroke='%23ffffff' stroke-width='1.8' opacity='.28'/%3E%3Cline x1='-100' y1='650' x2='800' y2='200' stroke='%23ffffff' stroke-width='1.2' opacity='.22'/%3E%3Cline x1='-60' y1='-40' x2='340' y2='380' stroke='%23302c26' stroke-width='1' opacity='.10'/%3E%3Cline x1='560' y1='560' x2='980' y2='740' stroke='%23ffffff' stroke-width='1' opacity='.16'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(45deg, var(--stone-vein) 25%, transparent 25%, transparent 75%, var(--stone-vein) 75%),
+    linear-gradient(45deg, var(--stone-vein) 25%, transparent 25%, transparent 75%, var(--stone-vein) 75%),
+    radial-gradient(ellipse 340px 220px at 20% 22%, var(--stone-cloud), transparent 68%),
+    radial-gradient(ellipse 300px 240px at 78% 64%, var(--stone-cloud), transparent 70%),
+    radial-gradient(ellipse 260px 200px at 46% 88%, var(--stone-cloud), transparent 66%),
+    radial-gradient(circle at 18% 26%, var(--grit-a) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 68% 72%, var(--grit-b) 0 0.5px, transparent 1.2px),
+    radial-gradient(circle at 44% 88%, var(--grit-a) 0 1px, transparent 1.6px);
+  background-position: 0 0, 0 0, 130px 130px, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
+  background-size:
+    1100px 860px,
+    260px 260px, 260px 260px,
+    auto, auto, auto,
+    9px 9px, 14px 14px, 19px 19px;
+  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat, no-repeat, repeat, repeat, repeat;
+  background-attachment: fixed;
+}
+
+/* --- Outer Space: a deep-space wash — stars at two sizes, hand-placed so no
+       two are ever the same distance apart the way a tiled dot would be, over
+       two faint nebula blooms in the skin's own accent and focus hues. --- */
+:root[data-skin="outerspace"] {
+  --star-dim: rgba(255, 255, 255, 0.4);
+  --star-bright: rgba(255, 255, 255, 0.85);
+  --nebula-a: rgba(255, 106, 69, 0.12);
+  --nebula-b: rgba(94, 234, 212, 0.09);
+}
+:root[data-skin="outerspace"][data-theme="light"] {
+  --star-dim: rgba(255, 255, 255, 0.35);
+  --star-bright: rgba(255, 255, 255, 0.75);
+  --nebula-a: rgba(255, 90, 54, 0.1);
+  --nebula-b: rgba(79, 214, 196, 0.08);
+}
+:root[data-skin="outerspace"]:not(.has-custom-bg):not(.no-skin-wall) body {
+  background-image:
+    radial-gradient(ellipse 480px 320px at 18% 20%, var(--nebula-a), transparent 70%),
+    radial-gradient(ellipse 420px 300px at 82% 70%, var(--nebula-b), transparent 72%),
+    radial-gradient(circle at 8% 12%, var(--star-bright) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 32% 6%, var(--star-dim) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 61% 15%, var(--star-dim) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 78% 4%, var(--star-bright) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 91% 22%, var(--star-dim) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 14% 38%, var(--star-dim) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 46% 44%, var(--star-bright) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 69% 52%, var(--star-dim) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 88% 60%, var(--star-bright) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 5% 68%, var(--star-dim) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 25% 82%, var(--star-bright) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 55% 90%, var(--star-dim) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 73% 84%, var(--star-dim) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 95% 94%, var(--star-bright) 0 1px, transparent 1.6px);
+  background-size: auto;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* --- Bauhaus: flat by definition, so no texture — it ships a picture
+       instead, the four-panel primaries piece grid that came with the skin. --- */
+/* A heavier veil than Chess Arcade's .66: that app keeps a card over most of
+   the page, while this one has headings and rows sitting straight on the
+   wallpaper, and flat primaries at full strength make white text unreadable
+   behind them. Enough of the artwork survives to still be the artwork. */
+:root[data-skin="bauhaus"] { --skin-scrim: rgba(10, 13, 9, 0.85); }
+:root[data-skin="bauhaus"][data-theme="light"] { --skin-scrim: rgba(243, 237, 224, 0.8); }
+
+/* --- Game Boy: the pixel-art hillside the skin shipped with. --- */
+:root[data-skin="gameboy"] { --skin-scrim: rgba(14, 17, 10, 0.66); }
+:root[data-skin="gameboy"][data-theme="light"] { --skin-scrim: rgba(201, 205, 182, 0.6); }
+
+:root[data-skin="bauhaus"]:not(.has-custom-bg):not(.no-skin-wall) body,
+:root[data-skin="gameboy"]:not(.has-custom-bg):not(.no-skin-wall) body {
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+:root[data-skin="bauhaus"]:not(.has-custom-bg):not(.no-skin-wall) body {
+  background-image: linear-gradient(var(--skin-scrim), var(--skin-scrim)), url("/themes/bauhaus.svg");
+}
+:root[data-skin="gameboy"]:not(.has-custom-bg):not(.no-skin-wall) body {
+  background-image: linear-gradient(var(--skin-scrim), var(--skin-scrim)), url("/themes/gameboy.jpg");
+}
+
+/* ---------- Themes (Chess Arcade skins) ---------- */
+
+.skin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+  margin: 14px 0 16px;
+}
+.skin-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  padding: 14px;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  text-align: left;
+  cursor: pointer;
+}
+.skin-card:hover { filter: brightness(1.06); }
+.skin-card.active { box-shadow: 0 0 0 2px var(--accent) inset; }
+.skin-card .board-preview { width: 88px; height: 88px; }
+.skin-name { font-size: 15px; font-weight: 700; }
+.skin-blurb { font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+.skin-chips { display: flex; gap: 4px; margin-top: 2px; }
+.skin-chip {
+  width: 18px; height: 10px; border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(128, 128, 128, 0.35);
+}
+
+/* ---------- Course options / tree browser ---------- */
+
+.course-options {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+}
+.course-options h4 {
+  margin: 0; font-size: 14px; letter-spacing: 0.02em;
+}
+.co-link {
+  background: none; border: none; padding: 0;
+  color: var(--accent); font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.co-link:hover { text-decoration: underline; }
+
+.tree-path {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  background: var(--bg); border-radius: 10px; padding: 10px 12px;
+  max-height: 96px; overflow-y: auto;
+  font-size: 14px; font-weight: 600;
+}
+.tb-crumb {
+  cursor: pointer; padding: 2px 6px; border-radius: 5px; white-space: nowrap;
+}
+.tb-crumb:hover { background: var(--card-hover); }
+.tb-crumb.current { background: var(--accent-dim); color: #fff; }
+.tb-crumb .mvnum { color: var(--muted); font-weight: 400; margin-right: 1px; }
+.tb-crumb.current .mvnum { color: rgba(255, 255, 255, 0.75); }
+
+.tree-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.tb-heading {
+  color: var(--muted); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.06em; margin-top: 6px;
+}
+.tb-move {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  text-align: left; padding: 9px 12px;
+}
+.tb-san { font-size: 16px; font-weight: 700; }
+.tb-san .mvnum { color: var(--muted); font-weight: 400; margin-right: 2px; }
+.tb-meta { flex: 1; text-align: right; color: var(--muted); font-size: 13px; }
+.tb-skip { align-self: flex-start; }
+.tb-end {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg); border-radius: 8px; padding: 8px 12px;
+}
+.tb-end-name { flex: 1; display: flex; align-items: center; gap: 6px; font-weight: 600; }
 
 /* ---------- Library collapse ---------- */
 
@@ -2395,10 +2842,15 @@ input[type="date"] {
   margin-bottom: 12px;
 }
 
-/* An annotation from the course, shown with the move it belongs to. */
+/* An annotation from the course, shown with the move it belongs to. Blue
+   (the same rgb as --accent) rather than the amber other inner cards use
+   elsewhere in this file — set directly, not through --amber, so this one
+   card reads differently without recoloring tags/chips/deviation-notes that
+   share that variable. It's also the move-link colour below, so the note
+   and the moves inside it read as one blue idea, not two unrelated ones. */
 .move-note {
-  background: rgba(232, 179, 57, 0.09);
-  border: 1px solid rgba(232, 179, 57, 0.32);
+  background: rgba(59, 156, 255, 0.09);
+  border: 1px solid rgba(59, 156, 255, 0.32);
   border-left-width: 3px;
   border-radius: 10px;
   padding: 10px 13px;
@@ -2407,20 +2859,70 @@ input[type="date"] {
 .move-note.stale { opacity: 0.75; }
 .mn-move {
   display: flex; align-items: center; gap: 6px;
-  color: var(--amber, #e8b339); font-size: 12.5px; font-weight: 700;
+  color: var(--accent); font-size: 12.5px; font-weight: 700;
   letter-spacing: 0.3px; margin-bottom: 3px;
 }
+/* Caps a long annotation instead of letting it push the rest of the page
+   down — scrollbar-width alone doesn't reach Safari, which is most of this
+   app's actual usage (iPhone/iPad/Mac), so the -webkit- rule below is the one
+   that matters here, not just a fallback. */
+.mn-body {
+  max-height: 260px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 156, 255, 0.45) transparent;
+}
+.mn-body::-webkit-scrollbar { width: 6px; }
+.mn-body::-webkit-scrollbar-track { background: transparent; }
+.mn-body::-webkit-scrollbar-thumb {
+  background: rgba(59, 156, 255, 0.35);
+  border-radius: 999px;
+}
+.mn-body::-webkit-scrollbar-thumb:hover { background: rgba(59, 156, 255, 0.55); }
 .move-note p { margin: 0; font-size: 14.5px; line-height: 1.55; }
+/* A move named in the note ("4.e3", "9...Bf5") — click it and the board
+   glows the square it lands on (see NOTE_HIGHLIGHT_STYLE in legalMoves.js).
+   Styled like an ordinary text link, not a button, since that's what it
+   behaves like; a bare square mention ("on c3") only gets the bold half of
+   that treatment, via .mn-square-ref, since there's no one exact move to
+   jump to. */
+.mn-move-ref {
+  background: none; border: none; padding: 0; margin: 0;
+  font: inherit; font-weight: 700; color: var(--accent);
+  cursor: pointer; text-decoration: none;
+}
+.mn-move-ref:hover { text-decoration: underline; }
+.mn-move-ref:disabled { color: inherit; cursor: text; }
+.mn-square-ref { font-weight: 700; }
 /* The note on a move the clock played for you — brighter, because it's the one
    moment that explanation is worth reading. */
 .move-note.called-out {
-  background: rgba(232, 179, 57, 0.16);
-  border-color: rgba(232, 179, 57, 0.6);
+  background: rgba(59, 156, 255, 0.16);
+  border-color: rgba(59, 156, 255, 0.6);
   animation: note-arrive 0.28s ease-out;
 }
 @keyframes note-arrive {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: none; }
+}
+/* The Analysis board's own note card (currentNote, only ever the exact
+   current move's text — see AnalysisView) pops in the same way, then settles
+   into a slow, gentle bob rather than sitting dead still. The 0.35s delay
+   lets note-arrive's own translateY finish before this one starts moving the
+   card again, so the two don't fight over the same property mid-arrival. */
+.move-note.floating {
+  animation: note-arrive 0.3s ease-out, note-float 3.6s ease-in-out 0.35s infinite;
+}
+@keyframes note-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+/* NOTE_HIGHLIGHT_STYLE's animation (legalMoves.js) — the glow a square gets
+   when a move reference in a note is clicked. Starts strong so it's easy to
+   spot even mid-glance at the board, then settles rather than just vanishing. */
+@keyframes note-highlight-pulse {
+  0% { box-shadow: inset 0 0 0 3px var(--accent), 0 0 22px 6px rgba(59, 156, 255, 0.75); }
+  100% { box-shadow: inset 0 0 0 3px var(--accent), 0 0 16px 3px rgba(59, 156, 255, 0.5); }
 }
 
 /* The clock on the move you owe, in timed sessions. */
@@ -2629,6 +3131,23 @@ input[type="date"] {
 }
 .move-menu button:hover { background: var(--card-hover); }
 .move-menu button.danger { color: var(--red); }
+/* The green/blue/yellow row up top of the same menu — "this variation was
+   the one that should've been played", same idea as a badge but for a whole
+   line instead of one move (see NOTE_HIGHLIGHT_STYLE for the unrelated
+   square-glow this is not). */
+.mt-highlight-row { display: flex; gap: 6px; padding: 4px 6px 8px; border-bottom: 1px solid var(--border); margin-bottom: 3px; }
+.mt-swatch {
+  width: 22px; height: 22px; border-radius: 999px; padding: 0;
+  border: 2px solid transparent; cursor: pointer;
+}
+.mt-swatch.on { border-color: var(--text); }
+.mt-swatch-clear {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  font-size: 11px; display: flex; align-items: center; justify-content: center;
+  margin-left: auto;
+}
+.mt-swatch-clear:disabled { opacity: 0.4; cursor: default; }
+.mt-swatch-clear:not(:disabled):hover { color: var(--text); border-color: var(--text); }
 
 /* Keyboard shortcuts card. */
 .shortcut-grid {

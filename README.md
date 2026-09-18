@@ -39,3 +39,22 @@ npm run dev
 ```
 
 Then open http://localhost:5199.
+
+## Deploy it
+
+Netlify builds this repo on every push to `main` — `netlify.toml` at the root
+carries the build command, the publish directory and the no-cache headers the
+service worker depends on. Nothing to upload by hand.
+
+```bash
+npm run build   # vite build, then scripts/precache.mjs pins the offline shell
+```
+
+`npm run build` is the only build worth running: plain `vite build` skips
+`scripts/precache.mjs`, which is what substitutes the cache version and the
+file list into `sw.js`. Without it the shipped service worker throws on its
+first line and the old one keeps serving the old app — a broken deploy that
+looks fine in `dist/`.
+
+`npm run zip` still produces `repertoire-lab-site.zip` for a hand-drop onto
+Netlify, as a fallback if a build ever needs to bypass Git.

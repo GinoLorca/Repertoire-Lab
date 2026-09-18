@@ -18,8 +18,12 @@ function moveLabel(moves, ply) {
 }
 
 // Modal that steps through one variation on a board, with per-move comments.
+// `onPrevVariation`/`onNextVariation` (with `position`) let it walk to the
+// neighbouring lines without closing — the whole point of the preview being
+// quicker than opening each variation in turn.
 export default function VariationViewer({
   variation, orientation, onClose, onAnalyze, onSaveComment, onSetBadge, onToggleStar, onEditTags,
+  onPrevVariation, onNextVariation, position,
 }) {
   const fens = useMemo(() => lineFens(variation.moves), [variation.moves]);
   // Open at the start so you can play the line through, not at the finish.
@@ -27,6 +31,12 @@ export default function VariationViewer({
   const [draft, setDraft] = useState('');
   const touchRef = useRef(null);
   useBackGuard(true, onClose);
+
+  // Hold the move number across a change of line, so cycling ↑/↓ compares the
+  // same point in each one and a divergence shows up as the board changing
+  // under you. Only clamped, never reset: a shorter neighbour lands on its
+  // last move rather than past its end.
+  useEffect(() => { setPly((p) => Math.min(p, fens.length - 1)); }, [variation.id, fens.length]);
 
   const savedComment = ply > 0 ? (variation.comments?.[ply - 1] ?? '') : '';
 
@@ -39,11 +49,15 @@ export default function VariationViewer({
       if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
       if (e.key === 'ArrowLeft') setPly((p) => Math.max(0, p - 1));
       else if (e.key === 'ArrowRight') setPly((p) => Math.min(fens.length - 1, p + 1));
+      // ← → walk the moves, so ↑ ↓ walk the lines — the same split Practice
+      // already uses between stepping a line and changing which line it is.
+      else if (e.key === 'ArrowUp') { e.preventDefault(); onPrevVariation?.(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); onNextVariation?.(); }
       else if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [fens.length, onClose]);
+  }, [fens.length, onClose, onPrevVariation, onNextVariation]);
 
   const boardWidth = Math.min(560, window.innerWidth - 140);
 
@@ -78,6 +92,27 @@ export default function VariationViewer({
           </div>
         </div>
         <div className="viewer-side">
+          {(onPrevVariation || onNextVariation) && (
+            <div className="viewer-pager">
+              <button
+                title="Previous variation (↑)"
+                disabled={!position || position.index <= 0}
+                onClick={onPrevVariation}
+              >
+                <PrevIcon size={15} />
+              </button>
+              <span className="muted-note">
+                {position ? `Line ${position.index + 1} of ${position.total}` : 'Line'}
+              </span>
+              <button
+                title="Next variation (↓)"
+                disabled={!position || position.index >= position.total - 1}
+                onClick={onNextVariation}
+              >
+                <NextIcon size={15} />
+              </button>
+            </div>
+          )}
           <div className="viewer-title">
             {onToggleStar && (
               <button

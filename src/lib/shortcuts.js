@@ -27,7 +27,39 @@ export const SHORTCUTS = [
   { id: 'penRed', label: 'Hold to draw red', default: 'r' },
   { id: 'penBlue', label: 'Hold to draw blue', default: 'f' },
   { id: 'penYellow', label: 'Hold to draw yellow', default: 'c' },
+  // Pressed once, not held — jumps into the Nth alternative tried at the
+  // move you're standing on and marks that whole line (see alternativesAt
+  // and branchRootOf in lib/moveTree.js). The same key again clears the
+  // colour and steps back out to the game.
+  { id: 'highlightGreen', label: 'Top alternative to this move — jump in, mark it green', default: '1' },
+  { id: 'highlightBlue', label: 'Second alternative — jump in, mark it blue', default: '2' },
+  { id: 'highlightYellow', label: 'Third alternative — jump in, mark it yellow', default: '3' },
+  // Jumps back to wherever the trunk was last stood on, however many
+  // variations (nested or not) deep `head` currently is — see
+  // lastMainLineAncestor in lib/moveTree.js. A dedicated key rather than
+  // relying on ← alone: stepping back one move at a time out of a long or
+  // doubly-nested line to find the actual game again is exactly the
+  // tedium this exists to skip.
+  { id: 'backToMainLine', label: 'Jump back to the actual game, out of any variation', default: '9' },
 ];
+
+// A numpad digit's own `code` never changes, but the `key` it reports does:
+// with Num Lock off a numeric keypad sends navigation keys instead of digits
+// (1→End, 2→ArrowDown, 3→PageDown, 4→ArrowLeft, 6→ArrowRight, 7→Home,
+// 8→ArrowUp, 9→PageUp). That's normal keyboard behaviour, not a fault — but
+// it means anything reading `key` alone sees a numpad press as Home/End/an
+// arrow, and both the shortcut lookup and the Settings rebinder have to go
+// through `code` first to get the digit the key is labelled with.
+const NUMPAD_DIGITS = {
+  Numpad0: '0', Numpad1: '1', Numpad2: '2', Numpad3: '3', Numpad4: '4',
+  Numpad5: '5', Numpad6: '6', Numpad7: '7', Numpad8: '8', Numpad9: '9',
+};
+
+// What a keydown should be treated as: the numpad's printed digit when it
+// came from the numpad, otherwise the key exactly as reported.
+export function eventKey(e) {
+  return NUMPAD_DIGITS[e.code] ?? e.key;
+}
 
 export function shortcutKey(settings, id) {
   const bound = settings?.shortcuts?.[id];

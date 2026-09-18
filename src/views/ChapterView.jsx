@@ -8,6 +8,7 @@ import {
 } from '../lib/srs';
 import MoveText from '../components/MoveText';
 import VariationViewer from '../components/VariationViewer';
+import TreeBrowser from '../components/TreeBrowser';
 import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import PgnImport from '../components/PgnImport';
 import {
@@ -29,6 +30,7 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
   const [picking, setPicking] = useState(false);
   const [chosen, setChosen] = useState({}); // { [variationId]: true }
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
   const viewing = chapter?.variations.find((v) => v.id === viewingId);
   const videoRef = useRef(null);
   const videoBlockRef = useRef(null);
@@ -240,6 +242,19 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
           {dueCount(chapter) > 0 && (
             <span className="due-pill"><ClockIcon size={13} /> {dueCount(chapter)} due</span>
           )}
+        </div>
+      )}
+
+      {chapter.variations.length > 0 && (
+        <div className="course-options">
+          <h4>Course Options</h4>
+          <button
+            className="co-link"
+            title="Walk every line in this chapter as one tree, and watch them branch"
+            onClick={() => setBrowsing(true)}
+          >
+            Browse Tree
+          </button>
         </div>
       )}
 
@@ -474,10 +489,43 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
         </div>
       )}
 
+      {browsing && (
+        <TreeBrowser
+          chapter={chapter}
+          orientation={opening.color}
+          onClose={() => setBrowsing(false)}
+          // Landing on a line from the tree opens the same preview a row
+          // click does, so there's one way to read a variation, not two.
+          onOpenVariation={(id) => { setBrowsing(false); setViewingId(id); }}
+          onAnalyze={(moves) => {
+            setBrowsing(false);
+            onAnalyze({
+              name: chapter.name,
+              moves,
+              subtitle: `${opening.name} — ${chapter.name}`,
+            });
+          }}
+        />
+      )}
+
       {viewing && (
         <VariationViewer
           variation={viewing}
           orientation={opening.color}
+          // Walks the chapter in the order the rows are listed in, so ↑/↓ and
+          // the pager match what's on the page behind the modal.
+          position={(() => {
+            const index = chapter.variations.findIndex((v) => v.id === viewing.id);
+            return { index, total: chapter.variations.length };
+          })()}
+          onPrevVariation={() => setViewingId((id) => {
+            const i = chapter.variations.findIndex((v) => v.id === id);
+            return i > 0 ? chapter.variations[i - 1].id : id;
+          })}
+          onNextVariation={() => setViewingId((id) => {
+            const i = chapter.variations.findIndex((v) => v.id === id);
+            return i >= 0 && i < chapter.variations.length - 1 ? chapter.variations[i + 1].id : id;
+          })}
           onClose={() => setViewingId(null)}
           onAnalyze={(v) => {
             setViewingId(null);

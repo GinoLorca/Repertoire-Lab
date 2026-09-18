@@ -1,3 +1,15 @@
+# Build settings for deploying from Git. Netlify reads this file from the repo
+# root; the copy in public/ is a different job — it rides along into dist/ so a
+# hand-dropped zip still gets the same headers. Change one, change both.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Vite 5 and the build script need a modern runtime; 20 is the LTS Netlify
+  # has had longest, so it's the least surprising choice.
+  NODE_VERSION = "20"
+
 # Only here so the US Chess rating lookup can run as a function on Netlify.
 # If functions aren't enabled for this deploy the app falls back to a public
 # reader, so ratings still work — see src/lib/ratings.js.

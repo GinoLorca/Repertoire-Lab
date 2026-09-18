@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { mainLineFrom } from '../lib/moveTree';
+import { mainLineFrom, branchRootOf } from '../lib/moveTree';
 import MoveBadge from './MoveBadge';
 import { useStore } from '../store';
 
@@ -11,12 +11,23 @@ const numFor = (virtualPly, startNumber) => (
   `${Math.floor((virtualPly - 1) / 2) + startNumber}${virtualPly % 2 === 1 ? '.' : '…'}`
 );
 
+// A colour on the whole variation, not one move in it — "this was the line
+// that should've been played" — so it's a background wash across the row
+// rather than anything living on an individual move button. Same hex the
+// pens/squares elsewhere already draw in, so a green here means the same
+// thing a green arrow does.
+const HIGHLIGHT_HEX = { green: '#2ecc71', blue: '#3b9cff', yellow: '#e8b339' };
+const highlightStyle = (color) => (color ? {
+  backgroundColor: `${HIGHLIGHT_HEX[color]}2e`,
+  borderRadius: 5,
+} : undefined);
+
 // One variation, written the way a book writes it: 3…Bd6 4.e3 Nf6, with any
 // further branches inside it in their own brackets. `startPly` here is
 // already virtual — callers convert once, at the branch point, and this
 // just keeps incrementing it node by node.
 function InlineLine({
-  start, startPly, startNumber, headId, badges, onGo, onMenu,
+  start, startPly, startNumber, headId, badges, highlights, onGo, onMenu,
 }) {
   const nodes = [start, ...mainLineFrom(start)];
   return (
@@ -38,7 +49,7 @@ function InlineLine({
               {badges?.[node.id] && <MoveBadge id={badges[node.id]} size={11} />}
             </button>
             {siblings.map((sib) => (
-              <span key={sib.id} className="mt-nested">
+              <span key={sib.id} className="mt-nested" style={highlightStyle(highlights?.[sib.id])}>
                 (
                 <InlineLine
                   start={sib}
@@ -46,6 +57,7 @@ function InlineLine({
                   startNumber={startNumber}
                   headId={headId}
                   badges={badges}
+                  highlights={highlights}
                   onGo={onGo}
                   onMenu={onMenu}
                 />
@@ -70,7 +82,8 @@ function InlineLine({
 // table columns stay meaningful — the real first move (Black's) simply
 // lands in the Black column of row one, White's cell left blank.
 export default function MoveTree({
-  root, headId, badges: badgesIn, onGo, onPromote, onPromoteOne, onDelete, startNumber = 1, startColor = 'w',
+  root, headId, badges: badgesIn, highlights, onHighlight, onGo, onPromote, onPromoteOne, onDelete,
+  startNumber = 1, startColor = 'w',
 }) {
   const { state } = useStore();
   // Gated once, here, rather than in every downstream renderer (InlineLine
@@ -84,6 +97,11 @@ export default function MoveTree({
   // How far a virtual ply runs ahead of main[]'s real index.
   const basePly = startColor === 'b' ? 1 : 0;
   const rows = Math.ceil((main.length + basePly) / 2);
+  // Whichever move the open menu is actually on, resolved up to the branch
+  // it belongs to — the same resolution assignHighlight itself does, done
+  // here too just to know whether to show the swatches at all (a main-line
+  // move has no variation to colour) and which one to mark as current.
+  const menuBranchRoot = menu ? branchRootOf(root, menu.nodeId) : null;
 
   const openMenu = (nodeId, e) => {
     setMenuPos(null);
@@ -143,10 +161,10 @@ export default function MoveTree({
               {cell(whiteReal)}
               {cell(blackReal)}
               {branches.map(([branch, realPly]) => (
-                <div key={branch.id} className="mt-branch">
+                <div key={branch.id} className="mt-branch" style={highlightStyle(highlights?.[branch.id])}>
                   <button
                     className="mt-branch-menu"
-                    title="Promote or delete this variation"
+                    title="Promote, delete, or highlight this variation"
                     onClick={(e) => openMenu(branch.id, e)}
                   >
                     ⋮
@@ -157,6 +175,7 @@ export default function MoveTree({
                     startNumber={startNumber}
                     headId={headId}
                     badges={badges}
+                    highlights={highlights}
                     onGo={onGo}
                     onMenu={openMenu}
                   />
@@ -185,6 +204,29 @@ export default function MoveTree({
             className="move-menu"
             style={{ left: menuPos ? menuPos.left : menu.x, top: menuPos ? menuPos.top : menu.y }}
           >
+            {onHighlight && menuBranchRoot && (
+              <div className="mt-highlight-row">
+                {['green', 'blue', 'yellow'].map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`mt-swatch${highlights?.[menuBranchRoot] === color ? ' on' : ''}`}
+                    style={{ background: HIGHLIGHT_HEX[color] }}
+                    title={`Highlight ${color}`}
+                    onClick={() => { onHighlight(menu.nodeId, color); setMenu(null); }}
+                  />
+                ))}
+                <button
+                  type="button"
+                  className="mt-swatch mt-swatch-clear"
+                  title="Clear highlight"
+                  disabled={!highlights?.[menuBranchRoot]}
+                  onClick={() => { onHighlight(menu.nodeId, null); setMenu(null); }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
             <button onClick={() => { onPromote(menu.nodeId); setMenu(null); }}>
               Promote to main line
             </button>

@@ -15,7 +15,7 @@ import MoveNote, { noteFor } from '../components/MoveNote';
 import MoveTimer from '../components/MoveTimer';
 import LegalDots from '../components/LegalDots';
 import PromotionPicker from '../components/PromotionPicker';
-import { lastMoveOf } from '../lib/legalMoves';
+import { lastMoveOf, NOTE_HIGHLIGHT_STYLE } from '../lib/legalMoves';
 import { badgeAt } from '../lib/badges';
 import BoardArrows from '../components/BoardArrows';
 import { useBackGuard } from '../lib/backGuard';
@@ -408,6 +408,14 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   const [mistakes, setMistakes] = useState(0); // wrong moves in the run phase
   const [teachSlips, setTeachSlips] = useState(0); // wrong moves while copying shown moves
   const [attempts, setAttempts] = useState(0);
+  // How much of the answer has been asked for OUTRIGHT, via the Hint button
+  // or H: 0 nothing, 1 the piece's square, 2 where it goes as well. Separate
+  // from `attempts` because asking is not the same as failing — the
+  // settings.hints toggle governs whether wrong tries give the answer away
+  // on their own, and it's off by default, but pressing a button labelled
+  // Hint has to do something regardless of that setting or it's just a dead
+  // control. Pressing again escalates.
+  const [hintLevel, setHintLevel] = useState(0);
   // Which moves of this line were played wrong — each one earns spot drills.
   const [wrongPlies, setWrongPlies] = useState([]);
   const [feedback, setFeedback] = useState(null);
@@ -431,6 +439,16 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   // picked and slingshotting it home. The board itself never moves, so there's
   // no waiting on the board library to catch up.
   const [wrongMove, setWrongMove] = useState(null); // { from, to, html, phase }
+  // A square glowed because a move reference in a note was clicked — see
+  // MoveNote.jsx. `key` forces the CSS animation to restart even when the
+  // same square is clicked again before the last glow finished fading.
+  const [noteHighlight, setNoteHighlight] = useState(null); // { square, key }
+  useEffect(() => {
+    if (!noteHighlight) return undefined;
+    const t = setTimeout(() => setNoteHighlight(null), 1100);
+    return () => clearTimeout(t);
+  }, [noteHighlight]);
+  const highlightNoteSquare = (square) => setNoteHighlight({ square, key: Date.now() });
   // Measured width of the layout row. Sizing the board from window.innerWidth
   // overflows a phone: the overflow widens the visual viewport, which feeds
   // back into an even wider board. The container never grows, so it's honest.
@@ -896,7 +914,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
       // (X is freed up there for the hold-to-draw-blue pen shortcut).
       else if (e.key === 'f' || e.key === 'F') setFlipped((f) => !f);
       else if (e.key === 'k' || e.key === 'K') settings({ checkHighlight: state.settings.checkHighlight === false });
-      else if (e.key === 'h' || e.key === 'H') setAttempts((a) => Math.max(a, 2));
+      else if (e.key === 'h' || e.key === 'H') setHintLevel((h) => Math.min(h + 1, 2));
       else if (e.key === 'b' || e.key === 'B') setBookOpen((o) => !o);
       else if (e.key === 'l' || e.key === 'L') settings({ practiceList: state.settings.practiceList === false });
     };
@@ -947,6 +965,13 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
       });
     };
   }, [wrongMove?.from, !!wrongMove]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A hint is for the move it was asked about — move on and it's spent, so
+  // the next move isn't answered before it's been attempted. Keyed on the
+  // position rather than cleared at each of the half-dozen places a move
+  // advances, so it can't be forgotten at one of them. Has to sit above the
+  // early returns below, or it isn't reached on the renders that bail out.
+  useEffect(() => { setHintLevel(0); }, [ply, current?.variation?.id, current?.kind]);
 
   if (scope === undefined || scope === false) {
     const opening = state.openings.find((o) => o.id === (browse?.openingId ?? sheetFor));
@@ -1032,8 +1057,13 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   // The move just played is marked by the board itself (see Board.jsx).
   const lastMove = reviewing ? null : lastMoveOf(Chess, moves, ply);
 
-  // Teach preview (green, always shows the move) and recall hints (amber,
-  // after failed attempts / hint button).
+  // Teach preview (green, always shows the move) and recall hints (amber).
+  // Two ways to reach a hint, and they escalate the same way — the piece's
+  // own square first, then where it belongs: asked for outright (hintLevel,
+  // from the Hint button or H), or given away by repeated wrong tries, which
+  // only happens with settings.hints on.
+  const autoHint = hintsOn ? Math.min(Math.max(attempts - 1, 0), 2) : 0;
+  const shownHint = Math.max(hintLevel, autoHint);
   let squares = {};
   let arrows = [];
   if (userTurn && !completed && expectedSan) {
@@ -1047,9 +1077,9 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
           [mv.to]: { background: 'rgba(46, 204, 113, 0.35)' },
         };
         arrows = [[mv.from, mv.to, '#2ecc71']];
-      } else if (hintsOn && attempts >= 2) {
+      } else if (shownHint >= 1) {
         squares = { ...squares, [mv.from]: { background: 'rgba(232, 179, 57, 0.65)' } };
-        if (attempts >= 3) squares[mv.to] = { background: 'rgba(232, 179, 57, 0.45)' };
+        if (shownHint >= 2) squares[mv.to] = { background: 'rgba(232, 179, 57, 0.45)' };
       }
     } catch { /* ignore */ }
   }
@@ -1118,6 +1148,9 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   const onSquareClick = (square) => {
     if (!userTurn || completed) return;
     if (pickedSquare) {
+      // Tapping the picked piece again puts it back down — see the same note
+      // in AnalysisView's onSquareClick.
+      if (pickedSquare === square) { setPickedSquare(null); return; }
       const played = onPieceDrop(pickedSquare, square);
       setPickedSquare(played ? null : (game.get(square) ? square : null));
       return;
@@ -1321,19 +1354,26 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             onPieceDragEnd={() => setPickedSquare(null)}
             onPromotionCheck={() => false}
             arePiecesDraggable={userTurn && !completed && !reviewing && !wrongMove}
-            customSquareStyles={reviewing
-              ? {}
-              : wrongMove
-                ? {
-                  [wrongMove.from]: { background: 'rgba(229, 83, 75, 0.45)' },
-                  [wrongMove.to]: {
-                    background: 'rgba(229, 83, 75, 0.7)',
-                    boxShadow: 'inset 0 0 0 3px var(--red)',
-                  },
-                }
-                : (pickedSquare
-                  ? { ...squares, [pickedSquare]: { background: 'rgba(59, 156, 255, 0.5)' } }
-                  : squares)}
+            customSquareStyles={(() => {
+              const base = reviewing
+                ? {}
+                : wrongMove
+                  ? {
+                    [wrongMove.from]: { background: 'rgba(229, 83, 75, 0.45)' },
+                    [wrongMove.to]: {
+                      background: 'rgba(229, 83, 75, 0.7)',
+                      boxShadow: 'inset 0 0 0 3px var(--red)',
+                    },
+                  }
+                  : (pickedSquare
+                    ? { ...squares, [pickedSquare]: { background: 'rgba(59, 156, 255, 0.5)' } }
+                    : squares);
+              if (!noteHighlight) return base;
+              return {
+                ...base,
+                [noteHighlight.square]: { ...base[noteHighlight.square], ...NOTE_HIGHLIGHT_STYLE },
+              };
+            })()}
             lastMove={lastMove}
             // Sourced only from the variation's own saved badges — Learn and
             // Practice never run an engine at all, so there's nothing live
@@ -1529,6 +1569,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
                     position={bookFen}
                     boardOrientation={orientation}
                     arePiecesDraggable={false}
+                    customSquareStyles={noteHighlight ? { [noteHighlight.square]: NOTE_HIGHLIGHT_STYLE } : undefined}
                     boardWidth={230}
                   />
                   <div className="book-controls">
@@ -1550,7 +1591,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
                   </div>
                   {(() => {
                     const note = noteFor(current.variation.comments, moves, bookPly);
-                    return note ? <MoveNote {...note} /> : null;
+                    return note ? <MoveNote {...note} onMoveClick={highlightNoteSquare} /> : null;
                   })()}
                   <div className="book-foot">
                     <span className="muted-note">Tap a move, swipe the board, or use the arrows / arrow keys</span>
@@ -1573,7 +1614,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             const note = noteFor(current.variation.comments, moves, ply);
             const fromClock = timedOutPly != null && note?.index === timedOutPly;
             if (phase !== 'teach' && !fromClock) return null;
-            return note ? <MoveNote {...note} highlight={fromClock} /> : null;
+            return note ? <MoveNote {...note} highlight={fromClock} onMoveClick={highlightNoteSquare} /> : null;
           })()}
           <div className="practice-moves-played">
             <MoveText moves={moves.slice(0, ply)} comments={current.variation.comments} />
@@ -1583,7 +1624,15 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             {!completed && (
               <>
                 {phase !== 'teach' && (
-                  <button onClick={() => setAttempts((a) => Math.max(a, 2))}><BulbIcon size={15} /> Hint</button>
+                  <button
+                    title={shownHint >= 2
+                      ? 'Both squares are already lit'
+                      : 'Light up the square the piece is on — press again for where it goes'}
+                    disabled={shownHint >= 2}
+                    onClick={() => setHintLevel((h) => Math.min(h + 1, 2))}
+                  >
+                    <BulbIcon size={15} /> Hint
+                  </button>
                 )}
                 <button
                   onClick={() => {

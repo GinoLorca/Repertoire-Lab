@@ -69,8 +69,8 @@ function GameHeader({ game }) {
 }
 
 function GameRow({
-  game, playerId, category, index, state, onAnalyze, onView, onEdit, onSetCategory, onSetPhoto, onDelete, onScan,
-  onEditTags, onTagClick,
+  game, playerId, category, index, state, onAnalyze, onGameStudio, onView, onEdit, onSetCategory, onSetPhoto,
+  onDelete, onScan, onEditTags, onTagClick,
 }) {
   const m = game.meta ?? {};
   const res = resultFor(game);
@@ -208,13 +208,24 @@ function GameRow({
             <CameraIcon size={14} /> Scan this photo
           </button>
         ) : (
-          <button
-            className="learn-btn primary"
-            title="Open this game on the analysis board with Stockfish and the explorer"
-            onClick={onAnalyze}
-          >
-            <PlayIcon size={14} /> Send to analysis board
-          </button>
+          <>
+            {onGameStudio && (
+              <button
+                className="learn-btn ghost"
+                title="Open this game in Studio to badge moves and write notes — saved straight onto this game, so they're there next time you come back to it"
+                onClick={onGameStudio}
+              >
+                <FlaskIcon size={14} /> Send to studio
+              </button>
+            )}
+            <button
+              className="learn-btn primary"
+              title="Open this game on the analysis board with Stockfish and the explorer"
+              onClick={onAnalyze}
+            >
+              <PlayIcon size={14} /> Send to analysis board
+            </button>
+          </>
         )}
       </div>
       </div>
@@ -224,7 +235,7 @@ function GameRow({
 }
 
 function PlayerPage({
-  player, rosterTitle, onBack, onAnalyze, onScan, onEditProfile, onOpenLibrary, onOpenCollections,
+  player, rosterTitle, onBack, onAnalyze, onGameStudio, onScan, onEditProfile, onOpenLibrary, onOpenCollections,
 }) {
   const { state, dispatch } = useStore();
   const [viewingGameId, setViewingGameId] = useState(null);
@@ -233,6 +244,24 @@ function PlayerPage({
   // Back from a player's page returns to the section list rather than the app's
   // home screen. (The editor registers its own guard, which wins while open.)
   useBackGuard(true, onBack);
+  // The same "line" shape onAnalyze and onGameStudio both expect — gameId/
+  // playerId are what let the analysis board (Studio especially) edit this
+  // exact game's badges and notes in place, not just display a snapshot.
+  const lineFor = (game, extra) => ({
+    name: game.name,
+    moves: game.moves,
+    comments: game.comments,
+    badges: game.badges,
+    annotations: game.annotations,
+    tree: game.tree,
+    variationHighlights: game.variationHighlights,
+    meta: game.meta,
+    date: game.date,
+    ownerId: player.kind === 'student' ? player.id : null,
+    gameId: game.id,
+    playerId: player.id,
+    ...extra,
+  });
   const [color, setColor] = useState('all');
   const [cat, setCat] = useState('all');
   const [where, setWhere] = useState('all');
@@ -451,18 +480,8 @@ function PlayerPage({
           state={state}
           onEdit={() => setEditing(game)}
           onView={() => setViewingGameId(game.id)}
-          onAnalyze={() => onAnalyze({
-            name: game.name,
-            moves: game.moves,
-            comments: game.comments,
-            badges: game.badges,
-            meta: game.meta,
-            date: game.date,
-            subtitle: category.label,
-            ownerId: player.kind === 'student' ? player.id : null,
-            gameId: game.id,
-            playerId: player.id,
-          })}
+          onAnalyze={() => onAnalyze(lineFor(game, { subtitle: category.label }))}
+          onGameStudio={onGameStudio && (() => onGameStudio(lineFor(game, { subtitle: category.label })))}
           onSetCategory={(categoryId) => dispatch({
             type: 'setGameCategory', playerId: player.id, gameId: game.id, categoryId,
           })}
@@ -548,7 +567,7 @@ function PlayerPage({
 // (Coaches). Shared by both tabs; `kind` picks which half of state.players
 // shows and colours the copy.
 export default function PlayerRoster({
-  kind, title, subtitle, addLabel, emptyLabel, onAnalyze, onScan, onOpenLibrary, onOpenCollections,
+  kind, title, subtitle, addLabel, emptyLabel, onAnalyze, onGameStudio, onScan, onOpenLibrary, onOpenCollections,
   onOpenStudio,
 }) {
   const { state, dispatch } = useStore();
@@ -569,6 +588,7 @@ export default function PlayerRoster({
           rosterTitle={title}
           onBack={() => setOpenPlayerId(null)}
           onAnalyze={onAnalyze}
+          onGameStudio={onGameStudio}
           onScan={onScan}
           onEditProfile={() => setEditingPlayer(openPlayer)}
           onOpenLibrary={onOpenLibrary}

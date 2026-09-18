@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useStore } from '../store';
 import { squareCell } from '../lib/legalMoves';
 import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
+import { boardColors } from '../lib/theme';
 import { DEFAULT_SQUARE_LIGHT, DEFAULT_SQUARE_DARK } from './Board';
 
 const pieceCache = new Map();
@@ -38,10 +39,12 @@ export default function PromotionPicker({
 
   if (!square || !boardWidth) return null;
 
-  const squareLight = state.settings.squareLight ?? DEFAULT_SQUARE_LIGHT;
-  const squareDark = state.settings.squareDark ?? DEFAULT_SQUARE_DARK;
-  const pieceLight = state.settings.pieceLight ?? DEFAULT_PIECE_LIGHT;
-  const pieceDark = state.settings.pieceDark ?? DEFAULT_PIECE_DARK;
+  // Same source as the board underneath it — see boardColors in lib/theme.
+  const chosen = boardColors(state.settings);
+  const squareLight = chosen.squareLight ?? DEFAULT_SQUARE_LIGHT;
+  const squareDark = chosen.squareDark ?? DEFAULT_SQUARE_DARK;
+  const pieceLight = chosen.pieceLight ?? DEFAULT_PIECE_LIGHT;
+  const pieceDark = chosen.pieceDark ?? DEFAULT_PIECE_DARK;
   const pieces = pieceSet(pieceLight, pieceDark);
 
   const size = boardWidth / 8;

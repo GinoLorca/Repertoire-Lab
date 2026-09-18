@@ -22,7 +22,7 @@ import LegalDots from '../components/LegalDots';
 import PromotionPicker from '../components/PromotionPicker';
 import BoardEditor from '../components/BoardEditor';
 import GameFlagPicker from '../components/GameFlagPicker';
-import { lastMoveOf } from '../lib/legalMoves';
+import { lastMoveOf, NOTE_HIGHLIGHT_STYLE } from '../lib/legalMoves';
 import { useBackGuard } from '../lib/backGuard';
 import { parseStudyUrl, fetchStudyPgn } from '../lib/lichess';
 import { pgnTextToEntries } from '../lib/pgnImport';
@@ -32,14 +32,15 @@ import MoveTree from '../components/MoveTree';
 import MoveNote from '../components/MoveNote';
 import {
   makeTree, lineThrough, nodePath, addMove, promote, promoteOne, removeNode,
-  keepMainLineOnly, hasVariations, mainLineFrom,
+  keepMainLineOnly, hasVariations, mainLineFrom, branchRootOf, lastMainLineAncestor, alternativesAt,
 } from '../lib/moveTree';
 import {
   BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon,
-  FlaskIcon, CommentIcon, TargetIcon, UploadIcon,
+  FlaskIcon, CommentIcon, TargetIcon, UploadIcon, CheckIcon,
 } from '../components/Icons';
 import {
   PENS, SHORTCUTS, defaultPen, shortcutKey, shortcutMap, isComboKey, comboMatchesEvent, formatShortcutKey,
+  eventKey,
 } from '../lib/shortcuts';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -98,8 +99,12 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
   const [baseFen, setBaseFen] = useState(draft?.baseFen ?? initialLab?.baseFen ?? START_FEN);
   // The game is a tree: playing something else from an earlier move keeps what
   // came after as a variation. `head` is the move the board is sitting on.
+  // initialLine?.tree: a game Studio previously ran "Save changes" on keeps
+  // its explored variations this way — see setGameTree in store.jsx. Without
+  // it, a game only ever has its flat played-moves trunk to rebuild from.
   const [tree, setTree] = useState(() => (
-    draft?.tree ?? initialLab?.tree ?? makeTree(initialLab?.moves ?? initialLine?.moves ?? [])));
+    draft?.tree ?? initialLab?.tree ?? initialLine?.tree
+    ?? makeTree(initialLab?.moves ?? initialLine?.moves ?? [])));
   const [head, setHead] = useState(draft?.head ?? 'root'); // loaded lines open at the start
   const [orientation, setOrientation] = useState(draft?.orientation ?? 'white');
   // The engine runs from the moment the board opens unless you've turned that
@@ -123,6 +128,14 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
   // branches, and a ply number alone can't tell two of them apart.
   const [moveBadges, setMoveBadges] = useState(() => draft?.moveBadges ?? initialLab?.moveBadges ?? {});
   const [moveNotes, setMoveNotes] = useState(() => draft?.moveNotes ?? initialLab?.moveNotes ?? {});
+  // A colour on a whole variation, not one move — "this line was the one
+  // that should've been played", marked green/blue/yellow for a top-three
+  // ranking. Keyed by the branch's own root id (see branchRootOf), so
+  // wherever within it the board or a click actually points, the colour
+  // always resolves to the same row.
+  const [variationHighlights, setVariationHighlights] = useState(
+    () => draft?.variationHighlights ?? initialLab?.variationHighlights ?? initialLine?.variationHighlights ?? {},
+  );
   const [moveNoteDraft, setMoveNoteDraft] = useState('');
   const [studyUrl, setStudyUrl] = useState('');
   const [studyBusy, setStudyBusy] = useState(false);
@@ -136,7 +149,9 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
 
   // ---------- Board annotations (arrows + square highlights) ----------
   // Kept per position, so stepping back and forth keeps each position's marks.
-  const [annotations, setAnnotations] = useState(() => draft?.annotations ?? initialLab?.annotations ?? {});
+  const [annotations, setAnnotations] = useState(
+    () => draft?.annotations ?? initialLab?.annotations ?? initialLine?.annotations ?? {},
+  );
   // The active pen — what a touch drag draws in, and a mouse drag falls back
   // to when no pen key (below) is held. Starts at, and resets to, whatever
   // Settings → default pen colour says; the swatches can still change it
@@ -149,6 +164,16 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
   const [drawMode, setDrawMode] = useState(false);
   const [drawFrom, setDrawFrom] = useState(null);
   const [picked, setPicked] = useState(null); // click-to-move: the piece you tapped
+  // A square glowed because a move reference in a note was clicked — see
+  // MoveNote.jsx. `key` forces the CSS animation to restart even when the
+  // same square is clicked again before the last glow finished fading.
+  const [noteHighlight, setNoteHighlight] = useState(null); // { square, key }
+  useEffect(() => {
+    if (!noteHighlight) return undefined;
+    const t = setTimeout(() => setNoteHighlight(null), 1100);
+    return () => clearTimeout(t);
+  }, [noteHighlight]);
+  const highlightNoteSquare = (square) => setNoteHighlight({ square, key: Date.now() });
   const [pendingPromotion, setPendingPromotion] = useState(null); // {from, to, color} awaiting a piece choice
   const [saving, setSaving] = useState(false); // "save to Games" dialog
   // Game Review: a full engine pass over the loaded game, badging every move
@@ -184,7 +209,11 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
   useEffect(() => {
     if (initialLine) {
       setBaseFen(START_FEN);
-      const t = makeTree(initialLine.moves);
+      // A game Studio has already run "Save changes" on carries its explored
+      // variations this way (see setGameTree); its trunk is still the same
+      // sequence as initialLine.moves, so the ply-keyed comments/badges below
+      // still land correctly even though this tree is richer than a fresh one.
+      const t = initialLine.tree ?? makeTree(initialLine.moves);
       setTree(t);
       setHead('root');
       // Whatever a coach badged or wrote on this line comes with it — "Analyze
@@ -194,8 +223,55 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
       // person who made them.
       setMoveNotes(plyMapToNodeIds(t, initialLine.comments));
       setMoveBadges(plyMapToNodeIds(t, initialLine.badges));
+      setVariationHighlights(initialLine.variationHighlights ?? {});
     }
   }, [initialLine]);
+
+  // Colours the whole variation `nodeId` belongs to, and nothing else —
+  // branchRootOf resolves any move inside a branch back to that branch's own
+  // root, so the colour lands on the same row whichever move in it was
+  // right-clicked. Used by the move list's own menu, where you're already
+  // looking at the line you're colouring and being moved somewhere would
+  // just be jarring. A node on the main line (branchRootOf → null) has no
+  // variation to colour. `color: null` is the menu's Clear; picking the
+  // colour already on the line clears it too.
+  const assignHighlight = (nodeId, color) => {
+    const rootId = branchRootOf(tree, nodeId);
+    if (!rootId) return;
+    setVariationHighlights((prev) => {
+      const next = { ...prev };
+      if (!color || next[rootId] === color) delete next[rootId];
+      else next[rootId] = color;
+      return next;
+    });
+  };
+
+  // The keyboard's 1 / 2 / 3: "instead of what was played here, show me the
+  // top / second / third alternative" — pressed from the game itself, which
+  // is where you actually are when reviewing it. It marks that line and puts
+  // the board on its first move, so → walks the rest of the line from there
+  // and 9 (backToMainLine) returns to the game.
+  //
+  // Pressing the same number while already standing in the line it points to
+  // is the natural undo: clears the colour and steps back out to the game.
+  const SLOT_COLORS = ['green', 'blue', 'yellow'];
+  const pickAlternative = (slot) => {
+    const color = SLOT_COLORS[slot];
+    const currentBranch = branchRootOf(tree, head);
+    if (currentBranch && variationHighlights[currentBranch] === color) {
+      setVariationHighlights((prev) => {
+        const next = { ...prev };
+        delete next[currentBranch];
+        return next;
+      });
+      setHead(lastMainLineAncestor(tree, head));
+      return;
+    }
+    const target = alternativesAt(tree, head)[slot];
+    if (!target) return; // nothing tried at this point, or fewer than slot+1 of them
+    setVariationHighlights((prev) => ({ ...prev, [target.id]: color }));
+    setHead(target.id);
+  };
 
   // The line on the board: how you reached this move, then how it carries on.
   const lineNodes = useMemo(() => lineThrough(tree, head), [tree, head]);
@@ -226,11 +302,13 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
     dispatch({
       type: 'setAnalysisDraft',
       draft: empty ? null : {
-        baseFen, tree, head, orientation, moveNotes, moveBadges, annotations, labId, labTitle, labNote,
+        baseFen, tree, head, orientation, moveNotes, moveBadges, variationHighlights, annotations, labId, labTitle,
+        labNote,
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseFen, tree, head, orientation, moveNotes, moveBadges, annotations, labId, labTitle, labNote]);
+  }, [baseFen, tree, head, orientation, moveNotes, moveBadges, variationHighlights, annotations, labId, labTitle,
+    labNote]);
 
   const game = useMemo(() => {
     const c = new Chess(baseFen);
@@ -259,8 +337,13 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // Through eventKey (lib/shortcuts) so a numpad digit reaches the
+      // shortcuts below as its printed digit whatever Num Lock is doing —
+      // otherwise numpad 1 arrives as 'End' and gets swallowed by the
+      // jump-to-end case a few lines down, doing nothing visible at all.
+      const key = eventKey(e);
       const settings = (patch) => dispatch({ type: 'setSettings', settings: patch });
-      switch (e.key) {
+      switch (key) {
         case 'ArrowLeft': e.preventDefault(); setPly(ply - 1); return;
         case 'ArrowRight': e.preventDefault(); setPly(ply + 1); return;
         case 'ArrowUp': e.preventDefault(); setPly(0); return;
@@ -273,7 +356,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
       }
       // Pen keys aren't here — they're held during a drag (see currentPenColor
       // above), not pressed once to fire an action.
-      switch (keyMap[e.key.toLowerCase()]) {
+      switch (keyMap[key.toLowerCase()]) {
         case 'flipBoard': setOrientation((o) => (o === 'white' ? 'black' : 'white')); break;
         case 'toggleEngine': setEngineOn((v) => !v); break;
         case 'toggleArrows': settings({ engineArrows: !showEngineArrows }); break;
@@ -282,13 +365,18 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
         case 'toggleCheckHighlight': settings({ checkHighlight: state.settings.checkHighlight === false }); break;
         case 'toggleDrawMode': setDrawMode((d) => !d); break;
         case 'switchExplorer': setSidePane((p) => (p === 'engine' ? 'explorer' : 'engine')); break;
+        case 'highlightGreen': pickAlternative(0); break;
+        case 'highlightBlue': pickAlternative(1); break;
+        case 'highlightYellow': pickAlternative(2); break;
+        case 'backToMainLine': setHead(lastMainLineAncestor(tree, head)); break;
         default: break;
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moves.length, ply, lineNodes, showEngineArrows, showEngineLines, showEvalBar, keyMap]);
+  }, [moves.length, ply, lineNodes, showEngineArrows, showEngineLines, showEvalBar, keyMap, head, tree,
+    variationHighlights]);
 
   // ---------- Repertoire awareness ----------
 
@@ -535,15 +623,18 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
 
   // The closest annotated move at or before the current position, tree-aware
   // (lineNodes/moves are already the exact line the board is showing).
+  // Only the move actually on the board right now — not the most recent
+  // commented one behind it. A note used to linger (dimmed) all the way
+  // until the next commented move overrode it, which read as the card being
+  // stuck on whatever you'd already stepped past; stepping off a commented
+  // move now clears it immediately, same as anything else on the board that
+  // reflects the current position.
   const currentNote = useMemo(() => {
-    for (let i = ply - 1; i >= 0; i -= 1) {
-      const node = lineNodes[i];
-      if (node && moveNotes[node.id]) {
-        return {
-          text: moveNotes[node.id], san: node.san, index: i, stale: i !== ply - 1,
-          badgeId: moveBadges[node.id],
-        };
-      }
+    const node = lineNodes[ply - 1];
+    if (node && moveNotes[node.id]) {
+      return {
+        text: moveNotes[node.id], san: node.san, index: ply - 1, badgeId: moveBadges[node.id], float: true,
+      };
     }
     return null;
   }, [lineNodes, ply, moveNotes, moveBadges]);
@@ -565,6 +656,52 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
       ? { type: 'setGameMoveBadge', playerId: initialLine.playerId, gameId: initialLine.gameId, ply, badge: value }
       : { type: 'setGameMoveComment', playerId: initialLine.playerId, gameId: initialLine.gameId, ply, text: value });
   };
+
+  // The reverse of plyMapToNodeIds below: trunk-only, since (as above) an
+  // off-trunk badge/note has nowhere on the flat game record to live.
+  const nodeIdsToPlyMap = (t, nodeIdMap) => {
+    const trunk = mainLineFrom(t);
+    const out = {};
+    trunk.forEach((node, i) => {
+      if (nodeIdMap[node.id] != null) out[i] = nodeIdMap[node.id];
+    });
+    return out;
+  };
+
+  // "Save changes": the one thing syncGameMove above doesn't already cover
+  // live, move by move — the arrows and square highlights drawn on the
+  // board, which (unlike a badge or a note) had nowhere on a game record to
+  // land until now. Re-sending the trunk's badges/comments here too costs
+  // nothing and means one button really does mean "everything in this
+  // session is on the game now", not just "the drawing is".
+  const [changesSaved, setChangesSaved] = useState(false);
+  const saveChangesToGame = () => {
+    if (!liveGame) return;
+    const { playerId, gameId } = initialLine;
+    dispatch({ type: 'setGameAnnotations', playerId, gameId, annotations });
+    dispatch({ type: 'setGameBadges', playerId, gameId, badges: nodeIdsToPlyMap(tree, moveBadges) });
+    dispatch({ type: 'setGameComments', playerId, gameId, comments: nodeIdsToPlyMap(tree, moveNotes) });
+    // Only worth keeping the tree itself (over the flat trunk every other
+    // game feature already has) when there's actually a branch or a
+    // highlight hanging off it — otherwise it's just a second copy of the
+    // same moves, and clearing it here is what lets removing every
+    // variation and saving again actually drop it instead of leaving a
+    // stale one behind.
+    const worthKeeping = hasVariations(tree) || Object.keys(variationHighlights).length > 0;
+    dispatch({
+      type: 'setGameTree',
+      playerId,
+      gameId,
+      tree: worthKeeping ? tree : undefined,
+      variationHighlights: worthKeeping ? variationHighlights : undefined,
+    });
+    setChangesSaved(true);
+  };
+  useEffect(() => {
+    if (!changesSaved) return undefined;
+    const t = setTimeout(() => setChangesSaved(false), 1600);
+    return () => clearTimeout(t);
+  }, [changesSaved]);
 
   // Chess.com-style Game Review: a dedicated, throwaway engine so it never
   // fights the live analysis engine over the search queue. Always reviews
@@ -618,6 +755,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
         annotations: marksToKeep,
         moveBadges,
         moveNotes: notesWithDraft(),
+        variationHighlights,
         coach: !!coachMode,
         // Where this started, when it started somewhere: a repertoire line or a
         // saved game. Kept so the entry can say what it was about.
@@ -711,8 +849,14 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
       styles[sq] = { background: `${color}66`, boxShadow: `inset 0 0 0 3px ${color}` };
     }
     if (drawFrom) styles[drawFrom] = { background: `${drawColor}88` };
+    // A note's move reference was clicked — glow that square on top of
+    // whatever else is drawn, since it's the most recent, deliberate thing
+    // asked of the board.
+    if (noteHighlight) {
+      styles[noteHighlight.square] = { ...styles[noteHighlight.square], ...NOTE_HIGHLIGHT_STYLE };
+    }
     return styles;
-  }, [marks.squares, drawFrom, drawColor, picked, position, showLegal]);
+  }, [marks.squares, drawFrom, drawColor, picked, position, showLegal, noteHighlight]);
 
   // ---------- Moves ----------
 
@@ -765,6 +909,11 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
     if (drawMode) return; // press-and-drag owns drawing now, see onDrawPointer* below
     // Click-to-move, so a trackpad or a finger can play without dragging.
     if (picked) {
+      // Tapping the piece you just picked puts it back down. Without this it
+      // falls through to the move attempt below, which fails (from === to)
+      // and then re-picks the same square — leaving the only way out a click
+      // on some empty square elsewhere.
+      if (picked === square) { setPicked(null); return; }
       const played = onPieceDrop(picked, square);
       setPicked(played ? null : (position?.get(square) ? square : null));
       return;
@@ -948,6 +1097,17 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
   const boardWidth = Math.floor(
     Math.max(280, Math.min(BOARD_MAX, colW || 520, heightCap, viewportWidth - 26)) / 8,
   ) * 8;
+  // The editor gets a quarter more board than Engine mode. It can afford it:
+  // setting a position up by hand is the one job here that's all board, and
+  // the palette sits BESIDE it (.board-editor is a flex row) rather than under
+  // it, so the height left over isn't Engine mode's — reserving Engine's
+  // 290px of chrome below the board was clamping the extra quarter away
+  // before it could show. Once the palette does wrap underneath, at the
+  // narrower widths `tight` marks, Engine's budget is the right one again.
+  const editorHeightCap = tight ? heightCap : Math.max(320, winH - 210);
+  const editorBoardWidth = Math.floor(
+    Math.max(280, Math.min(boardWidth * 1.25, editorHeightCap, viewportWidth - 26)) / 8,
+  ) * 8;
   const totals = explorer ? explorer.white + explorer.draws + explorer.black : 0;
 
   if (mode === 'compare') {
@@ -978,14 +1138,12 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
           </div>
         </div>
         <BoardEditor
-          // The exact same size Engine mode's board lands on — not a fraction
-          // of it. A scaled-down BOARD_MAX still grows unopposed on a wide
-          // screen (the editor has no side column pushing back on it the way
-          // Engine's colW does), which is what kept reading as "still huge" no
-          // matter how hard the fraction was cut. colW is measured for Engine
-          // mode's own board; using it here directly is what makes the two
-          // actually match on any given screen, Mac or iPad.
-          boardWidth={boardWidth}
+          // A quarter larger than Engine mode's board — see editorBoardWidth.
+          // That width is derived from Engine's own measured column rather
+          // than from BOARD_MAX, which is what keeps the two in proportion on
+          // any given screen, Mac or iPad, instead of letting the editor grow
+          // unopposed on a wide one.
+          boardWidth={editorBoardWidth}
           onSendToAnalysis={({ baseFen: f, moves: m }) => {
             setMode('engine');
             setBaseFen(f);
@@ -1181,6 +1339,9 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
             onPromotionCheck={() => false}
             arePiecesDraggable={!drawMode}
             areArrowsAllowed={false}
+            // This view runs its own pen — colours, saved marks, the Draw
+            // toggle for touch — so it doesn't want Board's plain one too.
+            ownArrows={false}
             customSquareStyles={squareStyles}
             lastMove={lastMove}
             badge={moveBadges[head]}
@@ -1426,7 +1587,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
               renders here at all when there's nothing to say. */}
           {currentNote && (
             <div className="side-note">
-              <MoveNote {...currentNote} />
+              <MoveNote key={currentNote.index} {...currentNote} onMoveClick={highlightNoteSquare} />
             </div>
           )}
 
@@ -1687,7 +1848,12 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
                 </>
               )}
               <div className="annotate-foot">
-                <button className="small primary" onClick={saveToLab}>
+                {liveGame && (
+                  <button className="small primary" onClick={saveChangesToGame}>
+                    <CheckIcon size={14} /> {changesSaved ? 'Saved ✓' : 'Save changes'}
+                  </button>
+                )}
+                <button className={`small${liveGame ? '' : ' primary'}`} onClick={saveToLab}>
                   <FlaskIcon size={14} /> {labId ? 'Update in Lab' : 'Save session to Lab'}
                 </button>
                 <button
@@ -1699,9 +1865,16 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
                 </button>
               </div>
               <p className="hint">
-                A badge and note here belong to that exact move on this board's line. Saving to the
-                Lab keeps every badge and note across the whole tree; saving as a variation carries
-                the current line's notes and badges into a chapter, editable there the same way.
+                A badge and note here belong to that exact move on this board's line
+                {liveGame ? ', and are saved straight onto this game as you go' : ''}.
+                {liveGame && ' Save changes also carries over any arrows or square highlights drawn on the board — the one thing that isn\'t already saved the moment you draw it.'}
+                {' '}Saving to the Lab keeps every badge and note across the whole tree; saving as a
+                variation carries the current line's notes and badges into a chapter, editable there
+                the same way. Standing on a move in the game, press 1, 2, or 3 (rebindable in
+                Settings → Keyboard, numpad works too) to jump into the top, second, or third
+                alternative tried at that point — marking it green, blue, or yellow. → walks the rest
+                of that line, 9 jumps back to the game from however deep you are, and the same number
+                again clears the colour and steps back out.
               </p>
             </div>
           )}
@@ -1750,6 +1923,8 @@ export default function AnalysisView({ initialLine, initialLab, coachMode }) {
                   root={tree}
                   headId={head}
                   badges={moveBadges}
+                  highlights={variationHighlights}
+                  onHighlight={assignHighlight}
                   startNumber={baseMeta.startNumber}
                   startColor={baseMeta.startColor}
                   onGo={setHead}

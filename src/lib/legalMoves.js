@@ -50,6 +50,17 @@ export function lastMoveOf(Chess, moves, ply, startFen) {
   }
 }
 
+// A brief blue glow on a square named in a coach's note — clicking a move
+// reference in the annotation text (see MoveNote.jsx) points here instead of
+// changing what's on the board, so it needs its own transient highlight
+// rather than borrowing the last-move or picked-square ones. Blue to match
+// the note text's own link colour, so the click and the board's reaction to
+// it read as one gesture.
+export const NOTE_HIGHLIGHT_STYLE = {
+  boxShadow: 'inset 0 0 0 3px var(--accent), 0 0 16px 3px rgba(59, 156, 255, 0.5)',
+  animation: 'note-highlight-pulse 1.1s ease-out',
+};
+
 // A red glow under the king in check, in the style chess.com uses.
 export const CHECK_STYLE = {
   background: 'radial-gradient(circle at center, rgba(226, 74, 74, 0.95) 12%, rgba(226, 74, 74, 0.55) 46%, transparent 72%)',

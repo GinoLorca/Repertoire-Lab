@@ -5,6 +5,25 @@ import './styles.css';
 
 createRoot(document.getElementById('root')).render(<App />);
 
+// In dev, tear down any worker that's still controlling this origin. The
+// guard below only stops a NEW registration — it can't evict one that a
+// production build (or `vite preview`) left registered on this same
+// localhost port earlier, and that worker keeps serving its cached bundle
+// to the dev server forever. The symptom is brutal to diagnose: source
+// edits, restarts and hard refreshes all appear to do nothing, because the
+// page being tested is a months-old build the worker is still handing out.
+if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations?.().then((regs) => {
+    if (regs.length === 0) return;
+    Promise.all(regs.map((r) => r.unregister()))
+      .then(() => caches?.keys?.().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))))
+      // Only now is the page genuinely being served by Vite; one reload
+      // swaps the stale bundle for the real one.
+      .then(() => window.location.reload())
+      .catch(() => { /* nothing we can do; dev just stays stale */ });
+  }).catch(() => { /* service workers unavailable */ });
+}
+
 // Offline support (production only — interferes with dev hot reload).
 if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
   window.addEventListener('load', async () => {

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { TouchBackend } from 'react-dnd-touch-backend';
 import { Chess } from 'chess.js';
@@ -6,6 +6,8 @@ import { useStore } from '../store';
 import { checkedKingSquare, CHECK_STYLE, LAST_MOVE_STYLE } from '../lib/legalMoves';
 import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
 import { boardBadgeStyle } from '../lib/badges';
+import { boardColors } from '../lib/theme';
+import BoardArrows from './BoardArrows';
 
 export const DEFAULT_SQUARE_LIGHT = '#c6d3e1';
 export const DEFAULT_SQUARE_DARK = '#4a6a8f';
@@ -36,19 +38,53 @@ const dndProps = isTouchCapable
   }
   : {};
 
+// The pen for arrows drawn straight onto a board with a right-drag. Matches
+// BoardArrows' own default and the amber pen in Analysis.
+const RIGHT_DRAG_PEN = '#e8b339';
+
+const squareAtPoint = (x, y) => document.elementFromPoint(x, y)
+  ?.closest?.('[data-square]')?.getAttribute('data-square') ?? null;
+
+// The rank numbers and file letters, stroked so they hold up on any theme.
+// react-chessboard already draws each one in the OPPOSITE square's colour —
+// light lettering on a dark square, dark on a light one — so `currentColor`
+// is exactly the dark-or-light-depending-on-the-background stroke wanted
+// here, without a per-theme value anywhere. It matters most on the boards
+// that carry a texture: a 7px glyph sitting on Game Boy's dot grid or
+// Hustler's marble veining had nothing separating it from the pattern.
+// The stroke thickens the glyph; the shadow lifts it off the square.
+const NOTATION_STYLE = {
+  WebkitTextStroke: '0.35px currentColor',
+  textShadow: '0 0 1.5px currentColor',
+  fontWeight: 700,
+};
+
 // Shared board: consistent theme, input handling that works with a mouse, a
 // trackpad and a touchscreen, and the king in check marked in red wherever a
 // board appears — analysis, practice, compare, the line viewer.
-export default function Board({ position, customSquareStyles, lastMove, badge, ...rest }) {
+//
+// `ownArrows` (on unless a view says otherwise) gives every board right-drag
+// arrows drawn by BoardArrows — which bends a knight's at a right angle the
+// way chess.com does. react-chessboard has an arrow layer of its own, on by
+// default, but it draws every arrow as a straight line between two centres:
+// that was the orange arrow cutting diagonally across a knight move, and no
+// change to our renderer could reach it. It's off from here on, so arrows come
+// from one place.
+export default function Board({
+  position, customSquareStyles, lastMove, badge, ownArrows = true, ...rest
+}) {
   const { state } = useStore();
   const markCheck = state.settings.checkHighlight !== false;
   const markLast = state.settings.lastMoveHighlight !== false;
   const markBadge = state.settings.showBoardBadges !== false;
 
-  const squareLight = state.settings.squareLight ?? DEFAULT_SQUARE_LIGHT;
-  const squareDark = state.settings.squareDark ?? DEFAULT_SQUARE_DARK;
-  const pieceLight = state.settings.pieceLight ?? DEFAULT_PIECE_LIGHT;
-  const pieceDark = state.settings.pieceDark ?? DEFAULT_PIECE_DARK;
+  // A Chess Arcade skin brings its own board and pieces; Custom falls through
+  // to the colours picked in Settings, and then to the built-in pair.
+  const chosen = boardColors(state.settings);
+  const squareLight = chosen.squareLight ?? DEFAULT_SQUARE_LIGHT;
+  const squareDark = chosen.squareDark ?? DEFAULT_SQUARE_DARK;
+  const pieceLight = chosen.pieceLight ?? DEFAULT_PIECE_LIGHT;
+  const pieceDark = chosen.pieceDark ?? DEFAULT_PIECE_DARK;
   // Only hand react-chessboard a custom set when it differs from its own, so an
   // untouched board keeps the package's pieces exactly as they were.
   const customPieces = (pieceLight === DEFAULT_PIECE_LIGHT && pieceDark === DEFAULT_PIECE_DARK)
@@ -91,17 +127,92 @@ export default function Board({ position, customSquareStyles, lastMove, badge, .
     return out;
   }, [markCheck, markLast, markBadge, lastMove?.from, lastMove?.to, badge, position, customSquareStyles]);
 
-  return (
+  const board = (
     <Chessboard
       {...BOARD_THEME}
       customLightSquareStyle={{ backgroundColor: squareLight }}
       customDarkSquareStyle={{ backgroundColor: squareDark }}
       customPieces={customPieces}
+      customNotationStyle={NOTATION_STYLE}
+      areArrowsAllowed={false}
       {...dndProps}
       position={position}
       customSquareStyles={styles}
       {...rest}
     />
+  );
+
+  // Nothing to draw on: a board with no width of its own (the piece editor,
+  // the theme preview in Settings) can't host a correctly sized overlay, and
+  // wouldn't want arrows anyway.
+  if (!ownArrows || typeof rest.boardWidth !== 'number') return board;
+
+  return (
+    <DrawableBoard
+      boardWidth={rest.boardWidth}
+      orientation={rest.boardOrientation === 'black' ? 'black' : 'white'}
+      position={position}
+    >
+      {board}
+    </DrawableBoard>
+  );
+}
+
+// Right-drag to draw an arrow, right-drag the same pair again to take it away,
+// left-click anywhere to clear the lot — the gesture everyone already knows
+// from lichess and chess.com. Kept here rather than in each view so Practice,
+// Learn and the line viewer get it too; Analysis opts out, having its own pen
+// with colours and saved marks.
+function DrawableBoard({ boardWidth, orientation, position, children }) {
+  const [arrows, setArrows] = useState([]);
+  const [pending, setPending] = useState(null); // { from, to } while dragging
+
+  // A new position means the arrows were about the old one.
+  useEffect(() => { setArrows([]); setPending(null); }, [position]);
+
+  const onPointerDown = (e) => {
+    if (e.button === 2) {
+      const from = squareAtPoint(e.clientX, e.clientY);
+      if (from) { e.preventDefault(); setPending({ from, to: from }); }
+    } else if (e.button === 0 && arrows.length) {
+      setArrows([]);
+    }
+  };
+
+  const onPointerMove = (e) => {
+    if (!pending) return;
+    const to = squareAtPoint(e.clientX, e.clientY);
+    if (to && to !== pending.to) setPending((p) => ({ ...p, to }));
+  };
+
+  const onPointerUp = (e) => {
+    if (!pending) return;
+    const to = squareAtPoint(e.clientX, e.clientY) ?? pending.to;
+    const { from } = pending;
+    setPending(null);
+    if (!to || to === from) return;
+    setArrows((list) => (list.some(([f, t]) => f === from && t === to)
+      ? list.filter(([f, t]) => !(f === from && t === to))
+      : [...list, [from, to, RIGHT_DRAG_PEN]]));
+  };
+
+  const live = pending && pending.to !== pending.from
+    ? [[pending.from, pending.to, RIGHT_DRAG_PEN]]
+    : [];
+
+  return (
+    <div
+      className="board-draw-host"
+      style={{ position: 'relative', width: boardWidth, height: boardWidth }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerLeave={() => setPending(null)}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      {children}
+      <BoardArrows arrows={[...arrows, ...live]} boardWidth={boardWidth} orientation={orientation} />
+    </div>
   );
 }
 
