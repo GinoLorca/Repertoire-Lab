@@ -31,6 +31,14 @@ export function hashOf(str) {
 const isBlobRef = (v) => v && typeof v === 'object' && typeof v.__blob === 'string';
 const isDataUrl = (v) => typeof v === 'string' && v.startsWith('data:');
 
+// Returned by an upload or download that couldn't happen — most often because
+// Storage isn't set up for the project at all. The key is then OMITTED rather
+// than written as null, and that distinction is the whole point: a merge
+// copies the incoming record over the local one field by field, so a null
+// would travel to the other devices and wipe a picture that was perfectly
+// fine there. A missing key leaves the local value alone.
+export const SKIP = Symbol('skip');
+
 // ---------------------------------------------------------------------------
 // Local state -> documents
 // ---------------------------------------------------------------------------
@@ -45,11 +53,17 @@ async function liftBlobs(value, path, upload) {
     // list around it is reordered. An index would re-upload the same photo
     // under a new name every time a game moved up the list, and strand the
     // old object in the bucket.
-    return Promise.all(value.map((v, i) => liftBlobs(v, `${path}/${v?.id ?? i}`, upload)));
+    const items = await Promise.all(
+      value.map((v, i) => liftBlobs(v, `${path}/${v?.id ?? i}`, upload)),
+    );
+    return items.filter((v) => v !== SKIP);
   }
   if (value && typeof value === 'object') {
     const out = {};
-    for (const [k, v] of Object.entries(value)) out[k] = await liftBlobs(v, `${path}/${k}`, upload);
+    for (const [k, v] of Object.entries(value)) {
+      const lifted = await liftBlobs(v, `${path}/${k}`, upload);
+      if (lifted !== SKIP) out[k] = lifted;
+    }
     return out;
   }
   return value;
@@ -112,13 +126,21 @@ async function dropBlobs(value, download, have) {
     const known = have.get(value.hash);
     if (known) return known;
     const data = await download(value);
-    if (data) have.set(value.hash, data);
-    return data ?? null;
+    if (data) { have.set(value.hash, data); return data; }
+    // Couldn't fetch it: leave the key off so whatever this device already has
+    // survives the merge, rather than being overwritten with nothing.
+    return SKIP;
   }
-  if (Array.isArray(value)) return Promise.all(value.map((v) => dropBlobs(v, download, have)));
+  if (Array.isArray(value)) {
+    const items = await Promise.all(value.map((v) => dropBlobs(v, download, have)));
+    return items.filter((v) => v !== SKIP);
+  }
   if (value && typeof value === 'object') {
     const out = {};
-    for (const [k, v] of Object.entries(value)) out[k] = await dropBlobs(v, download, have);
+    for (const [k, v] of Object.entries(value)) {
+      const dropped = await dropBlobs(v, download, have);
+      if (dropped !== SKIP) out[k] = dropped;
+    }
     return out;
   }
   return value;
@@ -170,4 +192,35 @@ export async function fromCloud(docs, download, have = new Map()) {
     savedPositions: docs.lists?.savedPositions ?? [],
     settings: await dropBlobs(docs.settings ?? {}, download, have),
   };
+}
+
+// A sync must never take a picture away from the device it's sitting on.
+//
+// Omitting an unsyncable image from the document isn't enough on its own: the
+// merge copies records over field by field, so an `artwork` object that came
+// back with its keys missing still replaces the full one that was here. This
+// walks the merged state against what this device had a moment ago and puts
+// back any data URL that went missing — matching records by id, so it follows
+// the same opening, the same game, the same player.
+//
+// The rule it enforces: pictures can fail to travel, but they can't disappear.
+export function keepLocalImages(merged, local) {
+  const walk = (next, prev) => {
+    if (prev == null || next == null) return next;
+    if (isDataUrl(prev) && next === undefined) return prev;
+    if (Array.isArray(next) && Array.isArray(prev)) {
+      const byId = new Map(prev.filter((x) => x && x.id).map((x) => [x.id, x]));
+      return next.map((item, i) => walk(item, (item && item.id && byId.get(item.id)) ?? prev[i]));
+    }
+    if (typeof next === 'object' && typeof prev === 'object' && !Array.isArray(next)) {
+      const out = { ...next };
+      for (const [k, prevVal] of Object.entries(prev)) {
+        if (isDataUrl(prevVal) && !isDataUrl(out[k])) out[k] = prevVal;
+        else if (prevVal && typeof prevVal === 'object') out[k] = walk(out[k] ?? (Array.isArray(prevVal) ? [] : {}), prevVal);
+      }
+      return out;
+    }
+    return next;
+  };
+  return walk(merged, local);
 }

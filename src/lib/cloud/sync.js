@@ -16,7 +16,7 @@
 // Anything genuinely new on either side is still just added.
 import { get, set } from 'idb-keyval';
 import { cloud } from './app';
-import { toCloud, fromCloud, hashOf, localBlobIndex } from './shape';
+import { toCloud, fromCloud, hashOf, localBlobIndex, keepLocalImages, SKIP } from './shape';
 import { mergeBackup } from '../backup';
 
 const META_KEY = 'repertoire-lab-sync-v1';
@@ -190,7 +190,15 @@ export async function syncNow(localState, { onProgress } = {}) {
   // what's genuinely new to it.
   const have = localBlobIndex(localState);
   const { ref, getBlob } = c.storage;
+  // Storage is optional. A project on the free plan has no bucket at all, and
+  // the first failure says so — after that there's no point asking again, so
+  // this stops trying and the sync carries on with everything that isn't a
+  // picture. The repertoire is the valuable part; it must never be held up by
+  // a course cover.
+  let storageWorks = true;
+  let skipped = 0;
   const download = async (blobRef) => {
+    if (!storageWorks) { skipped += 1; return null; }
     try {
       const blob = await getBlob(ref(c.storageInstance, blobRef.__blob));
       return await new Promise((resolve, reject) => {
@@ -199,31 +207,40 @@ export async function syncNow(localState, { onProgress } = {}) {
         reader.onerror = () => reject(reader.error);
         reader.readAsDataURL(blob);
       });
-    } catch {
-      // A missing object shouldn't sink the whole sync — the record it
-      // belongs to is worth far more than its picture.
+    } catch (err) {
+      if (String(err?.code ?? '').startsWith('storage/')) storageWorks = false;
+      skipped += 1;
       return null;
     }
   };
 
   onProgress?.('Merging…');
   const remoteState = await fromCloud(remoteDocs, download, have);
-  const { merged, goneHere } = reconcile(localState, remoteState, remoteDocs, meta);
+  const reconciled = reconcile(localState, remoteState, remoteDocs, meta);
+  const { goneHere } = reconciled;
+  // Whatever the merge decided, pictures already on this device stay on it.
+  const merged = keepLocalImages(reconciled.merged, localState);
 
   onProgress?.('Uploading…');
   const uploads = [];
   const { uploadString, getMetadata } = c.storage;
   const upload = async (path, dataUrl) => {
+    if (!storageWorks) { skipped += 1; return SKIP; }
     const full = `users/${uid}/${path}`;
     const hash = hashOf(dataUrl);
     const known = meta.hashes[`blob:${full}`];
-    const refObj = { __blob: full, hash, bytes: dataUrl.length };
-    if (known === hash) return refObj; // already up there, byte for byte
-    uploads.push((async () => {
+    if (known === hash) return { __blob: full, hash, bytes: dataUrl.length };
+    // Uploaded here rather than in the background, because the document that
+    // will point at this object must not be written unless the object exists.
+    try {
       await uploadString(ref(c.storageInstance, full), dataUrl, 'data_url');
       meta.hashes[`blob:${full}`] = hash;
-    })());
-    return refObj;
+      return { __blob: full, hash, bytes: dataUrl.length };
+    } catch (err) {
+      if (String(err?.code ?? '').startsWith('storage/')) storageWorks = false;
+      skipped += 1;
+      return SKIP;
+    }
   };
   void getMetadata;
 
@@ -246,5 +263,16 @@ export async function syncNow(localState, { onProgress } = {}) {
   };
   await writeMeta(next);
 
-  return { state: merged, written, deleted, uploaded: uploads.length, at: next.lastSync };
+  return {
+    state: merged,
+    written,
+    deleted,
+    uploaded: uploads.length,
+    // How many pictures couldn't travel, and whether Storage is the reason —
+    // so the Account screen can say so plainly instead of showing a raw
+    // Firebase error next to a sync that otherwise worked fine.
+    imagesSkipped: skipped,
+    storageUnavailable: !storageWorks,
+    at: next.lastSync,
+  };
 }

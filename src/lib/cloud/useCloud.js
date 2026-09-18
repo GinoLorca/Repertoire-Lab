@@ -56,9 +56,14 @@ export function useCloud() {
       lastHash.current = after;
       setLastSync(result.at);
       setStatus('idle');
-      setDetail(result.written || result.deleted || result.uploaded
+      const sent = result.written || result.deleted || result.uploaded
         ? `Sent ${result.written} change${result.written === 1 ? '' : 's'}`
-        : 'Up to date');
+        : 'Up to date';
+      // Pictures not travelling is worth saying out loud — but as a footnote
+      // to a sync that worked, not as a failure. The lines are what matter.
+      setDetail(result.storageUnavailable
+        ? `${sent} · pictures stay on this device (Storage isn’t set up)`
+        : sent);
     } catch (err) {
       setStatus('error');
       setDetail(err?.message ?? 'Sync failed');
