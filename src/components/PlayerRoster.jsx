@@ -1,5 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { useStore } from '../store';
+import SendToStudent from './SendToStudent';
+import { cloudConfigured } from '../lib/cloud/config';
+import { watchAuth } from '../lib/cloud/auth';
+import { loadProfile } from '../lib/cloud/profile';
 import { buildPositionIndex, moveLabel } from '../lib/repertoire';
 import {
   categoryOf, categoryOptions, playerRecord, resultFor, EVENT_TYPES, OFFBEAT, tidyEvent,
@@ -18,7 +22,7 @@ import TagEditor, { TagChips, allTags } from './TagEditor';
 import { useBackGuard } from '../lib/backGuard';
 import {
   BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon, StarIcon,
-  CameraIcon, FlaskIcon,
+  CameraIcon, FlaskIcon, SendIcon,
 } from '../components/Icons';
 
 // The handles a player is known by, with whatever live ratings we last fetched
@@ -277,6 +281,14 @@ function PlayerPage({
     [state.openings, player.kind, player.id],
   );
   const index = useMemo(() => buildPositionIndex(myOpenings), [myOpenings]);
+  // What's on offer to send: the lines built for this student, and the coach's
+  // own repertoire — a coach teaching their own openings shouldn't have to
+  // copy them into the student's file first just to send them.
+  const sendable = useMemo(() => {
+    const theirs = myOpenings;
+    const mine = state.openings.filter((o) => (o.ownerId ?? null) === null);
+    return [...theirs, ...mine];
+  }, [myOpenings, state.openings]);
   const viewingGame = player.games.find((g) => g.id === viewingGameId);
 
   // Favorites and themes the coach has starred/tagged inside this student's
@@ -290,6 +302,22 @@ function PlayerPage({
   ])).size, [myOpenings]);
 
   // Ratings go stale on their own; one press asks all three sites again.
+  // Sending lines to this student's own app. `me` is the signed-in coach;
+  // without an account there's nobody to send as, so the button stays hidden
+  // and the file-based study pack in Settings remains the way.
+  const [sending, setSending] = useState(false);
+  const [me, setMe] = useState(null);
+  useEffect(() => {
+    if (!cloudConfigured) return undefined;
+    let stop = () => {};
+    watchAuth(async (u) => {
+      if (!u) { setMe(null); return; }
+      const profile = await loadProfile(u.uid).catch(() => null);
+      setMe({ uid: u.uid, ...(profile ?? {}) });
+    }).then((fn) => { stop = fn; });
+    return () => stop();
+  }, []);
+
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState(null);
   const p = player.profile ?? {};
@@ -386,6 +414,15 @@ function PlayerPage({
               {' · '}shows automatically when you analyze one of their games below
             </div>
           </div>
+          {me && sendable.length > 0 && (
+            <button
+              className="small primary"
+              title={`Pick openings, chapters or single lines and send them straight to ${player.name}'s app`}
+              onClick={() => setSending(true)}
+            >
+              <SendIcon size={14} /> Send
+            </button>
+          )}
           <button className="small" onClick={() => onOpenLibrary(player.id)}>
             {myOpenings.length === 0 ? 'Build it' : 'Open in Library'}
           </button>
@@ -503,6 +540,23 @@ function PlayerPage({
           onTagClick={(t) => setQuery(t)}
         />
       ))}
+
+      {sending && me && (
+        <SendToStudent
+          openings={sendable}
+          from={me}
+          student={player}
+          // Typed once, then remembered on the student's own record — a coach
+          // sending every week shouldn't have to look it up every week.
+          savedScreenName={player.profile?.screenName ?? ''}
+          onSaveScreenName={(screenName) => dispatch({
+            type: 'updatePlayer',
+            playerId: player.id,
+            profile: { ...(player.profile ?? {}), screenName },
+          })}
+          onClose={() => setSending(false)}
+        />
+      )}
 
       {taggingGameId && (() => {
         const target = player.games.find((g) => g.id === taggingGameId);

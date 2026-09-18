@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import SoundsSection from './SoundsView';
 import AccountSection from './AccountSection';
+import DataSection from './DataSection';
 import { resolveTheme, themeForHour, backgroundFor } from '../lib/theme';
 import { SKINS, SKIN_ORDER, CUSTOM_SKIN, skinId } from '../lib/skins';
 import { processBackground } from '../lib/background';
@@ -54,6 +55,7 @@ const TABS = [
   ['keyboard', 'Keyboard'],
   ['explorer', 'Explorer'],
   ['sounds', 'Sounds'],
+  ['data', 'Backup & files'],
 ];
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
@@ -305,6 +307,15 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
         hint="Sync across your devices, and your screen name"
       >
         <AccountSection />
+      </Section>
+
+      <Section
+        id="data"
+        tab={tab}
+        title="Backup & files"
+        hint="Export, restore, and start over"
+      >
+        <DataSection />
       </Section>
 
       <Section id="appearance" tab={tab} title="Appearance" hint="Theme and background">

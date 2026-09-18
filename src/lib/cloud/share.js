@@ -118,3 +118,43 @@ export async function acceptDelivery(id) {
   const { doc, updateDoc, serverTimestamp } = c.firestore;
   await updateDoc(doc(c.db, 'deliveries', id), { acceptedAt: serverTimestamp() });
 }
+
+// ---------------------------------------------------------------------------
+// Hand-picking what to send.
+//
+// The unit a coach thinks in varies: a whole opening this week, one chapter
+// the next, three specific lines the week after. So the picker works on ids at
+// any level and this turns that selection into the openings to send — an
+// opening keeps only its chosen chapters, a chapter only its chosen lines.
+// ---------------------------------------------------------------------------
+
+export function subsetOf(openings, chosen) {
+  const picked = (id) => chosen.has(id);
+  const out = [];
+  for (const opening of openings ?? []) {
+    const chapters = [];
+    for (const chapter of opening.chapters ?? []) {
+      const variations = (chapter.variations ?? []).filter((v) => picked(v.id));
+      if (variations.length) chapters.push({ ...chapter, variations });
+    }
+    if (chapters.length) out.push({ ...opening, chapters });
+  }
+  return out;
+}
+
+// Every line under a node, so ticking an opening ticks everything in it and
+// the counts underneath stay honest.
+export function lineIdsUnder(node) {
+  if (node.variations) return node.variations.map((v) => v.id);
+  if (node.chapters) return node.chapters.flatMap((c) => (c.variations ?? []).map((v) => v.id));
+  return [];
+}
+
+// Whole, some, or none — what a parent checkbox should show.
+export function tickState(ids, chosen) {
+  if (ids.length === 0) return 'none';
+  let on = 0;
+  for (const id of ids) if (chosen.has(id)) on += 1;
+  if (on === 0) return 'none';
+  return on === ids.length ? 'all' : 'some';
+}

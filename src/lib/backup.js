@@ -75,3 +75,78 @@ export function mergeBackup(state, incoming) {
     savedPositions: mergeById(state.savedPositions ?? [], incoming.savedPositions ?? [], preferIncoming),
   };
 }
+
+// ---------------------------------------------------------------------------
+// The file-based way in and out.
+//
+// This predates accounts, and with sync running it's no longer how anyone
+// moves work between their own devices or hands lines to a student — that's
+// what an account and Coaches Corner's Send are for. It stays because a file
+// is the one copy nobody can take away: an export you can keep, mail to
+// yourself, or restore into a fresh install with no network and no sign-in.
+// It lives in Settings now rather than on the Library's front page.
+// ---------------------------------------------------------------------------
+
+const stampToday = () => new Date().toISOString().slice(0, 10);
+
+// Everything: openings with progress and artwork, player profiles and their
+// games, categories and settings.
+export function fullBackup(state) {
+  return {
+    name: `repertoire-lab-backup-${stampToday()}.json`,
+    text: JSON.stringify({
+      app: 'repertoire-lab',
+      version: 2,
+      savedAt: new Date().toISOString(),
+      openings: state.openings,
+      players: state.players ?? [],
+      categories: state.categories ?? [],
+      playlists: state.playlists ?? [],
+      settings: state.settings,
+    }),
+  };
+}
+
+// One student's openings as a file they can restore into their own copy.
+//
+// ownerId is stripped on the way out: on the coach's device these openings
+// belong to a student, but in the student's own app they're simply theirs.
+export function studyPack(state, student) {
+  const theirs = (state.openings ?? [])
+    .filter((o) => (o.ownerId ?? null) === student.id)
+    .map((o) => ({ ...o, ownerId: null }));
+  return {
+    openings: theirs,
+    name: `${student.name.replace(/[^\w.-]+/g, '-').toLowerCase()}-study-pack-${stampToday()}.json`,
+    text: JSON.stringify({
+      app: 'repertoire-lab',
+      version: 2,
+      kind: 'study-pack',
+      preparedFor: student.name,
+      savedAt: new Date().toISOString(),
+      openings: theirs,
+      players: [],
+      categories: [],
+      playlists: [],
+      // Deliberately omitted: the coach's own settings, API keys and
+      // background picture have no business travelling to a student.
+      settings: {},
+    }),
+  };
+}
+
+// Reads a backup or study pack, and says what's in it rather than assuming.
+export function readBackupFile(text) {
+  const parsed = JSON.parse(text);
+  const openings = parsed.openings ?? [];
+  const lines = openings.reduce(
+    (a, o) => a + (o.chapters ?? []).reduce((b, c) => b + (c.variations?.length ?? 0), 0), 0,
+  );
+  return {
+    parsed,
+    openings,
+    lines,
+    isStudyPack: parsed.kind === 'study-pack',
+    preparedFor: parsed.preparedFor ?? null,
+  };
+}

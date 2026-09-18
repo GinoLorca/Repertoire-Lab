@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useStore, emptyState, uid } from '../store';
+import { useStore, uid } from '../store';
 import { chapterToPgn, openingToPgn, downloadText, safeFilename } from '../lib/pgn';
 import {
   dueCount, learnedCount, practicedCount, chapterPracticed, openingPracticed,
 } from '../lib/srs';
 import { processArtwork } from '../lib/artwork';
-import { mergeBackup } from '../lib/backup';
 import { useBackGuard } from '../lib/backGuard';
 import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import PgnImport from '../components/PgnImport';
@@ -16,7 +15,7 @@ import {
   FolderIcon,
   SendIcon,
 } from '../components/Icons';
-import SendLines from '../components/SendLines';
+import SendToStudent from '../components/SendToStudent';
 import { cloudConfigured } from '../lib/cloud/config';
 import { watchAuth } from '../lib/cloud/auth';
 import { loadProfile } from '../lib/cloud/profile';
@@ -460,37 +459,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
 
   const artInputRef = useRef(null);
   const artTargetRef = useRef(null);
-  const restoreRef = useRef(null);
-  const studentRestoreRef = useRef(null);
 
-  // Loading a study pack into one student. Unlike the full Restore this never
-  // touches anything else: the file's openings are re-homed onto this student,
-  // and the coach's own repertoire, other students, games and settings are
-  // left exactly as they were.
-  const onStudentRestoreFile = async (e, student) => {
-    const file = e.target.files[0];
-    e.target.value = '';
-    if (!file) return;
-    try {
-      const parsed = JSON.parse(await file.text());
-      const incoming = parsed.openings ?? [];
-      if (incoming.length === 0) {
-        window.alert('That file has no openings in it.');
-        return;
-      }
-      const lines = incoming.reduce(
-        (a, o) => a + o.chapters.reduce((b, c) => b + c.variations.length, 0), 0);
-      const ok = window.confirm(
-        `Add ${incoming.length} opening${incoming.length === 1 ? '' : 's'} `
-        + `(${lines} line${lines === 1 ? '' : 's'}) to ${student.name}'s repertoire?\n\n`
-        + 'Nothing else on this device is touched.',
-      );
-      if (!ok) return;
-      dispatch({ type: 'importOpeningsForPlayer', playerId: student.id, openings: incoming });
-    } catch {
-      window.alert("That file couldn't be read as a Repertoire Lab backup.");
-    }
-  };
 
   // Scoped to whichever tab is open — exporting a student's repertoire
   // shouldn't silently bundle in your own.
@@ -500,52 +469,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
     downloadText(`repertoire-${stamp}.pgn`, pgn);
   };
 
-  // Everything: openings with progress and artwork, player profiles and their
-  // games, your categories and settings.
-  const backup = () => {
-    const stamp = new Date().toISOString().slice(0, 10);
-    const payload = {
-      app: 'repertoire-lab',
-      version: 2,
-      savedAt: new Date().toISOString(),
-      openings: state.openings,
-      players: state.players ?? [],
-      categories: state.categories ?? [],
-      playlists: state.playlists ?? [],
-      settings: state.settings,
-    };
-    downloadText(`repertoire-lab-backup-${stamp}.json`, JSON.stringify(payload));
-  };
 
-  // A student's study pack: their openings as a file they can Restore into
-  // their own copy of the app and practise on their own.
-  //
-  // ownerId is stripped on the way out. On the coach's device these openings
-  // belong to a student; on the student's device they're simply theirs, and
-  // arriving filed under a "student" who doesn't exist there would leave them
-  // invisible. Progress goes too — if the coach has demonstrated lines, that's
-  // a starting point, not something to hide.
-  const exportForStudent = (student) => {
-    const theirs = state.openings
-      .filter((o) => (o.ownerId ?? null) === student.id)
-      .map((o) => ({ ...o, ownerId: null }));
-    const stamp = new Date().toISOString().slice(0, 10);
-    const payload = {
-      app: 'repertoire-lab',
-      version: 2,
-      kind: 'study-pack',
-      preparedFor: student.name,
-      savedAt: new Date().toISOString(),
-      openings: theirs,
-      players: [],
-      categories: [],
-      playlists: [],
-      // Deliberately omitted: the coach's own settings, API keys and
-      // background picture have no business travelling to a student.
-      settings: {},
-    };
-    downloadText(`${safeFilename(student.name)}-study-pack-${stamp}.json`, JSON.stringify(payload));
-  };
 
   // A small one-course export — just what you've learned and how each line's
   // due, for whichever course you were just working through — so carrying
@@ -587,31 +511,6 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
       <DownloadIcon size={14} />{compact ? '' : ' Save progress'}
     </button>
   );
-
-  const summarise = (parsed) => {
-    const variations = (parsed.openings ?? []).reduce(
-      (a, o) => a + o.chapters.reduce((b, c) => b + c.variations.length, 0), 0,
-    );
-    const players = parsed.players ?? [];
-    const games = players.reduce((a, p) => a + (p.games?.length ?? 0), 0);
-    return { variations, players: players.length, games };
-  };
-
-  const onRestoreFile = async (e) => {
-    const file = e.target.files[0];
-    e.target.value = '';
-    if (!file) return;
-    try {
-      const parsed = JSON.parse(await file.text());
-      if (!Array.isArray(parsed.openings) || typeof parsed.settings !== 'object') {
-        throw new Error('That file is not a Repertoire Lab backup.');
-      }
-      const n = summarise(parsed);
-      setModal({ kind: 'restore', parsed, summary: n });
-    } catch (err) {
-      window.alert(err.message || 'Could not read that backup file.');
-    }
-  };
 
   const pickArtwork = (openingId) => {
     artTargetRef.current = openingId;
@@ -700,70 +599,10 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
 
       <div className="page-head">
         <h1>{scopedStudent ? `${scopedStudent.name}'s Repertoire` : 'My Repertoire'}</h1>
-        {/* Two different jobs that used to wear the same name. On your own page
-            these are the whole app — every student, every game, every setting.
-            On a student's page they're that student's study material only, so
-            they're labelled and scoped as such: a coach handing work to one
-            student should never be one click away from shipping their entire
-            database. */}
-        {scopedStudent ? (
-          <>
-            <button
-              className="ghost"
-              disabled={openings.length === 0}
-              title={`Save ${scopedStudent.name}'s openings as a file — they Restore it in their own copy of the app and practise on their own`}
-              onClick={() => exportForStudent(scopedStudent)}
-            >
-              <MonsterAvatar variant={scopedStudent.avatar?.variant} size={16} /> Student Backup
-            </button>
-            <button
-              className="ghost"
-              title={`Load a study pack into ${scopedStudent.name}'s repertoire — it goes to them, not to you`}
-              onClick={() => studentRestoreRef.current?.click()}
-            >
-              <MonsterAvatar variant={scopedStudent.avatar?.variant} size={16} /> Student Restore
-            </button>
-            <input
-              ref={studentRestoreRef}
-              type="file"
-              accept="application/json,.json"
-              hidden
-              onChange={(e) => onStudentRestoreFile(e, scopedStudent)}
-            />
-          </>
-        ) : (
-          <>
-            <button
-              className="ghost"
-              title="Download everything — every opening including your students', progress, artwork, player profiles, games and settings — as one file"
-              onClick={backup}
-            >
-              <DownloadIcon size={15} /> Backup
-            </button>
-            <button
-              className="ghost"
-              title="Load a full backup: openings, students, games and settings all come back"
-              onClick={() => restoreRef.current?.click()}
-            >
-              <UploadIcon size={15} /> Restore
-            </button>
-            <input ref={restoreRef} type="file" accept="application/json,.json" hidden onChange={onRestoreFile} />
-          </>
-        )}
-        <button
-          className="ghost danger"
-          title="Erase everything on this device and start fresh"
-          onClick={() => {
-            if (window.confirm(
-              'Erase ALL openings, games and progress on this device?\n\n'
-              + 'This cannot be undone — take a Backup first if you might want it back.',
-            )) {
-              dispatch({ type: 'hydrate', state: { ...emptyState(), settings: state.settings } });
-            }
-          }}
-        >
-          Reset
-        </button>
+        {/* Backup, Restore and Reset used to live here. They moved to
+            Settings → Backup & files: with sync running they're the fallback
+            rather than the front door, and a coach handing work to a student
+            now does it from Coaches Corner instead of by sending a file. */}
         {/* Students who play their coach's lines shouldn't need them typed in
             again. From your own page this hands openings to any number of
             students at once; from a student's page it pulls yours in. */}
@@ -1407,70 +1246,6 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
           />
         );
       })()}
-      {modal?.kind === 'restore' && (
-        <div className="modal-overlay" onClick={() => setModal(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>
-              {modal.parsed.kind === 'study-pack'
-                ? 'Add this study pack?'
-                : (modal.parsed.kind === 'progress' ? 'Restore this progress file?' : 'Restore this backup?')}
-            </h3>
-            {/* A pack from a coach. It was exported without an owner, so it
-                arrives as the student's own repertoire rather than filed under
-                a coach or a student who doesn't exist on this device. */}
-            {modal.parsed.kind === 'study-pack' ? (
-              <p className="hint">
-                Study material{modal.parsed.preparedFor ? ` prepared for ${modal.parsed.preparedFor}` : ''} by
-                a coach. It goes straight into <strong>your own library</strong> alongside anything
-                already there — nothing here is removed, and progress you've made stays as it is.
-              </p>
-            ) : modal.parsed.kind === 'progress' ? (
-              <p className="hint">
-                A one-course progress update — merges straight into whatever's already here. Anything
-                learned on either side stays learned; nothing else on this device is touched.
-              </p>
-            ) : (
-              <p className="hint">
-                <strong>Merge</strong> keeps whatever's already on this device too — a line learned or
-                practiced on either side stays learned, and nothing here gets deleted just because the
-                file doesn't have it. <strong>Replace everything</strong> wipes this device first, so
-                anything you've done here since your last backup (progress included) is lost.
-              </p>
-            )}
-            <div className="gi-grid" style={{ marginBottom: 12 }}>
-              <div><span>Openings</span><strong>{modal.parsed.openings.length}</strong></div>
-              <div><span>Variations</span><strong>{modal.summary.variations}</strong></div>
-              <div><span>Players</span><strong>{modal.summary.players}</strong></div>
-              <div><span>Games</span><strong>{modal.summary.games}</strong></div>
-            </div>
-            <div className="modal-actions">
-              <button onClick={() => setModal(null)}>Cancel</button>
-              {modal.parsed.kind !== 'progress' && (
-                <button
-                  className="ghost danger"
-                  title="Discards anything on this device the file doesn't already have — including progress"
-                  onClick={() => {
-                    dispatch({ type: 'hydrate', state: modal.parsed });
-                    setModal(null);
-                  }}
-                >
-                  Replace everything
-                </button>
-              )}
-              <button
-                className="primary"
-                title="Combines the file with what's already here, keeping progress from both sides"
-                onClick={() => {
-                  dispatch({ type: 'hydrate', state: mergeBackup(state, modal.parsed) });
-                  setModal(null);
-                }}
-              >
-                Merge
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {modal?.kind === 'groupByAuthor' && (() => {
         const opening = state.openings.find((o) => o.id === modal.openingId);
         if (!opening) return null;
@@ -1625,7 +1400,12 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
       })()}
 
       {sending && me && (
-        <SendLines openings={sending} from={me} onClose={() => setSending(null)} />
+        <SendToStudent
+          openings={sending}
+          from={me}
+          preselectAll
+          onClose={() => setSending(null)}
+        />
       )}
     </div>
   );

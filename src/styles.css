@@ -1824,6 +1824,46 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   100% { opacity: 0; }
 }
 
+/* ---------- Picking what to send a student ---------- */
+
+.send-modal { max-width: 640px; max-height: 88vh; display: flex; flex-direction: column; }
+.pick-tree {
+  flex: 1; min-height: 160px; max-height: 42vh; overflow-y: auto;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 8px; margin: 12px 0;
+}
+.pick-opening { border-bottom: 1px solid var(--border); padding: 4px 0; }
+.pick-opening:last-child { border-bottom: none; }
+.pick-head { display: flex; align-items: center; gap: 4px; }
+.pick-chapter { margin-left: 22px; }
+.pick-line { margin-left: 44px; }
+
+.pick-row {
+  display: flex; align-items: center; gap: 8px; flex: 1;
+  padding: 5px 6px; border-radius: 7px; cursor: pointer;
+  min-width: 0;
+}
+.pick-row:hover { background: var(--card-hover); }
+.pick-row input { flex: 0 0 auto; width: 16px; height: 16px; accent-color: var(--accent); }
+/* The name is the only part a coach can't do without, so it wraps rather than
+   truncating — "4.Nb5 sideline" clipped to "4...." is worse than two lines.
+   The count/move preview beside it is the part that gives way. */
+.pick-label { flex: 1 1 auto; min-width: 0; font-weight: 600; font-size: 14px; line-height: 1.25; overflow-wrap: anywhere; }
+.pick-row .muted-note { flex: 0 1 auto; min-width: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* A partly-chosen parent reads as chosen-ish, so scanning the list tells you
+   where your selection is without opening every branch. */
+.pick-some > .pick-label { color: var(--accent); }
+.pick-all > .pick-label { color: var(--accent); }
+.pick-line .pick-label { font-weight: 500; }
+
+/* On a phone there isn't room for both the name and its preview; the indents
+   go too, so a line three levels down still has most of the width. */
+@media (max-width: 560px) {
+  .pick-chapter { margin-left: 14px; }
+  .pick-line { margin-left: 28px; }
+  .pick-line .muted-note { display: none; }
+}
+
 /* ---------- Account, inbox and sending ---------- */
 
 .account-form { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; max-width: 420px; }

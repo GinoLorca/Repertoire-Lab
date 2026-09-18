@@ -29,7 +29,11 @@ Keys are stored only in your browser and sent straight to the provider; there's 
 
 > **iPhone note:** photographing a scoresheet directly into the page works — iOS converts to JPEG automatically. HEIC files copied to a Mac can't be opened by Chrome/Firefox; export them as JPEG first (or set Settings → Camera → Formats → "Most Compatible").
 
-Everything is stored locally in your browser (IndexedDB). No account, no server. A service worker caches the app after your first visit, so **Practice, Learn, and your whole library work offline** (analysis engine included, once you've used it online once) — only the Lichess explorer and Claude vision need internet. Use ⬇ Backup / ⬆ Restore in the Library to move your data between devices.
+Everything is stored locally in your browser (IndexedDB), and a service worker caches the app after your first visit, so **Practice, Learn, and your whole library work offline** (analysis engine included, once you've used it online once) — only the Lichess explorer and Claude vision need internet.
+
+- **Account & sync** (optional) — sign in with an email and password in Settings → Account and the same repertoire, progress, games and settings follow you onto every device. It syncs on its own; there's nothing to press. With no account the app is exactly what it was before: local-only, no server.
+- **Send to a student** — a coach signed in can hand lines straight to a student's app instead of emailing a file. Pick a student in **Coaches Corner**, press **Send**, and tick whatever you mean — a whole opening, one chapter, or the three lines they got wrong on Saturday. It arrives under the bell in their app; accepting it merges the lines in **without resetting anything they've already learned**. (Openings also carry their own **Send to student** button in the Library.)
+- **Files, if you'd rather** — ⬇ Backup, ⬆ Restore, per-student study packs and "Reset this device" live in **Settings → Backup & files**. With sync running they're the fallback rather than the front door.
 
 ## Run it
 

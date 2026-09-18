@@ -32,7 +32,7 @@ const VIEW_TO_PATH = Object.fromEntries(VIEW_PATHS);
 // other, and a bad one should land you on the section, not in a broken state.
 export const SUB_VIEWS = {
   analysis: ['engine', 'compare', 'editor'],
-  settings: ['account', 'appearance', 'themes', 'board', 'trainer', 'analysis', 'keyboard', 'explorer', 'sounds'],
+  settings: ['account', 'appearance', 'themes', 'board', 'trainer', 'analysis', 'keyboard', 'explorer', 'sounds', 'data'],
 };
 
 // A chapter is addressed by the two ids it actually needs. They're stable for
