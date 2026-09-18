@@ -1824,6 +1824,41 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   100% { opacity: 0; }
 }
 
+/* ---------- Account, inbox and sending ---------- */
+
+.account-form { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; max-width: 420px; }
+.field-row { display: flex; flex-direction: column; gap: 5px; }
+.field-row > span { font-size: 13px; color: var(--muted); }
+.field-row input, .field-row textarea {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px;
+  font: inherit;
+}
+
+/* The bell only earns attention when something is actually waiting. */
+.nav-icon.has-unread { color: var(--accent); }
+.unread-dot {
+  position: absolute; top: 2px; right: 2px;
+  min-width: 15px; height: 15px; padding: 0 3px;
+  border-radius: 8px; background: var(--red); color: #fff;
+  font-size: 10px; font-weight: 700; line-height: 15px; text-align: center;
+}
+.nav-icon { position: relative; }
+
+.inbox-modal { max-width: 560px; max-height: 84vh; overflow-y: auto; }
+.inbox-item {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px; margin-bottom: 12px; background: var(--card);
+}
+.inbox-item.done { opacity: 0.65; }
+.inbox-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.inbox-head strong { font-size: 15px; }
+.inbox-message {
+  margin: 8px 0; padding: 9px 12px;
+  background: var(--bg); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0;
+  font-size: 14px; line-height: 1.5;
+}
+
 /* ---------- Themes (Chess Arcade skins) ---------- */
 
 .skin-grid {

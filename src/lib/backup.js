@@ -68,5 +68,10 @@ export function mergeBackup(state, incoming) {
     players: mergeById(state.players ?? [], incoming.players ?? [], mergePlayer),
     categories: mergeById(state.categories ?? [], incoming.categories ?? [], preferIncoming),
     playlists: mergeById(state.playlists ?? [], incoming.playlists ?? [], preferIncoming),
+    // These two were being dropped on a merge — a restored backup's Lab
+    // sessions and saved positions simply didn't arrive, while a Replace
+    // brought them. Union by id, same as the rest.
+    labEntries: mergeById(state.labEntries ?? [], incoming.labEntries ?? [], preferIncoming),
+    savedPositions: mergeById(state.savedPositions ?? [], incoming.savedPositions ?? [], preferIncoming),
   };
 }

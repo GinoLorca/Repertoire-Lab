@@ -6,3 +6,6 @@ repertoire-lab-site.zip
 _to_delete
 # Per-machine Claude Code permissions; launch.json (the dev server) is shared.
 .claude/settings.local.json
+
+# Local Firebase config — see .env.example
+.env.local

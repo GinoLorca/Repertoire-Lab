@@ -16,6 +16,11 @@ import { fileURLToPath } from 'node:url';
 const dist = fileURLToPath(new URL('../dist/', import.meta.url));
 const SKIP_DIRS = new Set(['stockfish', 'tesseract', 'netlify']);
 const SKIP_FILES = new Set(['sw.js', 'netlify.toml']);
+// Firebase is only needed once someone signs in, which needs the network
+// anyway. Pinning it would add most of a megabyte to every install for a
+// feature most devices never touch; the service worker's ordinary cache-first
+// handler still keeps it after the first fetch.
+const SKIP_PATTERNS = [/^\/assets\/firebase-[^/]+\.js$/];
 
 function walk(dir) {
   const out = [];
@@ -24,7 +29,7 @@ function walk(dir) {
     const rel = relative(dist, full);
     if (statSync(full).isDirectory()) {
       if (!SKIP_DIRS.has(entry)) out.push(...walk(full));
-    } else if (!SKIP_FILES.has(rel)) {
+    } else if (!SKIP_FILES.has(rel) && !SKIP_PATTERNS.some((re) => re.test(`/${rel}`))) {
       out.push(`/${rel}`);
     }
   }

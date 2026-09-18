@@ -16,6 +16,7 @@ import SearchPanel from './views/SearchPanel';
 import SettingsView from './views/SettingsView';
 import CoachesView from './views/CoachesView';
 import MigratePlayersModal from './components/MigratePlayersModal';
+import Inbox from './components/Inbox';
 
 function AppInner() {
   const { state } = useStore();
@@ -397,6 +398,7 @@ function AppInner() {
           <button className={view === 'coaches' ? 'active' : ''} onClick={() => navTo('coaches')}>
             Coaches Corner
           </button>
+          <Inbox />
           {/* Installed as an app there's no address bar to copy from, which is
               exactly where a link to "the chapter we're doing today" is most
               useful. This copies wherever you're standing. */}

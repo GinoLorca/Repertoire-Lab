@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import SoundsSection from './SoundsView';
+import AccountSection from './AccountSection';
 import { resolveTheme, themeForHour, backgroundFor } from '../lib/theme';
 import { SKINS, SKIN_ORDER, CUSTOM_SKIN, skinId } from '../lib/skins';
 import { processBackground } from '../lib/background';
@@ -44,6 +45,7 @@ function Section({ id, tab, title, hint, children }) {
 }
 
 const TABS = [
+  ['account', 'Account'],
   ['appearance', 'Appearance'],
   ['themes', 'Themes'],
   ['board', 'The board'],
@@ -295,6 +297,15 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
           </button>
         ))}
       </div>
+
+      <Section
+        id="account"
+        tab={tab}
+        title="Account"
+        hint="Sync across your devices, and your screen name"
+      >
+        <AccountSection />
+      </Section>
 
       <Section id="appearance" tab={tab} title="Appearance" hint="Theme and background">
         <div className="theme-choices">

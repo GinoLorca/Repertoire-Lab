@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// Same model as Firestore, for the things too big to sit in a document:
+// opening artwork, player avatars, scoresheet photos, theme wallpapers and
+// custom sounds. Each account reads and writes only under its own uid.
+//
+// The size cap is a guard against a runaway upload, not a policy — 20 MB is
+// far above artwork or a wallpaper and far below anything that would quietly
+// run up a bill.
+//
+// Paste into Firebase console → Storage → Rules → Publish.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{uid}/{path=**} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null
+                   && request.auth.uid == uid
+                   && request.resource.size < 20 * 1024 * 1024;
+    }
+  }
+}

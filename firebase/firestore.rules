@@ -1,0 +1,51 @@
+rules_version = '2';
+
+// Three kinds of data, three rules.
+//
+// 1. Your own stuff — the repertoire, progress, games, settings. Nobody else
+//    can read or write it, ever. This is the bulk of the app.
+// 2. Screen names — a public directory, so a coach can send to "wavy" without
+//    knowing anything else about them. Readable by any signed-in account,
+//    writable only by the account that owns it, and never re-writable to a
+//    different uid once claimed.
+// 3. Deliveries — a coach sending lines to a student. The sender creates it,
+//    the recipient reads it and marks it accepted. Neither can read anyone
+//    else's, and nobody can rewrite a delivery's contents after the fact.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    match /screenNames/{name} {
+      allow read: if request.auth != null;
+      // Claim a free name, or re-save your own. The uid in the document must
+      // be the account writing it, so a name can't be pointed at someone else.
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    match /deliveries/{id} {
+      // Only the two people involved can see it.
+      allow read: if request.auth != null
+                  && (resource.data.toUid == request.auth.uid || resource.data.fromUid == request.auth.uid);
+      // Anyone signed in can send, but only as themselves — the sender can't
+      // forge who it came from, which is what makes the student's "from" line
+      // trustworthy.
+      allow create: if request.auth != null
+                    && request.resource.data.fromUid == request.auth.uid
+                    && request.resource.data.toUid is string
+                    && request.resource.data.size() < 30;
+      // The recipient can mark it read or accepted, and that's all: the
+      // payload and the sender are fixed once sent. A coach can withdraw
+      // something they sent by deleting it.
+      allow update: if request.auth != null
+                    && resource.data.toUid == request.auth.uid
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['readAt', 'acceptedAt', 'dismissedAt']);
+      allow delete: if request.auth != null
+                    && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+    }
+  }
+}

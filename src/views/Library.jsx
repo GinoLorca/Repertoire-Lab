@@ -14,7 +14,12 @@ import {
   ImageIcon, TagIcon, StarIcon, PencilIcon, ClockIcon, CheckIcon, DownloadIcon, UploadIcon, PlayIcon,
   UsersIcon,
   FolderIcon,
+  SendIcon,
 } from '../components/Icons';
+import SendLines from '../components/SendLines';
+import { cloudConfigured } from '../lib/cloud/config';
+import { watchAuth } from '../lib/cloud/auth';
+import { loadProfile } from '../lib/cloud/profile';
 
 function openingTotals(opening) {
   return opening.chapters.reduce(
@@ -397,6 +402,21 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
   const onPracticeGroup = (openingId, chapters) =>
     onPractice({ openingId, chapterIds: chapters.map((c) => c.id), mode: 'practice' });
   const { state, dispatch } = useStore();
+
+  // Who's signed in, for the Send button. Null when sync isn't configured or
+  // nobody has signed in, which is what hides the button entirely.
+  const [me, setMe] = useState(null);
+  const [sending, setSending] = useState(null); // the openings being sent
+  useEffect(() => {
+    if (!cloudConfigured) return undefined;
+    let stop = () => {};
+    watchAuth(async (u) => {
+      if (!u) { setMe(null); return; }
+      const profile = await loadProfile(u.uid).catch(() => null);
+      setMe({ uid: u.uid, ...(profile ?? {}) });
+    }).then((fn) => { stop = fn; });
+    return () => stop();
+  }, []);
 
   // 'me' or a student's player id — which slice of state.openings is on
   // screen. Whichever is active when you add an opening is who it's for.
@@ -944,6 +964,19 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                   >
                     + Chapter
                   </button>
+                  {/* The whole point of accounts: a coach hands an opening
+                      to a student without either of them touching a file.
+                      Hidden until there's an account to send it from. */}
+                  {me && (
+                    <button
+                      className="small ghost"
+                      disabled={opening.chapters.length === 0}
+                      title="Send this opening to a student's app"
+                      onClick={() => setSending([opening])}
+                    >
+                      <SendIcon size={15} /> Send to student
+                    </button>
+                  )}
                   <button
                     className="small ghost"
                     disabled={opening.chapters.length === 0}
@@ -1590,6 +1623,10 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
           </div>
         );
       })()}
+
+      {sending && me && (
+        <SendLines openings={sending} from={me} onClose={() => setSending(null)} />
+      )}
     </div>
   );
 }
