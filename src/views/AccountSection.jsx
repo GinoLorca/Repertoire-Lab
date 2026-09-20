@@ -11,7 +11,7 @@ const when = (ms) => {
   return new Date(ms).toLocaleString();
 };
 
-// Signing in, the screen name other people send lines to, and the state of
+// Signing in, the account name other people send lines to, and the state of
 // sync. Everything cloud-shaped lives here so the rest of the app can carry
 // on knowing nothing about it.
 export default function AccountSection() {
@@ -157,10 +157,10 @@ export default function AccountSection() {
       </div>
 
       <div className="settings-row" style={{ marginTop: 18 }}>
-        <span><strong>Screen name</strong></span>
+        <span><strong>Account name</strong></span>
       </div>
       <p className="hint">
-        How other people in the app find you. A coach sends new openings and lines to a screen
+        How other people in the app find you. A coach sends new openings and lines to an account
         name — no files, no email. Yours is{' '}
         {profile?.screenName ? <strong>{profile.screenName}</strong> : <em>not set yet</em>}.
       </p>

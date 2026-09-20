@@ -511,7 +511,7 @@ function PlayerPage({
                   they type in themselves, read-only.`
                 : linkStatus === 'pending'
                   ? `Waiting for ${player.name} to approve — this only works if they have their own
-                    account under that screen name.`
+                    account under that name.`
                   : `The games and profile above are just your own notes on ${player.name}. Ask to see
                     their real account instead — the games they type in themselves show up here too.`}
             </div>
@@ -523,7 +523,7 @@ function PlayerPage({
               <input
                 value={linkName}
                 onChange={(e) => setLinkName(e.target.value)}
-                placeholder="their screen name"
+                placeholder="their account name"
                 style={{ maxWidth: 160 }}
               />
               <button className="small primary" disabled={linking || !linkName.trim()} onClick={sendLinkRequest}>

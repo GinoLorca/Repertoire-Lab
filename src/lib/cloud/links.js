@@ -3,7 +3,7 @@
 // round) and repertoire, live — instead of the coach's own manual notes
 // about them staying the only thing a coach ever sees.
 //
-// A link starts when a coach requests it by screen name (the same directory
+// A link starts when a coach requests it by account name (the same directory
 // the delivery inbox uses) and only takes effect once the student approves
 // it from their own inbox. The link's id is fixed to
 // `${coachUid}_${studentUid}`, so there's exactly one per pair — asking again
@@ -19,9 +19,9 @@ const linkId = (coachUid, studentUid) => `${coachUid}_${studentUid}`;
 export async function requestLink(coach, studentScreenName) {
   const who = await findByScreenName(studentScreenName);
   if (!who) {
-    throw new Error(`Nobody is using “${studentScreenName.trim()}”. It's the name in their Settings → Account.`);
+    throw new Error(`Nobody is using “${studentScreenName.trim()}”. It's the account name in their Settings → Account.`);
   }
-  if (who.uid === coach.uid) throw new Error('That’s your own screen name.');
+  if (who.uid === coach.uid) throw new Error('That’s your own account name.');
   const c = await cloud();
   const { doc, setDoc, serverTimestamp } = c.firestore;
   const id = linkId(coach.uid, who.uid);

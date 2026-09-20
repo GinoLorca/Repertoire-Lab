@@ -1,4 +1,9 @@
-// Screen names: the thing a coach types instead of a JSON file.
+// Account names: the thing a coach types instead of a JSON file.
+//
+// Stored as `screenName`, and in a `screenNames` collection, because that's
+// what they were called when the documents were written — renaming the field
+// would orphan every claim already out there. The name is only what people
+// see.
 //
 // A name is a global claim, so it lives in its own collection keyed by the
 // lowercased name — that key IS the uniqueness guarantee, since two accounts
@@ -10,7 +15,7 @@ export const SCREEN_NAME_RE = /^[a-z0-9][a-z0-9_-]{2,23}$/i;
 
 export function screenNameProblem(name) {
   const n = (name ?? '').trim();
-  if (!n) return 'Pick a screen name.';
+  if (!n) return 'Pick an account name.';
   if (n.length < 3) return 'At least 3 characters.';
   if (n.length > 24) return 'At most 24 characters.';
   if (!SCREEN_NAME_RE.test(n)) return 'Letters, numbers, hyphens and underscores only.';

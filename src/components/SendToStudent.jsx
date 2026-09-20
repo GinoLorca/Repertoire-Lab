@@ -68,16 +68,16 @@ export default function SendToStudent({
 
   const look = async (silent = false) => {
     setError(null);
-    if (!name.trim()) { if (!silent) setError('Type their screen name.'); return null; }
+    if (!name.trim()) { if (!silent) setError('Type their account name.'); return null; }
     setState('looking');
     try {
       const who = await findByScreenName(name);
       setState('idle');
       if (!who) {
-        setError(`Nobody is using “${name.trim()}”. It's the name in their Settings → Account.`);
+        setError(`Nobody is using “${name.trim()}”. It's the account name in their Settings → Account.`);
         return null;
       }
-      if (who.uid === from.uid) { setError('That’s your own screen name.'); return null; }
+      if (who.uid === from.uid) { setError('That’s your own account name.'); return null; }
       setFound(who);
       onSaveScreenName?.(who.name);
       return who;
@@ -126,7 +126,7 @@ export default function SendToStudent({
         </div>
 
         <div className="settings-row">
-          <span className="muted-note">Their screen name</span>
+          <span className="muted-note">Their account name</span>
           <input
             value={name}
             onChange={(e) => { setName(e.target.value); setFound(null); }}
