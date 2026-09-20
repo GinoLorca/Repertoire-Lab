@@ -5,7 +5,7 @@ import { watchAuth } from '../lib/cloud/auth';
 import {
   watchInbox, acceptDelivery, dismissDelivery, markRead, applyDelivery,
 } from '../lib/cloud/share';
-import { watchStudentLinks, approveLink, endLink } from '../lib/cloud/links';
+import { watchStudentLinks, endLink } from '../lib/cloud/links';
 import { BellIcon, CheckIcon } from './Icons';
 
 const stamp = (t) => {
@@ -13,9 +13,25 @@ const stamp = (t) => {
   return ms ? new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
 };
 
-// The bell, and what's behind it. Anything a coach has sent, or a coach
-// asking to see this account's real games and repertoire, shows up here
-// without the student doing anything — no file to find, no import to run.
+// A link is live the instant a coach opens it — there's nothing to approve,
+// so the only thing worth flagging here is one this device hasn't shown
+// yet. Purely local: it doesn't gate access, it just stops the bell nagging
+// about a coach the student has already seen.
+const SEEN_KEY = 'repertoire-lab-seen-links';
+const readSeen = () => {
+  try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) ?? '[]')); } catch { return new Set(); }
+};
+const markSeen = (ids) => {
+  try {
+    const seen = readSeen();
+    ids.forEach((id) => seen.add(id));
+    localStorage.setItem(SEEN_KEY, JSON.stringify([...seen]));
+  } catch { /* private browsing, storage full — not worth failing over */ }
+};
+
+// The bell, and what's behind it. Anything a coach has sent, or a new coach
+// link opened on this account, shows up here without the student doing
+// anything — no file to find, no import to run, and nothing to approve.
 export default function Inbox() {
   const { state, dispatch } = useStore();
   const [uid, setUid] = useState(null);
@@ -43,9 +59,9 @@ export default function Inbox() {
   if (!cloudConfigured || !uid) return null;
 
   const waiting = items.filter((d) => !d.acceptedAt && !d.dismissedAt);
-  const pendingLinks = links.filter((l) => l.status === 'pending');
-  const activeLinks = links.filter((l) => l.status === 'active');
-  const count = waiting.length + pendingLinks.length;
+  const seen = readSeen();
+  const newLinks = links.filter((l) => !seen.has(l.id));
+  const count = waiting.length + newLinks.length;
 
   const accept = async (delivery) => {
     setBusy(delivery.id);
@@ -68,6 +84,7 @@ export default function Inbox() {
         onClick={() => {
           setOpen((o) => !o);
           waiting.filter((d) => !d.readAt).forEach((d) => markRead(d.id).catch(() => {}));
+          if (links.length) markSeen(links.map((l) => l.id));
         }}
       >
         <BellIcon size={17} />
@@ -79,48 +96,15 @@ export default function Inbox() {
           <div className="modal inbox-modal" onClick={(e) => e.stopPropagation()}>
             <div className="page-head"><h2>Sent to you</h2></div>
 
-            {pendingLinks.map((l) => (
-              <div key={l.id} className="inbox-item">
-                <div className="inbox-head">
-                  <strong>{l.coachName || 'A coach'}</strong>
-                  <span className="muted-note">{stamp(l.requestedAt)}</span>
-                </div>
-                <div className="muted-note">
-                  wants to see your real games and repertoire — not just what they log for you
-                  themselves, everything in your account, read-only, until you end it.
-                </div>
-                <div className="settings-row">
-                  <button
-                    className="primary"
-                    disabled={busy === l.id}
-                    onClick={async () => {
-                      setBusy(l.id);
-                      try { await approveLink(l.id); } finally { setBusy(null); }
-                    }}
-                  >
-                    {busy === l.id ? 'Linking…' : 'Let them in'}
-                  </button>
-                  <button
-                    className="small ghost"
-                    disabled={busy === l.id}
-                    onClick={async () => {
-                      setBusy(l.id);
-                      try { await endLink(l.id); } finally { setBusy(null); }
-                    }}
-                  >
-                    Decline
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {activeLinks.map((l) => (
-              <div key={l.id} className="inbox-item done">
+            {links.map((l) => (
+              <div key={l.id} className={`inbox-item${seen.has(l.id) ? ' done' : ' unread'}`}>
                 <div className="inbox-head">
                   <strong>{l.coachName || 'A coach'}</strong>
                   <span className="practiced-pill"><CheckIcon size={12} /> Linked</span>
                 </div>
-                <div className="muted-note">Can see your real games and repertoire.</div>
+                <div className="muted-note">
+                  Can see your real games, repertoire and ratings — read-only, until you end it.
+                </div>
                 <div className="settings-row">
                   <button
                     className="small ghost"
@@ -137,7 +121,7 @@ export default function Inbox() {
               </div>
             ))}
 
-            {items.length === 0 && pendingLinks.length === 0 && activeLinks.length === 0 && (
+            {items.length === 0 && links.length === 0 && (
               <p className="hint">
                 Nothing yet. When a coach sends you an opening or a new line, it lands here.
               </p>

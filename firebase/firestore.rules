@@ -3,8 +3,9 @@ rules_version = '2';
 // Four kinds of data, four rules.
 //
 // 1. Your own stuff — the repertoire, progress, games, settings. Nobody else
-//    can write it, ever. A coach can read it, but only for as long as an
-//    active link (see 4) says the student let them in.
+//    can write it, ever. A coach can read it for as long as a link (see 4)
+//    to this account exists and is active — opened by the coach, ended by
+//    either side.
 // 2. Screen names — a public directory, so a coach can send to "wavy" without
 //    knowing anything else about them. Readable by any signed-in account,
 //    writable only by the account that owns it, and never re-writable to a
@@ -12,10 +13,11 @@ rules_version = '2';
 // 3. Deliveries — a coach sending lines to a student. The sender creates it,
 //    the recipient reads it and marks it accepted. Neither can read anyone
 //    else's, and nobody can rewrite a delivery's contents after the fact.
-// 4. Links — a coach asking to see a student's real account (games,
-//    repertoire, everything) instead of the coach's own manual notes about
-//    them. The coach starts it, only the student can let them in, and either
-//    side can end it by deleting the link.
+// 4. Links — a coach's read-only window into a student's real account
+//    (games, repertoire, everything) instead of the coach's own manual
+//    notes about them. The coach opens it, instantly, by the student's
+//    screen name — there's no approval step. The one protection a student
+//    keeps is that they can end it, any time, by deleting the link.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -70,25 +72,17 @@ service cloud.firestore {
       // Only the two people involved can see it.
       allow read: if request.auth != null
                   && (resource.data.coachUid == request.auth.uid || resource.data.studentUid == request.auth.uid);
-      // A coach starts a link, always pending, always as themselves, and
-      // always at the one id their pairing with that student is allowed to
-      // use.
+      // A coach opens a link themselves, instantly — always active from the
+      // moment it's created, and always at the one id their pairing with
+      // that student is allowed to use. Nothing here asks the student first.
       allow create: if request.auth != null
                     && request.resource.data.coachUid == request.auth.uid
                     && request.resource.data.studentUid is string
-                    && request.resource.data.status == 'pending'
+                    && request.resource.data.status == 'active'
                     && id == linkId(request.auth.uid, request.resource.data.studentUid);
-      // Only the student can approve a pending request, and that's the only
-      // change this allows — nobody can flip an existing link back to
-      // "active" after it's been declined or revoked, or touch who it's
-      // between.
-      allow update: if request.auth != null
-                    && resource.data.studentUid == request.auth.uid
-                    && resource.data.status == 'pending'
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
-                    && request.resource.data.status == 'active';
-      // Either side can end it: the coach withdrawing a request, or the
-      // student declining one or cutting off an existing link.
+      // Either side can end it: the coach dropping a student, or the
+      // student cutting a coach off. Nothing can be updated in place — a
+      // link is either there, active, or gone.
       allow delete: if request.auth != null
                     && (resource.data.coachUid == request.auth.uid || resource.data.studentUid == request.auth.uid);
     }

@@ -20,13 +20,32 @@ import ScoresheetPhoto from '../components/ScoresheetPhoto';
 import { flagLabel, flagColor } from '../lib/gameFlags';
 import TagEditor, { TagChips, allTags } from './TagEditor';
 import { useBackGuard } from '../lib/backGuard';
+import { uid } from '../store';
 import {
-  requestLink, watchCoachLinks, endLink, loadLinkedAccount,
+  addLinkedStudent, watchCoachLinks, endLink, loadLinkedAccount,
 } from '../lib/cloud/links';
 import {
   BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon, StarIcon,
   CameraIcon, FlaskIcon, SendIcon, UsersIcon, LinkIcon,
 } from '../components/Icons';
+
+// The signed-in coach, wherever a screen needs to open or show a link —
+// the roster list (to add a student by account) and a student's own page
+// (to see or end the link) both need it.
+function useMe() {
+  const [me, setMe] = useState(null);
+  useEffect(() => {
+    if (!cloudConfigured) return undefined;
+    let stop = () => {};
+    watchAuth(async (u) => {
+      if (!u) { setMe(null); return; }
+      const profile = await loadProfile(u.uid).catch(() => null);
+      setMe({ uid: u.uid, ...(profile ?? {}) });
+    }).then((fn) => { stop = fn; });
+    return () => stop();
+  }, []);
+  return me;
+}
 
 // The handles a player is known by, with whatever live ratings we last fetched
 // for them, shown compactly wherever they're useful.
@@ -313,20 +332,9 @@ function PlayerPage({
   // without an account there's nobody to send as, so the button stays hidden
   // and the file-based study pack in Settings remains the way.
   const [sending, setSending] = useState(false);
-  const [me, setMe] = useState(null);
-  useEffect(() => {
-    if (!cloudConfigured) return undefined;
-    let stop = () => {};
-    watchAuth(async (u) => {
-      if (!u) { setMe(null); return; }
-      const profile = await loadProfile(u.uid).catch(() => null);
-      setMe({ uid: u.uid, ...(profile ?? {}) });
-    }).then((fn) => { stop = fn; });
-    return () => stop();
-  }, []);
+  const me = useMe();
 
-  // Linking to this student's real account — separate from `me` above
-  // because it only matters once we know who's signed in.
+  // Linking to this student's real account.
   const [coachLinks, setCoachLinks] = useState([]);
   useEffect(() => {
     if (!me?.uid) { setCoachLinks([]); return undefined; }
@@ -336,21 +344,26 @@ function PlayerPage({
   }, [me?.uid]);
   const linkedUid = player.profile?.linkedUid ?? null;
   const link = linkedUid ? coachLinks.find((l) => l.studentUid === linkedUid) : null;
-  const linkStatus = link?.status ?? 'none';
+  const linked = !!link;
   const [linkName, setLinkName] = useState('');
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState(null);
-  const [showLinked, setShowLinked] = useState(false);
   const [linkedAccount, setLinkedAccount] = useState(null);
   const [linkedLoading, setLinkedLoading] = useState(false);
   const [linkedError, setLinkedError] = useState(null);
 
-  const sendLinkRequest = async () => {
+  const linkNow = async () => {
     setLinkError(null);
     setLinking(true);
     try {
-      const { student } = await requestLink(me, linkName);
-      dispatch({ type: 'updatePlayer', playerId: player.id, profile: { linkedUid: student.uid } });
+      const { student, seed } = await addLinkedStudent(me, linkName);
+      // Their own profile fills in whatever the coach hasn't already typed
+      // by hand — never overwriting notes already on this section.
+      dispatch({
+        type: 'updatePlayer',
+        playerId: player.id,
+        profile: { ...(seed.profile ?? {}), ...p, linkedUid: student.uid },
+      });
       setLinkName('');
     } catch (err) {
       setLinkError(err.message);
@@ -359,19 +372,22 @@ function PlayerPage({
     }
   };
 
-  const viewLinkedAccount = async () => {
-    setShowLinked(true);
-    if (linkedAccount || linkedLoading) return;
+  // A link is live the instant it's opened, so their real games are worth
+  // loading as soon as the page comes up — no extra click to go find them.
+  useEffect(() => {
+    if (!linked || !linkedUid) { setLinkedAccount(null); return; }
+    let cancelled = false;
     setLinkedLoading(true);
     setLinkedError(null);
-    try {
-      setLinkedAccount(await loadLinkedAccount(linkedUid));
-    } catch (err) {
-      setLinkedError(err.message);
-    } finally {
-      setLinkedLoading(false);
-    }
-  };
+    loadLinkedAccount(linkedUid).then((account) => {
+      if (!cancelled) setLinkedAccount(account);
+    }).catch((err) => {
+      if (!cancelled) setLinkedError(err.message);
+    }).finally(() => {
+      if (!cancelled) setLinkedLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [linked, linkedUid]);
 
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState(null);
@@ -506,19 +522,16 @@ function PlayerPage({
           <div className="scope-info">
             <h3><UsersIcon size={15} /> Their account</h3>
             <div className="sub">
-              {linkStatus === 'active'
-                ? `Linked — you can see everything in ${player.name}'s real account, including games
-                  they type in themselves, read-only.`
-                : linkStatus === 'pending'
-                  ? `Waiting for ${player.name} to approve — this only works if they have their own
-                    account under that screen name.`
-                  : `The games and profile above are just your own notes on ${player.name}. Ask to see
-                    their real account instead — the games they type in themselves show up here too.`}
+              {linked
+                ? `Linked — everything below marked "their account" is live from ${player.name}'s real
+                  account, including games they type in themselves.`
+                : `The games and profile above are just your own notes on ${player.name}. Link their
+                  account instead and this becomes the real thing — instantly, and they can end it
+                  any time.`}
             </div>
             {linkError && <div className="muted-note" style={{ color: 'var(--red)' }}>{linkError}</div>}
-            {linkedError && <div className="muted-note" style={{ color: 'var(--red)' }}>{linkedError}</div>}
           </div>
-          {linkStatus === 'none' && (
+          {!linked && (
             <>
               <input
                 value={linkName}
@@ -526,60 +539,49 @@ function PlayerPage({
                 placeholder="their screen name"
                 style={{ maxWidth: 160 }}
               />
-              <button className="small primary" disabled={linking || !linkName.trim()} onClick={sendLinkRequest}>
-                {linking ? 'Asking…' : <><LinkIcon size={14} /> Request link</>}
+              <button className="small primary" disabled={linking || !linkName.trim()} onClick={linkNow}>
+                {linking ? 'Linking…' : <><LinkIcon size={14} /> Link account</>}
               </button>
             </>
           )}
-          {linkStatus === 'pending' && (
-            <button className="small ghost" onClick={() => endLink(link.id)}>Cancel request</button>
-          )}
-          {linkStatus === 'active' && (
-            <>
-              <button className="small" onClick={viewLinkedAccount}>View their games</button>
-              <button
-                className="small ghost danger"
-                onClick={() => {
-                  if (window.confirm(`Stop seeing ${player.name}'s real account?`)) endLink(link.id);
-                }}
-              >
-                End link
-              </button>
-            </>
+          {linked && (
+            <button
+              className="small ghost danger"
+              onClick={() => {
+                if (window.confirm(`Stop seeing ${player.name}'s real account?`)) endLink(link.id);
+              }}
+            >
+              End link
+            </button>
           )}
         </div>
       )}
 
-      {showLinked && (
-        <div className="viewer-overlay" onClick={() => setShowLinked(false)}>
-          <div className="modal inbox-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="page-head"><h2>{player.name}'s real games</h2></div>
-            {linkedLoading && <p className="hint">Loading…</p>}
-            {linkedError && <p className="hint" style={{ color: 'var(--red)' }}>{linkedError}</p>}
-            {!linkedLoading && linkedAccount && (() => {
-              const theirGames = (linkedAccount.players ?? [])
-                .flatMap((pl) => pl.games ?? [])
-                .sort((a, b) => b.date - a.date);
-              if (theirGames.length === 0) {
-                return <p className="hint">No games in their account yet.</p>;
-              }
-              return theirGames.map((game) => {
-                const m = game.meta ?? {};
-                return (
-                  <div key={game.id} className="inbox-item">
-                    <GameHeader game={game} />
-                    <div className="muted-note">
-                      {fmtDate(game.date)} · {eventLabel(m.eventType)} · {game.moves.length} moves
-                    </div>
-                    <MoveText moves={game.moves.slice(0, 24)} comments={game.comments} />
+      {linked && (
+        <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)', display: 'block' }}>
+          <h3 style={{ margin: '0 0 8px' }}>Their account — games</h3>
+          {linkedLoading && <p className="hint">Loading…</p>}
+          {linkedError && <p className="hint" style={{ color: 'var(--red)' }}>{linkedError}</p>}
+          {!linkedLoading && !linkedError && linkedAccount && (() => {
+            const theirGames = (linkedAccount.players ?? [])
+              .flatMap((pl) => pl.games ?? [])
+              .sort((a, b) => b.date - a.date);
+            if (theirGames.length === 0) {
+              return <p className="hint">No games in their account yet.</p>;
+            }
+            return theirGames.map((game) => {
+              const m = game.meta ?? {};
+              return (
+                <div key={game.id} className="inbox-item">
+                  <GameHeader game={game} />
+                  <div className="muted-note">
+                    {fmtDate(game.date)} · {eventLabel(m.eventType)} · {game.moves.length} moves
                   </div>
-                );
-              });
-            })()}
-            <div className="modal-actions">
-              <button onClick={() => setShowLinked(false)}>Close</button>
-            </div>
-          </div>
+                  <MoveText moves={game.moves.slice(0, 24)} comments={game.comments} />
+                </div>
+              );
+            });
+          })()}
         </div>
       )}
 
@@ -765,8 +767,41 @@ export default function PlayerRoster({
   const [openPlayerId, setOpenPlayerId] = useState(null);
   const [manageCats, setManageCats] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null); // 'new' | player
+  // Adding a student two ways: type in what you know by hand (the roster
+  // this app has always had), or point at their real screen name and get
+  // everything — repertoire, games, USCF ID, rating — instantly, live.
+  const me = useMe();
+  const [addMode, setAddMode] = useState(null); // null | 'choose' | 'account'
+  const [linkName, setLinkName] = useState('');
+  const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState(null);
 
   useBackGuard(manageCats, () => setManageCats(false));
+  useBackGuard(!!addMode, () => setAddMode(null));
+
+  const addByAccount = async () => {
+    setLinkError(null);
+    setLinking(true);
+    try {
+      const { student, seed } = await addLinkedStudent(me, linkName);
+      const id = uid();
+      dispatch({
+        type: 'addPlayer',
+        id,
+        kind,
+        name: student.name || linkName.trim(),
+        profile: { ...(seed.profile ?? {}), linkedUid: student.uid },
+        avatar: seed.avatar ?? undefined,
+      });
+      setAddMode(null);
+      setLinkName('');
+      setOpenPlayerId(id);
+    } catch (err) {
+      setLinkError(err.message);
+    } finally {
+      setLinking(false);
+    }
+  };
 
   const players = state.players.filter((p) => (p.kind ?? 'self') === kind);
   const openPlayer = players.find((p) => p.id === openPlayerId);
@@ -820,7 +855,12 @@ export default function PlayerRoster({
             <FlaskIcon size={15} /> Studio
           </button>
         )}
-        <button className="primary" onClick={() => setEditingPlayer('new')}>{addLabel}</button>
+        <button
+          className="primary"
+          onClick={() => (kind === 'student' ? setAddMode('choose') : setEditingPlayer('new'))}
+        >
+          {addLabel}
+        </button>
       </div>
       <p className="roster-subtitle">{subtitle}</p>
 
@@ -885,6 +925,64 @@ export default function PlayerRoster({
             setEditingPlayer(null);
           }}
         />
+      )}
+
+      {addMode === 'choose' && (
+        <div className="modal-overlay" onClick={() => setAddMode(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Add a student</h3>
+            <div className="cat-manage-row" style={{ cursor: 'pointer' }} onClick={() => { setAddMode(null); setEditingPlayer('new'); }}>
+              <PencilIcon size={15} />
+              <div style={{ flex: 1 }}>
+                <strong>Type it in by hand</strong>
+                <div className="muted-note">Name, USCF ID, rating — your own notes, same as always.</div>
+              </div>
+            </div>
+            <div className="cat-manage-row" style={{ cursor: me ? 'pointer' : 'default', opacity: me ? 1 : 0.5 }} onClick={() => me && setAddMode('account')}>
+              <LinkIcon size={15} />
+              <div style={{ flex: 1 }}>
+                <strong>Link their account</strong>
+                <div className="muted-note">
+                  {me
+                    ? "Type their screen name — you'll see their real openings, games, USCF ID and rating instantly."
+                    : 'Sign in first — linking needs a coach account to link as.'}
+                </div>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button onClick={() => setAddMode(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {addMode === 'account' && (
+        <div className="modal-overlay" onClick={() => setAddMode(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Link their account</h3>
+            <p className="hint">
+              Their screen name — the one in their Settings → Account. This opens instantly: no
+              approval needed, though they can end it from their own account whenever they like.
+            </p>
+            <label className="field-row">
+              <span>Screen name</span>
+              <input
+                autoFocus
+                value={linkName}
+                onChange={(e) => setLinkName(e.target.value)}
+                placeholder="e.g. wavy-jr"
+                onKeyDown={(e) => { if (e.key === 'Enter' && linkName.trim()) addByAccount(); }}
+              />
+            </label>
+            {linkError && <p className="hint" style={{ color: 'var(--red)' }}>{linkError}</p>}
+            <div className="modal-actions">
+              <button onClick={() => setAddMode(null)}>Cancel</button>
+              <button className="primary" disabled={linking || !linkName.trim()} onClick={addByAccount}>
+                {linking ? 'Linking…' : 'Link account'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {manageCats && (
