@@ -304,7 +304,7 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
         id="account"
         tab={tab}
         title="Account"
-        hint="Sync across your devices, and your screen name"
+        hint="Sync across your devices, and your account name"
       >
         <AccountSection />
       </Section>

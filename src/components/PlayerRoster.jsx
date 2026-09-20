@@ -536,7 +536,7 @@ function PlayerPage({
               <input
                 value={linkName}
                 onChange={(e) => setLinkName(e.target.value)}
-                placeholder="their screen name"
+                placeholder="their account name"
                 style={{ maxWidth: 160 }}
               />
               <button className="small primary" disabled={linking || !linkName.trim()} onClick={linkNow}>
@@ -768,7 +768,7 @@ export default function PlayerRoster({
   const [manageCats, setManageCats] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null); // 'new' | player
   // Adding a student two ways: type in what you know by hand (the roster
-  // this app has always had), or point at their real screen name and get
+  // this app has always had), or point at their real account name and get
   // everything — repertoire, games, USCF ID, rating — instantly, live.
   const me = useMe();
   const [addMode, setAddMode] = useState(null); // null | 'choose' | 'account'
@@ -944,7 +944,7 @@ export default function PlayerRoster({
                 <strong>Link their account</strong>
                 <div className="muted-note">
                   {me
-                    ? "Type their screen name — you'll see their real openings, games, USCF ID and rating instantly."
+                    ? "Type their account name — you'll see their real openings, games, USCF ID and rating instantly."
                     : 'Sign in first — linking needs a coach account to link as.'}
                 </div>
               </div>
@@ -961,11 +961,11 @@ export default function PlayerRoster({
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>Link their account</h3>
             <p className="hint">
-              Their screen name — the one in their Settings → Account. This opens instantly: no
+              Their account name — the one in their Settings → Account. This opens instantly: no
               approval needed, though they can end it from their own account whenever they like.
             </p>
             <label className="field-row">
-              <span>Screen name</span>
+              <span>Account name</span>
               <input
                 autoFocus
                 value={linkName}

@@ -16,7 +16,7 @@ rules_version = '2';
 // 4. Links — a coach's read-only window into a student's real account
 //    (games, repertoire, everything) instead of the coach's own manual
 //    notes about them. The coach opens it, instantly, by the student's
-//    screen name — there's no approval step. The one protection a student
+//    account name — there's no approval step. The one protection a student
 //    keeps is that they can end it, any time, by deleting the link.
 service cloud.firestore {
   match /databases/{database}/documents {

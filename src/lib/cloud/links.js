@@ -3,7 +3,7 @@
 // round), repertoire, and ratings, live — instead of the coach's own manual
 // notes about them staying the only thing a coach ever sees.
 //
-// A coach opens a link by screen name and it's live immediately — no
+// A coach opens a link by account name and it's live immediately — no
 // approval step, so adding a student who already has their own account is
 // as fast as typing their name. The one protection left on the student's
 // side is that they can always end it. The link's id is fixed to
@@ -46,12 +46,12 @@ export async function loadLinkedAccount(studentUid) {
 // section, so the coach isn't looking at a blank card. A student with
 // nothing synced yet just comes back with an empty seed, same as adding
 // someone by hand.
-export async function addLinkedStudent(coach, studentScreenName) {
-  const who = await findByScreenName(studentScreenName);
+export async function addLinkedStudent(coach, studentAccountName) {
+  const who = await findByScreenName(studentAccountName);
   if (!who) {
-    throw new Error(`Nobody is using “${studentScreenName.trim()}”. It's the name in their Settings → Account.`);
+    throw new Error(`Nobody is using “${studentAccountName.trim()}”. It's the account name in their Settings → Account.`);
   }
-  if (who.uid === coach.uid) throw new Error('That’s your own screen name.');
+  if (who.uid === coach.uid) throw new Error('That’s your own account name.');
   const c = await cloud();
   const { doc, setDoc, serverTimestamp } = c.firestore;
   const id = linkId(coach.uid, who.uid);
@@ -71,9 +71,9 @@ export async function addLinkedStudent(coach, studentScreenName) {
     if (self) seed = { profile: self.profile ?? null, avatar: self.avatar ?? null };
   } catch {
     // Their account exists but nothing's synced from it yet, or the read
-    // raced the write above. The link still stands either way — Coach's
-    // account page can always pull their games in once there's something
-    // there to pull.
+    // raced the write above. The link still stands either way — the coach's
+    // page can always pull their games in once there's something there to
+    // pull.
   }
   return { id, student: who, seed };
 }
