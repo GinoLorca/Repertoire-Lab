@@ -20,6 +20,7 @@ import {
   toCloud, fromCloud, hashOf, localBlobIndex, keepLocalImages, encodeForStore, decodeFromStore,
 } from './shape';
 import { makeInlineStore } from './blobs';
+import { DEFAULT_SETTINGS } from '../../store';
 import { mergeBackup } from '../backup';
 
 const META_KEY = 'repertoire-lab-sync-v1';
@@ -172,7 +173,7 @@ async function push(c, uid, docs, meta, removals, device) {
 // The whole decision, with no network in it: what the merged state should be,
 // and what this device deleted that the cloud still has. Exported so it can
 // be tested directly — everything that could quietly lose work lives here.
-export function reconcile(localState, remoteState, remoteDocs, meta) {
+export function reconcile(localState, remoteState, remoteDocs, meta, defaults = DEFAULT_SETTINGS) {
   const goneHere = {
     openings: deletedSince(meta.ids.openings, idsOf(localState.openings)),
     chapters: deletedSince(meta.ids.chapters, (localState.openings ?? []).flatMap((o) => idsOf(o.chapters))),
@@ -222,7 +223,14 @@ export function reconcile(localState, remoteState, remoteDocs, meta) {
   const neverSyncedHere = meta.settingsHash === null;
   const changedHere = !neverSyncedHere && meta.settingsHash !== localSettingsHash;
   const remoteIsNewer = (remoteDocs.settingsAt ?? 0) > (meta.settingsAt ?? 0);
-  if (!changedHere && !neverSyncedHere && remoteState.settings && remoteIsNewer) {
+  // Nothing on this device has been touched: it's a fresh install, still
+  // wearing whatever the app ships with. Signing in on a new tablet should
+  // bring your own look across rather than leaving you with the factory one —
+  // and this is the only case where taking the account's settings can't
+  // overwrite a choice, because no choice has been made here yet.
+  const untouchedHere = defaults && localSettingsHash === hashOf(JSON.stringify(defaults));
+  const remoteHasSettings = remoteState.settings && Object.keys(remoteState.settings).length > 0;
+  if (remoteHasSettings && (untouchedHere || (!changedHere && !neverSyncedHere && remoteIsNewer))) {
     merged = { ...merged, settings: { ...localState.settings, ...remoteState.settings } };
   }
 

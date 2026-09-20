@@ -53,11 +53,16 @@ export const DEFAULT_SETTINGS = {
   engineAuto: true, // start Stockfish as soon as the analysis board opens
   bookMoves: true, // your own lines shown above the engine's on the board
   theme: 'dark', // 'dark' | 'light' | 'auto' (auto follows the time of day)
-  // Which palette the whole app wears — a Chess Arcade skin, or 'custom' for
-  // this app's own colours plus whatever's set below. 'custom' is the default
-  // and is also what a settings file saved before skins existed resolves to,
-  // so an update changes nobody's colours until they ask for it.
-  skin: 'custom',
+  // Which palette the whole app wears — one of the themes, or 'custom' for
+  // this app's own colours plus whatever's set below. Tournament Felt is what
+  // a new account opens on: it's the one that looks like the game.
+  //
+  // This is the default for a FRESH install only. An app that has been used
+  // before keeps what it's wearing, including the plain 'custom' look that
+  // used to be the default — see the hydrate below, which pins it there. A
+  // person who has never chosen a theme shouldn't have one chosen for them by
+  // an update.
+  skin: 'felt',
   skinWallpaper: true, // the chosen theme's own page background, behind everything
   // Your own picture behind the app, as a data URL, keyed by theme — each
   // theme shows its own, or the wallpaper it shipped with. `background` below
@@ -966,10 +971,14 @@ export function StoreProvider({ children }) {
       let saved = null;
       try { saved = await get(STORAGE_KEY); } catch { saved = null; }
       const base = saved ?? emptyState();
-      dispatch({
-        type: 'hydrate',
-        state: { ...base, settings: { ...DEFAULT_SETTINGS, ...(base.settings ?? {}) } },
-      });
+      const settings = { ...DEFAULT_SETTINGS, ...(base.settings ?? {}) };
+      // There was a time before themes, and a state saved then has no `skin`
+      // at all. Filling that gap from the defaults would hand a theme to
+      // someone who never picked one — which is exactly what they'd notice on
+      // opening the app one morning. An install with history gets what it has
+      // always had; only a first run gets the new default.
+      if (saved && base.settings?.skin === undefined) settings.skin = 'custom';
+      dispatch({ type: 'hydrate', state: { ...base, settings } });
       setLoaded(true);
     })();
   }, []);

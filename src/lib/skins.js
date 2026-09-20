@@ -31,7 +31,7 @@ export const SKINS = {
   felt: {
     id: 'felt',
     name: 'Tournament Felt',
-    blurb: 'Brass, green baize and ivory — Chess Arcade’s default.',
+    blurb: 'Brass, green baize and ivory — what the app opens on.',
     light: {
       // Chess Arcade's light felt is the green baize itself (#3a6b4a). That
       // works there because its content sits on ivory cards, but this app puts
