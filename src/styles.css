@@ -443,6 +443,11 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-size: 15px;
   line-height: 1.45;
+  /* The top bar is `position: fixed` now (see .topbar below), so it no longer
+     reserves its own space in the flow — this stands in for that. The App
+     component measures the bar's real rendered height into --topbar-h; the
+     fallback here only covers the one frame before that measurement lands. */
+  padding-top: var(--topbar-h, 64px);
 }
 
 button {
@@ -478,7 +483,12 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 
 .loading-screen {
   display: flex; align-items: center; justify-content: center;
-  height: 100vh; color: var(--muted); font-size: 18px;
+  /* Shown before the top bar exists at all (nothing has mounted yet to
+     measure --topbar-h), so body's padding-top for it is still just the
+     fallback guess — cancel that out rather than let this brief screen sit
+     off-centre for it. */
+  height: 100vh; margin-top: calc(-1 * var(--topbar-h, 64px));
+  color: var(--muted); font-size: 18px;
 }
 
 /* ---------- Layout ---------- */
@@ -488,14 +498,14 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   padding: calc(12px + var(--safe-top)) calc(24px + var(--safe-right)) 12px calc(24px + var(--safe-left));
   background: var(--panel);
   border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; z-index: 20;
-  /* Installed as a home-screen app, iOS drops a `position: sticky` element
-     from its own compositing layer and leaves it unpainted until a touch
-     forces a repaint — it looks like the header only exists while you're
-     holding the screen. Forcing this onto its own layer up front is what
-     keeps it actually stuck. Same fix below on every other sticky bar. */
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
+  /* `position: sticky` does not stick at all here — installed as a
+     standalone home-screen app with `viewport-fit=cover`, the whole page
+     (bar included) just scrolls as one block, so the bar is offscreen the
+     instant you're not at the exact top and only reappears mid-drag, during
+     the overscroll bounce. `fixed` sidesteps the bug outright: it doesn't
+     depend on scroll position at all. App.jsx measures its real height into
+     --topbar-h so the page below can pad itself clear of it. */
+  position: fixed; top: 0; left: 0; right: 0; z-index: 20;
 }
 /* A real <button> for keyboard and screen readers, styled back to plain text. */
 .topbar .logo {
@@ -739,8 +749,6 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 16px; display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
   position: sticky; bottom: calc(12px + var(--safe-bottom));
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
 }
 .assign-bar label { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
 .assign-bar .grow { flex: 1; min-width: 140px; }
@@ -1222,11 +1230,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 .verify-suggest .book-hint { color: var(--green); }
 .verify-suggest .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
-.verify-commit {
-  position: sticky; bottom: calc(12px + var(--safe-bottom)); margin-top: 18px;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-}
+.verify-commit { position: sticky; bottom: calc(12px + var(--safe-bottom)); margin-top: 18px; }
 .verify-count { font-size: 14.5px; color: var(--muted); }
 .verify-count strong { color: var(--text); font-size: 16px; }
 
@@ -3198,9 +3202,9 @@ input[type="date"] {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   background: var(--card); border: 1px solid var(--border);
   border-radius: 10px; padding: 9px 12px; margin-bottom: 12px;
-  position: sticky; top: calc(62px + var(--safe-top)); z-index: 5;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
+  /* Sticks just below the top bar, which is `position: fixed` now — so this
+     has to clear its real measured height, not a guessed pixel figure. */
+  position: sticky; top: var(--topbar-h, 64px); z-index: 5;
 }
 .row-check { width: 17px; height: 17px; accent-color: var(--accent); flex: 0 0 auto; }
 /* A tick's worth of emphasis — the line still has to be readable. */
