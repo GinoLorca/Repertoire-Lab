@@ -489,6 +489,13 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   position: sticky; top: 0; z-index: 20;
+  /* Installed as a home-screen app, iOS drops a `position: sticky` element
+     from its own compositing layer and leaves it unpainted until a touch
+     forces a repaint — it looks like the header only exists while you're
+     holding the screen. Forcing this onto its own layer up front is what
+     keeps it actually stuck. Same fix below on every other sticky bar. */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 /* A real <button> for keyboard and screen readers, styled back to plain text. */
 .topbar .logo {
@@ -732,6 +739,8 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 16px; display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
   position: sticky; bottom: calc(12px + var(--safe-bottom));
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 .assign-bar label { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
 .assign-bar .grow { flex: 1; min-width: 140px; }
@@ -1213,7 +1222,11 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 .verify-suggest .book-hint { color: var(--green); }
 .verify-suggest .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
-.verify-commit { position: sticky; bottom: calc(12px + var(--safe-bottom)); margin-top: 18px; }
+.verify-commit {
+  position: sticky; bottom: calc(12px + var(--safe-bottom)); margin-top: 18px;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
 .verify-count { font-size: 14.5px; color: var(--muted); }
 .verify-count strong { color: var(--text); font-size: 16px; }
 
@@ -3186,6 +3199,8 @@ input[type="date"] {
   background: var(--card); border: 1px solid var(--border);
   border-radius: 10px; padding: 9px 12px; margin-bottom: 12px;
   position: sticky; top: calc(62px + var(--safe-top)); z-index: 5;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 .row-check { width: 17px; height: 17px; accent-color: var(--accent); flex: 0 0 auto; }
 /* A tick's worth of emphasis — the line still has to be readable. */
