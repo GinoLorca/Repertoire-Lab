@@ -74,6 +74,13 @@ export function boardMapToFen(map, sideToMove, castling, halfmove = 0, fullmove 
 // a hand-built board string is exactly the kind of thing that silently drops
 // a developed piece, which is precisely what happened here the first time.
 export const PRESETS = {
+  pawnRace: {
+    // Every pawn on its home square, nothing else on the board — the whole
+    // point being a race to promotion, not a game, so there's no king to
+    // give check or castling rights to carry.
+    label: 'Pawn race',
+    fen: '8/pppppppp/8/8/8/8/PPPPPPPP/8 w - - 0 1',
+  },
   kingsideBoth: {
     // 1.Nf3 Nf6 2.g3 g6 3.Bg2 Bg7 4.O-O O-O
     label: 'Kingside castled (both)',

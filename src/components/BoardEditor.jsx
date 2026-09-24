@@ -402,6 +402,7 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
         <div className="editor-presets">
           <span className="editor-label">Quick setups</span>
           <div className="editor-row">
+            <button className="small ghost" onClick={() => loadFen(PRESETS.pawnRace.fen)}>Pawn race</button>
             <button className="small ghost" onClick={() => loadFen(PRESETS.kingsideBoth.fen)}>Kingside castled</button>
             <button className="small ghost" onClick={() => loadFen(PRESETS.queensideBoth.fen)}>Queenside castled</button>
           </div>
