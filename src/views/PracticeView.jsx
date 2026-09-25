@@ -1288,11 +1288,17 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   // Tall boards need the same treatment vertically, and whole squares only.
   // The window minus what the system covers — an iPad's menu bar sits over the
   // top of it, so the raw height promises room the board can't have.
-  // When the card sits under the board (a phone) it has to share the height
-  // too, or the Hint and Skip buttons land below the bottom of the screen.
+  // When the card sits under the board (a tablet in portrait) it has to
+  // share the height too, or the Hint and Skip buttons land below the bottom
+  // of the screen. A phone is the exception: there the board is the screen,
+  // edge to edge and centred, and the card scrolls up under it — a board
+  // shrunk to keep the buttons in view sits small and lost in a field of
+  // margin, which reads as broken. Only a phone on its side, with no height
+  // to speak of, still gets capped.
+  const isPhone = viewportWidth <= 600;
   const tallCap = Math.max(
     280,
-    viewportHeight - topInset() - bottomInset() - (rowFits ? 210 : 350),
+    viewportHeight - topInset() - bottomInset() - (rowFits ? 210 : (isPhone ? 160 : 350)),
   );
   const boardWidth = Math.floor(
     Math.max(240, Math.min(720, forBoard, tallCap)) / 8,
