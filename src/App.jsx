@@ -55,6 +55,91 @@ function AppInner() {
   // "Copied" for a second after the link button is used.
   const [linkCopied, setLinkCopied] = useState(false);
 
+  // Pull down from the top to reload. Installed to the home screen there's no
+  // browser around the app, so iOS's own pull-to-refresh never exists; this
+  // stands in for it. A tab already has the real one, so it only arms in
+  // standalone mode. Driven by direct style writes rather than state: a
+  // re-render of the whole app on every touchmove would stutter.
+  const ptrRef = useRef(null);
+  const ptrIconRef = useRef(null);
+  useEffect(() => {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+    const el = ptrRef.current;
+    const icon = ptrIconRef.current;
+    if (!standalone || !el || !icon) return undefined;
+
+    const THRESHOLD = 70;
+    const MAX_PULL = 120;
+    // Past 1 on the way out: overshoots its target, then settles — the
+    // slingshot snap on release.
+    const SPRING = 'transform 0.45s cubic-bezier(0.34, 1.7, 0.64, 1)';
+    let startY = null;
+    let pull = 0;
+    let refreshing = false;
+
+    const atTop = () => (document.scrollingElement || document.documentElement).scrollTop <= 0;
+    // A drag that starts on a board is a chess move, and one inside a popup
+    // is that popup's business — neither should ever reload the app.
+    const blocked = (target) => !!target?.closest?.(
+      '[data-boardid], .board-stack, .board-frame, .book-board, .viewer-board, input, textarea, select',
+    ) || !!document.querySelector('.modal-overlay, .viewer-overlay, .menu-scrim');
+
+    const place = (y, spin) => {
+      el.style.transform = `translate(-50%, ${y}px)`;
+      icon.style.transform = spin ? '' : `rotate(${Math.min(y / THRESHOLD, 1) * 180}deg)`;
+    };
+    const release = () => {
+      el.style.transition = `${SPRING}, opacity 0.2s ease 0.25s`;
+      el.classList.remove('visible');
+      place(0);
+      pull = 0;
+    };
+
+    const onStart = (e) => {
+      if (refreshing || e.touches.length !== 1 || !atTop() || blocked(e.target)) { startY = null; return; }
+      startY = e.touches[0].clientY;
+      pull = 0;
+    };
+    const onMove = (e) => {
+      if (startY === null || refreshing) return;
+      const dy = e.touches[0].clientY - startY;
+      if (dy <= 0 || !atTop()) { if (pull) release(); startY = null; return; }
+      // Damped, so the finger travels further than the indicator — the
+      // same heavy feel as the native gesture.
+      pull = Math.min(dy * 0.5, MAX_PULL);
+      el.style.transition = 'none';
+      el.classList.add('visible');
+      place(pull);
+    };
+    const onEnd = () => {
+      if (startY === null) return;
+      startY = null;
+      if (pull >= THRESHOLD) {
+        refreshing = true;
+        el.style.transition = SPRING;
+        place(THRESHOLD, true);
+        icon.classList.add('spinning');
+        // Let the snap land before the page goes, so the gesture reads as
+        // finished rather than cut off.
+        setTimeout(() => window.location.reload(), 420);
+      } else if (pull) {
+        release();
+      }
+    };
+
+    document.addEventListener('touchstart', onStart, { passive: true });
+    document.addEventListener('touchmove', onMove, { passive: true });
+    document.addEventListener('touchend', onEnd);
+    document.addEventListener('touchcancel', release);
+    return () => {
+      document.removeEventListener('touchstart', onStart);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      document.removeEventListener('touchcancel', release);
+    };
+  }, []);
+
   const themeSettings = state?.settings;
   useEffect(() => {
     // The skin rides along with the palette: each one has a light and a dark
@@ -354,6 +439,13 @@ function AppInner() {
 
   return (
     <>
+      <div className="ptr-indicator" ref={ptrRef} aria-hidden="true">
+        <span className="ptr-icon" ref={ptrIconRef}>
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <path d="M12 5v13M6 12l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </div>
       <div className="topbar">
         <button
           type="button"

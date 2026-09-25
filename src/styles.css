@@ -486,6 +486,31 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 
 /* ---------- Layout ---------- */
 
+/* Pull-to-refresh for the home-screen app (see App.jsx). Parked just above
+   the screen and invisible until a pull at the top of the page drags it
+   down over the top bar; the arrow flips as the pull passes the release
+   point, and spins once a reload is under way. */
+.ptr-indicator {
+  position: fixed; left: 50%; z-index: 500;
+  top: calc(var(--safe-top) + var(--status-gap) + 6px); margin-top: -46px;
+  width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--card); color: var(--accent);
+  border: 1px solid var(--border); box-shadow: 0 4px 14px var(--shadow);
+  transform: translate(-50%, 0);
+  opacity: 0; pointer-events: none;
+}
+.ptr-indicator.visible { opacity: 1; }
+.ptr-icon { display: flex; }
+.ptr-icon.spinning { animation: ptr-spin 0.7s linear infinite; }
+@keyframes ptr-spin { to { transform: rotate(360deg); } }
+/* Stops iOS's own rubber-band bounce at the top, so a pull moves only the
+   indicator — not the indicator and the whole page at once. Standalone
+   only: in a browser tab the browser's own pull-to-refresh relies on it. */
+@media (display-mode: standalone) {
+  html, body { overscroll-behavior-y: contain; }
+}
+
 .topbar {
   display: flex; align-items: center; gap: 18px;
   padding: calc(12px + var(--safe-top) + var(--status-gap)) calc(24px + var(--safe-right)) 12px calc(24px + var(--safe-left));
