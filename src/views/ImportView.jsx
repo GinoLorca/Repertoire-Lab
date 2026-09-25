@@ -481,7 +481,7 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
         <h1>Import</h1>
       </div>
 
-      <div className="tabs">
+      <div className="tabs import-tabs">
         <button className={tab === 'screenshots' ? 'active' : ''} onClick={() => setTab('screenshots')}>
           <CameraIcon size={15} /> Screenshots
         </button>

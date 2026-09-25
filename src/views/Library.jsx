@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useStore, uid } from '../store';
 import { chapterToPgn, openingToPgn, downloadText, safeFilename } from '../lib/pgn';
 import {
@@ -60,6 +61,60 @@ function Reorder({ onUp, onDown, label }) {
       <button className="small ghost" title={`Move ${label} up`} onClick={onUp}>▲</button>
       <button className="small ghost" title={`Move ${label} down`} onClick={onDown}>▼</button>
     </span>
+  );
+}
+
+// On a phone, a card's rarely used actions (export, save progress, delete)
+// live behind this instead of taking a row of their own. Hidden on wider
+// screens, where the same actions sit inline. Portaled to <body> for the same
+// reason as MoveTree's menu: a custom background puts a backdrop-filter on
+// ancestors, and that would pin a `fixed` menu to the card instead of the
+// screen.
+function MoreMenu({ items }) {
+  const [pos, setPos] = useState(null);
+  const btnRef = useRef(null);
+  useBackGuard(!!pos, () => setPos(null));
+  const open = () => {
+    const r = btnRef.current.getBoundingClientRect();
+    const right = Math.max(8, window.innerWidth - r.right);
+    // Near the bottom of the screen it opens upward instead of off the edge.
+    setPos(r.bottom + 170 > window.innerHeight
+      ? { bottom: window.innerHeight - r.top + 4, right }
+      : { top: r.bottom + 4, right });
+  };
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        className="small ghost more-btn"
+        title="More actions"
+        aria-label="More actions"
+        onClick={open}
+      >
+        ⋯
+      </button>
+      {pos && createPortal(
+        <>
+          <div className="menu-scrim" onClick={() => setPos(null)} />
+          <div className="move-menu" role="menu" style={pos}>
+            {items.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                role="menuitem"
+                className={item.danger ? 'danger' : ''}
+                disabled={item.disabled}
+                onClick={() => { setPos(null); item.onClick(); }}
+              >
+                {item.icon}{item.icon ? ' ' : ''}{item.label}
+              </button>
+            ))}
+          </div>
+        </>,
+        document.body,
+      )}
+    </>
   );
 }
 
@@ -684,6 +739,12 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
           : 0;
         const openingGreen = openingPracticed(opening);
         const toggle = () => dispatch({ type: 'toggleOpeningCollapse', openingId: opening.id });
+        const exportOpening = () => downloadText(`${safeFilename(opening.name)}.pgn`, openingToPgn(opening));
+        const deleteThisOpening = () => {
+          if (window.confirm(`Delete "${opening.name}" and all its chapters?`)) {
+            dispatch({ type: 'deleteOpening', openingId: opening.id });
+          }
+        };
         return (
           <section key={opening.id} className="opening-section">
             <div className={`opening-row${openingGreen ? ' practiced' : ''}`}>
@@ -713,6 +774,11 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
               )}
               <div className="opening-info">
                 <div className="opening-head">
+                  {/* Three groups a phone lays out as separate rows (title,
+                      edit tools, actions). Wider screens flatten them with
+                      display: contents, so the header there is one row as
+                      before. */}
+                  <div className="opening-title">
                   <button className="collapse-btn" title={opening.collapsed ? 'Expand' : 'Collapse'} onClick={toggle}>
                     {opening.collapsed ? '▸' : '▾'}
                   </button>
@@ -724,6 +790,8 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                     <StarIcon size={17} filled={opening.starred} />
                   </button>
                   <h2 onClick={toggle} style={{ cursor: 'pointer' }}>{opening.name}</h2>
+                  </div>
+                  <div className="opening-tools">
                   <Reorder
                     label="opening"
                     onUp={() => dispatch({ type: 'moveOpening', openingId: opening.id, dir: -1 })}
@@ -778,7 +846,9 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                       </button>
                     );
                   })()}
+                  </div>
                   <span className="spacer" />
+                  <div className="opening-actions">
                   <button
                     className="small ghost"
                     title="Drop in a whole course PGN — each distinct Event becomes its own chapter under this opening, with its lines inside"
@@ -817,10 +887,11 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                       <SendIcon size={15} /> Send to student
                     </button>
                   )}
+                  <span className="wide-only">
                   <button
                     className="small ghost"
                     disabled={opening.chapters.length === 0}
-                    onClick={() => downloadText(`${safeFilename(opening.name)}.pgn`, openingToPgn(opening))}
+                    onClick={exportOpening}
                   >
                     <DownloadIcon size={15} /> Export opening
                   </button>
@@ -829,16 +900,28 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                     chapters={opening.chapters}
                     label={opening.name}
                   />
-                  <button
-                    className="small ghost danger"
-                    onClick={() => {
-                      if (window.confirm(`Delete "${opening.name}" and all its chapters?`)) {
-                        dispatch({ type: 'deleteOpening', openingId: opening.id });
-                      }
-                    }}
-                  >
+                  <button className="small ghost danger" onClick={deleteThisOpening}>
                     Delete
                   </button>
+                  </span>
+                  <MoreMenu
+                    items={[
+                      {
+                        label: 'Export opening',
+                        icon: <DownloadIcon size={14} />,
+                        disabled: opening.chapters.length === 0,
+                        onClick: exportOpening,
+                      },
+                      {
+                        label: 'Save progress',
+                        icon: <DownloadIcon size={14} />,
+                        disabled: tallyChapters(opening.chapters).variations === 0,
+                        onClick: () => saveProgress(opening.id, opening.chapters, opening.name),
+                      },
+                      { label: 'Delete opening', danger: true, onClick: deleteThisOpening },
+                    ]}
+                  />
+                  </div>
                 </div>
                 <div className="opening-stats">
                   <span>
@@ -1044,6 +1127,11 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                     const toggleCourse = () => dispatch({
                       type: 'toggleCourseCollapse', openingId: opening.id, courseId: course.id,
                     });
+                    const deleteThisCourse = () => {
+                      if (window.confirm(`Delete the course "${course.name}"? Its ${courseChapters.length} chapters stay in ${opening.name}.`)) {
+                        dispatch({ type: 'deleteCourse', openingId: opening.id, courseId: course.id });
+                      }
+                    };
                     return (
                       <div key={course.id} className="course-block">
                         <div className={`opening-row course-row${green ? ' practiced' : ''}`}>
@@ -1071,6 +1159,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                           )}
                           <div className="opening-info">
                             <div className="opening-head">
+                              <div className="opening-title">
                               <button
                                 className="collapse-btn"
                                 title={course.collapsed ? 'Expand' : 'Collapse'}
@@ -1081,6 +1170,8 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                               <h3 onClick={toggleCourse} style={{ cursor: 'pointer', margin: 0 }}>
                                 {course.name}
                               </h3>
+                              </div>
+                              <div className="opening-tools">
                               <Reorder
                                 label="course"
                                 onUp={() => dispatch({ type: 'moveCourse', openingId: opening.id, courseId: course.id, dir: -1 })}
@@ -1107,7 +1198,9 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                               >
                                 <ImageIcon size={15} />
                               </button>
+                              </div>
                               <span className="spacer" />
+                              <div className="opening-actions">
                               <button
                                 className="small ghost"
                                 title="Drop in a course PGN — each distinct Event becomes its own chapter here automatically"
@@ -1125,6 +1218,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                               >
                                 <PlayIcon size={14} /> Practice course{t.due > 0 ? ` (${t.due})` : ''}
                               </button>
+                              <span className="wide-only">
                               <SaveProgressButton
                                 openingId={opening.id}
                                 chapters={courseChapters}
@@ -1133,14 +1227,23 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                               <button
                                 className="small ghost danger"
                                 title="Delete the course — its chapters move back up to the opening"
-                                onClick={() => {
-                                  if (window.confirm(`Delete the course "${course.name}"? Its ${courseChapters.length} chapters stay in ${opening.name}.`)) {
-                                    dispatch({ type: 'deleteCourse', openingId: opening.id, courseId: course.id });
-                                  }
-                                }}
+                                onClick={deleteThisCourse}
                               >
                                 Delete
                               </button>
+                              </span>
+                              <MoreMenu
+                                items={[
+                                  {
+                                    label: 'Save progress',
+                                    icon: <DownloadIcon size={14} />,
+                                    disabled: t.variations === 0,
+                                    onClick: () => saveProgress(opening.id, courseChapters, course.name),
+                                  },
+                                  { label: 'Delete course', danger: true, onClick: deleteThisCourse },
+                                ]}
+                              />
+                              </div>
                             </div>
                             <div className="opening-stats">
                               <span><strong>{t.practiced}/{t.variations}</strong> practiced</span>

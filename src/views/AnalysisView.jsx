@@ -5,7 +5,7 @@ import { useStore, uid } from '../store';
 import { Engine, formatScore } from '../lib/engine';
 import { runGameReview } from '../lib/gameReview';
 import { fetchExplorer, explorerTotals, pct } from '../lib/explorer';
-import { useViewportWidth } from '../components/useViewportWidth';
+import { useViewportWidth, useViewportHeight } from '../components/useViewportWidth';
 import { topInset, bottomInset } from '../lib/safeArea';
 import BoardArrows from '../components/BoardArrows';
 import CompareView from './CompareView';
@@ -156,6 +156,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   const [pgnOpen, setPgnOpen] = useState(false);
   const engineRef = useRef(null);
   const viewportWidth = useViewportWidth();
+  const viewportHeight = useViewportHeight();
 
   // ---------- Board annotations (arrows + square highlights) ----------
   // Kept per position, so stepping back and forth keeps each position's marks.
@@ -1114,7 +1115,9 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   // room too, so cap by height as well as width.
   // Header, the annotation bar, the hint line and the step controls all live
   // under the board — leave them room so the whole thing fits without scrolling.
-  const winH = typeof window === 'undefined' ? 900 : window.innerHeight;
+  // Tracked like the width, not read from window.innerHeight mid-render —
+  // see useViewportHeight for why that reading can't be trusted.
+  const winH = viewportHeight;
   // Part of that height belongs to the system, not to the app — the iPad's
   // menu bar at the top, the home indicator at the bottom. Sizing a board
   // from the raw window height puts its first rank behind the menu bar.
@@ -1127,8 +1130,11 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   // a board hanging off the side of the screen.
   // Whole squares only — a fractional square size leaves the last file and rank
   // looking a hair wider than the others.
+  // The window-width term only binds on a phone: 48 leaves room for the eval
+  // bar beside the board and a margin either side, where 26 had the pair
+  // running edge to edge.
   const boardWidth = Math.floor(
-    Math.max(280, Math.min(BOARD_MAX, colW || 520, heightCap, viewportWidth - 26)) / 8,
+    Math.max(280, Math.min(BOARD_MAX, colW || 520, heightCap, viewportWidth - 48)) / 8,
   ) * 8;
   // The editor gets a much bigger board than Engine mode — it can afford it:
   // setting a position up by hand is the one job here that's all board, and

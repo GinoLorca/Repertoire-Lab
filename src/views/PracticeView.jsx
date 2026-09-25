@@ -8,7 +8,7 @@ import {
 import { celebrate, warmUpConfetti } from '../lib/celebrate';
 import { playMoveSound, playEventSound, primeSounds } from '../lib/sound';
 import MoveText from '../components/MoveText';
-import { useViewportWidth } from '../components/useViewportWidth';
+import { useViewportWidth, useViewportHeight } from '../components/useViewportWidth';
 import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import VariationList from '../components/VariationList';
 import MoveNote, { noteFor } from '../components/MoveNote';
@@ -461,6 +461,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   const prevPlyRef = useRef(0);
   const touchRef = useRef(null);
   const viewportWidth = useViewportWidth();
+  const viewportHeight = useViewportHeight();
   const soundOn = state.settings.soundEnabled ?? true;
   const showLegal = state.settings.showLegalMoves !== false;
   const hintsOn = !!state.settings.hints;
@@ -1287,9 +1288,11 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   // Tall boards need the same treatment vertically, and whole squares only.
   // The window minus what the system covers — an iPad's menu bar sits over the
   // top of it, so the raw height promises room the board can't have.
+  // When the card sits under the board (a phone) it has to share the height
+  // too, or the Hint and Skip buttons land below the bottom of the screen.
   const tallCap = Math.max(
     280,
-    (typeof window === 'undefined' ? 900 : window.innerHeight) - topInset() - bottomInset() - 210,
+    viewportHeight - topInset() - bottomInset() - (rowFits ? 210 : 350),
   );
   const boardWidth = Math.floor(
     Math.max(240, Math.min(720, forBoard, tallCap)) / 8,
@@ -1317,12 +1320,13 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
       <div className="breadcrumb">
         <a onClick={leaveSession}>{cameFromList ? 'Chapters' : 'Exit practice'}</a>
         <span>▸</span>
-        <span>{current.opening.name} · {current.chapter.name}</span>
+        <span className="crumb-current">{current.opening.name} · {current.chapter.name}</span>
         <span style={{ flex: 1 }} />
         {onAnalyze && (
           <button
             className="small ghost"
             title="Open this variation on the analysis board with Stockfish and the explorer"
+            aria-label="Send to analysis"
             onClick={() => onAnalyze({
               name: current.variation.name,
               subtitle: `${current.opening.name} — ${current.chapter.name}`,
@@ -1332,7 +1336,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
               badges: current.variation.badges,
             })}
           >
-            <MonitorIcon size={14} /> Send to analysis
+            <MonitorIcon size={14} /><span className="btn-label"> Send to analysis</span>
           </button>
         )}
       </div>
@@ -1627,11 +1631,11 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             if (phase !== 'teach' && !fromClock) return null;
             return note ? <MoveNote {...note} highlight={fromClock} onMoveClick={highlightNoteSquare} /> : null;
           })()}
-          <div className="practice-moves-played">
+          <div className={`practice-moves-played${ply === 0 ? ' empty' : ''}`}>
             <MoveText moves={moves.slice(0, ply)} comments={current.variation.comments} />
             {ply === 0 && <span style={{ color: 'var(--muted)' }}>Moves appear here as they're played.</span>}
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div className="practice-actions" style={{ display: 'flex', gap: 10 }}>
             {!completed && (
               <>
                 {phase !== 'teach' && (
