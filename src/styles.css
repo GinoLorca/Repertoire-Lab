@@ -443,11 +443,6 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-size: 15px;
   line-height: 1.45;
-  /* The top bar is `position: fixed` now (see .topbar below), so it no longer
-     reserves its own space in the flow — this stands in for that. The App
-     component measures the bar's real rendered height into --topbar-h; the
-     fallback here only covers the one frame before that measurement lands. */
-  padding-top: var(--topbar-h, 64px);
 }
 
 button {
@@ -483,12 +478,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 
 .loading-screen {
   display: flex; align-items: center; justify-content: center;
-  /* Shown before the top bar exists at all (nothing has mounted yet to
-     measure --topbar-h), so body's padding-top for it is still just the
-     fallback guess — cancel that out rather than let this brief screen sit
-     off-centre for it. */
-  height: 100vh; margin-top: calc(-1 * var(--topbar-h, 64px));
-  color: var(--muted); font-size: 18px;
+  height: 100vh; color: var(--muted); font-size: 18px;
 }
 
 /* ---------- Layout ---------- */
@@ -498,14 +488,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   padding: calc(12px + var(--safe-top)) calc(24px + var(--safe-right)) 12px calc(24px + var(--safe-left));
   background: var(--panel);
   border-bottom: 1px solid var(--border);
-  /* `position: sticky` does not stick at all here — installed as a
-     standalone home-screen app with `viewport-fit=cover`, the whole page
-     (bar included) just scrolls as one block, so the bar is offscreen the
-     instant you're not at the exact top and only reappears mid-drag, during
-     the overscroll bounce. `fixed` sidesteps the bug outright: it doesn't
-     depend on scroll position at all. App.jsx measures its real height into
-     --topbar-h so the page below can pad itself clear of it. */
-  position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+  position: sticky; top: 0; z-index: 20;
 }
 /* A real <button> for keyboard and screen readers, styled back to plain text. */
 .topbar .logo {
@@ -1322,7 +1305,13 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   .book-controls button { flex: 1; min-width: 0; }
   .book-controls { width: 100%; }
   /* Six tabs don't fit a phone — let the bar scroll sideways instead of clipping. */
-  .topbar { gap: 10px; padding: 10px 12px; }
+  /* The safe-area terms have to survive the tighter padding: installed to an
+     iPhone home screen the page runs under the status bar, and without them
+     the whole bar sits hidden behind the clock and Dynamic Island. */
+  .topbar {
+    gap: 10px;
+    padding: calc(10px + var(--safe-top)) calc(12px + var(--safe-right)) 10px calc(12px + var(--safe-left));
+  }
   .topbar .logo { font-size: 15px; }
   .topbar nav button { padding: 8px 11px; font-size: 14px; }
   .group-filter { max-width: none; width: 100%; }
@@ -3202,9 +3191,7 @@ input[type="date"] {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   background: var(--card); border: 1px solid var(--border);
   border-radius: 10px; padding: 9px 12px; margin-bottom: 12px;
-  /* Sticks just below the top bar, which is `position: fixed` now — so this
-     has to clear its real measured height, not a guessed pixel figure. */
-  position: sticky; top: var(--topbar-h, 64px); z-index: 5;
+  position: sticky; top: calc(62px + var(--safe-top)); z-index: 5;
 }
 .row-check { width: 17px; height: 17px; accent-color: var(--accent); flex: 0 0 auto; }
 /* A tick's worth of emphasis — the line still has to be readable. */

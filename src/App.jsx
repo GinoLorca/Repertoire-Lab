@@ -55,23 +55,6 @@ function AppInner() {
   // "Copied" for a second after the link button is used.
   const [linkCopied, setLinkCopied] = useState(false);
 
-  // The top bar is `position: fixed` (see styles.css for why: `sticky` simply
-  // doesn't stick in a standalone iOS home-screen install), which takes it out
-  // of the page's flow — so the page needs to know its real height to pad
-  // itself clear of it. Measured rather than hardcoded because that height
-  // isn't one number: it changes with the safe-area inset, the phone-width
-  // breakpoint, and whatever the Inbox bell is showing.
-  const topbarRef = useRef(null);
-  useEffect(() => {
-    const el = topbarRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    const set = () => document.documentElement.style.setProperty('--topbar-h', `${el.offsetHeight}px`);
-    set();
-    const ro = new ResizeObserver(set);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
   const themeSettings = state?.settings;
   useEffect(() => {
     // The skin rides along with the palette: each one has a light and a dark
@@ -371,7 +354,7 @@ function AppInner() {
 
   return (
     <>
-      <div className="topbar" ref={topbarRef}>
+      <div className="topbar">
         <button
           type="button"
           className="logo"
