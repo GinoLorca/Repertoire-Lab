@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useStore, uid } from '../store';
 import { chapterToPgn, openingToPgn, downloadText, safeFilename } from '../lib/pgn';
 import {
@@ -9,6 +8,8 @@ import { processArtwork } from '../lib/artwork';
 import { useBackGuard } from '../lib/backGuard';
 import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import PgnImport from '../components/PgnImport';
+import MoreMenu from '../components/MoreMenu';
+import { useIsPhone } from '../components/useViewportWidth';
 import {
   ImageIcon, TagIcon, StarIcon, PencilIcon, ClockIcon, CheckIcon, DownloadIcon, UploadIcon, PlayIcon,
   UsersIcon,
@@ -64,57 +65,48 @@ function Reorder({ onUp, onDown, label }) {
   );
 }
 
-// On a phone, a card's rarely used actions (export, save progress, delete)
-// live behind this instead of taking a row of their own. Hidden on wider
-// screens, where the same actions sit inline. Portaled to <body> for the same
-// reason as MoveTree's menu: a custom background puts a backdrop-filter on
-// ancestors, and that would pin a `fixed` menu to the card instead of the
-// screen.
-function MoreMenu({ items }) {
-  const [pos, setPos] = useState(null);
-  const btnRef = useRef(null);
-  useBackGuard(!!pos, () => setPos(null));
-  const open = () => {
-    const r = btnRef.current.getBoundingClientRect();
-    const right = Math.max(8, window.innerWidth - r.right);
-    // Near the bottom of the screen it opens upward instead of off the edge.
-    setPos(r.bottom + 170 > window.innerHeight
-      ? { bottom: window.innerHeight - r.top + 4, right }
-      : { top: r.bottom + 4, right });
-  };
+// An opening or course as a phone shows it: artwork, the name, one line of
+// facts, a progress bar — and one ⋯ for everything else. Tapping the body
+// opens it. The desktop row's dozen inline controls don't survive a 390px
+// screen, and shrinking them didn't make them usable; this is the phone's
+// own layout, not a squeeze of the wide one. The controls it drops are all
+// in the ⋯ sheet, as rows a thumb can hit.
+function PhoneRow({
+  heading: Heading = 'h2', className, art, artClass = '', onPickArt, open, onToggle,
+  title, starred, facts, pct, done, count, primary, menu,
+}) {
   return (
-    <>
-      <button
-        ref={btnRef}
-        type="button"
-        className="small ghost more-btn"
-        title="More actions"
-        aria-label="More actions"
-        onClick={open}
-      >
-        ⋯
-      </button>
-      {pos && createPortal(
-        <>
-          <div className="menu-scrim" onClick={() => setPos(null)} />
-          <div className="move-menu" role="menu" style={pos}>
-            {items.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                role="menuitem"
-                className={item.danger ? 'danger' : ''}
-                disabled={item.disabled}
-                onClick={() => { setPos(null); item.onClick(); }}
-              >
-                {item.icon}{item.icon ? ' ' : ''}{item.label}
-              </button>
-            ))}
-          </div>
-        </>,
-        document.body,
+    <div className={`opening-row phone-row${className ? ` ${className}` : ''}`}>
+      {art ? (
+        <img className={`opening-art ${artClass}`} src={art} alt="" onClick={onToggle} />
+      ) : (
+        <button
+          type="button"
+          className={`art-add-tile ${artClass}`}
+          title="Add artwork"
+          aria-label="Add artwork"
+          onClick={onPickArt}
+        >
+          <ImageIcon size={20} />
+        </button>
       )}
-    </>
+      <div className="phone-body" onClick={onToggle}>
+        <div className="phone-title">
+          {starred && <span className="phone-star"><StarIcon size={14} filled /></span>}
+          <Heading>{title}</Heading>
+          <span className="phone-caret" aria-hidden="true">{open ? '▾' : '▸'}</span>
+        </div>
+        <div className="phone-facts">{facts}</div>
+        <div className="phone-bar">
+          <div className="progress-track">
+            <div className={`progress-fill${done ? ' done' : ''}`} style={{ width: `${pct}%` }} />
+          </div>
+          <span className="phone-count">{count}</span>
+        </div>
+      </div>
+      {primary}
+      {menu}
+    </div>
   );
 }
 
@@ -150,7 +142,13 @@ function tallyChapters(chapters) {
 
 // A section / sub-section shown as a box in the same grid as chapter cards.
 // Clicking it opens the group to reveal what's inside.
-function FolderCard({ title, chapters, chips, open, onToggle, actions, practiceLabel, onPractice, onSave }) {
+function FolderCard({
+  title, chapters, chips, open, onToggle, actions, practiceLabel, onPractice, onSave,
+  // The phone's version of `onSave` and `actions`: a callback and menu rows
+  // rather than ready-made buttons, so they can go in the ⋯ sheet.
+  onSaveProgress, menu,
+}) {
+  const isPhone = useIsPhone();
   const t = tallyChapters(chapters);
   const pct = t.variations ? Math.round((t.practiced / t.variations) * 100) : 0;
   const green = chapters.length > 0 && chapters.every(chapterPracticed);
@@ -184,18 +182,47 @@ function FolderCard({ title, chapters, chips, open, onToggle, actions, practiceL
           {t.chapters} chapter{t.chapters === 1 ? '' : 's'}
         </span>
         <span style={{ flex: 1 }} />
-        <button
-          className="small ghost"
-          title={practiceLabel}
-          disabled={t.variations === 0}
-          onClick={onPractice}
-        >
-          <PlayIcon size={14} />
-        </button>
-        {/* Icon-only here: a folder card's action row is far narrower than a
-            course's, and the label would push the rest of the row off it. */}
-        {onSave}
-        {actions}
+        {isPhone ? (
+          <>
+            <button
+              type="button"
+              className={`tap-btn${t.due > 0 ? ' primary' : ''}`}
+              title={practiceLabel}
+              disabled={t.variations === 0}
+              onClick={onPractice}
+            >
+              <PlayIcon size={15} /> Practice{t.due > 0 ? ` (${t.due})` : ''}
+            </button>
+            <MoreMenu
+              title={title}
+              items={[
+                {
+                  label: 'Save progress',
+                  icon: <DownloadIcon size={16} />,
+                  disabled: t.variations === 0,
+                  onClick: onSaveProgress,
+                },
+                { sep: true },
+                ...(menu ?? []),
+              ]}
+            />
+          </>
+        ) : (
+          <>
+            <button
+              className="small ghost"
+              title={practiceLabel}
+              disabled={t.variations === 0}
+              onClick={onPractice}
+            >
+              <PlayIcon size={14} />
+            </button>
+            {/* Icon-only here: a folder card's action row is far narrower than a
+                course's, and the label would push the rest of the row off it. */}
+            {onSave}
+            {actions}
+          </>
+        )}
       </div>
     </div>
   );
@@ -347,6 +374,7 @@ function ChapterCard({
   opening, chapter, onOpen, onDelete, onMove, onToggleStar, onPractice, groupLabel,
 }) {
   const { dispatch } = useStore();
+  const isPhone = useIsPhone();
   const [importing, setImporting] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const total = chapter.variations.length;
@@ -391,6 +419,37 @@ function ChapterCard({
         />
       </div>
       <div className="card-actions" onClick={(e) => e.stopPropagation()}>
+        {isPhone ? (
+          <>
+            <button
+              type="button"
+              className={`tap-btn${due > 0 ? ' primary' : ''}`}
+              disabled={total === 0}
+              onClick={onPractice}
+            >
+              <PlayIcon size={15} /> Practice{due > 0 ? ` (${due})` : ''}
+            </button>
+            <button type="button" className="tap-btn ghost" onClick={onOpen}>Open</button>
+            <MoreMenu
+              title={chapter.name}
+              items={[
+                { label: 'Add lines (PGN)', icon: <UploadIcon size={16} />, onClick: () => setImporting(true) },
+                {
+                  label: 'Export chapter (PGN)',
+                  icon: <DownloadIcon size={16} />,
+                  disabled: total === 0,
+                  onClick: () => downloadText(`${safeFilename(chapter.name)}.pgn`, chapterToPgn(opening, chapter)),
+                },
+                onMove && { sep: true },
+                onMove && { label: 'Move up', icon: '▲', onClick: () => onMove(-1) },
+                onMove && { label: 'Move down', icon: '▼', onClick: () => onMove(1) },
+                { sep: true },
+                { label: 'Delete chapter', danger: true, onClick: () => setConfirming(true) },
+              ]}
+            />
+          </>
+        ) : (
+          <>
         <button
           className={`small${due > 0 ? ' primary' : ' ghost'}`}
           title={due > 0
@@ -420,6 +479,8 @@ function ChapterCard({
         <button className="small ghost danger" title="Delete chapter" onClick={() => setConfirming(true)}>
           ✕
         </button>
+          </>
+        )}
 
         {importing && (
           <PgnImport
@@ -455,6 +516,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
   const onPracticeGroup = (openingId, chapters) =>
     onPractice({ openingId, chapterIds: chapters.map((c) => c.id), mode: 'practice' });
   const { state, dispatch } = useStore();
+  const isPhone = useIsPhone();
 
   // Who's signed in, for the Send button. Null when sync isn't configured or
   // nobody has signed in, which is what hides the button entirely.
@@ -739,14 +801,126 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
           : 0;
         const openingGreen = openingPracticed(opening);
         const toggle = () => dispatch({ type: 'toggleOpeningCollapse', openingId: opening.id });
-        const exportOpening = () => downloadText(`${safeFilename(opening.name)}.pgn`, openingToPgn(opening));
-        const deleteThisOpening = () => {
-          if (window.confirm(`Delete "${opening.name}" and all its chapters?`)) {
-            dispatch({ type: 'deleteOpening', openingId: opening.id });
-          }
-        };
         return (
           <section key={opening.id} className="opening-section">
+            {isPhone ? (() => {
+              const authors = detectAuthors(opening);
+              const canSend = opening.chapters.some((c) => c.variations.length > 0);
+              const flipTo = opening.color === 'white' ? 'black' : 'white';
+              return (
+                <PhoneRow
+                  className={openingGreen ? 'practiced' : ''}
+                  art={opening.artwork?.medium}
+                  onPickArt={() => pickArtwork(opening.id)}
+                  open={!opening.collapsed}
+                  onToggle={toggle}
+                  title={opening.name}
+                  starred={opening.starred}
+                  facts={(
+                    <>
+                      <span className={`color-badge ${opening.color}`}>
+                        {opening.color === 'white' ? 'WHITE' : 'BLACK'}
+                      </span>
+                      <span>{opening.chapters.length} chapter{opening.chapters.length === 1 ? '' : 's'}</span>
+                      {totals.due > 0 && <span className="due-pill"><ClockIcon size={13} /> {totals.due} due</span>}
+                    </>
+                  )}
+                  pct={pctLearned}
+                  done={openingGreen}
+                  count={`${totals.practiced}/${totals.variations}`}
+                  menu={(
+                    <MoreMenu
+                      title={opening.name}
+                      items={[
+                        {
+                          label: opening.starred ? 'Remove from favorites' : 'Add to favorites',
+                          icon: <StarIcon size={16} filled={opening.starred} />,
+                          onClick: () => dispatch({ type: 'toggleOpeningStar', openingId: opening.id }),
+                        },
+                        {
+                          label: 'Rename',
+                          icon: <PencilIcon size={16} />,
+                          onClick: () => setModal({ kind: 'renameOpening', openingId: opening.id, name: opening.name }),
+                        },
+                        {
+                          label: 'Themes',
+                          hint: opening.tags?.length ? opening.tags.join(', ') : undefined,
+                          icon: <TagIcon size={16} />,
+                          onClick: () => setModal({ kind: 'tagOpening', openingId: opening.id }),
+                        },
+                        {
+                          label: opening.artwork ? 'Artwork' : 'Add artwork',
+                          icon: <ImageIcon size={16} />,
+                          onClick: () => (opening.artwork
+                            ? setModal({ kind: 'artwork', openingId: opening.id })
+                            : pickArtwork(opening.id)),
+                        },
+                        {
+                          label: `Play as ${flipTo === 'white' ? 'White' : 'Black'}`,
+                          hint: `you play ${opening.color} now`,
+                          icon: <span className={`color-dot ${flipTo}`} />,
+                          onClick: () => dispatch({ type: 'setOpeningColor', openingId: opening.id, color: flipTo }),
+                        },
+                        authors.length > 0 && {
+                          label: `Group by author (${authors.length})`,
+                          icon: <FolderIcon size={16} />,
+                          onClick: () => setModal({ kind: 'groupByAuthor', openingId: opening.id }),
+                        },
+                        { sep: true },
+                        {
+                          label: 'Add chapter',
+                          icon: '+',
+                          onClick: () => setModal({ kind: 'addChapter', openingId: opening.id, courseId: null }),
+                        },
+                        {
+                          label: 'Add course / author',
+                          icon: <FolderIcon size={16} />,
+                          onClick: () => setModal({ kind: 'addCourse', openingId: opening.id }),
+                        },
+                        {
+                          label: 'Import PGN',
+                          icon: <UploadIcon size={16} />,
+                          onClick: () => setModal({
+                            kind: 'importCoursePgn', openingId: opening.id, courseId: null, courseName: opening.name,
+                          }),
+                        },
+                        me && {
+                          label: 'Send to student',
+                          icon: <SendIcon size={16} />,
+                          disabled: !canSend,
+                          onClick: () => setSending([opening]),
+                        },
+                        {
+                          label: 'Export opening (PGN)',
+                          icon: <DownloadIcon size={16} />,
+                          disabled: opening.chapters.length === 0,
+                          onClick: () => downloadText(`${safeFilename(opening.name)}.pgn`, openingToPgn(opening)),
+                        },
+                        {
+                          label: 'Save progress',
+                          icon: <DownloadIcon size={16} />,
+                          disabled: totals.variations === 0,
+                          onClick: () => saveProgress(opening.id, opening.chapters, opening.name),
+                        },
+                        { sep: true },
+                        { label: 'Move up', icon: '▲', onClick: () => dispatch({ type: 'moveOpening', openingId: opening.id, dir: -1 }) },
+                        { label: 'Move down', icon: '▼', onClick: () => dispatch({ type: 'moveOpening', openingId: opening.id, dir: 1 }) },
+                        { sep: true },
+                        {
+                          label: 'Delete opening',
+                          danger: true,
+                          onClick: () => {
+                            if (window.confirm(`Delete "${opening.name}" and all its chapters?`)) {
+                              dispatch({ type: 'deleteOpening', openingId: opening.id });
+                            }
+                          },
+                        },
+                      ]}
+                    />
+                  )}
+                />
+              );
+            })() : (
             <div className={`opening-row${openingGreen ? ' practiced' : ''}`}>
               {/* Dropping an image file straight onto the tile is the quickest
                   way to set artwork; the picture button in the header is the other. */}
@@ -774,11 +948,6 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
               )}
               <div className="opening-info">
                 <div className="opening-head">
-                  {/* Three groups a phone lays out as separate rows (title,
-                      edit tools, actions). Wider screens flatten them with
-                      display: contents, so the header there is one row as
-                      before. */}
-                  <div className="opening-title">
                   <button className="collapse-btn" title={opening.collapsed ? 'Expand' : 'Collapse'} onClick={toggle}>
                     {opening.collapsed ? '▸' : '▾'}
                   </button>
@@ -790,8 +959,6 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                     <StarIcon size={17} filled={opening.starred} />
                   </button>
                   <h2 onClick={toggle} style={{ cursor: 'pointer' }}>{opening.name}</h2>
-                  </div>
-                  <div className="opening-tools">
                   <Reorder
                     label="opening"
                     onUp={() => dispatch({ type: 'moveOpening', openingId: opening.id, dir: -1 })}
@@ -846,9 +1013,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                       </button>
                     );
                   })()}
-                  </div>
                   <span className="spacer" />
-                  <div className="opening-actions">
                   <button
                     className="small ghost"
                     title="Drop in a whole course PGN — each distinct Event becomes its own chapter under this opening, with its lines inside"
@@ -887,11 +1052,10 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                       <SendIcon size={15} /> Send to student
                     </button>
                   )}
-                  <span className="wide-only">
                   <button
                     className="small ghost"
                     disabled={opening.chapters.length === 0}
-                    onClick={exportOpening}
+                    onClick={() => downloadText(`${safeFilename(opening.name)}.pgn`, openingToPgn(opening))}
                   >
                     <DownloadIcon size={15} /> Export opening
                   </button>
@@ -900,28 +1064,16 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                     chapters={opening.chapters}
                     label={opening.name}
                   />
-                  <button className="small ghost danger" onClick={deleteThisOpening}>
+                  <button
+                    className="small ghost danger"
+                    onClick={() => {
+                      if (window.confirm(`Delete "${opening.name}" and all its chapters?`)) {
+                        dispatch({ type: 'deleteOpening', openingId: opening.id });
+                      }
+                    }}
+                  >
                     Delete
                   </button>
-                  </span>
-                  <MoreMenu
-                    items={[
-                      {
-                        label: 'Export opening',
-                        icon: <DownloadIcon size={14} />,
-                        disabled: opening.chapters.length === 0,
-                        onClick: exportOpening,
-                      },
-                      {
-                        label: 'Save progress',
-                        icon: <DownloadIcon size={14} />,
-                        disabled: tallyChapters(opening.chapters).variations === 0,
-                        onClick: () => saveProgress(opening.id, opening.chapters, opening.name),
-                      },
-                      { label: 'Delete opening', danger: true, onClick: deleteThisOpening },
-                    ]}
-                  />
-                  </div>
                 </div>
                 <div className="opening-stats">
                   <span>
@@ -939,6 +1091,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                 </div>
               </div>
             </div>
+            )}
 
             {!opening.collapsed && (() => {
               const courses = opening.courses ?? [];
@@ -983,6 +1136,35 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                           practiceLabel={`Practice everything in ${section}`}
                           onPractice={() => onPracticeGroup(opening.id, chapters)}
                           onSave={<SaveProgressButton openingId={opening.id} chapters={chapters} label={section} compact />}
+                          onSaveProgress={() => saveProgress(opening.id, chapters, section)}
+                          menu={[
+                            {
+                              label: 'Rename section',
+                              icon: <PencilIcon size={16} />,
+                              onClick: () => {
+                                const to = window.prompt('Section name (leave empty to ungroup):', section);
+                                if (to !== null) {
+                                  dispatch({ type: 'renameSection', openingId: opening.id, from: section, to: to.trim() });
+                                }
+                              },
+                            },
+                            others.length > 0 && {
+                              label: 'Nest inside another section',
+                              icon: '⤵',
+                              onClick: () => {
+                                const under = window.prompt(
+                                  `Nest "${section}" inside which section?\n\nExisting: ${others.join(', ')}`,
+                                  others[0],
+                                );
+                                if (under?.trim()) {
+                                  dispatch({ type: 'nestSection', openingId: opening.id, from: section, under: under.trim() });
+                                }
+                              },
+                            },
+                            { sep: true },
+                            { label: 'Move up', icon: '▲', onClick: () => dispatch({ type: 'moveSection', openingId: opening.id, key: subs[0].key, dir: -1 }) },
+                            { label: 'Move down', icon: '▼', onClick: () => dispatch({ type: 'moveSection', openingId: opening.id, key: subs[subs.length - 1].key, dir: 1 }) },
+                          ]}
                           actions={(
                             <>
                               <button
@@ -1054,6 +1236,27 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                                         practiceLabel={`Practice ${subsection}`}
                                         onPractice={() => onPracticeGroup(opening.id, subChapters)}
                                         onSave={<SaveProgressButton openingId={opening.id} chapters={subChapters} label={subsection} compact />}
+                                        onSaveProgress={() => saveProgress(opening.id, subChapters, subsection)}
+                                        menu={[
+                                          {
+                                            label: 'Rename sub-section',
+                                            icon: <PencilIcon size={16} />,
+                                            onClick: () => {
+                                              const to = window.prompt('Sub-section name (empty to move up a level):', subsection);
+                                              if (to !== null) {
+                                                dispatch({ type: 'renameSubsection', openingId: opening.id, section, from: subsection, to: to.trim() });
+                                              }
+                                            },
+                                          },
+                                          {
+                                            label: 'Make it its own section',
+                                            icon: '⤴',
+                                            onClick: () => dispatch({ type: 'unnestSubsection', openingId: opening.id, section, subsection }),
+                                          },
+                                          { sep: true },
+                                          { label: 'Move up', icon: '▲', onClick: () => dispatch({ type: 'moveSection', openingId: opening.id, key, dir: -1 }) },
+                                          { label: 'Move down', icon: '▼', onClick: () => dispatch({ type: 'moveSection', openingId: opening.id, key, dir: 1 }) },
+                                        ]}
                                         actions={(
                                           <>
                                             <button
@@ -1127,13 +1330,93 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                     const toggleCourse = () => dispatch({
                       type: 'toggleCourseCollapse', openingId: opening.id, courseId: course.id,
                     });
-                    const deleteThisCourse = () => {
-                      if (window.confirm(`Delete the course "${course.name}"? Its ${courseChapters.length} chapters stay in ${opening.name}.`)) {
-                        dispatch({ type: 'deleteCourse', openingId: opening.id, courseId: course.id });
-                      }
-                    };
                     return (
                       <div key={course.id} className="course-block">
+                        {isPhone ? (
+                          <PhoneRow
+                            heading="h3"
+                            className={`course-row${green ? ' practiced' : ''}`}
+                            art={course.artwork?.medium}
+                            artClass="course-art"
+                            onPickArt={() => pickCourseArtwork(opening.id, course.id)}
+                            open={!course.collapsed}
+                            onToggle={toggleCourse}
+                            title={course.name}
+                            facts={(
+                              <>
+                                <span>{courseChapters.length} chapter{courseChapters.length === 1 ? '' : 's'}</span>
+                                {t.due > 0 && <span className="due-pill"><ClockIcon size={13} /> {t.due} due</span>}
+                              </>
+                            )}
+                            pct={pct}
+                            done={green}
+                            count={`${t.practiced}/${t.variations}`}
+                            primary={(
+                              <button
+                                type="button"
+                                className={`tap-btn icon${t.due > 0 ? ' primary' : ''}`}
+                                disabled={t.variations === 0}
+                                title={`Practice ${course.name}`}
+                                aria-label={`Practice ${course.name}`}
+                                onClick={() => onPracticeGroup(opening.id, courseChapters)}
+                              >
+                                <PlayIcon size={18} />
+                              </button>
+                            )}
+                            menu={(
+                              <MoreMenu
+                                title={course.name}
+                                items={[
+                                  {
+                                    label: 'Rename',
+                                    icon: <PencilIcon size={16} />,
+                                    onClick: () => {
+                                      const name = window.prompt('Course / author name:', course.name);
+                                      if (name?.trim()) {
+                                        dispatch({ type: 'renameCourse', openingId: opening.id, courseId: course.id, name: name.trim() });
+                                      }
+                                    },
+                                  },
+                                  {
+                                    label: course.artwork ? 'Artwork' : 'Add artwork',
+                                    icon: <ImageIcon size={16} />,
+                                    onClick: () => (course.artwork
+                                      ? setModal({ kind: 'courseArtwork', openingId: opening.id, courseId: course.id })
+                                      : pickCourseArtwork(opening.id, course.id)),
+                                  },
+                                  { sep: true },
+                                  {
+                                    label: 'Import PGN',
+                                    icon: <UploadIcon size={16} />,
+                                    onClick: () => setModal({
+                                      kind: 'importCoursePgn', openingId: opening.id, courseId: course.id, courseName: course.name,
+                                    }),
+                                  },
+                                  {
+                                    label: 'Save progress',
+                                    icon: <DownloadIcon size={16} />,
+                                    disabled: t.variations === 0,
+                                    onClick: () => saveProgress(opening.id, courseChapters, course.name),
+                                  },
+                                  { sep: true },
+                                  { label: 'Move up', icon: '▲', onClick: () => dispatch({ type: 'moveCourse', openingId: opening.id, courseId: course.id, dir: -1 }) },
+                                  { label: 'Move down', icon: '▼', onClick: () => dispatch({ type: 'moveCourse', openingId: opening.id, courseId: course.id, dir: 1 }) },
+                                  { sep: true },
+                                  {
+                                    label: 'Delete course',
+                                    hint: 'its chapters stay in the opening',
+                                    danger: true,
+                                    onClick: () => {
+                                      if (window.confirm(`Delete the course "${course.name}"? Its ${courseChapters.length} chapters stay in ${opening.name}.`)) {
+                                        dispatch({ type: 'deleteCourse', openingId: opening.id, courseId: course.id });
+                                      }
+                                    },
+                                  },
+                                ]}
+                              />
+                            )}
+                          />
+                        ) : (
                         <div className={`opening-row course-row${green ? ' practiced' : ''}`}>
                           {course.artwork ? (
                             <img
@@ -1159,7 +1442,6 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                           )}
                           <div className="opening-info">
                             <div className="opening-head">
-                              <div className="opening-title">
                               <button
                                 className="collapse-btn"
                                 title={course.collapsed ? 'Expand' : 'Collapse'}
@@ -1170,8 +1452,6 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                               <h3 onClick={toggleCourse} style={{ cursor: 'pointer', margin: 0 }}>
                                 {course.name}
                               </h3>
-                              </div>
-                              <div className="opening-tools">
                               <Reorder
                                 label="course"
                                 onUp={() => dispatch({ type: 'moveCourse', openingId: opening.id, courseId: course.id, dir: -1 })}
@@ -1198,9 +1478,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                               >
                                 <ImageIcon size={15} />
                               </button>
-                              </div>
                               <span className="spacer" />
-                              <div className="opening-actions">
                               <button
                                 className="small ghost"
                                 title="Drop in a course PGN — each distinct Event becomes its own chapter here automatically"
@@ -1218,7 +1496,6 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                               >
                                 <PlayIcon size={14} /> Practice course{t.due > 0 ? ` (${t.due})` : ''}
                               </button>
-                              <span className="wide-only">
                               <SaveProgressButton
                                 openingId={opening.id}
                                 chapters={courseChapters}
@@ -1227,23 +1504,14 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                               <button
                                 className="small ghost danger"
                                 title="Delete the course — its chapters move back up to the opening"
-                                onClick={deleteThisCourse}
+                                onClick={() => {
+                                  if (window.confirm(`Delete the course "${course.name}"? Its ${courseChapters.length} chapters stay in ${opening.name}.`)) {
+                                    dispatch({ type: 'deleteCourse', openingId: opening.id, courseId: course.id });
+                                  }
+                                }}
                               >
                                 Delete
                               </button>
-                              </span>
-                              <MoreMenu
-                                items={[
-                                  {
-                                    label: 'Save progress',
-                                    icon: <DownloadIcon size={14} />,
-                                    disabled: t.variations === 0,
-                                    onClick: () => saveProgress(opening.id, courseChapters, course.name),
-                                  },
-                                  { label: 'Delete course', danger: true, onClick: deleteThisCourse },
-                                ]}
-                              />
-                              </div>
                             </div>
                             <div className="opening-stats">
                               <span><strong>{t.practiced}/{t.variations}</strong> practiced</span>
@@ -1255,6 +1523,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                             </div>
                           </div>
                         </div>
+                        )}
                         {!course.collapsed && (
                           <div className="course-body">{renderGrid(courseChapters, course.id)}</div>
                         )}

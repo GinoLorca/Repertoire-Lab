@@ -27,6 +27,25 @@ export function useViewportWidth() {
 // the zoom, and this re-renders on resize.
 const pageHeight = () => document.documentElement.clientHeight || window.innerHeight;
 
+// Phone or not. The one breakpoint the phone layouts key off, in JS for the
+// screens that render a different tree on a phone (the Library's cards, the
+// chapter page) and in styles.css's Phone block for everything else. Keep the
+// two in step.
+const PHONE_QUERY = '(max-width: 600px)';
+
+export function useIsPhone() {
+  const [phone, setPhone] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(PHONE_QUERY).matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(PHONE_QUERY);
+    const onChange = () => setPhone(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return phone;
+}
+
 export function useViewportHeight() {
   const [height, setHeight] = useState(pageHeight);
   useEffect(() => {

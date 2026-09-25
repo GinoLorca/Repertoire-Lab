@@ -11,13 +11,16 @@ import VariationViewer from '../components/VariationViewer';
 import TreeBrowser from '../components/TreeBrowser';
 import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import PgnImport from '../components/PgnImport';
+import MoreMenu from '../components/MoreMenu';
+import { useIsPhone } from '../components/useViewportWidth';
 import {
   TagIcon, StarIcon, PencilIcon, ClockIcon, CheckIcon, DownloadIcon, CapIcon, PlayIcon, FolderIcon,
-  UploadIcon, CheckboxIcon, VideoIcon,
+  UploadIcon, CheckboxIcon, VideoIcon, LinkIcon,
 } from '../components/Icons';
 
 export default function ChapterView({ openingId, chapterId, onBack, onPractice, onAnalyze }) {
   const { state, dispatch } = useStore();
+  const isPhone = useIsPhone();
   const opening = state.openings.find((o) => o.id === openingId);
   const chapter = opening?.chapters.find((c) => c.id === chapterId);
   const [viewingId, setViewingId] = useState(null);
@@ -79,6 +82,137 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
         <span>{chapter.name}</span>
       </div>
 
+      {/* On a phone the chapter's dozen header controls become one Practice
+          button, a Learn button and a ⋯ sheet — the wide layout's row of
+          eleven buttons wrapped into four lines and pushed the lines
+          themselves below the fold. */}
+      {isPhone ? (
+        <>
+          <div className="page-head phone-chapter-head">
+            <h1>
+              {chapter.starred && <span className="phone-star"><StarIcon size={16} filled /></span>}
+              {chapter.name}
+            </h1>
+          </div>
+          <div className="phone-toolbar">
+            <button
+              type="button"
+              className="tap-btn primary grow"
+              disabled={chapter.variations.length === 0}
+              onClick={() => onPractice({ openingId, chapterId, mode: 'practice' })}
+            >
+              <PlayIcon size={16} /> Practice chapter
+            </button>
+            <button
+              type="button"
+              className="tap-btn"
+              disabled={unlearnedCount(chapter) === 0}
+              title="Guided learning for the variations you haven't learned yet"
+              onClick={() => onPractice({ openingId, chapterId, mode: 'learn' })}
+            >
+              <CapIcon size={16} /> Learn
+            </button>
+            <MoreMenu
+              title={chapter.name}
+              items={[
+                {
+                  label: chapter.starred ? 'Remove from favorites' : 'Add to favorites',
+                  icon: <StarIcon size={16} filled={chapter.starred} />,
+                  onClick: () => dispatch({ type: 'toggleChapterStar', openingId, chapterId }),
+                },
+                {
+                  label: 'Rename chapter',
+                  icon: <PencilIcon size={16} />,
+                  onClick: () => {
+                    const name = window.prompt('Chapter name:', chapter.name);
+                    if (name?.trim()) dispatch({ type: 'renameChapter', openingId, chapterId, name: name.trim() });
+                  },
+                },
+                {
+                  label: 'Section',
+                  hint: chapter.section
+                    ? `${chapter.section}${chapter.subsection ? ` ▸ ${chapter.subsection}` : ''}`
+                    : 'none',
+                  icon: <FolderIcon size={16} />,
+                  onClick: () => {
+                    const section = window.prompt('Section (leave empty to ungroup):', chapter.section ?? '');
+                    if (section === null) return;
+                    let subsection = chapter.subsection ?? '';
+                    if (section.trim()) {
+                      const answer = window.prompt(
+                        `Sub-section inside "${section.trim()}" (optional — e.g. Tartakower Variation):`,
+                        subsection,
+                      );
+                      if (answer === null) return;
+                      subsection = answer;
+                    }
+                    dispatch({
+                      type: 'setChapterSection', openingId, chapterId, section: section.trim(), subsection: subsection.trim() || null,
+                    });
+                  },
+                },
+                {
+                  label: 'Themes',
+                  hint: chapter.tags?.length ? chapter.tags.join(', ') : undefined,
+                  icon: <TagIcon size={16} />,
+                  onClick: () => setTagging({ kind: 'chapter' }),
+                },
+                { sep: true },
+                { label: 'Add lines (PGN)', icon: <UploadIcon size={16} />, onClick: () => setImporting(true) },
+                chapter.variations.length > 0 && {
+                  label: picking ? 'Done selecting' : 'Select variations',
+                  hint: picking ? undefined : 'tick several and delete them in one go',
+                  icon: <CheckboxIcon size={16} />,
+                  onClick: () => (picking ? leavePicking() : setPicking(true)),
+                },
+                chapter.variations.length > 0 && {
+                  label: 'Rename all variations',
+                  icon: <PencilIcon size={16} />,
+                  onClick: openBulk,
+                },
+                chapter.variations.length > 0 && {
+                  label: 'Export chapter (PGN)',
+                  icon: <DownloadIcon size={16} />,
+                  onClick: () => downloadText(`${safeFilename(chapter.name)}.pgn`, chapterToPgn(opening, chapter)),
+                },
+                chapter.variations.length > 0 && {
+                  label: 'Browse as a tree',
+                  hint: 'every line at once, watching them branch',
+                  icon: <FolderIcon size={16} />,
+                  onClick: () => setBrowsing(true),
+                },
+                showVideo && !chapter.video && { sep: true },
+                showVideo && !chapter.video && {
+                  label: 'Add a video file',
+                  icon: <VideoIcon size={16} />,
+                  onClick: () => videoRef.current?.openAdd('upload'),
+                },
+                showVideo && !chapter.video && {
+                  label: 'Paste a video link',
+                  icon: <LinkIcon size={16} />,
+                  onClick: () => videoRef.current?.openAdd('url'),
+                },
+              ]}
+            />
+          </div>
+          {(opening.courses ?? []).length > 0 && (
+            <label className="course-picker phone-course">
+              <span className="muted-note">Course</span>
+              <select
+                value={chapter.courseId ?? ''}
+                onChange={(e) => dispatch({
+                  type: 'setChapterCourse', openingId, chapterId, courseId: e.target.value || null,
+                })}
+              >
+                <option value="">— none —</option>
+                {(opening.courses ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
+        </>
+      ) : (
       <div className="page-head">
         <button
           className={`star-btn big${chapter.starred ? ' on' : ''}`}
@@ -191,6 +325,7 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
           <PlayIcon size={15} /> Practice chapter
         </button>
       </div>
+      )}
 
       {/* Nothing renders here at all when the setting is off, or wrapped in a
           ref div only while there's something to scroll to — a chapter with
@@ -203,6 +338,9 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
           <ChapterVideo
             ref={videoRef}
             video={chapter.video}
+            // On a phone the "add a video" row lives in the ⋯ sheet instead
+            // of taking a strip of the screen on every chapter without one.
+            hideEmpty={isPhone}
             onChange={(video) => dispatch({ type: 'setChapterVideo', openingId, chapterId, video })}
           />
         </div>
@@ -266,6 +404,124 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
             key={variation.id}
             className={`variation-row${green ? ' practiced' : ''}${due ? ' due' : ''}${picking && chosen[variation.id] ? ' chosen' : ''}`}
           >
+            {isPhone ? (() => {
+              // The phone's line: the whole width for its name, its state on
+              // the line under, and everything else in ⋯. A row of nine
+              // controls beside the name had been squeezing "Jobava London
+              // Mainline: 3...e6 with 4...c6" down to one word per line.
+              const linked = showVideo && chapter.video && variation.videoTimestamp != null;
+              const hasMeta = green || variation.learned || due || variation.srs?.level > 0
+                || variation.tags?.length > 0 || linked;
+              return (
+                <>
+                  <div className="row-head phone-line-head">
+                    {picking && (
+                      <input
+                        type="checkbox"
+                        className="row-check"
+                        title="Select this variation"
+                        checked={!!chosen[variation.id]}
+                        onChange={() => toggleChosen(variation.id)}
+                      />
+                    )}
+                    <h3>
+                      {variation.starred && <span className="phone-star"><StarIcon size={14} filled /></span>}
+                      {variation.name}
+                    </h3>
+                    <MoreMenu
+                      title={variation.name}
+                      items={[
+                        {
+                          label: variation.starred ? 'Remove from favorites' : 'Add to favorites',
+                          icon: <StarIcon size={16} filled={variation.starred} />,
+                          onClick: () => dispatch({ type: 'toggleStar', openingId, chapterId, variationId: variation.id }),
+                        },
+                        {
+                          label: 'Rename',
+                          icon: <PencilIcon size={16} />,
+                          onClick: () => {
+                            const name = window.prompt('Variation name:', variation.name);
+                            if (name?.trim()) {
+                              dispatch({ type: 'renameVariation', openingId, chapterId, variationId: variation.id, name: name.trim() });
+                            }
+                          },
+                        },
+                        {
+                          label: 'Themes',
+                          hint: variation.tags?.length ? variation.tags.join(', ') : undefined,
+                          icon: <TagIcon size={16} />,
+                          onClick: () => setTagging({ kind: 'variation', variationId: variation.id }),
+                        },
+                        showVideo && chapter.video && { sep: true },
+                        showVideo && chapter.video && !linked && {
+                          label: 'Link to the video here',
+                          hint: 'pause the video where this line starts first',
+                          icon: <VideoIcon size={16} />,
+                          onClick: () => dispatch({
+                            type: 'setVariationTimestamp',
+                            openingId,
+                            chapterId,
+                            variationId: variation.id,
+                            seconds: videoRef.current?.getCurrentTime?.() ?? 0,
+                          }),
+                        },
+                        linked && {
+                          label: 'Unlink from the video',
+                          hint: `linked at ${fmtTime(variation.videoTimestamp)}`,
+                          icon: <VideoIcon size={16} />,
+                          onClick: () => dispatch({
+                            type: 'setVariationTimestamp', openingId, chapterId, variationId: variation.id, seconds: null,
+                          }),
+                        },
+                        { sep: true },
+                        { label: 'Move up', icon: '▲', onClick: () => dispatch({ type: 'moveVariation', openingId, chapterId, variationId: variation.id, dir: -1 }) },
+                        { label: 'Move down', icon: '▼', onClick: () => dispatch({ type: 'moveVariation', openingId, chapterId, variationId: variation.id, dir: 1 }) },
+                        { sep: true },
+                        {
+                          label: 'Delete variation',
+                          danger: true,
+                          onClick: () => {
+                            if (window.confirm(`Delete "${variation.name}"?`)) {
+                              dispatch({ type: 'deleteVariation', openingId, chapterId, variationId: variation.id });
+                            }
+                          },
+                        },
+                      ]}
+                    />
+                  </div>
+                  {hasMeta && (
+                    <div className="phone-line-meta">
+                      {green && !due && (
+                        <span className="practiced-pill"><CheckIcon size={13} /> practiced</span>
+                      )}
+                      {variation.learned && !green && !due && <span className="muted-note">learning</span>}
+                      {due && <span className="due-pill"><ClockIcon size={14} /> due</span>}
+                      {variation.srs?.level > 0 && (
+                        <span className="srs-pill">
+                          {levelLabel(variation.srs)}
+                          {!due && dueLabel(variation) ? ` · ${dueLabel(variation)}` : ''}
+                        </span>
+                      )}
+                      <TagChips tags={variation.tags} max={3} />
+                      {linked && (
+                        <button
+                          type="button"
+                          className="small ghost video-link-btn on"
+                          title="Watch the video from here"
+                          onClick={() => {
+                            videoBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            videoRef.current?.seekTo(variation.videoTimestamp);
+                          }}
+                        >
+                          <VideoIcon size={15} />
+                          <span className="video-link-time">{fmtTime(variation.videoTimestamp)}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              );
+            })() : (
             <div className="row-head">
               {picking && (
                 <input
@@ -387,6 +643,7 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
                 ✕
               </button>
             </div>
+            )}
             <div
               className="variation-moves"
               title="Click to review on the board"

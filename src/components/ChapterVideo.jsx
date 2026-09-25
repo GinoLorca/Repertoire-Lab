@@ -22,7 +22,10 @@ import { UploadIcon, LinkIcon, PencilIcon } from './Icons';
 // for an uploaded file, a reload with a new start point for an embed, since
 // neither the YouTube nor Vimeo iframes can be told to seek without pulling
 // in their JS SDKs.
-const ChapterVideo = forwardRef(({ video, onChange }, ref) => {
+// `hideEmpty`: render nothing while there's no video and nobody's adding one.
+// The phone's chapter page puts "add a video" in its ⋯ sheet instead of a
+// strip of the screen; the sheet reaches in through `openAdd` on the ref.
+const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) => {
   const [mode, setMode] = useState(null); // null | 'upload' | 'url'
   const [urlInput, setUrlInput] = useState('');
   const [error, setError] = useState(null);
@@ -63,6 +66,7 @@ const ChapterVideo = forwardRef(({ video, onChange }, ref) => {
     // the frame was last (re)loaded at — reflected in the "needs a
     // connection" line in the bar below, not hidden.
     getCurrentTime: () => currentTime,
+    openAdd(which) { setMode(which); setError(null); },
   }), [currentTime]);
 
   const upload = async (file) => {
@@ -120,6 +124,7 @@ const ChapterVideo = forwardRef(({ video, onChange }, ref) => {
   };
 
   if (!video) {
+    if (hideEmpty && mode === null) return null;
     return (
       <div className="chapter-video empty">
         {mode === null ? (
