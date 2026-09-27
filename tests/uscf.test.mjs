@@ -48,6 +48,16 @@ test('name, expiry and unrated systems', () => {
   assert.equal(out.blitz, null, 'provisional with no number is unrated, not 0');
 });
 
+test('names in capitals are tidied; the short name drops the middle name', () => {
+  const out = normalizeUscf({ ...member, firstName: 'PARKER RECKHOW', lastName: 'DOWNING' }, sections);
+  assert.equal(out.name, 'Parker Reckhow Downing');
+  assert.equal(out.shortName, 'Parker Downing');
+  const irish = normalizeUscf({ ...member, firstName: 'SEAN', lastName: "O'BRIEN-SMITH" }, sections);
+  assert.equal(irish.name, "Sean O'Brien-Smith");
+  const mixed = normalizeUscf({ ...member, firstName: 'Angus', lastName: 'McDonald' }, sections);
+  assert.equal(mixed.name, 'Angus McDonald', 'a name with its own cases is left alone');
+});
+
 test('no event history: the official ratings stand', () => {
   const out = normalizeUscf(member, null);
   assert.equal(out.regular, 1081);

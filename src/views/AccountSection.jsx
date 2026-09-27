@@ -206,7 +206,7 @@ export default function AccountSection() {
         <input
           value={realName}
           onChange={(e) => setRealNameText(e.target.value)}
-          placeholder="e.g. Parker Davis"
+          placeholder="Your first and last name"
           style={{ maxWidth: 260 }}
         />
         <button onClick={saveRealName} disabled={savingReal || realName.trim() === (profile?.realName ?? '')}>

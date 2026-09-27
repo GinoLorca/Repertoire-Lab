@@ -82,8 +82,10 @@ export default function PlayerEditor({
       ...p,
       rating: p.rating || (uscf.data.regular ? String(uscf.data.regular) : p.rating),
     }));
-    // A student with no name typed yet gets the one on their US Chess card.
-    if (isStudent && uscf.data.name) setName((n) => n || uscf.data.name);
+    // A student with no name typed yet gets the one on their US Chess card,
+    // without the middle name.
+    const fromCard = uscf.data.shortName ?? uscf.data.name;
+    if (isStudent && fromCard) setName((n) => n || fromCard);
   }, [uscf.status, uscf.data]);
 
   const live = {

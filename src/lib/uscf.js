@@ -25,6 +25,15 @@ const SYSTEMS = {
 // tournament: a student who gained 160 points on Saturday still shows the
 // old number there until the next list. So each system reads from the newest
 // event that rated it, with the official figure kept alongside.
+// The records come in capitals ("PARKER RECKHOW DOWNING"). Capitals become
+// Parker Reckhow Downing — O'Brien and Smith-Jones included — but a name
+// that already has its own mix of cases (McDonald) is left exactly as it is.
+function tidyName(raw) {
+  const text = String(raw ?? '').trim().replace(/\s+/g, ' ');
+  if (text !== text.toUpperCase()) return text;
+  return text.toLowerCase().replace(/(^|[\s'-])(\p{L})/gu, (m, sep, ch) => sep + ch.toUpperCase());
+}
+
 export function normalizeUscf(member, sections) {
   if (!member?.id) return null;
   const official = {};
@@ -43,9 +52,14 @@ export function normalizeUscf(member, sections) {
       if (!lastEvent) lastEvent = { name: section.event?.name ?? null, date: section.endDate ?? null };
     }
   }
+  const first = tidyName(member.firstName);
+  const last = tidyName(member.lastName);
   const out = {
     id: String(member.id),
-    name: [member.firstName, member.lastName].filter(Boolean).join(' ').trim() || null,
+    name: [first, last].filter(Boolean).join(' ') || null,
+    // US Chess keeps middle names in the first-name field ("PARKER RECKHOW"),
+    // so the name to call them by is the first of those plus the surname.
+    shortName: [first.split(' ')[0], last].filter(Boolean).join(' ') || null,
     expires: member.expirationDate ?? null,
     status: member.status ?? null,
     lastEvent,
