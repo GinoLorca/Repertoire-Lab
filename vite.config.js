@@ -5,6 +5,16 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5199,
+    // Local development has no Netlify functions, so US Chess ratings go
+    // through this instead (see lib/ratings.js). Production uses
+    // netlify/functions/uscf.mjs.
+    proxy: {
+      '/uscf-api': {
+        target: 'https://ratings-api.uschess.org',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/uscf-api/, '/api/v1/members'),
+      },
+    },
   },
   build: {
     rollupOptions: {

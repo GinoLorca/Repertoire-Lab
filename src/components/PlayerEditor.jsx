@@ -127,7 +127,14 @@ export default function PlayerEditor({ initial, onSave, onClose }) {
             <input type="text" inputMode="numeric" value={profile.uscf} placeholder="8 digits" onChange={set('uscf')} />
             <LiveLine
               state={uscf}
-              render={(d) => `${d.name ?? 'member'} — ${nums([['reg', d.regular], ['quick', d.quick], ['blitz', d.blitz]]) || 'unrated'}`}
+              render={(d) => {
+                const now = nums([['reg', d.regular], ['quick', d.quick], ['blitz', d.blitz]]) || 'unrated';
+                // Live: after their latest rated event, which the official
+                // list catches up with later.
+                const after = d.lastEvent?.name ? ` · after ${d.lastEvent.name}` : '';
+                const official = d.regularOfficial ? ` (official ${d.regularOfficial})` : '';
+                return `${d.name ?? 'member'} — ${now}${official}${after}`;
+              }}
             />
           </label>
           <label>

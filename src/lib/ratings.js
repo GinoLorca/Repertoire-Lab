@@ -1,90 +1,49 @@
 // Live ratings for a player profile.
 //
-// Chess.com and Lichess publish open APIs that browsers may call directly.
-// US Chess has no API and its MSA pages send no CORS headers, so the page is
-// read either through the small function shipped with this site, or — on a host
-// without functions — through a public text proxy. Both return the same page;
-// one parser handles either shape.
+// Chess.com and Lichess publish open APIs that a web page may call directly.
+// US Chess doesn't allow that: its old member pages are now behind a bot
+// check, and its new ratings API sends no CORS header — so the app asks its
+// own small function (netlify/functions/uscf.mjs) to fetch it instead. See
+// lib/uscf.js for what "live" means there.
+import { normalizeUscf } from './uscf';
 
-const MSA = (id) => `https://www.uschess.org/msa/MbrDtlMain.php?${id}`;
-
-const stripHtml = (s) => s
-  .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-  .replace(/<[^>]+>/g, ' ')
-  .replace(/&nbsp;/gi, ' ')
-  .replace(/&amp;/gi, '&')
-  .replace(/\*\*/g, ' ') // the text proxy marks bold cells like this
-  .replace(/[ \t]+/g, ' ');
-
-// The value cell follows its label; "(Unrated)" means they have no rating in
-// that time control yet. Ratings run 100–3000, published as 3 or 4 digits.
-function ratingAfter(text, label) {
-  // "Regular Rating" also occurs inside "Online-Regular Rating".
-  const at = new RegExp(`(^|[^-A-Za-z])${label}`).exec(text);
-  if (!at) return null;
-  const after = text.slice(at.index + at[0].length, at.index + at[0].length + 140);
-  if (/^[^0-9]{0,30}\(Unrated/.test(after)) return null;
-  const num = /(\d{3,4})/.exec(after);
-  if (!num) return null;
-  const value = Number(num[1]);
-  return value >= 100 && value <= 3200 ? value : null;
-}
-
-export function parseMsa(raw) {
-  const text = stripHtml(raw);
-  const who = /(\d{6,})\s*:\s*([A-Z][A-Za-z .,'\-]{2,60})/.exec(text);
-  const expires = /Expiration Dt\.?\s*([A-Za-z0-9-]+(?: Member)?)/.exec(text);
-  const out = {
-    id: who?.[1] ?? null,
-    name: who?.[2]?.trim() ?? null,
-    regular: ratingAfter(text, 'Regular Rating'),
-    quick: ratingAfter(text, 'Quick Rating'),
-    blitz: ratingAfter(text, 'Blitz Rating'),
-    onlineRegular: ratingAfter(text, 'Online-Regular Rating'),
-    expires: expires?.[1]?.trim() ?? null,
-    fetchedAt: Date.now(),
-  };
-  if (!out.name && out.regular == null && out.quick == null && out.blitz == null) return null;
-  return out;
-}
-
-async function textFrom(url, ms = 12000) {
+async function getJson(url, ms = 12000) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
-    const res = await fetch(url, { signal: ctrl.signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.text();
+    const res = await fetch(url, { signal: ctrl.signal, headers: { accept: 'application/json' } });
+    const body = await res.json().catch(() => null);
+    if (res.status === 404) throw new Error(body?.error ?? 'US Chess has no member with that ID.');
+    if (!res.ok) throw new Error(body?.error ?? `HTTP ${res.status}`);
+    return body;
   } finally {
     clearTimeout(timer);
   }
 }
 
-// US Chess published ratings for a member ID.
+// US Chess ratings for a member ID — live (after their latest rated event),
+// with the official published figure alongside where it differs.
 export async function fetchUscf(id) {
   const clean = String(id ?? '').replace(/\D/g, '');
   if (clean.length < 6) throw new Error('A US Chess ID is 8 digits.');
-
-  const sources = [
-    // Shipped with the site — no third party involved when it's available.
-    { via: 'US Chess', url: `/.netlify/functions/uscf?id=${clean}` },
-    // Any static host: a public reader that fetches the page and sends CORS
-    // headers back. Only the (public) member ID leaves the device.
-    { via: 'US Chess (via r.jina.ai)', url: `https://r.jina.ai/${MSA(clean)}` },
-  ];
-
-  let lastError = null;
-  for (const source of sources) {
-    try {
-      const parsed = parseMsa(await textFrom(source.url));
-      if (parsed) return { ...parsed, via: source.via };
-      lastError = new Error('That ID has no member record.');
-    } catch (err) {
-      lastError = err;
+  try {
+    if (import.meta.env?.DEV) {
+      // No functions in local development: Vite proxies /uscf-api to US
+      // Chess instead (vite.config.js), and the same parser runs here.
+      const [member, sections] = await Promise.all([
+        getJson(`/uscf-api/${clean}`),
+        getJson(`/uscf-api/${clean}/sections`).catch(() => null),
+      ]);
+      const out = normalizeUscf(member, sections);
+      if (!out) throw new Error('US Chess has no member with that ID.');
+      return { ...out, via: 'US Chess' };
     }
+    return { ...(await getJson(`/.netlify/functions/uscf?id=${clean}`)), via: 'US Chess' };
+  } catch (err) {
+    throw new Error(`Couldn't get the US Chess rating — ${err.message}`);
   }
-  throw new Error(`Couldn't reach US Chess — ${lastError?.message ?? 'no answer'}.`);
 }
+
 
 export async function fetchChesscom(handle) {
   const name = String(handle ?? '').trim().replace(/^@/, '');
