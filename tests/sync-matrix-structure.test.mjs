@@ -39,6 +39,7 @@ import { defaultMonsterId } from '../src/lib/monsters.js';
 import { asDevice, resetServer, server } from './fakes/firebase.mjs';
 import { resetDevices } from './fakes/idb.mjs';
 import { markPreUpdate, isPreUpdate, downgradeStorage } from './fakes/legacy.mjs';
+import { grouped, nest, unnest, moveGrouped } from '../src/lib/variationGroups.js';
 
 // ---------------------------------------------------------------------------
 // The app's own reducer and emptyState, straight from src/store.jsx.
@@ -61,8 +62,8 @@ const { reducer, emptyState } = (() => {
     'return { reducer, emptyState };',
   ].join('\n');
   // eslint-disable-next-line no-new-func
-  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', body)(
-    DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight,
+  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'grouped', 'nest', 'unnest', 'moveGrouped', body)(
+    DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, grouped, nest, unnest, moveGrouped,
   );
 })();
 
@@ -795,3 +796,46 @@ test('a sync landing just after an edit keeps the edit: the fold happens in the 
   assert.equal(mac.state.openings, before.openings, 'nothing new: the library isn\'t replaced, so no view restarts');
 });
 
+
+// ---------------------------------------------------------------------------
+// Sub-variations: a line filed under another line in the same chapter.
+// ---------------------------------------------------------------------------
+
+const idOf = (st, cid, name) => chapter(st, 'o-caro', cid).variations.find((x) => x.name === name).id;
+const nesting = (st, cid) => {
+  const vars = chapter(st, 'o-caro', cid).variations;
+  const nameOf = new Map(vars.map((x) => [x.id, x.name]));
+  return vars.map((x) => (x.parentId && nameOf.has(x.parentId) ? `${nameOf.get(x.parentId)} ▸ ${x.name}` : x.name));
+};
+
+test('sub-variations: the Mac files a line under another; the iPad and a new iPhone show it there, and moving the main line takes it along', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  mac.do({ type: 'addVariations', openingId: 'o-caro', chapterId: 'c-advance', variations: [line('Bayonet', ['e4', 'c6', 'd4', 'd5', 'e5', 'Bf5', 'g4'])] });
+  mac.do({ type: 'nestVariation', openingId: 'o-caro', chapterId: 'c-advance', variationId: idOf(mac.state, 'c-advance', 'Short System'), parentId: idOf(mac.state, 'c-advance', 'Tal Variation') });
+  mac.do({ type: 'moveVariation', openingId: 'o-caro', chapterId: 'c-advance', variationId: idOf(mac.state, 'c-advance', 'Bayonet'), dir: -1 });
+  const want = ['Bayonet', 'Tal Variation', 'Tal Variation ▸ Short System'];
+  assert.deepEqual(nesting(mac.state, 'c-advance'), want, 'on the Mac');
+  await mac.sync();
+  await ipad.sync();
+  assert.deepEqual(nesting(ipad.state, 'c-advance'), want, 'the iPad');
+  const iphone = new Device('iphone', 'a new iPhone');
+  await iphone.sync();
+  assert.deepEqual(nesting(iphone.state, 'c-advance'), want, 'a new iPhone');
+  // And back out, on the iPad this time.
+  ipad.do({ type: 'unnestVariation', openingId: 'o-caro', chapterId: 'c-advance', variationId: idOf(ipad.state, 'c-advance', 'Short System') });
+  await ipad.sync();
+  await mac.sync();
+  assert.deepEqual(nesting(mac.state, 'c-advance'), ['Bayonet', 'Tal Variation', 'Short System']);
+});
+
+test('sub-variations: the iPad deletes a main line while the Mac files a line under it — the line stays, as a main line, everywhere', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  mac.do({ type: 'nestVariation', openingId: 'o-caro', chapterId: 'c-advance', variationId: idOf(mac.state, 'c-advance', 'Short System'), parentId: idOf(mac.state, 'c-advance', 'Tal Variation') });
+  ipad.do({ type: 'deleteVariation', openingId: 'o-caro', chapterId: 'c-advance', variationId: idOf(ipad.state, 'c-advance', 'Tal Variation') });
+  await mac.sync();
+  await ipad.sync();
+  await mac.sync();
+  for (const [who, dev] of [['Mac', mac], ['iPad', ipad]]) {
+    assert.deepEqual(nesting(dev.state, 'c-advance'), ['Short System'], who);
+  }
+});

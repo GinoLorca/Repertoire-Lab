@@ -6,6 +6,7 @@ import { defaultMonsterId } from './lib/monsters';
 import { DEFAULT_SETTINGS } from './lib/settingsDefaults';
 import { mergeLinkedGames, undoCoachChanges } from './lib/cloud/gameLink';
 import { foldInFlight } from './lib/cloud/merge3';
+import { grouped, nest, unnest, moveGrouped } from './lib/variationGroups';
 
 const STORAGE_KEY = 'repertoire-lab-state-v1';
 
@@ -117,6 +118,15 @@ const swap = (arr, i, j) => {
   [next[i], next[j]] = [next[j], next[i]];
   return next;
 };
+
+function withoutParents(variations, gone) {
+  const ids = new Set(gone);
+  return variations.map((v) => {
+    if (!ids.has(v.parentId)) return v;
+    const { parentId: _gone, ...rest } = v;
+    return rest;
+  });
+}
 
 function moveInArray(arr, id, dir) {
   const i = arr.findIndex((x) => x.id === id);
@@ -538,14 +548,36 @@ function reduce(state, action) {
     case 'setVariationOrder':
       return mapChapter(state, action.openingId, action.chapterId, (c) => {
         const pos = new Map(action.ids.map((id, i) => [id, i]));
-        const variations = [...c.variations]
-          .sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9));
+        // …and sub-variations stay behind their main line (lib/variationGroups).
+        const variations = grouped([...c.variations]
+          .sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9)));
         return variations.every((v, i) => v === c.variations[i]) ? c : { ...c, variations };
       });
+    // A main line moves with its sub-variations; a sub-variation moves among
+    // its siblings.
     case 'moveVariation':
+      return mapChapter(state, action.openingId, action.chapterId, (c) => {
+        const variations = moveGrouped(c.variations, action.variationId, action.dir);
+        return variations === c.variations ? c : { ...c, variations };
+      });
+    // Filing a line under another in the same chapter, and back out again.
+    case 'nestVariation':
+      return mapChapter(state, action.openingId, action.chapterId, (c) => {
+        const variations = nest(c.variations, action.variationId, action.parentId);
+        return variations === c.variations ? c : { ...c, variations };
+      });
+    case 'unnestVariation':
       return mapChapter(state, action.openingId, action.chapterId, (c) => ({
         ...c,
-        variations: moveInArray(c.variations, action.variationId, action.dir),
+        variations: unnest(c.variations, action.variationId),
+      }));
+    // A main line's sub-variations folded away under it, or shown.
+    case 'toggleSubVariations':
+      return mapChapter(state, action.openingId, action.chapterId, (c) => ({
+        ...c,
+        variations: c.variations.map((v) => (v.id === action.variationId
+          ? { ...v, subsCollapsed: !v.subsCollapsed }
+          : v)),
       }));
     case 'renameSection':
       return mapOpening(state, action.openingId, (o) => ({
@@ -619,16 +651,17 @@ function reduce(state, action) {
         variations: [...c.variations, ...fresh],
       }));
     }
+    // A deleted main line's sub-variations become main lines where they stand.
     case 'deleteVariation':
       return mapChapter(state, action.openingId, action.chapterId, (c) => ({
         ...c,
-        variations: c.variations.filter((v) => v.id !== action.variationId),
+        variations: withoutParents(c.variations.filter((v) => v.id !== action.variationId), [action.variationId]),
       }));
     case 'deleteVariations': {
       const gone = new Set(action.variationIds);
       return mapChapter(state, action.openingId, action.chapterId, (c) => ({
         ...c,
-        variations: c.variations.filter((v) => !gone.has(v.id)),
+        variations: withoutParents(c.variations.filter((v) => !gone.has(v.id)), gone),
       }));
     }
     case 'renameVariation':

@@ -11,7 +11,12 @@ import VariationViewer from '../components/VariationViewer';
 import TreeBrowser from '../components/TreeBrowser';
 import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import PgnImport from '../components/PgnImport';
-import MoreMenu from '../components/MoreMenu';
+import MoreMenu, { MenuSheet } from '../components/MoreMenu';
+import Pressable from '../components/Pressable';
+import {
+  grouped, moveGrouped, parentsOf, regroupIds, suggestParent,
+} from '../lib/variationGroups';
+import { useBackGuard } from '../lib/backGuard';
 import ReorderSheet from '../components/ReorderSheet';
 import { useIsPhone } from '../components/useViewportWidth';
 import {
@@ -36,6 +41,8 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [browsing, setBrowsing] = useState(false);
   const [reordering, setReordering] = useState(false);
+  const [menuFor, setMenuFor] = useState(null); // { id, at } — a line's long-press / right-click menu
+  const [nestingId, setNestingId] = useState(null); // choosing the line to file this one under
   const viewing = chapter?.variations.find((v) => v.id === viewingId);
   const videoRef = useRef(null);
   const videoBlockRef = useRef(null);
@@ -53,13 +60,13 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
   };
 
   const openBulk = () => {
-    setBulkText((chapter?.variations ?? []).map((v) => v.name).join('\n'));
+    setBulkText(grouped(chapter?.variations ?? []).map((v) => v.name).join('\n'));
     setBulkOpen(true);
   };
 
   const applyBulk = () => {
     const names = bulkText.split(/\r?\n/).map((n) => n.trim());
-    chapter.variations.forEach((v, i) => {
+    grouped(chapter.variations).forEach((v, i) => {
       const name = names[i];
       if (name && name !== v.name) {
         dispatch({ type: 'renameVariation', openingId, chapterId, variationId: v.id, name });
@@ -75,6 +82,105 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
       </div>
     );
   }
+
+  // The lines in reading order — each main line followed by its
+  // sub-variations (lib/variationGroups.js).
+  const ordered = grouped(chapter.variations);
+  const parentOf = parentsOf(ordered);
+  const lineById = new Map(ordered.map((v) => [v.id, v]));
+  const subsOf = new Map();
+  for (const v of ordered) {
+    const p = parentOf.get(v.id);
+    if (p) subsOf.set(p, [...(subsOf.get(p) ?? []), v]);
+  }
+
+  // Everything you can do to one line: behind ⋯ on a phone, and a long
+  // press or right-click on any line anywhere.
+  const lineMenu = (variation) => {
+    const linked = showVideo && chapter.video && variation.videoTimestamp != null;
+    const parent = lineById.get(parentOf.get(variation.id));
+    const subs = subsOf.get(variation.id) ?? [];
+    const canNest = !parent && ordered.some((v) => v.id !== variation.id && !parentOf.get(v.id));
+    const move = (dir) => () => dispatch({ type: 'moveVariation', openingId, chapterId, variationId: variation.id, dir });
+    return [
+      {
+        label: variation.starred ? 'Remove from favorites' : 'Add to favorites',
+        icon: <StarIcon size={16} filled={variation.starred} />,
+        onClick: () => dispatch({ type: 'toggleStar', openingId, chapterId, variationId: variation.id }),
+      },
+      {
+        label: 'Rename',
+        icon: <PencilIcon size={16} />,
+        onClick: () => {
+          const name = window.prompt('Variation name:', variation.name);
+          if (name?.trim()) {
+            dispatch({ type: 'renameVariation', openingId, chapterId, variationId: variation.id, name: name.trim() });
+          }
+        },
+      },
+      {
+        label: 'Themes',
+        hint: variation.tags?.length ? variation.tags.join(', ') : undefined,
+        icon: <TagIcon size={16} />,
+        onClick: () => setTagging({ kind: 'variation', variationId: variation.id }),
+      },
+      { sep: true },
+      parent && {
+        label: 'Make it a main line again',
+        hint: `now a sub-variation of ${parent.name}`,
+        icon: '⤴',
+        onClick: () => dispatch({ type: 'unnestVariation', openingId, chapterId, variationId: variation.id }),
+      },
+      canNest && {
+        label: 'Make it a sub-variation of…',
+        hint: subs.length
+          ? `its ${subs.length} sub-variation${subs.length === 1 ? '' : 's'} come${subs.length === 1 ? 's' : ''} along`
+          : 'file it under another line in this chapter',
+        icon: '⤵',
+        onClick: () => setNestingId(variation.id),
+      },
+      subs.length > 0 && {
+        label: variation.subsCollapsed ? `Show its ${subs.length} sub-variation${subs.length === 1 ? '' : 's'}` : `Hide its ${subs.length} sub-variation${subs.length === 1 ? '' : 's'}`,
+        icon: variation.subsCollapsed ? '▸' : '▾',
+        onClick: () => dispatch({ type: 'toggleSubVariations', openingId, chapterId, variationId: variation.id }),
+      },
+      showVideo && chapter.video && { sep: true },
+      showVideo && chapter.video && !linked && {
+        label: 'Link to the video here',
+        hint: 'pause the video where this line starts first',
+        icon: <VideoIcon size={16} />,
+        onClick: () => dispatch({
+          type: 'setVariationTimestamp',
+          openingId,
+          chapterId,
+          variationId: variation.id,
+          seconds: videoRef.current?.getCurrentTime?.() ?? 0,
+        }),
+      },
+      linked && {
+        label: 'Unlink from the video',
+        hint: `linked at ${fmtTime(variation.videoTimestamp)}`,
+        icon: <VideoIcon size={16} />,
+        onClick: () => dispatch({
+          type: 'setVariationTimestamp', openingId, chapterId, variationId: variation.id, seconds: null,
+        }),
+      },
+      { sep: true },
+      { label: 'Move up', hint: parent ? `within ${parent.name}` : undefined, icon: '▲', onClick: move(-1) },
+      { label: 'Move down', hint: parent ? `within ${parent.name}` : undefined, icon: '▼', onClick: move(1) },
+      { sep: true },
+      {
+        label: 'Delete variation',
+        danger: true,
+        onClick: () => {
+          const also = subs.length ? `\n\nIts sub-variations stay, as main lines.` : '';
+          if (window.confirm(`Delete "${variation.name}"?${also}`)) {
+            dispatch({ type: 'deleteVariation', openingId, chapterId, variationId: variation.id });
+          }
+        },
+      },
+    ];
+  };
 
   return (
     <div className="page">
@@ -411,13 +517,28 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
         </div>
       )}
 
-      {chapter.variations.map((variation) => {
+      {ordered.map((variation) => {
+        const parent = lineById.get(parentOf.get(variation.id));
+        if (parent?.subsCollapsed) return null;
+        const subs = subsOf.get(variation.id) ?? [];
+        const subsToggle = subs.length > 0 && (
+          <button
+            type="button"
+            className="small ghost subs-toggle"
+            title={variation.subsCollapsed ? 'Show its sub-variations' : 'Hide its sub-variations'}
+            onClick={() => dispatch({ type: 'toggleSubVariations', openingId, chapterId, variationId: variation.id })}
+          >
+            {variation.subsCollapsed ? '▸' : '▾'} {subs.length} sub-variation{subs.length === 1 ? '' : 's'}
+          </button>
+        );
         const due = isDue(variation);
         const green = isPracticed(variation);
         return (
-          <div
+          <Pressable
             key={variation.id}
-            className={`variation-row${green ? ' practiced' : ''}${due ? ' due' : ''}${picking && chosen[variation.id] ? ' chosen' : ''}`}
+            className={`variation-row${parent ? ' sub-variation' : ''}${green ? ' practiced' : ''}${due ? ' due' : ''}${picking && chosen[variation.id] ? ' chosen' : ''}`}
+            disabled={picking}
+            onMenu={(at) => setMenuFor({ id: variation.id, at })}
           >
             {isPhone ? (() => {
               // The phone's line: the whole width for its name, its state on
@@ -426,7 +547,7 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
               // Mainline: 3...e6 with 4...c6" down to one word per line.
               const linked = showVideo && chapter.video && variation.videoTimestamp != null;
               const hasMeta = green || variation.learned || due || variation.srs?.level > 0
-                || variation.tags?.length > 0 || linked;
+                || variation.tags?.length > 0 || linked || subs.length > 0;
               return (
                 <>
                   <div className="row-head phone-line-head">
@@ -445,67 +566,12 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
                     </h3>
                     <MoreMenu
                       title={variation.name}
-                      items={[
-                        {
-                          label: variation.starred ? 'Remove from favorites' : 'Add to favorites',
-                          icon: <StarIcon size={16} filled={variation.starred} />,
-                          onClick: () => dispatch({ type: 'toggleStar', openingId, chapterId, variationId: variation.id }),
-                        },
-                        {
-                          label: 'Rename',
-                          icon: <PencilIcon size={16} />,
-                          onClick: () => {
-                            const name = window.prompt('Variation name:', variation.name);
-                            if (name?.trim()) {
-                              dispatch({ type: 'renameVariation', openingId, chapterId, variationId: variation.id, name: name.trim() });
-                            }
-                          },
-                        },
-                        {
-                          label: 'Themes',
-                          hint: variation.tags?.length ? variation.tags.join(', ') : undefined,
-                          icon: <TagIcon size={16} />,
-                          onClick: () => setTagging({ kind: 'variation', variationId: variation.id }),
-                        },
-                        showVideo && chapter.video && { sep: true },
-                        showVideo && chapter.video && !linked && {
-                          label: 'Link to the video here',
-                          hint: 'pause the video where this line starts first',
-                          icon: <VideoIcon size={16} />,
-                          onClick: () => dispatch({
-                            type: 'setVariationTimestamp',
-                            openingId,
-                            chapterId,
-                            variationId: variation.id,
-                            seconds: videoRef.current?.getCurrentTime?.() ?? 0,
-                          }),
-                        },
-                        linked && {
-                          label: 'Unlink from the video',
-                          hint: `linked at ${fmtTime(variation.videoTimestamp)}`,
-                          icon: <VideoIcon size={16} />,
-                          onClick: () => dispatch({
-                            type: 'setVariationTimestamp', openingId, chapterId, variationId: variation.id, seconds: null,
-                          }),
-                        },
-                        { sep: true },
-                        { label: 'Move up', icon: '▲', onClick: () => dispatch({ type: 'moveVariation', openingId, chapterId, variationId: variation.id, dir: -1 }) },
-                        { label: 'Move down', icon: '▼', onClick: () => dispatch({ type: 'moveVariation', openingId, chapterId, variationId: variation.id, dir: 1 }) },
-                        { sep: true },
-                        {
-                          label: 'Delete variation',
-                          danger: true,
-                          onClick: () => {
-                            if (window.confirm(`Delete "${variation.name}"?`)) {
-                              dispatch({ type: 'deleteVariation', openingId, chapterId, variationId: variation.id });
-                            }
-                          },
-                        },
-                      ]}
+                      items={lineMenu(variation)}
                     />
                   </div>
                   {hasMeta && (
                     <div className="phone-line-meta">
+                      {subsToggle}
                       {green && !due && (
                         <span className="practiced-pill"><CheckIcon size={13} /> practiced</span>
                       )}
@@ -555,6 +621,7 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
                 <StarIcon size={16} filled={variation.starred} />
               </button>
               <h3>{variation.name}</h3>
+              {subsToggle}
               <TagChips tags={variation.tags} max={3} />
               {green && !due && (
                 <span className="practiced-pill" title="Learned and recalled cleanly at least once">
@@ -691,14 +758,38 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
                 {due && <span className="badge due"><ClockIcon size={12} /></span>}
               </button>
             </div>
-          </div>
+          </Pressable>
         );
       })}
+
+      {menuFor && lineById.get(menuFor.id) && (
+        <MenuSheet
+          title={lineById.get(menuFor.id).name}
+          items={lineMenu(lineById.get(menuFor.id))}
+          at={menuFor.at}
+          onClose={() => setMenuFor(null)}
+        />
+      )}
+
+      {nestingId && lineById.get(nestingId) && (
+        <ParentPicker
+          line={lineById.get(nestingId)}
+          lines={ordered}
+          parentOf={parentOf}
+          onClose={() => setNestingId(null)}
+          onPick={(parentId) => {
+            dispatch({ type: 'nestVariation', openingId, chapterId, variationId: nestingId, parentId });
+            setNestingId(null);
+          }}
+        />
+      )}
 
       {reordering && (
         <ReorderSheet
           title={chapter.name}
-          items={reorderItems(chapter.variations)}
+          items={reorderItems(ordered, parentOf)}
+          regroup={(ids) => regroupIds(ids, parentOf)}
+          step={(ids, id, dir) => moveGrouped(ids.map((x) => lineById.get(x)), id, dir).map((v) => v.id)}
           onClose={() => setReordering(false)}
           onDone={(ids) => {
             dispatch({ type: 'setVariationOrder', openingId, chapterId, ids });
@@ -722,7 +813,7 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
                 onChange={(e) => setBulkText(e.target.value)}
               />
               <ol className="bulk-preview">
-                {chapter.variations.map((v, i) => {
+                {grouped(chapter.variations).map((v, i) => {
                   const next = bulkText.split(/\r?\n/)[i]?.trim();
                   return (
                     <li key={v.id} className={next && next !== v.name ? 'changed' : ''}>
@@ -861,7 +952,7 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
 // One row per line for the Reorder sheet. Every line in a chapter starts the
 // same way, so each shows its moves from where it parts from the others —
 // that's what tells two lines apart.
-function reorderItems(variations) {
+function reorderItems(variations, parentOf = new Map()) {
   const shared = variations.length < 2 ? 0 : variations.reduce((n, v) => {
     let i = 0;
     while (i < n && v.moves[i] === variations[0].moves[i]) i += 1;
@@ -871,6 +962,7 @@ function reorderItems(variations) {
   return variations.map((v) => ({
     id: v.id,
     name: v.name,
+    parentId: parentOf.get(v.id) ?? null,
     moves: v.moves,
     sub: numbered(v.moves, from, 8) || '(no moves)',
   }));
@@ -886,3 +978,40 @@ function numbered(moves, from, count) {
   if (!out.length) return '';
   return (from > 0 ? '… ' : '') + out.join(' ') + (moves.length > from + count ? ' …' : '');
 }
+
+// "Make it a sub-variation of…": which main line to file it under. The one
+// it most likely belongs to — sharing the most moves with it — comes first.
+function ParentPicker({ line, lines, parentOf, onPick, onClose }) {
+  useBackGuard(true, onClose);
+  const candidates = lines.filter((v) => v.id !== line.id && !parentOf.get(v.id));
+  const suggested = suggestParent(lines, line.id);
+  const sorted = suggested
+    ? [candidates.find((v) => v.id === suggested), ...candidates.filter((v) => v.id !== suggested)]
+    : candidates;
+  const moves = new Map(reorderItems(lines).map((it) => [it.id, it.sub]));
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ marginTop: 0 }}>Make “{line.name}” a sub-variation of…</h3>
+        <p className="hint">It moves under the line you pick, indented beneath it. You can make it a main line again any time.</p>
+        <ul className="parent-pick">
+          {sorted.map((v) => (
+            <li key={v.id}>
+              <button type="button" className={v.id === suggested ? 'suggested' : ''} onClick={() => onPick(v.id)}>
+                <strong>
+                  {v.name}
+                  {v.id === suggested && <span className="muted-note"> · most likely — shares the most moves</span>}
+                </strong>
+                <span className="pick-moves">{moves.get(v.id)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="modal-actions">
+          <button onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

@@ -26,7 +26,24 @@ const byName = (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true
 const EDGE = 56; // px from the list's edge where holding a line scrolls it
 const MAX_SPEED = 900; // px a second, held right at the edge
 
-export default function ReorderSheet({ title, items, onDone, onClose }) {
+// `regroup` (optional) puts an order back into shape after every change —
+// the chapter uses it to keep each line's sub-variations behind it, so a
+// main line dragged anywhere takes them along. `step` moves one row one
+// place for the arrow keys; the chapter's moves a main line past the whole
+// next block.
+const same = (ids) => ids;
+const oneStep = (ids, id, dir) => {
+  const from = ids.indexOf(id);
+  const to = from + dir;
+  if (from < 0 || to < 0 || to >= ids.length) return ids;
+  const next = [...ids];
+  [next[from], next[to]] = [next[to], next[from]];
+  return next;
+};
+
+export default function ReorderSheet({
+  title, items, onDone, onClose, regroup = same, step = oneStep,
+}) {
   const byId = useMemo(() => new Map(items.map((it) => [it.id, it])), [items]);
   const original = useMemo(() => items.map((it) => it.id), [items]);
   const [picked, setOrder] = useState(original);
@@ -51,9 +68,15 @@ export default function ReorderSheet({ title, items, onDone, onClose }) {
     const from = o.indexOf(id);
     const to = Math.max(0, Math.min(o.length - 1, index));
     if (from < 0 || from === to) return o;
-    const next = [...o];
-    next.splice(from, 1);
-    next.splice(to, 0, id);
+    const moved = [...o];
+    moved.splice(from, 1);
+    moved.splice(to, 0, id);
+    const next = regroup(moved);
+    orderRef.current = next;
+    return next;
+  });
+  const stepBy = (id, dir) => setOrder(() => {
+    const next = regroup(step(orderRef.current, id, dir));
     orderRef.current = next;
     return next;
   });
@@ -116,7 +139,7 @@ export default function ReorderSheet({ title, items, onDone, onClose }) {
   };
   const endDrag = () => { drag.current = null; setDragging(null); };
 
-  const sortBy = (compare) => setOrder([...order].sort((a, b) => compare(byId.get(a), byId.get(b))));
+  const sortBy = (compare) => setOrder(regroup([...order].sort((a, b) => compare(byId.get(a), byId.get(b)))));
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -135,7 +158,7 @@ export default function ReorderSheet({ title, items, onDone, onClose }) {
           {order.map((id, i) => {
             const it = byId.get(id);
             return (
-              <li key={id} data-row className={`reorder-row${dragging === id ? ' dragging' : ''}`}>
+              <li key={id} data-row className={`reorder-row${it.parentId ? ' sub' : ''}${dragging === id ? ' dragging' : ''}`}>
                 <button
                   type="button"
                   className="reorder-handle"
@@ -145,8 +168,8 @@ export default function ReorderSheet({ title, items, onDone, onClose }) {
                   onPointerUp={endDrag}
                   onPointerCancel={endDrag}
                   onKeyDown={(e) => {
-                    if (e.key === 'ArrowUp') { e.preventDefault(); moveTo(id, i - 1); }
-                    if (e.key === 'ArrowDown') { e.preventDefault(); moveTo(id, i + 1); }
+                    if (e.key === 'ArrowUp') { e.preventDefault(); stepBy(id, -1); }
+                    if (e.key === 'ArrowDown') { e.preventDefault(); stepBy(id, 1); }
                   }}
                 >
                   ≡
