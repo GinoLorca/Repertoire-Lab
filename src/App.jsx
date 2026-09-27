@@ -677,6 +677,25 @@ function CoachGamesToast() {
   );
 }
 
+// A new version of the app has been installed while this one was running.
+// Offered, not forced: reloading in the middle of a practice session would
+// throw away where you were, even though nothing you've saved is at risk.
+function UpdateBar() {
+  const [ready, setReady] = useState(() => Boolean(window.__repertoireUpdateReady));
+  useEffect(() => {
+    const on = () => setReady(true);
+    window.addEventListener('repertoire-update-ready', on);
+    return () => window.removeEventListener('repertoire-update-ready', on);
+  }, []);
+  if (!ready) return null;
+  return (
+    <div className="coach-toast" role="status">
+      <span>Repertoire Lab has been updated.</span>
+      <button className="small primary" onClick={() => window.location.reload()}>Reload</button>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <StoreProvider>
@@ -688,6 +707,7 @@ export default function App() {
         <GameLinkProvider>
           <AppInner />
           <CoachGamesToast />
+          <UpdateBar />
         </GameLinkProvider>
       </CloudProvider>
     </StoreProvider>

@@ -99,16 +99,69 @@ const newerSide = (local, remote, fallback) => {
   return (local.updatedAt ?? 0) >= (remote.updatedAt ?? 0) ? 'local' : 'remote';
 };
 
+const sameSeq = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+
+// The order of a merged list.
+//
+// Order is judged on the items both sides still have, and on those alone:
+// adding or removing something isn't a reorder, and treating it as one used to
+// throw away a real reorder made on the other device ("Mac rearranges the
+// variations while the iPad adds one" kept the iPad's old order). So:
+//
+//   · the shared items follow whichever side actually rearranged them — this
+//     device if only it did, the other if only it did, and on a genuine clash
+//     (both rearranged, differently) `prefer`
+//   · everything else — new on either side — keeps its place relative to what
+//     came after it on the side that added it: added at the end, it stays at
+//     the end (the usual case, and where a person expects it); added above
+//     "3...Bf5", it stays above "3...Bf5"
+//
+// With no baseline to tell who moved what, `prefer` decides: the careful path
+// passes 'remote', because a state that's behind the account mustn't push its
+// old order back over a newer one.
+export function mergeOrder(base, local, remote, prefer = 'local') {
+  const L = local.map((r) => r.id);
+  const R = remote.map((r) => r.id);
+  const inR = new Set(R);
+  const shared = new Set(L.filter((id) => inR.has(id)));
+  const l = L.filter((id) => shared.has(id));
+  const r = R.filter((id) => shared.has(id));
+  let skeleton;
+  if (sameSeq(l, r)) skeleton = l;
+  else if (base) {
+    const b = base.map((x) => x.id).filter((id) => shared.has(id));
+    const localMoved = !sameSeq(l, b);
+    const remoteMoved = !sameSeq(r, b);
+    if (remoteMoved && !localMoved) skeleton = r;
+    else if (localMoved && !remoteMoved) skeleton = l;
+    else skeleton = prefer === 'remote' ? r : l;
+  } else skeleton = prefer === 'remote' ? r : l;
+
+  const out = [...skeleton];
+  const placed = new Set(out);
+  const slotIn = (seq) => {
+    // Right to left, so each new item's successor is already placed.
+    for (let i = seq.length - 1; i >= 0; i -= 1) {
+      const id = seq[i];
+      if (placed.has(id)) continue;
+      let j = i + 1;
+      while (j < seq.length && !placed.has(seq[j])) j += 1;
+      const at = j >= seq.length ? out.length : out.indexOf(seq[j]);
+      out.splice(at, 0, id);
+      placed.add(id);
+    }
+  };
+  slotIn(prefer === 'remote' ? R : L);
+  slotIn(prefer === 'remote' ? L : R);
+  return out;
+}
+
 function mergeRecords(base, local, remote, prefer) {
   const B = new Map((base ?? []).map((r) => [r.id, r]));
   const L = new Map((local ?? []).map((r) => [r.id, r]));
   const R = new Map((remote ?? []).map((r) => [r.id, r]));
-  // This device's order, with anything new from the other side on the end in
-  // the other side's order. A reorder made here survives; one made only
-  // there arrives through the ordinary field rules when nothing else moved.
-  const order = [...L.keys(), ...[...R.keys()].filter((id) => !L.has(id))];
   const out = [];
-  for (const id of order) {
+  for (const id of mergeOrder(base, local ?? [], remote ?? [], prefer)) {
     const b = B.get(id);
     const l = L.get(id);
     const r = R.get(id);
@@ -117,15 +170,6 @@ function mergeRecords(base, local, remote, prefer) {
     // the same way it always has for openings, chapters and players.
     else if (l) { if (!b) out.push(l); }
     else if (r) { if (!b) out.push(r); }
-  }
-  // Only the other side reordered and nothing was added or removed: take
-  // their order, so a drag on the tablet shows up on the Mac.
-  const baseOrder = (base ?? []).map((r) => r.id).join('\u0000');
-  const localOrder = (local ?? []).map((r) => r.id).join('\u0000');
-  const remoteOrder = (remote ?? []).map((r) => r.id).join('\u0000');
-  if (base && localOrder === baseOrder && remoteOrder !== baseOrder) {
-    const pos = new Map((remote ?? []).map((r, i) => [r.id, i]));
-    out.sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9));
   }
   return out;
 }

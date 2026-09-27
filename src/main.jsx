@@ -30,9 +30,28 @@ if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
     try {
       // updateViaCache 'none': the worker script itself must never come from
       // the HTTP cache, or a new deploy can go unnoticed for a day.
+      // Whether this page started under a worker at all. The very first
+      // visit has none, and the worker taking control then is not an update.
+      const hadController = Boolean(navigator.serviceWorker.controller);
       await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
       const reg = await navigator.serviceWorker.ready;
       reg.update?.(); // pick up a new build on this visit, not the next one
+
+      // An app added to the home screen is hardly ever started fresh: iOS
+      // keeps it suspended, and bringing it back doesn't reload the page. So
+      // a new build — a sync fix, say — could sit unused on an iPad for days
+      // while the old code kept running. Check again every time the app comes
+      // back to the front, and once a new build has taken over, say so (see
+      // UpdateBar in App.jsx). The library is saved as it changes, so a
+      // reload costs nothing but where you were on screen.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') reg.update?.().catch(() => {});
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController) return;
+        window.__repertoireUpdateReady = true;
+        window.dispatchEvent(new Event('repertoire-update-ready'));
+      });
       // The build pins the app shell; this reports anything else the page
       // actually loaded — the engine and OCR payloads once they've been used.
       const send = () => {

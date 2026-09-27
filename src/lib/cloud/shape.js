@@ -109,6 +109,16 @@ export async function toCloud(state, upload) {
     categories: state.categories ?? [],
     playlists: state.playlists ?? [],
     savedPositions: state.savedPositions ?? [],
+    // Openings, players and Lab entries are each a document of their own, and
+    // a set of documents has no order — so the order they're in here would
+    // otherwise never reach another device. Rearranging the openings on the
+    // Mac did nothing on the iPad, and a new device showed them in whatever
+    // order their ids happened to sort in.
+    order: {
+      openings: (state.openings ?? []).map((o) => o.id),
+      players: (state.players ?? []).map((p) => p.id),
+      labEntries: (state.labEntries ?? []).map((e) => e.id),
+    },
   };
 
   // Note what isn't here: analysisDraft, the unsaved board in front of you on
@@ -188,10 +198,18 @@ export async function fromCloud(docs, download, have = new Map()) {
     });
   }
 
+  // In the order the account keeps them in; anything the order doesn't know
+  // yet (written by an app from before it existed) goes on the end.
+  const ordered = (list, ids) => {
+    if (!Array.isArray(ids)) return list;
+    const pos = new Map(ids.map((id, i) => [id, i]));
+    return [...list].sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9));
+  };
+  const order = docs.lists?.order ?? {};
   return {
-    openings,
-    players: await dropBlobs(docs.players ?? [], download, have),
-    labEntries: await dropBlobs(docs.labEntries ?? [], download, have),
+    openings: ordered(openings, order.openings),
+    players: ordered(await dropBlobs(docs.players ?? [], download, have), order.players),
+    labEntries: ordered(await dropBlobs(docs.labEntries ?? [], download, have), order.labEntries),
     categories: docs.lists?.categories ?? [],
     playlists: docs.lists?.playlists ?? [],
     savedPositions: docs.lists?.savedPositions ?? [],

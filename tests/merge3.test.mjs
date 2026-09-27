@@ -168,3 +168,29 @@ test('settings changed mid-sync stay; otherwise the sync’s settings land', () 
   assert.equal(foldInFlight(started, { ...state([]), settings: { skin: 'bauhaus' } }, synced).settings.skin, 'bauhaus');
   assert.equal(foldInFlight(started, { ...state([game('X')]), settings: { skin: 'felt' } }, synced).settings.skin, 'hustler');
 });
+
+// --- order ---------------------------------------------------------------------
+import { mergeOrder } from '../src/lib/cloud/merge3.js';
+
+const recs = (s) => s.split('').map((id) => ({ id }));
+const ord = (b, l, r, prefer) => mergeOrder(b && recs(b), recs(l), recs(r), prefer).join('');
+
+test('order: a reorder on one side wins over an addition on the other', () => {
+  assert.equal(ord('abc', 'abcd', 'cab'), 'cabd');
+});
+
+test('order: new items keep their place relative to what came after them', () => {
+  assert.equal(ord('abc', 'axbc', 'cab'), 'caxb', 'added above b, stays above b');
+  assert.equal(ord('abc', 'xabc', 'abc'), 'xabc', 'added at the top, stays at the top');
+  assert.equal(ord('abc', 'abcxy', 'abc'), 'abcxy', 'two added at the end keep their order');
+});
+
+test('order: both sides rearranged differently — the preferred side wins', () => {
+  assert.equal(ord('abc', 'bac', 'acb'), 'bac');
+  assert.equal(ord('abc', 'bac', 'acb', 'remote'), 'acb');
+});
+
+test('order: with no baseline, the careful path takes the account\'s order', () => {
+  assert.equal(ord(null, 'abc', 'cab', 'remote'), 'cab');
+  assert.equal(ord(null, 'abcd', 'cab', 'remote'), 'cabd');
+});
