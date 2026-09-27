@@ -23,8 +23,15 @@ import MigratePlayersModal from './components/MigratePlayersModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import Inbox from './components/Inbox';
 
+// What the dot on the Settings icon means.
+const SYNC_ALERT = {
+  'signed-out': 'Signed out — this device has stopped syncing',
+  error: 'Sync isn’t working — see Settings → Account',
+};
+
 function AppInner() {
   const { state } = useStore();
+  const { attention: syncAttention } = useCloud();
   // Where the URL says we are. Read once, at mount: after that the address bar
   // follows the app (see the sync effect below) rather than driving it, except
   // on back/forward, which restores state from our own stack anyway.
@@ -425,11 +432,11 @@ function AppInner() {
     window.addEventListener('repertoire-open-screen', on);
     return () => window.removeEventListener('repertoire-open-screen', on);
   }, []);
-  const navTo = (v) => {
-    if (v === view) return;
+  const navTo = (v, subTab = null) => {
+    if (v === view && (!subTab || subTab === sub)) return;
     go(() => {
       if (v === 'practice') setPracticeScope(undefined);
-      setSub(null);
+      setSub(subTab);
       setView(v);
     });
   };
@@ -557,10 +564,10 @@ function AppInner() {
             </svg>
           </button>
           <button
-            className={`nav-icon${view === 'settings' ? ' active' : ''}`}
-            title="Settings"
-            aria-label="Settings"
-            onClick={() => navTo('settings')}
+            className={`nav-icon${view === 'settings' ? ' active' : ''}${syncAttention ? ' has-alert' : ''}`}
+            title={SYNC_ALERT[syncAttention] ?? 'Settings'}
+            aria-label={SYNC_ALERT[syncAttention] ? `Settings — ${SYNC_ALERT[syncAttention]}` : 'Settings'}
+            onClick={() => navTo('settings', syncAttention ? 'account' : undefined)}
           >
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

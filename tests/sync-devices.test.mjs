@@ -233,3 +233,17 @@ test('offline, a sync writes nothing and changes nothing', async () => {
   const online = (await asDevice('mac', () => syncNow(edited))).state;
   assert.equal(find(online, 'gamex01').name, 'offline edit', 'back online, it goes up');
 });
+
+test('a read the server refuses (the daily quota, say) is an error, not "offline" — and the next sync still sends the work', async () => {
+  const { failNextRead } = await import('./fakes/firebase.mjs');
+  const lib = { openings: [{ id: 'o1', name: 'Jobava', chapters: [{ id: 'c1', name: 'Main', variations: [{ id: 'v1', name: 'A', moves: ['d4'] }] }] }], players: [], labEntries: [], categories: [], playlists: [], savedPositions: [], settings: {} };
+  const first = await asDevice('ipad', () => syncNow(lib));
+  const edited = { ...first.state, openings: [{ ...first.state.openings[0], name: 'Jobava London' }] };
+  failNextRead('resource-exhausted');
+  await assert.rejects(asDevice('ipad', () => syncNow(edited)), (err) => err.code === 'resource-exhausted');
+  const again = await asDevice('ipad', () => syncNow(edited));
+  assert.equal(again.offline, undefined);
+  const mac = await asDevice('mac', () => syncNow({ ...lib, openings: [] }));
+  assert.equal(mac.state.openings[0].name, 'Jobava London');
+});
+

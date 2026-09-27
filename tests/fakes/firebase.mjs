@@ -36,17 +36,25 @@ const write = (path, data, opts) => server.set(path, opts?.merge ? deepMerge(ser
 export function hold(dev, beforeCommit) { holds.set(dev, beforeCommit); }
 let offline = false;
 export function setOffline(v) { offline = v; }
-export function resetServer() { server.clear(); holds.clear(); log.length = 0; offline = false; c.authInstance.currentUser = { uid: 'student1' }; }
+export function resetServer() { server.clear(); holds.clear(); log.length = 0; offline = false; failNext = null; c.authInstance.currentUser = { uid: 'student1' }; }
+// The next server read fails with this Firestore error code instead —
+// 'resource-exhausted' is the free plan's daily read quota running out.
+let failNext = null;
+export function failNextRead(code) { failNext = code; }
 const online = () => { if (offline) { const e = new Error('offline'); e.code = 'unavailable'; throw e; } };
+const serverRead = () => {
+  online();
+  if (failNext) { const e = new Error(failNext); e.code = failNext; failNext = null; throw e; }
+};
 
 const firestore = {
   collection: ref,
   doc: ref,
   query: (r) => r,
   where: () => null,
-  getDocsFromServer: async (r) => { await tick(); online(); return { docs: docsUnder(r.path) }; },
+  getDocsFromServer: async (r) => { await tick(); serverRead(); return { docs: docsUnder(r.path) }; },
   getDocs: async (r) => ({ docs: docsUnder(r.path) }),
-  getDocFromServer: async (r) => { await tick(); online(); return snapOf(r.path); },
+  getDocFromServer: async (r) => { await tick(); serverRead(); return snapOf(r.path); },
   getDoc: async (r) => snapOf(r.path),
   setDoc: async (r, data, opts) => { write(r.path, data, opts); },
   deleteDoc: async (r) => { server.delete(r.path); },

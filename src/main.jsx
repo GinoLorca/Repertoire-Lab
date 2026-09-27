@@ -33,6 +33,11 @@ if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
       // Whether this page started under a worker at all. The very first
       // visit has none, and the worker taking control then is not an update.
       const hadController = Boolean(navigator.serviceWorker.controller);
+      // A new worker asks every open page whether it looks after its own
+      // updates; one that doesn't answer is an old build, and gets reloaded.
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'sw-updated') event.source?.postMessage?.({ type: 'update-handled' });
+      });
       await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
       const reg = await navigator.serviceWorker.ready;
       reg.update?.(); // pick up a new build on this visit, not the next one
@@ -44,8 +49,16 @@ if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
       // back to the front, and once a new build has taken over, say so (see
       // UpdateBar in App.jsx). The library is saved as it changes, so a
       // reload costs nothing but where you were on screen.
+      //
+      // Once one has, the next time the app comes back to the front it simply
+      // reloads onto it — the Reload bar alone left it to chance, and a device
+      // on an old build can undo another's changes. Not in the middle of
+      // something: a dialog open, a field being typed in, a practice session.
+      // Then the bar stays up and it's your call.
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') reg.update?.().catch(() => {});
+        if (document.visibilityState !== 'visible') return;
+        if (window.__repertoireUpdateReady && quietMoment()) window.location.reload();
+        else reg.update?.().catch(() => {});
       });
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (!hadController) return;
@@ -69,4 +82,11 @@ if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
       setTimeout(send, 8000);
     } catch { /* offline, or service workers unavailable */ }
   });
+}
+
+function quietMoment() {
+  if (document.querySelector('.modal-overlay')) return false;
+  const el = document.activeElement;
+  if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return false;
+  return !window.location.pathname.startsWith('/practice');
 }

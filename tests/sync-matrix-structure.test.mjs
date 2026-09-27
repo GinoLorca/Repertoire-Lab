@@ -61,8 +61,8 @@ const { reducer, emptyState } = (() => {
     'return { reducer, emptyState };',
   ].join('\n');
   // eslint-disable-next-line no-new-func
-  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', body)(
-    DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId,
+  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', body)(
+    DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight,
   );
 })();
 
@@ -777,3 +777,21 @@ test('Reorder sheet: a line the sheet didn\'t list keeps its place at the end; t
   mac.do({ type: 'setVariationOrder', openingId: 'o-caro', chapterId: 'c-advance', ids: chapter(before, 'o-caro', 'c-advance').variations.map((x) => x.id) });
   assert.equal(chapter(mac.state, 'o-caro', 'c-advance'), chapter(before, 'o-caro', 'c-advance'), 'no change, no new chapter object');
 });
+
+test('a sync landing just after an edit keeps the edit: the fold happens in the reducer, against the state as it is', () => {
+  const mac = buildLibrary(new Device('mac', 'Mac'));
+  const started = mac.state;
+  // What the sync brings back: the iPad renamed the London.
+  const synced = { ...started, syncGen: 'g2', openings: started.openings.map((o) => (o.id === 'o-london' ? { ...o, name: 'London (iPad)' } : o)) };
+  // Meanwhile, here: the Caro-Kann renamed, dispatched but — as far as the
+  // sync's caller could tell — not yet rendered.
+  mac.do({ type: 'renameOpening', openingId: 'o-caro', name: 'Caro-Kann Defence' });
+  mac.do({ type: 'syncResult', started, synced });
+  assert.equal(opening(mac.state, 'o-london').name, 'London (iPad)', 'the other device\'s change');
+  assert.equal(opening(mac.state, 'o-caro').name, 'Caro-Kann Defence', 'and the edit made while it synced');
+  const before = mac.state;
+  mac.do({ type: 'syncResult', started: before, synced: { ...before, syncGen: 'g3' } });
+  assert.equal(mac.state.syncGen, 'g3');
+  assert.equal(mac.state.openings, before.openings, 'nothing new: the library isn\'t replaced, so no view restarts');
+});
+

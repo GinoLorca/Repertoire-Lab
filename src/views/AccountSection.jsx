@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useCloud } from '../lib/cloud/useCloud';
+import { BUILD, watchDevices } from '../lib/cloud/devices';
 import { signIn, signUp, sendReset, authMessage } from '../lib/cloud/auth';
 import {
   claimScreenName, loadProfile, screenNameProblem, setRealName,
@@ -176,6 +177,8 @@ export default function AccountSection() {
         <button className="small ghost danger" onClick={signOut}>Sign out</button>
       </div>
 
+      <YourDevices uid={user.uid} />
+
       <div className="settings-row" style={{ marginTop: 18 }}>
         <span><strong>Account name</strong></span>
       </div>
@@ -237,3 +240,52 @@ export default function AccountSection() {
     </>
   );
 }
+
+const version = (iso) => (iso
+  ? new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  : 'an older version');
+
+// Every device syncing this account, its version of the app and its last
+// sync. A device behind this one is flagged: it keeps running the code it
+// last loaded until it reloads, and old code can undo newer devices' work.
+function YourDevices({ uid }) {
+  const [devices, setDevices] = useState(null);
+  useEffect(() => {
+    let stop = () => {};
+    let cancelled = false;
+    watchDevices(uid, setDevices).then((fn) => { if (cancelled) fn(); else stop = fn; });
+    return () => { cancelled = true; stop(); };
+  }, [uid]);
+  const list = [...(devices ?? [])].sort((a, b) => (b.me - a.me) || ((b.lastSync ?? 0) - (a.lastSync ?? 0)));
+  return (
+    <div style={{ marginTop: 18 }}>
+      <div className="settings-row"><span><strong>Your devices</strong></span></div>
+      <p className="hint">
+        This one runs the version from {version(BUILD)}. A device marked <em>older version</em> hasn’t
+        loaded the latest app yet: open it, then close it fully (swipe it away) and open it again.
+      </p>
+      {devices === null && <p className="muted-note">Checking…</p>}
+      {list.length > 0 && (
+        <ul className="device-list">
+          {list.map((d) => {
+            const behind = BUILD && (!d.build || d.build < BUILD);
+            return (
+              <li key={d.id}>
+                <strong>{d.me ? 'This device' : d.name}</strong>
+                {d.me && <span className="muted-note"> ({d.name})</span>}
+                <span className="muted-note">
+                  {' · '}version {version(d.build)} · synced {when(d.lastSync)}
+                </span>
+                {behind && !d.me && <span className="link-pill bad" style={{ marginLeft: 6 }}>older version</span>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {devices && devices.length < 2 && (
+        <p className="muted-note">Other devices appear here once they’ve synced with this version of the app.</p>
+      )}
+    </div>
+  );
+}
+

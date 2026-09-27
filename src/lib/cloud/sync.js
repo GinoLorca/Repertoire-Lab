@@ -161,13 +161,23 @@ async function pull(c, uid) {
   // ever applied against a server read: against a cache that's behind, a
   // game the student deleted on another device could look absent-but-new.
   let fromServer = true;
+  // Only "can't reach the server" falls back to the cache. Anything else —
+  // the free plan's daily read quota, a rules refusal — is a real failure:
+  // calling it "Offline" hid it, and nothing retries an offline device that
+  // never actually went offline.
+  const fallBack = (err) => {
+    const unreachable = err?.code === 'unavailable' || err?.code === 'deadline-exceeded'
+      || (typeof navigator !== 'undefined' && navigator.onLine === false);
+    if (!unreachable) throw err;
+    fromServer = false;
+  };
   // Exactly what each document held when it was read, so the push can make
   // sure nobody changed it in between — see push().
   const seen = {};
   const readAll = async (name) => {
     const ref = collection(c.db, 'users', uid, name);
     let snap;
-    try { snap = await getDocsFromServer(ref); } catch { fromServer = false; snap = await getDocs(ref); }
+    try { snap = await getDocsFromServer(ref); } catch (err) { fallBack(err); snap = await getDocs(ref); }
     return snap.docs.map((d) => {
       seen[`${name}/${d.id}`] = fingerprint(d.data());
       return decodeFromStore(d.data());
@@ -176,7 +186,7 @@ async function pull(c, uid) {
   const readOne = async (name, id) => {
     const ref = doc(c.db, 'users', uid, name, id);
     let snap;
-    try { snap = await getDocFromServer(ref); } catch { fromServer = false; snap = await getDoc(ref); }
+    try { snap = await getDocFromServer(ref); } catch (err) { fallBack(err); snap = await getDoc(ref); }
     seen[`${name}/${id}`] = snap.exists() ? fingerprint(snap.data()) : ABSENT;
     return snap.exists() ? decodeFromStore(snap.data()) : null;
   };
@@ -229,7 +239,9 @@ class SyncConflict extends Error {
 // Offline, a transaction can't run at all, so nothing is queued blind: the
 // work stays in this device's own storage and goes up on the next sync with
 // a connection.
-async function push(c, uid, docs, meta, removals, device, extraSets = [], seen = {}, writeSettings = false) {
+async function push(
+  c, uid, docs, meta, removals, device, extraSets = [], seen = {}, writeSettings = false, restoreOrder = false,
+) {
   const { doc, setDoc, runTransaction } = c.firestore;
   const hashes = {};
   let written = 0;
@@ -258,7 +270,11 @@ async function push(c, uid, docs, meta, removals, device, extraSets = [], seen =
 
   const listsHash = hashOf(JSON.stringify(docs.lists));
   hashes['singletons/lists'] = listsHash;
-  if (meta.hashes['singletons/lists'] !== listsHash) {
+  // Unchanged here since the last upload is normally reason enough to skip
+  // it. Not when an app from before the order was kept has since rewritten
+  // the document without one: skipping then would leave the cloud orderless
+  // for good, and every other device keeping whatever order it last saw.
+  if (meta.hashes['singletons/lists'] !== listsHash || restoreOrder) {
     ops.push({ key: 'singletons/lists', ref: doc(c.db, 'users', uid, 'singletons', 'lists'), data: encodeForStore(docs.lists) });
     written += 1;
   }
@@ -307,11 +323,18 @@ async function push(c, uid, docs, meta, removals, device, extraSets = [], seen =
   // tablet lands on the desktop without anyone pressing anything. Only written
   // when something actually changed, or devices would keep waking each other
   // up over nothing.
+  // The work is committed by now. A pulse that fails is only a missed
+  // wake-up call — the others catch up on their next sync — so it mustn't
+  // fail the sync, which would skip recording what was just written.
   if (written || deleted) {
     const { serverTimestamp } = c.firestore;
-    await setDoc(doc(c.db, 'users', uid, 'singletons', 'pulse'), {
-      at: serverTimestamp(), by: device,
-    });
+    try {
+      await setDoc(doc(c.db, 'users', uid, 'singletons', 'pulse'), {
+        at: serverTimestamp(), by: device,
+      });
+    } catch (err) {
+      console.warn('Sync: the wake-up for other devices failed', err);
+    }
   }
   return { hashes, settingsHash, written, deleted };
 }
@@ -754,6 +777,7 @@ async function syncOnce(localState, { onProgress, inbound = [] } = {}) {
   await Promise.all(uploads);
   const { hashes, written, deleted } = await push(
     c, uid, docs, meta, goneHere, me, extraSets, remoteDocs.seen, writeSettings,
+    Boolean(remoteDocs.fromServer && remoteDocs.seen['singletons/lists'] !== ABSENT && !remoteDocs.lists?.order),
   );
 
   const next = {
@@ -821,23 +845,32 @@ async function syncOnce(localState, { onProgress, inbound = [] } = {}) {
 // write by anyone else fires it within a second or so, and the app syncs
 // itself. This is what makes progress follow you between devices without
 // anybody pressing Sync.
-export async function watchRemoteChanges(uid, onRemoteChange) {
+export async function watchRemoteChanges(uid, onRemoteChange, { since = 0, onError } = {}) {
   const c = await cloud();
   if (!c) return () => {};
   const me = await pulseName();
   const { doc, onSnapshot } = c.firestore;
   // Every listener opens with the document as it already is — the pulse
   // from whichever sync ran last, often this device's own from a previous
-  // session. That isn't news, and the app syncs on launch anyway.
+  // session. That isn't news, and the app syncs on launch anyway. Unless it
+  // was written after `since` (when the launch sync started): then another
+  // device changed something while that sync was reading, and it's news.
   let first = true;
   return onSnapshot(doc(c.db, 'users', uid, 'singletons', 'pulse'), (snap) => {
-    if (first) { first = false; return; }
+    const opening = first;
+    first = false;
     if (!snap.exists()) return;
+    if (opening && !(since && (snap.data()?.at?.toMillis?.() ?? 0) > since)) return;
     // Firestore replays our own writes to us first; ignore those, and ignore
     // anything this device wrote, or two devices would sync each other in a
     // loop forever.
     if (snap.metadata.hasPendingWrites) return;
     if (snap.data()?.by === me) return;
     onRemoteChange();
-  }, () => { /* a dropped listener is not worth an error; the next sync covers it */ });
+  }, (err) => {
+    // Firestore drops a listener for good after an error. Say so, and the
+    // app attaches a new one (see useCloud) — otherwise a Mac left open
+    // would stop hearing the iPad until it was reloaded.
+    onError?.(err);
+  });
 }

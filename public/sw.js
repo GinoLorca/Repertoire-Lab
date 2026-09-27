@@ -17,16 +17,36 @@ const PRECACHE = __PRECACHE_URLS__;
 // rather than with cache.addAll.
 async function cacheAll(urls) {
   const cache = await caches.open(CACHE);
+  const missed = [];
   await Promise.all(urls.map(async (url) => {
     try {
       const res = await fetch(url, { cache: 'reload' });
-      if (res.ok || res.type === 'opaque') await cache.put(url, res);
-    } catch { /* offline or missing — skip it */ }
+      if ((res.ok && !wrongType(url, res)) || res.type === 'opaque') await cache.put(url, res);
+      else missed.push(url);
+    } catch { missed.push(url); /* offline or missing — skip it */ }
   }));
+  return missed;
 }
 
+// The host answers any unknown address with the app's page, status 200 —
+// so a script from an older build that no longer exists comes back as HTML.
+// Cached under the script's name, it would break that import for good.
+function wrongType(url, res) {
+  const path = new URL(url, self.location.origin).pathname;
+  if (path === '/' || path.endsWith('.html')) return false;
+  return (res.headers.get('content-type') || '').includes('text/html');
+}
+
+// The page and its own code must all arrive, or this build doesn't install
+// and the one that works stays — activating deletes the old cache, and an
+// install half-done on a bad connection would leave nothing to open offline.
+const ESSENTIAL = (url) => url === '/' || url === '/index.html' || /^\/assets\/index-[^/]+\.(js|css)$/.test(url);
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(cacheAll(PRECACHE).then(() => self.skipWaiting()));
+  event.waitUntil(cacheAll(PRECACHE).then((missed) => {
+    if (missed.some(ESSENTIAL)) throw new Error(`install incomplete: ${missed.filter(ESSENTIAL).join(', ')}`);
+    return self.skipWaiting();
+  }));
 });
 
 self.addEventListener('activate', (event) => {
@@ -35,12 +55,41 @@ self.addEventListener('activate', (event) => {
     await Promise.all(names.filter((n) => n !== CACHE).map((n) => caches.delete(n)));
     await self.clients.claim();
   })());
+  // Not part of activating: a page reloaded while this worker is still
+  // activating asks it for the page, and that request waits for activation
+  // to finish — which would be waiting for the reload. They'd wait on each
+  // other forever, with the app frozen.
+  moveOldPagesOver();
 });
+
+// A page already open keeps running the code it loaded, and an app on an
+// iPad's home screen is resumed far more often than it's started — so an
+// old build could go on running, and syncing, for days after a new one was
+// out. Builds from now on reload themselves at a quiet moment (main.jsx) and
+// say so when asked. A page that doesn't answer is running a build from
+// before that, and is moved onto this one now.
+const answered = new Set();
+async function moveOldPagesOver() {
+  try {
+    // Asked only once this worker is active and in charge of the pages.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const pages = await self.clients.matchAll({ type: 'window' });
+    if (!pages.length) return;
+    pages.forEach((page) => page.postMessage({ type: 'sw-updated' }));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    for (const page of pages) {
+      if (answered.has(page.id) || typeof page.navigate !== 'function') continue;
+      // Not awaited: it settles only once the page has loaded again.
+      page.navigate(page.url).catch(() => { /* not ours to reload */ });
+    }
+  } catch { /* nothing here is worth failing over */ }
+}
 
 // The page still reports what it loaded — that catches anything the build list
 // missed, and the big engine files once they've been used.
 self.addEventListener('message', (event) => {
   const data = event.data;
+  if (data?.type === 'update-handled' && event.source) answered.add(event.source.id);
   if (data?.type === 'cache-urls' && Array.isArray(data.urls)) {
     event.waitUntil(cacheAll(data.urls));
   }
@@ -92,7 +141,7 @@ self.addEventListener('fetch', (event) => {
     if (hit) return hit;
     try {
       const res = await fetch(event.request);
-      if (res.ok) cache.put(event.request, res.clone());
+      if (res.ok && !wrongType(event.request.url, res)) cache.put(event.request, res.clone());
       return res;
     } catch (err) {
       // A range request for a cached whole file (audio) can land here.

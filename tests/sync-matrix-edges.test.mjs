@@ -814,6 +814,23 @@ test('a lists document written by an app from before opening order was stored do
   assert.deepEqual(openings(d.mac), ['Jobava London', "King's Indian", 'Caro-Kann'], 'the Mac');
 });
 
+test('an old app strips the order before the iPad has seen it: the Mac\'s next sync puts it back, so the iPad and a new iPhone get it', async () => {
+  const d = await inSync();
+  d.mac = await sync('mac', act(d.mac, A.moveOpening('o3', -1)));
+  // An iPhone on a build from before the order was kept rewrites the lists
+  // document whole — before the iPad has synced at all.
+  const path = 'users/student1/singletons/lists';
+  const { order, ...previousVersion } = server.get(path);
+  void order;
+  server.set(path, previousVersion);
+  d.mac = await sync('mac', d.mac);
+  assert.ok(server.get(path).order, 'the Mac wrote the order back');
+  d.ipad = await sync('ipad', d.ipad);
+  assert.deepEqual(openings(d.ipad), ['Jobava London', "King's Indian", 'Caro-Kann'], 'the iPad');
+  const iphone = await sync('iphone', freshInstall());
+  assert.deepEqual(openings(iphone), ['Jobava London', "King's Indian", 'Caro-Kann'], 'a new iPhone');
+});
+
 test('two-way first sync: an iPad that already holds an older copy of the library (restored from a backup) signs in — the account\'s newer order wins, its own new line is kept, the Mac\'s reorder is not undone', async () => {
   const d = await inSync(['mac']);
   d.mac = await sync('mac', act(d.mac, A.moveVariation('v3', -1), A.moveVariation('v3', -1), A.moveChapter('c2', -1)));

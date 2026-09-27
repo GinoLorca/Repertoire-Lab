@@ -5,6 +5,7 @@ import { setCustomSounds, setVolume, setSoundSkin, primeSounds } from './lib/sou
 import { defaultMonsterId } from './lib/monsters';
 import { DEFAULT_SETTINGS } from './lib/settingsDefaults';
 import { mergeLinkedGames, undoCoachChanges } from './lib/cloud/gameLink';
+import { foldInFlight } from './lib/cloud/merge3';
 
 const STORAGE_KEY = 'repertoire-lab-state-v1';
 
@@ -82,6 +83,14 @@ function demoState() {
 }
 
 // ---------- Reducer ----------
+
+// The part of the state that syncs — the analysis draft and the like are
+// this device's own. Kept in step with syncableHash in lib/cloud/useCloud.js.
+const syncableJson = (st) => JSON.stringify({
+  openings: st?.openings, players: st?.players, categories: st?.categories,
+  playlists: st?.playlists, labEntries: st?.labEntries,
+  savedPositions: st?.savedPositions, settings: st?.settings,
+});
 
 function findOpening(state, openingId) {
   return state.openings.find((o) => o.id === openingId);
@@ -212,6 +221,20 @@ function reduce(state, action) {
     // holding on to.
     case 'setSyncGen':
       return state.syncGen === action.syncGen ? state : { ...state, syncGen: action.syncGen };
+    // A finished sync. It started from `started`; anything done here since
+    // is folded back over its result, with `started` as the common ancestor,
+    // and goes out on the next sync. Done here rather than by the caller so
+    // it's measured against the state as it really is at this moment.
+    case 'syncResult': {
+      const next = foldInFlight(action.started, state, action.synced);
+      // Nothing of substance changed: only record the sync's generation (it
+      // entitles the next sync to read "missing here" as "deleted here"),
+      // so no view restarts — mid-practice included.
+      if (syncableJson(next) === syncableJson(state)) {
+        return next.syncGen === state.syncGen ? state : { ...state, syncGen: next.syncGen };
+      }
+      return reducer(state, { type: 'hydrate', state: next });
+    }
     case 'hydrate':
       // Older saved states may predate newer top-level fields.
       return {
