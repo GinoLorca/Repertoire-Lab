@@ -177,10 +177,12 @@ export const SYNCED_COLLECTIONS = [
   'openings', 'players', 'labEntries', 'categories', 'playlists', 'savedPositions',
 ];
 
-export function mergeState(baseline, local, remote) {
+// `prefer` settles a genuine clash on a plain value: 'local' in an ordinary
+// sync, 'remote' when this state is known to be older than the cloud's.
+export function mergeState(baseline, local, remote, prefer = 'local') {
   const out = { ...local };
   for (const key of SYNCED_COLLECTIONS) {
-    out[key] = merge3(baseline?.[key], local?.[key] ?? [], remote?.[key] ?? []) ?? [];
+    out[key] = merge3(baseline?.[key], local?.[key] ?? [], remote?.[key] ?? [], prefer) ?? [];
   }
   return out;
 }
@@ -194,5 +196,8 @@ export function foldInFlight(started, now, synced) {
   if (now === started) return synced;
   const out = mergeState(started, now, synced);
   out.settings = same(now.settings, started.settings) ? synced.settings : now.settings;
+  // The generation of the sync that just finished: the baseline it wrote is
+  // the ancestor of this state, local work and all.
+  out.syncGen = synced.syncGen;
   return out;
 }

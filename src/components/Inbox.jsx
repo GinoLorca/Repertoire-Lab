@@ -7,6 +7,7 @@ import {
 } from '../lib/cloud/share';
 import { watchStudentLinks, endLink } from '../lib/cloud/links';
 import { BellIcon, CheckIcon } from './Icons';
+import { useCloud } from '../lib/cloud/useCloud';
 
 const stamp = (t) => {
   const ms = t?.toMillis ? t.toMillis() : t;
@@ -34,6 +35,7 @@ const markSeen = (ids) => {
 // anything — no file to find, no import to run, and nothing to approve.
 export default function Inbox() {
   const { state, dispatch } = useStore();
+  const cloud = useCloud();
   const [uid, setUid] = useState(null);
   const [items, setItems] = useState([]);
   const [links, setLinks] = useState([]);
@@ -58,7 +60,16 @@ export default function Inbox() {
 
   if (!cloudConfigured || !uid) return null;
 
-  const waiting = items.filter((d) => !d.acceptedAt && !d.dismissedAt);
+  // A game from a coach this account is linked to is applied on its own, by
+  // the sync — it doesn't wait here to be clicked, and it doesn't ring the
+  // bell. A game from anyone else does wait: it's a stranger offering to put
+  // something in this account, and that's the student's call.
+  const activeCoaches = new Set(links.filter((l) => l.status === 'active').map((l) => l.coachUid));
+  const shown = items.filter((d) => !(d.kind === 'game' && activeCoaches.has(d.fromUid)));
+  // A game counts as taken only when the student took it here — see
+  // eligibleGameDelivery: the sender can write acceptedAt themselves.
+  const taken = (d) => (d.kind === 'game' ? cloud.isGameConsented(d.id) : Boolean(d.acceptedAt));
+  const waiting = shown.filter((d) => !taken(d) && !d.dismissedAt);
   const seen = readSeen();
   const newLinks = links.filter((l) => !seen.has(l.id));
   const count = waiting.length + newLinks.length;
@@ -66,6 +77,12 @@ export default function Inbox() {
   const accept = async (delivery) => {
     setBusy(delivery.id);
     try {
+      // A game is applied by the sync, the same careful way a linked coach's
+      // is (see gameLink.js) — accepting just says yes to it.
+      if (delivery.kind === 'game') {
+        cloud.acceptGameDelivery(delivery.id);
+        return;
+      }
       // Merged with the same rules as everything else: the student's own
       // progress on lines they already had is never rolled back.
       dispatch({ type: 'hydrate', state: applyDelivery(state, delivery) });
@@ -103,7 +120,8 @@ export default function Inbox() {
                   <span className="practiced-pill"><CheckIcon size={12} /> Linked</span>
                 </div>
                 <div className="muted-note">
-                  Can see your real games, repertoire and ratings — read-only, until you end it.
+                  Can see your games, repertoire and ratings, and can add games to your Games — marked
+                  “Added by …”. Can't change anything you've edited, or delete anything. Until you end it.
                 </div>
                 <div className="settings-row">
                   <button
@@ -121,13 +139,13 @@ export default function Inbox() {
               </div>
             ))}
 
-            {items.length === 0 && links.length === 0 && (
+            {shown.length === 0 && links.length === 0 && (
               <p className="hint">
                 Nothing yet. When a coach sends you an opening or a new line, it lands here.
               </p>
             )}
-            {items.map((d) => (
-              <div key={d.id} className={`inbox-item${d.acceptedAt ? ' done' : ''}`}>
+            {shown.map((d) => (
+              <div key={d.id} className={`inbox-item${taken(d) ? ' done' : ''}`}>
                 <div className="inbox-head">
                   <strong>{d.fromName || 'A coach'}</strong>
                   <span className="muted-note">{stamp(d.sentAt)}</span>
@@ -135,8 +153,10 @@ export default function Inbox() {
                 <div className="muted-note">{d.summary}</div>
                 {d.message && <p className="inbox-message">“{d.message}”</p>}
                 <div className="settings-row">
-                  {d.acceptedAt ? (
-                    <span className="practiced-pill">Added to your repertoire</span>
+                  {taken(d) ? (
+                    <span className="practiced-pill">
+                      {d.kind === 'game' ? 'Adding to your Games…' : 'Added to your repertoire'}
+                    </span>
                   ) : (
                     <>
                       <button
@@ -144,7 +164,7 @@ export default function Inbox() {
                         disabled={busy === d.id}
                         onClick={() => accept(d)}
                       >
-                        {busy === d.id ? 'Adding…' : 'Add to my repertoire'}
+                        {busy === d.id ? 'Adding…' : (d.kind === 'game' ? 'Add to my Games' : 'Add to my repertoire')}
                       </button>
                       <button className="small ghost" onClick={() => dismissDelivery(d.id)}>
                         Not now

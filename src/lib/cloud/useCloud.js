@@ -7,6 +7,8 @@ import { watchAuth, signOutNow } from './auth';
 import { syncNow, readMeta, forgetMeta, watchRemoteChanges } from './sync';
 import { hashOf } from './shape';
 import { foldInFlight } from './merge3';
+import { watchInbox, eligibleGameDelivery } from './share';
+import { watchStudentLinks } from './links';
 
 // What sync cares about. The analysis draft is excluded on purpose (it's the
 // board in front of you on this device) and so is anything else that isn't
@@ -40,24 +42,51 @@ function useCloudEngine() {
   stateRef.current = state;
   const lastHash = useRef(null);
   const running = useRef(false);
+  // A sync asked for while one is running isn't dropped: it runs as soon as
+  // the current one finishes. Without this, a coach's game arriving mid-sync
+  // waited for the next unrelated trigger to be noticed.
+  const rerun = useRef(false);
   const timer = useRef(null);
+  // Games a linked coach has sent that this device hasn't applied yet —
+  // handed to syncNow, which applies them inside the sync.
+  const inbound = useRef([]);
+  const [coachApplied, setCoachApplied] = useState([]);
+  // Game deliveries the student said yes to from the inbox, on this device —
+  // the only consent that counts for a sender they aren't linked to. Kept in
+  // localStorage so a yes survives a reload before the sync gets to it.
+  const consented = useRef(readConsented());
+  const refreshInbound = useRef(() => {});
 
   useEffect(() => {
     if (!cloudConfigured) return undefined;
     let stop = () => {};
-    watchAuth((u) => { setUser(u); setReady(true); }).then((fn) => { stop = fn; });
-    readMeta().then((m) => setLastSync(m.lastSync ?? null));
+    watchAuth((u) => {
+      setUser(u);
+      setReady(true);
+      if (u) readMeta(u.uid).then((m) => setLastSync(m.lastSync ?? null));
+    }).then((fn) => { stop = fn; });
     return () => stop();
   }, []);
 
   const run = useCallback(async () => {
-    if (running.current || !cloudConfigured) return;
+    if (!cloudConfigured) return;
+    // Signed in before this device's library finished loading: nothing to
+    // sync yet. The quiet timer runs it once the library is there.
+    if (!stateRef.current) return;
+    if (running.current) { rerun.current = true; return; }
     running.current = true;
     setStatus('syncing');
     setDetail(null);
     try {
       const started = stateRef.current;
-      const result = await syncNow(started, { onProgress: setDetail });
+      const result = await syncNow(started, { onProgress: setDetail, inbound: inbound.current });
+      if (result.offline) {
+        // Not an error: nothing was lost, nothing was written, and the
+        // 'online' listener below syncs the moment there's signal.
+        setStatus('idle');
+        setDetail('Offline — your work is saved on this device and syncs when you’re back online.');
+        return;
+      }
       // A sync takes a second or two, and the app doesn't stop while it runs:
       // a move played, a note typed, a game saved in that window is in the
       // store but not in `result.state`, which was merged from the state as
@@ -74,9 +103,15 @@ function useCloudEngine() {
       const before = syncableHash(now);
       const after = syncableHash(next);
       if (before !== after) dispatch({ type: 'hydrate', state: next });
+      // Nothing to show, but the state must still carry this sync's
+      // generation: it's what entitles the NEXT sync to read "missing here"
+      // as "deleted here" (see syncOnce). Set on its own, so no view restarts.
+      else if (next.syncGen !== now.syncGen) dispatch({ type: 'setSyncGen', syncGen: next.syncGen });
       // What the cloud now holds, not what's on screen: if local work was
       // folded in above, the hashes differ and the quiet timer sends it.
       lastHash.current = syncableHash(result.state);
+      const arrived = (result.coachApplied ?? []).filter((o) => o.outcome === 'inserted' || o.outcome === 'applied');
+      if (arrived.length) setCoachApplied(arrived);
       setLastSync(result.at);
       setStatus('idle');
       // Both halves of the round trip, because "Sent 1 change" alone can't
@@ -97,6 +132,10 @@ function useCloudEngine() {
       setDetail(err?.message ?? 'Sync failed');
     } finally {
       running.current = false;
+      if (rerun.current) {
+        rerun.current = false;
+        setTimeout(() => run(), 0);
+      }
     }
   }, [dispatch]);
 
@@ -118,13 +157,50 @@ function useCloudEngine() {
     // than waiting for the quiet timer that never got to finish.
     const onVisible = () => run();
     document.addEventListener('visibilitychange', onVisible);
+    // Back online: whatever was saved on this device while offline goes up.
+    window.addEventListener('online', onVisible);
     let stopWatching = () => {};
     watchRemoteChanges(user.uid, () => run()).then((fn) => { stopWatching = fn; });
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('online', onVisible);
       stopWatching();
     };
   }, [user, run]);
+
+  // The student's side of linked games. Two listeners — which coaches have
+  // an active link to this account, and what's been delivered to it — and
+  // any game delivery from one of those coaches (or accepted by hand) that
+  // this device hasn't seen yet starts a sync, which applies it.
+  useEffect(() => {
+    if (!user) return undefined;
+    let coaches = new Set();
+    let items = [];
+    const refresh = () => {
+      const eligible = items.filter((d) => eligibleGameDelivery(d, coaches, consented.current));
+      const known = new Set(inbound.current.map((d) => d.id));
+      inbound.current = eligible;
+      if (eligible.some((d) => !known.has(d.id))) run();
+    };
+    let stopLinks = () => {};
+    let stopInbox = () => {};
+    watchStudentLinks(user.uid, (links) => {
+      coaches = new Set(links.filter((l) => l.status === 'active').map((l) => l.coachUid));
+      refresh();
+    }).then((fn) => { stopLinks = fn; });
+    watchInbox(user.uid, (list) => { items = list; refresh(); }).then((fn) => { stopInbox = fn; });
+    refreshInbound.current = refresh;
+    return () => {
+      stopLinks(); stopInbox(); inbound.current = []; refreshInbound.current = () => {};
+    };
+  }, [user, run]);
+
+  // "Add to my Games" on a game from someone the student isn't linked to.
+  const acceptGameDelivery = useCallback((id) => {
+    consented.current = new Set(consented.current).add(id);
+    writeConsented(consented.current);
+    refreshInbound.current();
+  }, []);
 
   useEffect(() => {
     if (!user || !state) return undefined;
@@ -137,8 +213,13 @@ function useCloudEngine() {
 
   const signOutEverywhere = useCallback(async () => {
     // One last push, so work done since the last sync isn't stranded on a
-    // device you're signing out of.
+    // device you're signing out of — and if a sync is already under way, it
+    // finishes first, rather than completing half-signed-out.
     try { await run(); } catch { /* offline, or already failing — sign out anyway */ }
+    for (let i = 0; i < 200 && running.current; i += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, 100));
+    }
     await signOutNow();
     await forgetMeta();
     lastHash.current = null;
@@ -146,8 +227,31 @@ function useCloudEngine() {
   }, [run]);
 
   return {
-    configured: cloudConfigured, ready, user, status, detail, lastSync, sync: run, signOut: signOutEverywhere,
+    configured: cloudConfigured,
+    ready,
+    user,
+    status,
+    detail,
+    lastSync,
+    sync: run,
+    signOut: signOutEverywhere,
+    // What a linked coach just added or corrected, for the "Gino added a
+    // game" note. Cleared by whoever shows it.
+    coachApplied,
+    clearCoachApplied: () => setCoachApplied([]),
+    acceptGameDelivery,
+    isGameConsented: (id) => consented.current.has(id),
   };
+}
+
+const CONSENT_KEY = 'repertoire-lab-accepted-games';
+function readConsented() {
+  try { return new Set(JSON.parse(localStorage.getItem(CONSENT_KEY) ?? '[]')); } catch { return new Set(); }
+}
+function writeConsented(set) {
+  // Only the most recent hundred: an applied delivery is deleted, so old ids
+  // are dead weight.
+  try { localStorage.setItem(CONSENT_KEY, JSON.stringify([...set].slice(-100))); } catch { /* private mode */ }
 }
 
 const CloudContext = createContext(null);
@@ -159,8 +263,18 @@ export function CloudProvider({ children }) {
 }
 
 const OFF = {
-  configured: false, ready: true, user: null, status: 'idle', detail: null, lastSync: null,
-  sync: async () => {}, signOut: async () => {},
+  configured: false,
+  ready: true,
+  user: null,
+  status: 'idle',
+  detail: null,
+  lastSync: null,
+  sync: async () => {},
+  signOut: async () => {},
+  coachApplied: [],
+  clearCoachApplied: () => {},
+  acceptGameDelivery: () => {},
+  isGameConsented: () => false,
 };
 
 // What any screen reads: sign-in state and how the last sync went. Outside a

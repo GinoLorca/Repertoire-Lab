@@ -220,8 +220,15 @@ export function keepLocalImages(merged, local) {
     if (typeof next === 'object' && typeof prev === 'object' && !Array.isArray(next)) {
       const out = { ...next };
       for (const [k, prevVal] of Object.entries(prev)) {
-        if (isDataUrl(prevVal) && !isDataUrl(out[k])) out[k] = prevVal;
-        else if (prevVal && typeof prevVal === 'object') out[k] = walk(out[k] ?? (Array.isArray(prevVal) ? [] : {}), prevVal);
+        // Only a MISSING key is a picture that failed to travel — a skipped
+        // download leaves the key out. A null, or anything else, is what the
+        // merge decided: a photo or cover removed on purpose on another
+        // device, which must stay removed here too.
+        if (out[k] === undefined) {
+          if (isDataUrl(prevVal)) out[k] = prevVal;
+        } else if (prevVal && typeof prevVal === 'object' && out[k] && typeof out[k] === 'object') {
+          out[k] = walk(out[k], prevVal);
+        }
       }
       return out;
     }

@@ -86,6 +86,17 @@ const ARROW_COLORS = [
   'rgba(226, 142, 46, 0.85)', // amber
 ];
 
+// A game's saved variation tree, but only while it still describes this
+// game. Its main line must be the game's moves: once the moves change — edited
+// here, or corrected by a coach from another account — an old tree would show
+// the old game. It isn't deleted for that; it's just not used.
+function treeFor(line) {
+  if (!line?.tree) return null;
+  const trunk = mainLineFrom(line.tree).map((n) => n.san);
+  const moves = line.moves ?? [];
+  return trunk.length === moves.length && trunk.every((m, i) => m === moves[i]) ? line.tree : null;
+}
+
 export default function AnalysisView({ initialLine, initialLab, coachMode, mode: routeMode, onModeChange }) {
   const { state, dispatch } = useStore();
   // Nothing explicit was asked for — a blank "Analysis" open or a Coaches
@@ -114,7 +125,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   // its explored variations this way — see setGameTree in store.jsx. Without
   // it, a game only ever has its flat played-moves trunk to rebuild from.
   const [tree, setTree] = useState(() => (
-    draft?.tree ?? initialLab?.tree ?? initialLine?.tree
+    draft?.tree ?? initialLab?.tree ?? treeFor(initialLine)
     ?? makeTree(initialLab?.moves ?? initialLine?.moves ?? [])));
   const [head, setHead] = useState(draft?.head ?? 'root'); // loaded lines open at the start
   const [orientation, setOrientation] = useState(draft?.orientation ?? 'white');
@@ -224,7 +235,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
       // variations this way (see setGameTree); its trunk is still the same
       // sequence as initialLine.moves, so the ply-keyed comments/badges below
       // still land correctly even though this tree is richer than a fresh one.
-      const t = initialLine.tree ?? makeTree(initialLine.moves);
+      const t = treeFor(initialLine) ?? makeTree(initialLine.moves);
       setTree(t);
       setHead('root');
       // Whatever a coach badged or wrote on this line comes with it — "Analyze

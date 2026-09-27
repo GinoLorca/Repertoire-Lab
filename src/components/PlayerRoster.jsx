@@ -1,9 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../store';
 import SendToStudent from './SendToStudent';
-import { cloudConfigured } from '../lib/cloud/config';
-import { watchAuth } from '../lib/cloud/auth';
-import { loadProfile } from '../lib/cloud/profile';
 import { buildPositionIndex, moveLabel } from '../lib/repertoire';
 import {
   categoryOf, categoryOptions, playerRecord, resultFor, EVENT_TYPES, OFFBEAT, tidyEvent,
@@ -22,33 +19,14 @@ import TagEditor, { TagChips, allTags } from './TagEditor';
 import { useBackGuard } from '../lib/backGuard';
 import { uid } from '../store';
 import {
-  addLinkedStudent, watchCoachLinks, endLink, loadLinkedAccount,
+  addLinkedStudent, watchCoachLinks, endLink,
 } from '../lib/cloud/links';
 import {
   BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon, StarIcon,
   CameraIcon, FlaskIcon, SendIcon, UsersIcon, LinkIcon,
 } from '../components/Icons';
-
-// The signed-in coach, wherever a screen needs to open or show a link —
-// the roster list (to add a student by account) and a student's own page
-// (to see or end the link) both need it.
-function useMe() {
-  const [me, setMe] = useState(null);
-  useEffect(() => {
-    if (!cloudConfigured) return undefined;
-    let stop = () => {};
-    watchAuth(async (u) => {
-      if (!u) { setMe(null); return; }
-      const profile = await loadProfile(u.uid).catch(() => null);
-      // The signed-in uid goes LAST: a profile document carries its own
-      // `uid`, and if it ever disagreed with who's actually signed in, the
-      // rules would refuse every write made as this coach.
-      setMe({ ...(profile ?? {}), uid: u.uid });
-    }).then((fn) => { stop = fn; });
-    return () => stop();
-  }, []);
-  return me;
-}
+import { useMe } from '../lib/cloud/useMe';
+import { useGameLink } from './GameLinkProvider';
 
 // The handles a player is known by, with whatever live ratings we last fetched
 // for them, shown compactly wherever they're useful.
@@ -97,9 +75,40 @@ function GameHeader({ game }) {
   );
 }
 
+// Where a game stands between a coach's card and a linked student's account,
+// in words — and the one thing to do about it, where there is one.
+const LINK_COPY = {
+  'only-card': { text: 'Only on your card', action: ['send', 'Send'] },
+  queued: { text: 'Queued — sends when you’re online' },
+  sending: { text: 'Sending…' },
+  waiting: { text: (n) => `Waiting for ${n}’s app` },
+  'in-account': { text: (n) => `In ${n}’s account`, ok: true },
+  theirs: { text: (n) => `From ${n}’s app`, ok: true },
+  'kept-theirs': { text: (n) => `${n} had already changed this — kept theirs`, action: ['dismiss', 'OK'] },
+  gone: { text: (n) => `Removed from ${n}’s account`, action: ['resend', 'Send again'] },
+  failed: { text: 'Couldn’t send', action: ['retry', 'Retry'], bad: true },
+  'needs-moves': { text: 'Add the moves to send it' },
+  'link-ended': { text: 'Link ended' },
+  'duplicate-card': { text: (n) => `${n}’s games are kept on your other card for them` },
+};
+
+function LinkPill({ status, name, onAction }) {
+  const copy = LINK_COPY[status];
+  if (!copy) return null;
+  const text = typeof copy.text === 'function' ? copy.text(name) : copy.text;
+  return (
+    <span className={`link-pill${copy.ok ? ' ok' : ''}${copy.bad ? ' bad' : ''}`}>
+      {text}
+      {copy.action && (
+        <button className="link-pill-btn" onClick={() => onAction(copy.action[0])}>{copy.action[1]}</button>
+      )}
+    </span>
+  );
+}
+
 function GameRow({
   game, playerId, category, index, state, onAnalyze, onGameStudio, onView, onEdit, onSetCategory, onSetPhoto,
-  onDelete, onScan, onEditTags, onTagClick,
+  onDelete, onScan, onEditTags, onTagClick, linkStatus, partnerName, onLinkAction,
 }) {
   const m = game.meta ?? {};
   const res = resultFor(game);
@@ -154,6 +163,18 @@ function GameRow({
         <span>· {game.moves.length} moves</span>
         {unscanned && (
           <span className="scoresheet-unscanned"><AlertIcon size={12} /> Not yet scanned</span>
+        )}
+        {linkStatus && <LinkPill status={linkStatus} name={partnerName} onAction={onLinkAction} />}
+        {/* The student's side: a game their coach put here, and a way back
+            from a coach's corrections. */}
+        {game.addedBy && (
+          <span className="link-pill ok">Added by {game.addedBy.name || 'your coach'}</span>
+        )}
+        {game.coachPrev && onLinkAction && (
+          <span className="link-pill">
+            Corrected by {game.addedBy?.name || 'your coach'}
+            <button className="link-pill-btn" onClick={() => onLinkAction('undo')}>Undo</button>
+          </span>
         )}
       </div>
 
@@ -351,9 +372,7 @@ function PlayerPage({
   const [linkName, setLinkName] = useState('');
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState(null);
-  const [linkedAccount, setLinkedAccount] = useState(null);
-  const [linkedLoading, setLinkedLoading] = useState(false);
-  const [linkedError, setLinkedError] = useState(null);
+  const gameLink = useGameLink();
 
   const linkNow = async () => {
     setLinkError(null);
@@ -374,23 +393,6 @@ function PlayerPage({
       setLinking(false);
     }
   };
-
-  // A link is live the instant it's opened, so their real games are worth
-  // loading as soon as the page comes up — no extra click to go find them.
-  useEffect(() => {
-    if (!linked || !linkedUid) { setLinkedAccount(null); return; }
-    let cancelled = false;
-    setLinkedLoading(true);
-    setLinkedError(null);
-    loadLinkedAccount(linkedUid).then((account) => {
-      if (!cancelled) setLinkedAccount(account);
-    }).catch((err) => {
-      if (!cancelled) setLinkedError(err.message);
-    }).finally(() => {
-      if (!cancelled) setLinkedLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [linked, linkedUid]);
 
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState(null);
@@ -526,8 +528,8 @@ function PlayerPage({
             <h3><UsersIcon size={15} /> Their account</h3>
             <div className="sub">
               {linked
-                ? `Linked — everything below marked "their account" is live from ${player.name}'s real
-                  account, including games they type in themselves.`
+                ? `Linked — games ${player.name} adds in their own app appear below, and games you add
+                  here go to their account too.`
                 : `The games and profile above are just your own notes on ${player.name}. Link their
                   account instead and this becomes the real thing — instantly, and they can end it
                   any time.`}
@@ -560,33 +562,52 @@ function PlayerPage({
         </div>
       )}
 
-      {linked && (
-        <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)', display: 'block' }}>
-          <h3 style={{ margin: '0 0 8px' }}>Their account — games</h3>
-          {linkedLoading && <p className="hint">Loading…</p>}
-          {linkedError && <p className="hint" style={{ color: 'var(--red)' }}>{linkedError}</p>}
-          {!linkedLoading && !linkedError && linkedAccount && (() => {
-            const theirGames = (linkedAccount.players ?? [])
-              .flatMap((pl) => pl.games ?? [])
-              .sort((a, b) => b.date - a.date);
-            if (theirGames.length === 0) {
-              return <p className="hint">No games in their account yet.</p>;
-            }
-            return theirGames.map((game) => {
-              const m = game.meta ?? {};
-              return (
-                <div key={game.id} className="inbox-item">
-                  <GameHeader game={game} />
-                  <div className="muted-note">
-                    {fmtDate(game.date)} · {eventLabel(m.eventType)} · {game.moves.length} moves
-                  </div>
-                  <MoveText moves={game.moves.slice(0, 24)} comments={game.comments} />
-                </div>
-              );
-            });
-          })()}
-        </div>
-      )}
+      {linked && (() => {
+        // Games on this card from before the link: nothing sends them on its
+        // own — the coach may not want every old note going to the student —
+        // so they're offered in one tap.
+        // Includes games tied to an account this card was linked to before.
+        const cardOnly = gameLink.primaryCardFor(linkedUid) === player.id
+          ? player.games.filter((g) => (!g.link || g.link.uid !== linkedUid) && g.moves.length > 0)
+          : [];
+        const access = gameLink.cards[linkedUid]?.state;
+        const failedHere = player.games.some((g) => gameLink.failed[g.id]);
+        if (!cardOnly.length && access !== 'no-access' && !failedHere) return null;
+        return (
+          <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)', display: 'block' }}>
+            {access === 'no-access' && (
+              <p className="hint" style={{ margin: '0 0 6px' }}>
+                Can't see {player.name}'s account right now — the link may have ended. Nothing has been
+                removed from this card.
+              </p>
+            )}
+            {cardOnly.length > 0 && (
+              <div className="settings-row" style={{ margin: 0 }}>
+                <span className="muted-note" style={{ flex: 1 }}>
+                  {cardOnly.length} game{cardOnly.length === 1 ? ' is' : 's are'} only on your card, from before
+                  you linked {player.name}'s account.
+                </span>
+                <button
+                  className="small primary"
+                  onClick={() => dispatch({
+                    type: 'shareGamesWithStudent', cardId: player.id, gameIds: cardOnly.map((g) => g.id),
+                  })}
+                >
+                  <SendIcon size={14} /> Send to {player.name}'s account
+                </button>
+              </div>
+            )}
+            {failedHere && (
+              <div className="settings-row" style={{ margin: '6px 0 0' }}>
+                <span className="muted-note" style={{ flex: 1, color: 'var(--red)' }}>
+                  {gameLink.paused ?? 'Some games couldn’t be sent.'}
+                </span>
+                <button className="small" onClick={() => gameLink.retry()}>Retry</button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {player.games.length > 0 && (
         <div className="player-summary">
@@ -674,12 +695,26 @@ function PlayerPage({
             photo: game.meta?.photo,
           })}
           onDelete={() => {
-            if (window.confirm(`Delete "${game.name}"?`)) {
+            const ask = game.link
+              ? `Remove "${game.name}" from your card? It stays in ${player.name}'s account.`
+              : `Delete "${game.name}"?`;
+            if (window.confirm(ask)) {
               dispatch({ type: 'deleteGame', playerId: player.id, gameId: game.id });
+              // Anything of it not yet picked up by their app never arrives.
+              if (game.link) gameLink.withdraw(game.id);
             }
           }}
           onEditTags={() => setTaggingGameId(game.id)}
           onTagClick={(t) => setQuery(t)}
+          linkStatus={linked ? gameLink.statusOf(player, game) : null}
+          partnerName={player.name}
+          onLinkAction={(what) => {
+            if (what === 'send') dispatch({ type: 'shareGamesWithStudent', cardId: player.id, gameIds: [game.id] });
+            if (what === 'resend') dispatch({ type: 'resendLinkedGame', cardId: player.id, gameId: game.id });
+            if (what === 'dismiss') dispatch({ type: 'dismissLinkLost', cardId: player.id, gameId: game.id });
+            if (what === 'retry') gameLink.retry(game.id);
+            if (what === 'undo') dispatch({ type: 'undoCoachChanges', playerId: player.id, gameId: game.id });
+          }}
         />
       ))}
 
@@ -720,6 +755,7 @@ function PlayerPage({
           state={state}
           onClose={() => setEditing(null)}
           player={player}
+          linkedTo={linked ? player.name : null}
           onSave={(game) => {
             if (editing === 'new') dispatch({ type: 'addGame', playerId: player.id, game });
             else dispatch({ type: 'updateGame', playerId: player.id, gameId: editing.id, game });

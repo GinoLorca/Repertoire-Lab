@@ -158,3 +158,49 @@ export async function endLink(id) {
   const { doc, deleteDoc } = c.firestore;
   await deleteDoc(doc(c.db, 'links', id));
 }
+
+// The student's own games, live. The coach can already read the student's
+// whole account; this listens to the part that matters for the card and hands
+// back their games from their own sections — not ones they keep for students
+// of their own. `complete` is false while the answer came from a cache: only
+// a server answer can say a game is really gone.
+export async function watchLinkedPlayers(studentUid, onChange, onError) {
+  const c = await cloud();
+  if (!c) return () => {};
+  const { collection, onSnapshot } = c.firestore;
+  // Snapshots are decoded asynchronously, so two arriving close together can
+  // finish out of order — and an older one handed over last would fold stale
+  // games into the card. Only the newest snapshot is ever passed on.
+  let latest = 0;
+  return onSnapshot(
+    collection(c.db, 'users', studentUid, 'players'),
+    { includeMetadataChanges: true },
+    async (snap) => {
+      latest += 1;
+      const mine = latest;
+      const players = snap.docs.map((d) => decodeFromStore(d.data()));
+      // Pictures stay behind: fromCloud with a downloader that fetches
+      // nothing drops every picture reference.
+      const account = await fromCloud({ players }, async () => null);
+      if (mine !== latest) return;
+      const games = (account.players ?? [])
+        .filter((p) => (p.kind ?? 'self') === 'self')
+        .flatMap((p) => p.games ?? []);
+      onChange({ games, complete: !snap.metadata.fromCache });
+    },
+    (err) => onError?.(err),
+  );
+}
+
+// Which games coaches have put in the student's account, and at what
+// revision — so the coach's app knows where each of its patches stands.
+export async function watchCoachLedger(studentUid, onChange) {
+  const c = await cloud();
+  if (!c) return () => {};
+  const { doc, onSnapshot } = c.firestore;
+  return onSnapshot(
+    doc(c.db, 'users', studentUid, 'singletons', 'coachGames'),
+    (snap) => onChange(snap.exists() ? snap.data() : { games: {} }),
+    () => onChange({ games: {} }),
+  );
+}

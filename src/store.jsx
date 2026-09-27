@@ -4,6 +4,7 @@ import { movetextToLines, validateLine } from './lib/pgn';
 import { setCustomSounds, setVolume, setSoundSkin, primeSounds } from './lib/sound';
 import { defaultMonsterId } from './lib/monsters';
 import { DEFAULT_SETTINGS } from './lib/settingsDefaults';
+import { mergeLinkedGames, undoCoachChanges } from './lib/cloud/gameLink';
 
 const STORAGE_KEY = 'repertoire-lab-state-v1';
 
@@ -166,7 +167,7 @@ const GAME_EDITS = new Set([
   'setGameCategory', 'setGameNotes', 'setGameMoveComment', 'setGameMoveBadge',
   'setGameBadges', 'setGameComments', 'setGameAnnotations', 'setGameTree',
   'setGameFlags', 'setGameTags', 'setGamePhoto', 'moveGameToPlayer',
-  'addGame', 'updateGame', 'renameGame',
+  'addGame', 'updateGame', 'renameGame', 'undoCoachChanges',
 ]);
 
 // Games carry `updatedAt`: when anyone last changed them, on any device. It's
@@ -196,12 +197,21 @@ function stampEditedGames(before, after) {
 }
 
 function reducer(state, action) {
+  // Before the saved library has loaded there is nothing to act on — and the
+  // sync and the coach-games listeners can wake up before it has. Only the
+  // load itself applies.
+  if (state == null && action.type !== 'hydrate') return state;
   const next = reduce(state, action);
   return GAME_EDITS.has(action.type) ? stampEditedGames(state, next) : next;
 }
 
 function reduce(state, action) {
   switch (action.type) {
+    // Which sync this state came from — see syncOnce in lib/cloud/sync.js.
+    // Its own action so that recording it doesn't replace anything a view is
+    // holding on to.
+    case 'setSyncGen':
+      return state.syncGen === action.syncGen ? state : { ...state, syncGen: action.syncGen };
     case 'hydrate':
       // Older saved states may predate newer top-level fields.
       return {
@@ -864,12 +874,38 @@ function reduce(state, action) {
         // OTB details worth keeping with a digitised scoresheet.
         meta: action.game.meta ?? null,
       };
-      return mapPlayer(state, action.playerId, (p) => ({ ...p, games: [...p.games, game] }));
+      return mapPlayer(state, action.playerId, (p) => {
+        // A game added to a student's card while that card is linked to
+        // their real account is a game for their account too. Marking it
+        // here covers every way a game gets added — the editor, a scanned
+        // scoresheet, an import, the analysis board — in one place. The
+        // GameLinkProvider sends it; see lib/cloud/gameLink.js.
+        const linkedUid = p.kind === 'student' ? p.profile?.linkedUid : null;
+        const next = linkedUid
+          ? { ...game, link: { uid: linkedUid, base: {}, seen: false, sent: null } }
+          : game;
+        return { ...p, games: [...p.games, next] };
+      });
     }
     case 'updateGame':
       return mapPlayer(state, action.playerId, (p) => ({
         ...p,
-        games: p.games.map((g) => (g.id === action.gameId ? { ...g, ...action.game } : g)),
+        games: p.games.map((g) => {
+          if (g.id !== action.gameId) return g;
+          const next = {
+            ...g,
+            ...action.game,
+            // The editor only knows some of meta — the scoresheet fields.
+            // Replacing meta whole wiped everything else on save: the flags
+            // set on the analysis board, anything added since. Merged instead.
+            meta: action.game.meta ? { ...(g.meta ?? {}), ...action.game.meta } : g.meta,
+          };
+          // A saved variation tree built on the old moves is left alone: the
+          // analysis board ignores a tree whose main line isn't the game's
+          // moves (treeFor in AnalysisView). Deleting it here instead would,
+          // on a game shared with a student, delete theirs too.
+          return next;
+        }),
       }));
     case 'renameGame':
       return mapPlayer(state, action.playerId, (p) => ({
@@ -877,9 +913,74 @@ function reduce(state, action) {
         games: p.games.map((g) => (g.id === action.gameId ? { ...g, name: action.name } : g)),
       }));
     case 'deleteGame':
+      return mapPlayer(state, action.playerId, (p) => {
+        const doomed = p.games.find((g) => g.id === action.gameId);
+        const next = { ...p, games: p.games.filter((g) => g.id !== action.gameId) };
+        // A linked game removed from the coach's card stays in the student's
+        // account, and must not be folded straight back in by the next
+        // snapshot of it. Remembered here, on the card, so every one of the
+        // coach's devices knows.
+        if (doomed?.link) {
+          next.hiddenLinkedGames = { ...(p.hiddenLinkedGames ?? {}), [action.gameId]: Date.now() };
+        }
+        return next;
+      });
+    // ---------- Games shared with a linked student -------------------------
+    // None of these are edits in GAME_EDITS: they record where a game stands
+    // between two accounts, not a change anyone made to the game, so they
+    // must not bump its updatedAt.
+    case 'mergeLinkedGames': {
+      const card = state.players.find((p) => p.id === action.cardId);
+      if (!card) return state;
+      const { card: next } = mergeLinkedGames(card, action.input);
+      return next === card ? state : mapPlayer(state, action.cardId, () => next);
+    }
+    case 'markLinkSent':
+      return mapPlayer(state, action.cardId, (p) => ({
+        ...p,
+        games: p.games.map((g) => {
+          if (g.id !== action.gameId || !g.link) return g;
+          // A resend stays marked until the game is back in their account
+          // (mergeLinkedGames clears it) — until then its absence there is
+          // expected, not a removal.
+          return { ...g, link: { ...g.link, sent: action.sent } };
+        }),
+      }));
+    case 'shareGamesWithStudent':
+      return mapPlayer(state, action.cardId, (p) => {
+        const uidTo = p.profile?.linkedUid;
+        if (!uidTo) return p;
+        const ids = new Set(action.gameIds);
+        return {
+          ...p,
+          // A game linked to some other account — this card was linked to
+          // someone else before — is re-armed for this one, from scratch.
+          games: p.games.map((g) => (ids.has(g.id) && (!g.link || g.link.uid !== uidTo)
+            ? { ...g, link: { uid: uidTo, base: {}, seen: false, sent: null } }
+            : g)),
+        };
+      });
+    case 'resendLinkedGame':
+      return mapPlayer(state, action.cardId, (p) => ({
+        ...p,
+        games: p.games.map((g) => (g.id === action.gameId && g.link
+          ? { ...g, link: { uid: g.link.uid, base: {}, seen: false, sent: null, resend: true } }
+          : g)),
+      }));
+    case 'dismissLinkLost':
+      return mapPlayer(state, action.cardId, (p) => ({
+        ...p,
+        games: p.games.map((g) => {
+          if (g.id !== action.gameId || !g.link?.lost) return g;
+          const link = { ...g.link };
+          delete link.lost;
+          return { ...g, link };
+        }),
+      }));
+    case 'undoCoachChanges':
       return mapPlayer(state, action.playerId, (p) => ({
         ...p,
-        games: p.games.filter((g) => g.id !== action.gameId),
+        games: p.games.map((g) => (g.id === action.gameId ? undoCoachChanges(g) : g)),
       }));
     // ---------- Tags & favorites ----------
     // Tags work the same way at every level; a tag on a variation doubles as

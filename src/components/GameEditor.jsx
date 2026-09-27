@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { movetextToLines, validateLine, movesToMovetext } from '../lib/pgn';
 import MoveText from './MoveText';
 import ScoresheetPhoto from './ScoresheetPhoto';
@@ -28,7 +28,9 @@ const guessEventType = (tags) => {
 };
 
 // Type a game in by hand (an OTB scoresheet) or paste a PGN.
-export default function GameEditor({ initial, state, player, onSave, onClose }) {
+export default function GameEditor({
+  initial, state, player, onSave, onClose, linkedTo = null,
+}) {
   const m0 = initial?.meta ?? {};
 
   // Whoever this section belongs to is usually one of the two players — fill
@@ -65,6 +67,19 @@ export default function GameEditor({ initial, state, player, onSave, onClose }) 
   const [notes, setNotes] = useState(m0.notes ?? '');
   const [categoryId, setCategoryId] = useState(m0.categoryId ?? '');
   const [photo, setPhoto] = useState(m0.photo ?? null);
+
+  // Every field as the editor first showed it. An existing game is saved as
+  // only what was actually changed against this — the form fills its blanks
+  // with defaults (today's date, "you had White", a "White vs Black" name),
+  // and saving those back unasked re-dated and renamed games, and on a game
+  // shared with a student would have sent all of it to their account.
+  const shown = useRef(null);
+  if (shown.current === null) {
+    shown.current = {
+      text, white, whiteElo, black, blackElo, event, eventType, round, result, color, date,
+      timeControl, notes, categoryId, photo,
+    };
+  }
 
   useBackGuard(true, onClose);
 
@@ -152,6 +167,40 @@ export default function GameEditor({ initial, state, player, onSave, onClose }) 
 
   const save = () => {
     if (!canSave) return;
+    if (initial?.id) {
+      const f0 = shown.current;
+      const now = {
+        white, whiteElo, black, blackElo, event, eventType, round, result, color, date,
+        timeControl, notes, categoryId, photo,
+      };
+      const meta = {};
+      for (const [k, v] of Object.entries(now)) if (v !== f0[k]) meta[k] = v;
+      if ('categoryId' in meta) meta.categoryId = meta.categoryId || null;
+      const out = {};
+      if (Object.keys(meta).length) out.meta = meta;
+      if (date !== f0.date) out.date = date ? new Date(date).getTime() : Date.now();
+      if (white !== f0.white || black !== f0.black) out.name = name;
+      if (text !== f0.text) {
+        const moves = parsed?.moves ?? [];
+        out.moves = moves;
+        out.comments = parsed?.comments ?? {};
+        // Some badges have no movetext symbol and don't survive the trip
+        // through the text box. Where the moves up to a badge are unchanged
+        // the badge still belongs there, so it's kept.
+        const before = initial.moves ?? [];
+        const kept = {};
+        for (const [ply, id] of Object.entries(initial.badges ?? {})) {
+          const n = Number(ply);
+          const samePrefix = n <= moves.length && n <= before.length
+            && moves.slice(0, n).every((mv, i) => mv === before[i]);
+          if (samePrefix) kept[ply] = id;
+        }
+        out.badges = { ...kept, ...(parsed?.badges ?? {}) };
+      }
+      if (Object.keys(out).length === 0) { onClose(); return; }
+      onSave(out);
+      return;
+    }
     onSave({
       name,
       moves: parsed?.moves ?? [],
@@ -175,6 +224,12 @@ export default function GameEditor({ initial, state, player, onSave, onClose }) 
           Type the moves from your scoresheet, or paste a PGN — names, ratings, event and result are
           read out of the tags when they're there.
         </p>
+        {linkedTo && (
+          <p className="hint" style={{ marginTop: -4 }}>
+            Also goes to {linkedTo}'s own Games — the moves, the details and your move comments. Your
+            photo, notes, tags and filing stay with you.
+          </p>
+        )}
 
         <div className="game-fields">
           <label>

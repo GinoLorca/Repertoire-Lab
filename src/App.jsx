@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { StoreProvider, useStore } from './store';
-import { CloudProvider } from './lib/cloud/useCloud';
+import { CloudProvider, useCloud } from './lib/cloud/useCloud';
+import { GameLinkProvider } from './components/GameLinkProvider';
 import { resolveTheme, applyTheme, applyBackground, applySkin } from './lib/theme';
 import { runTopGuard } from './lib/backGuard';
 import { parsePath, pathFor, SECTION_LABEL } from './lib/routes';
@@ -649,13 +650,45 @@ function AppInner() {
   );
 }
 
+// The student's side: a quiet note when a linked coach has just put a game in
+// their Games, or corrected one — so a game appearing out of nowhere has an
+// explanation attached.
+function CoachGamesToast() {
+  const { coachApplied, clearCoachApplied } = useCloud();
+  useEffect(() => {
+    if (!coachApplied.length) return undefined;
+    const t = setTimeout(clearCoachApplied, 9000);
+    return () => clearTimeout(t);
+  }, [coachApplied, clearCoachApplied]);
+  if (!coachApplied.length) return null;
+  const who = coachApplied[0].fromName || 'Your coach';
+  const added = coachApplied.filter((o) => o.outcome === 'inserted');
+  const fixed = coachApplied.filter((o) => o.outcome === 'applied');
+  const parts = [];
+  if (added.length === 1) parts.push(`added ${added[0].name} to your Games`);
+  else if (added.length > 1) parts.push(`added ${added.length} games to your Games`);
+  if (fixed.length === 1) parts.push(`updated ${fixed[0].name}`);
+  else if (fixed.length > 1) parts.push(`updated ${fixed.length} games`);
+  return (
+    <div className="coach-toast" role="status">
+      <span>{who} {parts.join(' and ')}.</span>
+      <button className="small ghost" onClick={clearCoachApplied}>OK</button>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <StoreProvider>
       {/* Sync runs for the whole app, not just while Settings → Account is
           open — see CloudProvider. */}
       <CloudProvider>
-        <AppInner />
+        {/* Games shared with linked students, sent and mirrored from any
+            screen — see GameLinkProvider. */}
+        <GameLinkProvider>
+          <AppInner />
+          <CoachGamesToast />
+        </GameLinkProvider>
       </CloudProvider>
     </StoreProvider>
   );

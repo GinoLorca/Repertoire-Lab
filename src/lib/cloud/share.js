@@ -91,7 +91,12 @@ export async function watchInbox(uid, onChange) {
     const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     items.sort((a, b) => at(b) - at(a));
     onChange(items);
-  }, () => onChange([]));
+  }, (err) => {
+    // Still an empty list for the UI, but said out loud: a refused read looks
+    // exactly like "nothing sent to you" otherwise.
+    console.warn('[inbox] deliveries unreadable:', err?.code ?? err);
+    onChange([]);
+  });
 }
 
 export async function markRead(id) {
@@ -157,4 +162,91 @@ export function tickState(ids, chosen) {
   for (const id of ids) if (chosen.has(id)) on += 1;
   if (on === 0) return 'none';
   return on === ids.length ? 'all' : 'some';
+}
+
+// ---------------------------------------------------------------------------
+// Games for a linked student — see lib/cloud/gameLink.js
+// ---------------------------------------------------------------------------
+
+// A coach's change to one game, on its way to the student's account. It rides
+// the same deliveries collection as lines do — published, working, nothing
+// new to switch on — as its own kind. The id is fixed by coach, game and
+// revision, so sending the same patch twice (a retry, a reload while offline,
+// the coach's other device) writes the same document rather than two.
+//
+// `openings: []` and a readable summary are for a student whose app hasn't
+// updated yet: it shows the note and applies nothing, instead of choking on a
+// kind it doesn't know.
+export async function sendGamePatch({
+  to, from, gameId, rev, resend, patch, summary,
+}) {
+  const c = await cloud();
+  const { doc, setDoc, getDoc, serverTimestamp } = c.firestore;
+  const id = `lg_${from.uid}_${gameId}_${rev}`;
+  const ref = doc(c.db, 'deliveries', id);
+  try {
+    await setDoc(ref, {
+      kind: 'game',
+      v: 1,
+      toUid: to.uid,
+      toName: to.name ?? '',
+      fromUid: from.uid,
+      fromName: from.screenName ?? from.name ?? '',
+      fromRole: 'coach',
+      gameId,
+      rev,
+      resend: Boolean(resend),
+      patch: JSON.stringify(patch),
+      summary: `Game: ${summary} — not in your Games? Reload Repertoire Lab to update it.`,
+      message: '',
+      openings: [],
+      sentAt: serverTimestamp(),
+      readAt: null,
+      acceptedAt: null,
+      dismissedAt: null,
+    });
+    return id;
+  } catch (err) {
+    if (err?.code === 'permission-denied') {
+      // setDoc on an id that already exists is an update, which the sender
+      // isn't allowed — so this is also what "already sent" looks like.
+      try {
+        const snap = await getDoc(ref);
+        if (snap.exists()) return id;
+      } catch { /* fall through to the real explanation */ }
+      throw new Error('Couldn’t send — the Firebase rules published for this project are out of date. Run `npm run deploy:rules`, or paste firebase/firestore.rules into the Firebase console.');
+    }
+    throw err;
+  }
+}
+
+// Games not yet picked up by the student, withdrawn — the coach removed the
+// game from their card before it arrived. The sender may delete their own
+// deliveries; anything already applied is past recalling, and stays.
+export async function withdrawGameDeliveries(fromUid, gameId) {
+  const c = await cloud();
+  if (!c) return;
+  const {
+    collection, query, where, getDocs, deleteDoc,
+  } = c.firestore;
+  // Equality filters only, so Firestore answers from its automatic indexes —
+  // no composite index to deploy — and only this game's deliveries come back,
+  // not every opening this coach has ever sent.
+  const filters = [where('fromUid', '==', fromUid), where('kind', '==', 'game')];
+  if (gameId != null) filters.push(where('gameId', '==', gameId));
+  const snap = await getDocs(query(collection(c.db, 'deliveries'), ...filters));
+  await Promise.allSettled(snap.docs.map((d) => deleteDoc(d.ref)));
+}
+
+// Whether a delivery is a coach's game this student has, in effect, already
+// agreed to take: sent by a coach they're linked to right now, or one they
+// tapped "Add to my Games" on, on this device. Anything else — a stranger who
+// knows their account name — waits in the inbox for them to decide.
+//
+// The delivery's own acceptedAt is deliberately NOT consent: the sender
+// writes the delivery, and nothing stops them writing acceptedAt into it
+// themselves.
+export function eligibleGameDelivery(d, activeCoachUids, consentedIds = new Set()) {
+  return d.kind === 'game' && d.v === 1 && !d.dismissedAt
+    && (activeCoachUids.has(d.fromUid) || consentedIds.has(d.id));
 }
