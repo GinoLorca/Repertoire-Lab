@@ -53,16 +53,53 @@ export async function addLinkedStudent(coach, studentAccountName) {
   }
   if (who.uid === coach.uid) throw new Error('That’s your own account name.');
   const c = await cloud();
-  const { doc, setDoc, serverTimestamp } = c.firestore;
+  const {
+    doc, setDoc, getDoc, deleteDoc, serverTimestamp,
+  } = c.firestore;
   const id = linkId(coach.uid, who.uid);
-  await setDoc(doc(c.db, 'links', id), {
-    coachUid: coach.uid,
-    coachName: coach.screenName ?? '',
-    studentUid: who.uid,
-    studentName: who.name ?? '',
-    status: 'active',
-    linkedAt: serverTimestamp(),
-  });
+
+  // setDoc on a document that already exists is an UPDATE as far as the
+  // rules are concerned, and they deliberately allow a link to be created or
+  // deleted but never edited in place. So a leftover link document for this
+  // pair — the same student added a second time after their card was
+  // removed, or one left over from the approval-era flow — would make every
+  // later attempt fail, even with the rules published. Reading first turns
+  // that into: already linked, done; anything else of ours, cleared and
+  // replaced.
+  const at = doc(c.db, 'links', id);
+  let existing = null;
+  try {
+    const snap = await getDoc(at);
+    existing = snap.exists() ? snap.data() : null;
+  } catch {
+    existing = null; // can't read it — let the write below say why
+  }
+  const alreadyLinked = existing?.status === 'active' && existing?.coachUid === coach.uid;
+
+  if (!alreadyLinked) {
+    try {
+      if (existing && existing.coachUid === coach.uid) await deleteDoc(at);
+      await setDoc(at, {
+        coachUid: coach.uid,
+        coachName: coach.screenName ?? '',
+        studentUid: who.uid,
+        studentName: who.name ?? '',
+        status: 'active',
+        linkedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      // Firestore denies anything a rule doesn't explicitly allow, and a
+      // collection nobody has published rules for is denied whole. The raw
+      // message for that is "Missing or insufficient permissions", which
+      // reads as "you're not allowed" when it actually means "this half of
+      // the app was never switched on" — see the note at the top of
+      // firebase/firestore.rules.
+      if (err?.code === 'permission-denied') {
+        throw new Error('Firebase refused that. The link rules haven’t been published to this project yet — run `npm run deploy:rules`, or paste firebase/firestore.rules into the Firebase console.');
+      }
+      throw err;
+    }
+  }
 
   let seed = { profile: null, avatar: null };
   try {
@@ -87,7 +124,13 @@ export async function watchCoachLinks(uid, onChange) {
   const q = query(collection(c.db, 'links'), where('coachUid', '==', uid));
   return onSnapshot(q, (snap) => {
     onChange(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-  }, () => onChange([]));
+  }, (err) => {
+    // Still an empty list to the UI, but not a silent one: a denied read looks
+    // exactly like "no links yet" otherwise, which is how unpublished rules
+    // hid for a week.
+    console.warn('[links] coach links unreadable:', err?.code ?? err);
+    onChange([]);
+  });
 }
 
 // Every coach who currently has this account linked — what a student's
@@ -100,7 +143,10 @@ export async function watchStudentLinks(uid, onChange) {
   const q = query(collection(c.db, 'links'), where('studentUid', '==', uid));
   return onSnapshot(q, (snap) => {
     onChange(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-  }, () => onChange([]));
+  }, (err) => {
+    console.warn('[links] student links unreadable:', err?.code ?? err);
+    onChange([]);
+  });
 }
 
 // Either side can end a link at any time — the coach dropping a student, or

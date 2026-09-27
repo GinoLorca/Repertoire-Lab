@@ -8,7 +8,11 @@ rules_version = '2';
 // far above artwork or a wallpaper and far below anything that would quietly
 // run up a bill.
 //
-// Paste into Firebase console → Storage → Rules → Publish.
+// Not live until published, same as firestore.rules — but this one stays a
+// paste job: `npm run deploy:rules` deliberately doesn't touch Storage,
+// because the project has no bucket (free plan) and a deploy that tries
+// would fail. Firebase console → Storage → Rules → Publish, if a bucket is
+// ever added.
 service firebase.storage {
   match /b/{bucket}/o {
     match /users/{uid}/{path=**} {

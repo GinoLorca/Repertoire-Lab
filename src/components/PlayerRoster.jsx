@@ -40,7 +40,10 @@ function useMe() {
     watchAuth(async (u) => {
       if (!u) { setMe(null); return; }
       const profile = await loadProfile(u.uid).catch(() => null);
-      setMe({ uid: u.uid, ...(profile ?? {}) });
+      // The signed-in uid goes LAST: a profile document carries its own
+      // `uid`, and if it ever disagreed with who's actually signed in, the
+      // rules would refuse every write made as this coach.
+      setMe({ ...(profile ?? {}), uid: u.uid });
     }).then((fn) => { stop = fn; });
     return () => stop();
   }, []);

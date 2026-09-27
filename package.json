@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "lint": "eslint src scripts",
+    "deploy:rules": "npx -y firebase-tools deploy --only firestore:rules",
     "build": "npm run lint && vite build && node scripts/precache.mjs",
     "preview": "vite preview",
     "zip": "npm run build && node scripts/zip-site.mjs"

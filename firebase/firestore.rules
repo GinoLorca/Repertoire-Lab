@@ -1,5 +1,21 @@
 rules_version = '2';
 
+// THIS FILE IS NOT LIVE UNTIL IT'S PUBLISHED.
+//
+// Netlify deploys the app; nothing deploys these. Editing this file changes
+// nothing about what Firebase actually enforces, and the failure mode is
+// silent from the app's side: a collection with no matching rule denies
+// everything, and the client is told only "Missing or insufficient
+// permissions". That is exactly how coach/student links shipped dead —
+// the rules for them sat here, unpublished, for a week.
+//
+// Publish them:
+//
+//     npm run deploy:rules        (needs `npx firebase-tools login` once)
+//
+// or paste this whole file into Firebase console → Firestore Database →
+// Rules → Publish. Either way: every time this file changes.
+
 // Four kinds of data, four rules.
 //
 // 1. Your own stuff — the repertoire, progress, games, settings. Nobody else

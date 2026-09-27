@@ -66,5 +66,27 @@ style — because those are the mistakes a bundler happily ships and the browser
 then turns into a blank page: a `useEffect` used without importing it took out
 Coaches Corner on every device at once, and the build was perfectly happy.
 
+### Firebase rules are a separate deploy
+
+Netlify ships the app. It does not ship `firebase/firestore.rules`, and
+nothing else does either — so a rule added in a commit is not enforcing
+anything until it's published. The app can't tell you that: a collection with
+no matching rule denies every read and write, and all the client gets back is
+`Missing or insufficient permissions`. Coach/student links shipped that way
+and looked, from the app, exactly like a bug in the app.
+
+```bash
+npm run deploy:rules
+```
+
+That publishes `firebase/firestore.rules` to the `repertoire-lab` project. The
+first run needs `npx firebase-tools login` (a browser sign-in as the project's
+owner); after that it's one command. Pasting the file into Firebase console →
+Firestore Database → Rules → Publish does the same job.
+
+`firebase/storage.rules` stays a paste job on purpose — the project has no
+Storage bucket on the free plan, so a deploy that included it would fail.
+Pictures go in Firestore instead; see `src/lib/cloud/blobs.js`.
+
 `npm run zip` still produces `repertoire-lab-site.zip` for a hand-drop onto
 Netlify, as a fallback if a build ever needs to bypass Git.
