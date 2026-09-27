@@ -2,11 +2,15 @@ import React, { useMemo, useRef, useState } from 'react';
 import { pgnTextToEntries } from '../lib/pgnImport';
 import { useBackGuard } from '../lib/backGuard';
 import { parseStudyUrl, fetchStudyPgn } from '../lib/lichess';
+import { countMarks } from '../lib/marks';
+import PgnMarksHint from './PgnMarksHint';
 import { UploadIcon, ClipboardIcon, AlertIcon, LinkIcon } from './Icons';
 
 // One selectable line, shared by the flat (chapter) and grouped (course)
 // layouts below.
 function ImportRow({ entry: e, skip, setSkip, names, setNames }) {
+  const marks = countMarks(e.comments);
+  const drawn = marks.arrows + marks.squares;
   return (
     <label className={`import-row${skip[e.id] ? ' off' : ''}`}>
       <input
@@ -24,6 +28,21 @@ function ImportRow({ entry: e, skip, setSkip, names, setNames }) {
         {e.moves.slice(0, 8).join(' ')}{e.moves.length > 8 ? '…' : ''}
         <span className="muted-note"> · {e.moves.length} moves</span>
       </span>
+      {/* Outside the moves, which get cut short on a phone — whether the
+          arrows came through is the thing to be able to see. */}
+      {drawn > 0 && (
+        <span
+          className="import-marks"
+          title={[
+            marks.arrows && `${marks.arrows} arrow${marks.arrows === 1 ? '' : 's'}`,
+            marks.squares && `${marks.squares} highlighted square${marks.squares === 1 ? '' : 's'}`,
+          ].filter(Boolean).join(', ')}
+        >
+          ✎ {marks.arrows
+            ? `${marks.arrows} arrow${marks.arrows === 1 ? '' : 's'}`
+            : `${marks.squares} square${marks.squares === 1 ? '' : 's'}`}
+        </span>
+      )}
       {!e.ok && (
         <span className="import-warn" title={`Stopped at ${e.failedToken}`}>
           <AlertIcon size={13} /> cut short
@@ -175,6 +194,7 @@ export default function PgnImport({ chapterName, courseName, onAdd, onClose }) {
             onChange={(e) => { setText(e.target.value); setFileName(null); }}
           />
         </label>
+        <PgnMarksHint />
 
         {text.trim() && (
           entries.length === 0 ? (

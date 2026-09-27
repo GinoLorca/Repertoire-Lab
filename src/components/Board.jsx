@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { TouchBackend } from 'react-dnd-touch-backend';
 import { Chess } from 'chess.js';
@@ -7,7 +7,7 @@ import { checkedKingSquare, CHECK_STYLE, LAST_MOVE_STYLE } from '../lib/legalMov
 import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
 import { boardBadgeStyle } from '../lib/badges';
 import { boardColors } from '../lib/theme';
-import BoardArrows from './BoardArrows';
+import BoardArrows, { cell } from './BoardArrows';
 
 export const DEFAULT_SQUARE_LIGHT = '#c6d3e1';
 export const DEFAULT_SQUARE_DARK = '#4a6a8f';
@@ -71,7 +71,7 @@ const NOTATION_STYLE = {
 // change to our renderer could reach it. It's off from here on, so arrows come
 // from one place.
 export default function Board({
-  position, customSquareStyles, lastMove, badge, ownArrows = true, ...rest
+  position, customSquareStyles, lastMove, badge, ownArrows = true, marks = null, ...rest
 }) {
   const { state } = useStore();
   const markCheck = state.settings.checkHighlight !== false;
@@ -152,6 +152,7 @@ export default function Board({
       boardWidth={rest.boardWidth}
       orientation={rest.boardOrientation === 'black' ? 'black' : 'white'}
       position={position}
+      marks={marks}
     >
       {board}
     </DrawableBoard>
@@ -163,42 +164,85 @@ export default function Board({
 // from lichess and chess.com. Kept here rather than in each view so Practice,
 // Learn and the line viewer get it too; Analysis opts out, having its own pen
 // with colours and saved marks.
-function DrawableBoard({ boardWidth, orientation, position, children }) {
+//
+// `marks` turns it into a place to draw ones that are kept — a line's arrows,
+// saved on its moves: { arrows (the saved ones, drawn), pen (colour of the
+// one being drawn), onArrow(from, to), onSquare(sq), tapToDraw }. Then a
+// right-drag gives onArrow, a right-click on one square onSquare, and with
+// `tapToDraw` (a touch screen has no right button) a tap on one square and
+// then another is an arrow, the same square twice a highlight.
+function DrawableBoard({
+  boardWidth, orientation, position, marks, children,
+}) {
   const [arrows, setArrows] = useState([]);
   const [pending, setPending] = useState(null); // { from, to } while dragging
+  const [tapFrom, setTapFrom] = useState(null); // tap-to-draw: the first square
+  // A finger down in tap-to-draw: { id, sq, x, y }. It counts as a tap when it
+  // lifts where it landed — a scroll or a pinch that starts on the board
+  // draws nothing.
+  const tapRef = useRef(null);
+  const editing = Boolean(marks?.onArrow);
 
   // A new position means the arrows were about the old one.
-  useEffect(() => { setArrows([]); setPending(null); }, [position]);
+  useEffect(() => { setArrows([]); setPending(null); setTapFrom(null); }, [position]);
+  useEffect(() => { if (!marks?.tapToDraw) setTapFrom(null); }, [marks?.tapToDraw]);
 
   const onPointerDown = (e) => {
     if (e.button === 2) {
       const from = squareAtPoint(e.clientX, e.clientY);
       if (from) { e.preventDefault(); setPending({ from, to: from }); }
+    } else if (e.button === 0 && editing && marks.tapToDraw) {
+      // A second finger makes it a pinch, not a tap.
+      if (!e.isPrimary) { tapRef.current = null; return; }
+      const sq = squareAtPoint(e.clientX, e.clientY);
+      if (!sq) return;
+      e.preventDefault();
+      tapRef.current = { id: e.pointerId, sq, x: e.clientX, y: e.clientY };
     } else if (e.button === 0 && arrows.length) {
       setArrows([]);
     }
   };
 
   const onPointerMove = (e) => {
+    const t = tapRef.current;
+    if (t && t.id === e.pointerId && Math.hypot(e.clientX - t.x, e.clientY - t.y) > 10) tapRef.current = null;
     if (!pending) return;
     const to = squareAtPoint(e.clientX, e.clientY);
     if (to && to !== pending.to) setPending((p) => ({ ...p, to }));
   };
 
   const onPointerUp = (e) => {
+    const t = tapRef.current;
+    tapRef.current = null;
+    if (t && t.id === e.pointerId && editing && marks.tapToDraw
+      && squareAtPoint(e.clientX, e.clientY) === t.sq) {
+      if (!tapFrom) { setTapFrom(t.sq); return; }
+      setTapFrom(null);
+      if (t.sq === tapFrom) marks.onSquare(t.sq);
+      else marks.onArrow(tapFrom, t.sq);
+      return;
+    }
     if (!pending) return;
     const to = squareAtPoint(e.clientX, e.clientY) ?? pending.to;
     const { from } = pending;
     setPending(null);
+    if (editing) {
+      if (to && to !== from) marks.onArrow(from, to);
+      else if (from) marks.onSquare(from);
+      return;
+    }
     if (!to || to === from) return;
     setArrows((list) => (list.some(([f, t]) => f === from && t === to)
       ? list.filter(([f, t]) => !(f === from && t === to))
       : [...list, [from, to, RIGHT_DRAG_PEN]]));
   };
 
+  const pen = marks?.pen ?? RIGHT_DRAG_PEN;
   const live = pending && pending.to !== pending.from
-    ? [[pending.from, pending.to, RIGHT_DRAG_PEN]]
+    ? [[pending.from, pending.to, pen]]
     : [];
+  const size = boardWidth / 8;
+  const tapCell = tapFrom ? cell(tapFrom, orientation) : null;
 
   return (
     <div
@@ -207,11 +251,20 @@ function DrawableBoard({ boardWidth, orientation, position, children }) {
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerLeave={() => setPending(null)}
+      onPointerLeave={() => { setPending(null); tapRef.current = null; }}
+      onPointerCancel={() => { setPending(null); tapRef.current = null; }}
       onContextMenu={(e) => e.preventDefault()}
     >
       {children}
-      <BoardArrows arrows={[...arrows, ...live]} boardWidth={boardWidth} orientation={orientation} />
+      <BoardArrows arrows={[...(marks?.arrows ?? []), ...arrows, ...live]} boardWidth={boardWidth} orientation={orientation} />
+      {tapCell && (
+        <div
+          className="draw-tap-from"
+          style={{
+            left: tapCell.x * size, top: tapCell.y * size, width: size, height: size, borderColor: pen,
+          }}
+        />
+      )}
     </div>
   );
 }

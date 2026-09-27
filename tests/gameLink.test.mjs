@@ -373,6 +373,19 @@ test('P: the patch survives being sent and parsed', () => {
   assert.equal(parsed.set['comments:3'], 'good move');
 });
 
+test('P: a game with a starting-position comment (key -1, a PGN\'s intro and its arrows) still reaches the student', () => {
+  const g = linked(game('abc123', { comments: { [-1]: 'The idea [%cal Ge2e4]', 3: 'good move [%csl Ye5]' } }));
+  const parsed = parsePatch(JSON.stringify(buildPatch(g).patch));
+  assert.ok(parsed);
+  assert.equal(parsed.set['comments:-1'], 'The idea [%cal Ge2e4]');
+  const out = apply(studentState([self([])]), [delivery(g)]);
+  assert.equal(out.outcomes[0].outcome, 'inserted');
+  assert.equal(allGames(out.state)[0].comments[-1], 'The idea [%cal Ge2e4]');
+  assert.equal(allGames(out.state)[0].comments[3], 'good move [%csl Ye5]');
+  // …and only -1: anything else below zero is still refused.
+  assert.equal(parsePatch(JSON.stringify({ ...buildPatch(g).patch, set: { 'comments:-2': 'x' } })), null);
+});
+
 // ---------------------------------------------------------------------------
 // Round trip: both sides, against each other
 // ---------------------------------------------------------------------------

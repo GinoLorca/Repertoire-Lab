@@ -10,6 +10,7 @@ import {
   sendLines, makeSub, leaveFolder, withFolderMates,
 } from './lib/subVariations';
 import { arrangeTop, arrangeFolder, gatherIntoFolder } from './lib/chapterOrder';
+import { parseMarks, withText, withMarks } from './lib/marks';
 
 const STORAGE_KEY = 'repertoire-lab-state-v1';
 
@@ -196,7 +197,7 @@ function swapGroups(chapters, moving, other, dir) {
 // So an action whose chapter no longer holds its line is pointed at the
 // chapter that does.
 const FOLLOWS_LINE = new Set([
-  'recordPractice', 'toggleStar', 'setVariationTags', 'setMoveBadge', 'setMoveComment',
+  'recordPractice', 'toggleStar', 'setVariationTags', 'setMoveBadge', 'setMoveComment', 'setMoveMarks',
   'renameVariation', 'setVariationTimestamp', 'deleteVariation', 'moveVariation', 'addToPlaylist',
 ]);
 function followLine(state, action) {
@@ -752,13 +753,34 @@ function reduce(state, action) {
         ...c,
         variations: c.variations.map((v) => (v.id === action.variationId ? { ...v, name: action.name } : v)),
       }));
+    // A move's words. The arrows and squares drawn on it live in the same
+    // comment (lib/marks.js) and are kept — unless the new text brings its
+    // own, as a pasted PGN comment does.
     case 'setMoveComment':
       return mapChapter(state, action.openingId, action.chapterId, (c) => ({
         ...c,
         variations: c.variations.map((v) => {
           if (v.id !== action.variationId) return v;
           const comments = { ...(v.comments ?? {}) };
-          if (action.text?.trim()) comments[action.moveIndex] = action.text.trim();
+          const typed = String(action.text ?? '').trim();
+          const own = parseMarks(typed);
+          const next = own.cal.length || own.csl.length ? typed : withText(comments[action.moveIndex], typed);
+          if (next) comments[action.moveIndex] = next;
+          else delete comments[action.moveIndex];
+          return { ...v, comments };
+        }),
+      }));
+    // The arrows and squares drawn on a move (or, at -1, on the starting
+    // position): { cal: [{ c, from, to }], csl: [{ c, sq }] }. The words are
+    // kept.
+    case 'setMoveMarks':
+      return mapChapter(state, action.openingId, action.chapterId, (c) => ({
+        ...c,
+        variations: c.variations.map((v) => {
+          if (v.id !== action.variationId) return v;
+          const comments = { ...(v.comments ?? {}) };
+          const next = withMarks(comments[action.moveIndex], action.marks);
+          if (next) comments[action.moveIndex] = next;
           else delete comments[action.moveIndex];
           return { ...v, comments };
         }),

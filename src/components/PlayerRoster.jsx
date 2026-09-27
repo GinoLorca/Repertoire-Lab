@@ -27,6 +27,7 @@ import {
 } from '../components/Icons';
 import { useMe } from '../lib/cloud/useMe';
 import { useGameLink } from './GameLinkProvider';
+import { parseMarks, withText } from '../lib/marks';
 
 // The handles a player is known by, with whatever live ratings we last fetched
 // for them, shown compactly wherever they're useful.
@@ -781,9 +782,21 @@ function PlayerPage({
           onSetBadge={(ply, badge) => dispatch({
             type: 'setGameMoveBadge', playerId: player.id, gameId: viewingGame.id, ply, badge,
           })}
-          onSaveComment={(ply, text) => dispatch({
-            type: 'setGameMoveComment', playerId: player.id, gameId: viewingGame.id, ply, text,
-          })}
+          // The viewer edits a note's words only — the move's arrows and any
+          // [%clk]/[%eval] a Lichess game carries stay on it, unless what was
+          // typed brings arrows of its own. (Analysis sends the whole raw
+          // comment, codes and all, so the store itself doesn't merge.)
+          onSaveComment={(ply, text) => {
+            const typed = String(text ?? '').trim();
+            const own = parseMarks(typed);
+            dispatch({
+              type: 'setGameMoveComment',
+              playerId: player.id,
+              gameId: viewingGame.id,
+              ply,
+              text: own.cal.length || own.csl.length ? typed : withText(viewingGame.comments?.[ply], typed),
+            });
+          }}
           onAnalyze={(g) => {
             setViewingGameId(null);
             onAnalyze({

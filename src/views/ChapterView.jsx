@@ -44,6 +44,7 @@ export default function ChapterView({
   const [menuFor, setMenuFor] = useState(null); // { id, at } — a line's long-press / right-click menu
   const [sending, setSending] = useState(null); // { anchorId } or { ids } — lines on their way to a sub-variation
   const [sentNote, setSentNote] = useState(null); // { chapterId, name, count } — where they went
+  const [drawOnOpen, setDrawOnOpen] = useState(false); // the viewer opened to draw arrows
   // Said where it can be seen: the note sits under the title, and a send
   // started from a line far down the chapter would otherwise go unconfirmed.
   const subvarRef = useRef(null);
@@ -127,6 +128,12 @@ export default function ChapterView({
         onClick: () => setTagging({ kind: 'variation', variationId: variation.id }),
       },
       { sep: true },
+      {
+        label: 'Draw arrows…',
+        hint: 'mark ideas on the board, move by move — saved with the line',
+        icon: '✎',
+        onClick: () => { setDrawOnOpen(true); setViewingId(variation.id); },
+      },
       {
         label: 'Send to a sub-variation…',
         hint: 'a chapter of its own, filed with this one — like Tartakower under Classical',
@@ -740,7 +747,7 @@ export default function ChapterView({
             <div
               className="variation-moves"
               title="Click to review on the board"
-              onClick={() => setViewingId(variation.id)}
+              onClick={() => { setDrawOnOpen(false); setViewingId(variation.id); }}
             >
               <MoveText
                 moves={variation.moves}
@@ -882,7 +889,7 @@ export default function ChapterView({
           onClose={() => setBrowsing(false)}
           // Landing on a line from the tree opens the same preview a row
           // click does, so there's one way to read a variation, not two.
-          onOpenVariation={(id) => { setBrowsing(false); setViewingId(id); }}
+          onOpenVariation={(id) => { setBrowsing(false); setDrawOnOpen(false); setViewingId(id); }}
           onAnalyze={(moves) => {
             setBrowsing(false);
             onAnalyze({
@@ -912,13 +919,18 @@ export default function ChapterView({
             const i = chapter.variations.findIndex((v) => v.id === id);
             return i >= 0 && i < chapter.variations.length - 1 ? chapter.variations[i + 1].id : id;
           })}
-          onClose={() => setViewingId(null)}
+          onClose={() => { setDrawOnOpen(false); setViewingId(null); }}
           onAnalyze={(v) => {
+            setDrawOnOpen(false);
             setViewingId(null);
             onAnalyze({ ...v, subtitle: `${opening.name} — ${chapter.name}` });
           }}
           onToggleStar={() => dispatch({ type: 'toggleStar', openingId, chapterId, variationId: viewing.id })}
           onEditTags={() => setTagging({ kind: 'variation', variationId: viewing.id })}
+          onSaveMarks={(moveIndex, marks) => dispatch({
+            type: 'setMoveMarks', openingId, chapterId, variationId: viewing.id, moveIndex, marks,
+          })}
+          startDrawing={drawOnOpen}
           onSetBadge={(ply, badge) => dispatch({
             type: 'setMoveBadge',
             openingId,

@@ -1,4 +1,5 @@
 import { Chess } from 'chess.js';
+import { parseMarks, START, commentAt } from './marks';
 
 // Study mode reads a line the way a course book does (and the way Chessable's
 // "read" mode shows it): runs of moves, and after the move a note belongs to,
@@ -8,45 +9,8 @@ import { Chess } from 'chess.js';
 //
 // Everything here is plain data in, plain data out, so it's tested directly.
 
-// ---------- Arrows and squares written inside a comment ----------
-
-// The pens Lichess (and PGN exports generally) use, in the app's own colours
-// so an imported arrow looks like one drawn here.
-const PEN = {
-  G: '#2ecc71', R: '#e5534b', B: '#3b9cff', Y: '#e8b339', O: '#f0883e', C: '#39c5cf',
-};
-const FILL = {
-  G: 'rgba(46, 204, 113, 0.5)',
-  R: 'rgba(229, 83, 75, 0.5)',
-  B: 'rgba(59, 156, 255, 0.5)',
-  Y: 'rgba(232, 179, 57, 0.55)',
-  O: 'rgba(240, 136, 62, 0.5)',
-  C: 'rgba(57, 197, 207, 0.5)',
-};
-
-// { text, arrows: [[from, to, colour]], squares: { sq: fill } } — the text
-// with every [%…] command taken out ([%clk], [%eval] and the rest mean
-// nothing to a reader either).
-export function parseMarks(raw) {
-  const arrows = [];
-  const squares = {};
-  const text = String(raw ?? '').replace(/\[%(\w+)\s*([^\]]*)\]/g, (all, cmd, args) => {
-    const items = args.split(/[,\s]+/).filter(Boolean);
-    if (cmd === 'cal') {
-      for (const it of items) {
-        const m = it.match(/^([A-Z])?([a-h][1-8])([a-h][1-8])$/);
-        if (m) arrows.push([m[2], m[3], PEN[m[1] ?? 'G'] ?? PEN.Y]);
-      }
-    } else if (cmd === 'csl') {
-      for (const it of items) {
-        const m = it.match(/^([A-Z])?([a-h][1-8])$/);
-        if (m) squares[m[2]] = FILL[m[1] ?? 'G'] ?? FILL.Y;
-      }
-    }
-    return ' ';
-  }).replace(/\s+/g, ' ').trim();
-  return { text, arrows, squares };
-}
+// Arrows and squares written inside a comment: lib/marks.js.
+export { parseMarks } from './marks';
 
 // ---------- The line, as a reader sees it ----------
 
@@ -59,6 +23,9 @@ export const moveNumber = (i) => `${Math.floor(i / 2) + 1}${i % 2 === 0 ? '.' : 
 // opens a run ("3... cxd5 4.Nf3"), as in a book.
 export function studySegments(moves, comments = {}) {
   const out = [];
+  // Words on the starting position — a course's introduction to the line.
+  const intro = comments?.[START] ? parseMarks(comments[START]).text : '';
+  if (intro) out.push({ kind: 'note', i: START, text: intro });
   let run = [];
   moves.forEach((san, i) => {
     run.push({ i, san, number: i % 2 === 0 || run.length === 0 ? moveNumber(i) : null });
@@ -76,8 +43,9 @@ export function studySegments(moves, comments = {}) {
 // What the board shows at `ply` (moves played): the marks of the note on the
 // move just played — a note's arrows are about the position it's written at.
 export function marksAt(comments, ply) {
-  if (!comments || ply <= 0 || !comments[ply - 1]) return { arrows: [], squares: {} };
-  const { arrows, squares } = parseMarks(comments[ply - 1]);
+  const raw = commentAt(comments, ply);
+  if (!raw) return { arrows: [], squares: {} };
+  const { arrows, squares } = parseMarks(raw);
   return { arrows, squares };
 }
 

@@ -18,6 +18,7 @@ import PromotionPicker from '../components/PromotionPicker';
 import { lastMoveOf, NOTE_HIGHLIGHT_STYLE } from '../lib/legalMoves';
 import { badgeAt } from '../lib/badges';
 import BoardArrows from '../components/BoardArrows';
+import { marksAt } from '../lib/studyText';
 import { useStudy, StudyBoard, StudyText } from '../components/StudyMode';
 import { findLine } from '../lib/findLine';
 import { useBackGuard } from '../lib/backGuard';
@@ -1109,6 +1110,20 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
       }
     } catch { /* ignore */ }
   }
+  // While being taught, the course's own arrows and squares for the position
+  // (the [%cal]/[%csl] on the move just played) show too — under the move to
+  // play. Once you're being tested they'd give answers away, so not then.
+  // (Looking back at an earlier position shows that position, bare.)
+  if (phase === 'teach' && !completed && !reviewing) {
+    const authored = marksAt(current.variation.comments, ply);
+    arrows = [...authored.arrows, ...arrows];
+    squares = {
+      // backgroundColor, not background: a move's badge draws its glyph with
+      // the background-image longhands on the same square.
+      ...Object.fromEntries(Object.entries(authored.squares).map(([sq, fill]) => [sq, { backgroundColor: fill }])),
+      ...squares,
+    };
+  }
 
   // A non-expected move that reaches a position occurring in another
   // repertoire line is accepted (practice runs only — while learning or
@@ -1453,7 +1468,8 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
           )}
           {/* Knight moves bend at a right angle here too, matching Analysis. */}
           <BoardArrows
-            arrows={wrongMove ? [] : arrows}
+            // Arrows are about the position being played, not one looked back at.
+            arrows={wrongMove || reviewing ? [] : arrows}
             boardWidth={boardWidth}
             orientation={orientation}
           />

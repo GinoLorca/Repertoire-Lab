@@ -30,7 +30,9 @@ import { BADGES } from '../lib/badges';
 import MoveBadge from '../components/MoveBadge';
 import MoveTree from '../components/MoveTree';
 import MoveNote from '../components/MoveNote';
-import { parseMarks } from '../lib/studyText';
+import {
+  parseMarks, withMarks, drawingOf, marksOfDrawing, START,
+} from '../lib/marks';
 import {
   makeTree, lineThrough, nodePath, addMove, promote, promoteOne, removeNode,
   keepMainLineOnly, hasVariations, mainLineFrom, branchRootOf, lastMainLineAncestor, alternativesAt,
@@ -45,6 +47,33 @@ import {
 } from '../lib/shortcuts';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+// The positions a line passes through, from `startFen`: [fen before any move,
+// fen after move 1, …] — as far as its moves are legal.
+function fensAlong(startFen, sans) {
+  const game = new Chess(startFen);
+  const out = [game.fen()];
+  for (const san of sans) {
+    try { if (!game.move(san)) break; } catch { break; }
+    out.push(game.fen());
+  }
+  return out;
+}
+
+// A repertoire line's own arrows and squares ([%cal]/[%csl] in its comments),
+// as this board's per-position drawing — so they show, and can be changed,
+// when the line is analysed.
+function drawingsFromComments(sans, comments) {
+  const fens = fensAlong(START_FEN, sans);
+  const out = {};
+  fens.forEach((f, i) => {
+    const raw = comments?.[i === 0 ? START : i - 1];
+    if (!raw) return;
+    const d = drawingOf(parseMarks(raw));
+    if (d.arrows.length || Object.keys(d.squares).length) out[f] = d;
+  });
+  return out;
+}
 
 const EMPTY_MARKS = { arrows: [], squares: {} };
 
@@ -247,6 +276,11 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
       setMoveNotes(plyMapToNodeIds(t, initialLine.comments));
       setMoveBadges(plyMapToNodeIds(t, initialLine.badges));
       setVariationHighlights(initialLine.variationHighlights ?? {});
+      // A repertoire line keeps its arrows in its comments; a game keeps the
+      // ones drawn here in its own annotations.
+      if (!initialLine.gameId && !initialLine.annotations) {
+        setAnnotations(drawingsFromComments(initialLine.moves ?? [], initialLine.comments));
+      }
     }
   }, [initialLine]);
 
@@ -705,7 +739,15 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
     const { playerId, gameId } = initialLine;
     dispatch({ type: 'setGameAnnotations', playerId, gameId, annotations });
     dispatch({ type: 'setGameBadges', playerId, gameId, badges: nodeIdsToPlyMap(tree, moveBadges) });
-    dispatch({ type: 'setGameComments', playerId, gameId, comments: nodeIdsToPlyMap(tree, moveNotes) });
+    // The starting position's comment (a PGN's introduction, key -1) has no
+    // move on this board to hang from, so it's kept as the game has it.
+    const intro = liveGame.comments?.[START];
+    dispatch({
+      type: 'setGameComments',
+      playerId,
+      gameId,
+      comments: { ...(intro ? { [START]: intro } : {}), ...nodeIdsToPlyMap(tree, moveNotes) },
+    });
     // Only worth keeping the tree itself (over the flat trunk every other
     // game feature already has) when there's actually a branch or a
     // highlight hanging off it — otherwise it's just a second copy of the
@@ -2026,6 +2068,20 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
           onClose={() => setSaveLineOpen(false)}
           onSave={({ openingId, chapterId, name }) => {
             const { comments, badges } = lineAnnotationsAsPly(moves.length);
+            // A chapter's line keeps its arrows in its comments ([%cal]/[%csl]),
+            // so what's drawn on each position here goes into the comment on
+            // the move that reached it — the starting position's into the
+            // line's opening comment.
+            if (baseFen === START_FEN) {
+              const fens = fensAlong(baseFen, moves);
+              fens.forEach((f, i) => {
+                const key = i === 0 ? START : i - 1;
+                const words = i === 0 ? (initialLine?.comments?.[START] ?? '') : (comments[key] ?? '');
+                const next = withMarks(words, marksOfDrawing(annotations[f]));
+                if (next) comments[key] = next;
+                else delete comments[key];
+              });
+            }
             dispatch({
               type: 'addVariations',
               openingId,

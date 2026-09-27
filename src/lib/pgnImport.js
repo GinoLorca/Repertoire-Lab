@@ -39,19 +39,36 @@ function gameEntries(games, { mainLineOnly = false } = {}) {
 }
 
 // Without headers, a fresh "1." at the start of a line begins a new variation,
-// so several lines can be pasted in one go.
-function looseEntries(text, { mainLineOnly = false } = {}) {
+// so several lines can be pasted in one go. So does a line's opening comment
+// in front of its "1." ("{The Panov [%cal Gc2c4]} 1.e4 c6 …") — and a comment
+// on a line of its own just above a "1." goes with the line it introduces,
+// not on the end of the one before.
+const LINE_START = /^\s*(?:\{[^}]*\}\s*)*1\s*\./;
+const COMMENT_ONLY = /^\s*\{[^}]*\}\s*$/;
+export function splitLooseBlocks(text) {
   const blocks = [];
   let current = [];
   for (const ln of text.split(/\r?\n/)) {
-    if (/^\s*1\s*\./.test(ln) && current.some((l) => l.trim())) {
-      blocks.push(current.join('\n'));
-      current = [ln];
+    if (LINE_START.test(ln)) {
+      const carry = [];
+      while (current.length && (COMMENT_ONLY.test(current[current.length - 1]) || !current[current.length - 1].trim())) {
+        carry.unshift(current.pop());
+      }
+      if (current.some((l) => l.trim())) {
+        blocks.push(current.join('\n'));
+        current = [];
+      }
+      current.push(...carry, ln);
     } else {
       current.push(ln);
     }
   }
   if (current.some((l) => l.trim())) blocks.push(current.join('\n'));
+  return blocks;
+}
+
+function looseEntries(text, { mainLineOnly = false } = {}) {
+  const blocks = splitLooseBlocks(text);
 
   const lines = blocks.flatMap((block) => {
     const blockLines = movetextToLines(block);

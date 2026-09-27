@@ -250,7 +250,7 @@ export function StudyText({
         {study.segments.length === 0 && <p className="muted-note">This line has no moves yet.</p>}
         {study.segments.map((seg, k) => (seg.kind === 'moves' ? (
           <p key={`m${seg.moves[0].i}`} className="study-moves">
-            {k === 0 && (
+            {k === study.segments.findIndex((x) => x.kind === 'moves') && (
               <button
                 type="button"
                 className={`study-start${study.ply === 0 && !study.side ? ' current' : ''}`}

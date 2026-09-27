@@ -2,7 +2,7 @@ import React from 'react';
 
 // Square name -> board coordinates in "cells from the top-left", honouring
 // which way the board is facing.
-function cell(square, orientation) {
+export function cell(square, orientation) {
   const file = square.charCodeAt(0) - 97;        // a..h -> 0..7
   const rank = Number(square[1]) - 1;            // 1..8 -> 0..7
   return orientation === 'white'

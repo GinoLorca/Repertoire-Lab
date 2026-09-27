@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { CommentIcon } from './Icons';
 import MoveBadge from './MoveBadge';
 import { useStore } from '../store';
-import { parseMarks } from '../lib/studyText';
+import { parseMarks, START } from '../lib/marks';
 
 // "4." for White's move, "4…" for Black's, from a 0-based move index.
 const label = (i) => `${Math.floor(i / 2) + 1}${i % 2 === 0 ? '.' : '…'}`;
@@ -164,13 +164,16 @@ export default function MoveNote({
 }
 
 // The note to show for a position: the current move's, or the most recent one
-// before it so the last thing the author said stays on screen.
+// before it so the last thing the author said stays on screen — back to the
+// line's introduction, written on the starting position (key -1).
 export function noteFor(comments, moves, ply) {
-  if (!comments || ply <= 0) return null;
+  if (!comments) return null;
   for (let i = ply - 1; i >= 0; i -= 1) {
     if (comments[i] && parseMarks(comments[i]).text) {
       return { text: comments[i], san: moves[i], index: i, stale: i !== ply - 1 };
     }
   }
+  const intro = comments[START];
+  if (intro && parseMarks(intro).text) return { text: intro, san: null, index: null, stale: ply > 0 };
   return null;
 }

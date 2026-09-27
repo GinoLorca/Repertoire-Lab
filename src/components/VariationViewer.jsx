@@ -8,6 +8,10 @@ import { BADGES, badgeAt } from '../lib/badges';
 import { TagChips } from './TagEditor';
 import { useBackGuard } from '../lib/backGuard';
 import {
+  parseMarks, toggleArrow, toggleSquare, commentAt, PEN, PEN_ORDER, START,
+} from '../lib/marks';
+import { isTouchCapable } from './Board';
+import {
   TagIcon, StarIcon, CommentIcon, SkipStartIcon, SkipEndIcon, PrevIcon, NextIcon,
 } from './Icons';
 
@@ -21,9 +25,13 @@ function moveLabel(moves, ply) {
 // `onPrevVariation`/`onNextVariation` (with `position`) let it walk to the
 // neighbouring lines without closing — the whole point of the preview being
 // quicker than opening each variation in turn.
+const PEN_NAMES = { G: 'Green', R: 'Red', B: 'Blue', Y: 'Yellow' };
+
 export default function VariationViewer({
   variation, orientation, onClose, onAnalyze, onSaveComment, onSetBadge, onToggleStar, onEditTags,
   onPrevVariation, onNextVariation, position,
+  // Arrows and squares drawn on the line's moves, kept with it (lib/marks.js).
+  onSaveMarks, startDrawing = false,
 }) {
   const fens = useMemo(() => lineFens(variation.moves), [variation.moves]);
   // Open at the start so you can play the line through, not at the finish.
@@ -38,11 +46,29 @@ export default function VariationViewer({
   // last move rather than past its end.
   useEffect(() => { setPly((p) => Math.min(p, fens.length - 1)); }, [variation.id, fens.length]);
 
-  const savedComment = ply > 0 ? (variation.comments?.[ply - 1] ?? '') : '';
+  // The comment on the position the board shows — the move just played, or
+  // the starting position — taken apart into its words and its marks.
+  const here = ply > 0 ? ply - 1 : START;
+  const marks = parseMarks(commentAt(variation.comments, ply));
+  const savedComment = marks.text;
+  // Drawing: on a touch screen (no right button) you switch it on and tap;
+  // with a mouse, right-drag works whenever it's on.
+  const [drawing, setDrawing] = useState(Boolean(startDrawing) && Boolean(onSaveMarks));
+  const [pen, setPen] = useState('G');
+  const draw = onSaveMarks ? {
+    arrows: marks.arrows,
+    pen: PEN[pen],
+    tapToDraw: drawing,
+    onArrow: (from, to) => onSaveMarks(here, toggleArrow(marks, from, to, pen)),
+    onSquare: (sq) => onSaveMarks(here, toggleSquare(marks, sq, pen)),
+  } : { arrows: marks.arrows };
+  const squareStyles = Object.fromEntries(Object.entries(marks.squares).map(([sq, fill]) => [sq, { backgroundColor: fill }]));
 
+  // A new move, or the saved words changing — not an arrow being drawn, which
+  // mustn't throw away a comment half typed.
   useEffect(() => {
     setDraft(savedComment);
-  }, [ply, variation]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ply, variation.id, savedComment]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const onKey = (e) => {
@@ -69,7 +95,8 @@ export default function VariationViewer({
           onTouchStart={(e) => { touchRef.current = e.touches[0].clientX; }}
           onTouchEnd={(e) => {
             const dx = e.changedTouches[0].clientX - (touchRef.current ?? 0);
-            if (Math.abs(dx) > 35) {
+            // While drawing, a finger on the board is drawing, not stepping.
+            if (!drawing && Math.abs(dx) > 35) {
               setPly((p) => Math.min(fens.length - 1, Math.max(0, p + (dx < 0 ? 1 : -1))));
             }
           }}
@@ -82,7 +109,57 @@ export default function VariationViewer({
             boardOrientation={orientation}
             arePiecesDraggable={false}
             boardWidth={boardWidth}
+            customSquareStyles={squareStyles}
+            marks={draw}
           />
+          {onSaveMarks && (
+            <div className="draw-bar" style={{ maxWidth: boardWidth }}>
+              <button
+                type="button"
+                className={`small${drawing ? ' primary' : ''}`}
+                aria-pressed={drawing}
+                title={isTouchCapable
+                  ? 'Tap a square, then another, for an arrow; the same square twice to highlight it'
+                  : 'Right-drag for an arrow, right-click a square to highlight it — or switch this on and click'}
+                onClick={() => setDrawing((d) => !d)}
+              >
+                ✎ {drawing ? 'Drawing' : 'Draw'}
+              </button>
+              <span className="draw-pens" role="radiogroup" aria-label="Colour">
+                {PEN_ORDER.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    role="radio"
+                    aria-checked={pen === c}
+                    aria-label={PEN_NAMES[c]}
+                    title={PEN_NAMES[c]}
+                    className={`draw-pen${pen === c ? ' on' : ''}`}
+                    style={{ background: PEN[c] }}
+                    onClick={() => setPen(c)}
+                  />
+                ))}
+              </span>
+              <span style={{ flex: 1 }} />
+              <button
+                type="button"
+                className="small ghost"
+                disabled={!marks.cal.length && !marks.csl.length}
+                title="Take every arrow and highlight off this position"
+                onClick={() => onSaveMarks(here, { cal: [], csl: [] })}
+              >
+                Clear
+              </button>
+            </div>
+          )}
+          {onSaveMarks && (
+            <p className="draw-hint-line muted-note" style={{ maxWidth: boardWidth }}>
+              {drawing || isTouchCapable
+                ? 'Tap a square, then another, for an arrow · the same square twice to highlight it · again to remove'
+                : 'Right-drag for an arrow · right-click a square to highlight it · again to remove'}
+              {' — saved with the line.'}
+            </p>
+          )}
           <div className="viewer-controls" style={{ marginTop: 12 }}>
             <button title="Start" disabled={ply === 0} onClick={() => setPly(0)}><SkipStartIcon size={17} /></button>
             <button title="Previous move" disabled={ply === 0} onClick={() => setPly((p) => Math.max(0, p - 1))}><PrevIcon size={17} /></button>
@@ -143,7 +220,23 @@ export default function VariationViewer({
           {onSaveComment ? (
             <div className="comment-editor">
               {ply === 0 ? (
-                <span className="muted-note">Step to a move to read or write its comment.</span>
+                <>
+                  <label><CommentIcon size={14} /> Comment on the starting position</label>
+                  <textarea
+                    rows={2}
+                    value={draft}
+                    placeholder="An introduction to the line, shown before its first move in Study."
+                    onChange={(e) => setDraft(e.target.value)}
+                  />
+                  {draft !== savedComment && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                      <button className="small" onClick={() => setDraft(savedComment)}>Discard</button>
+                      <button className="small primary" onClick={() => onSaveComment(START, draft)}>
+                        Save comment
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : (
                 <>
                   {/* The badge sits above the comment because it's the quicker

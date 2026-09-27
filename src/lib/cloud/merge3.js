@@ -27,6 +27,7 @@
 
 import { legacyOrder, keepFoldersTogether } from '../chapterOrder';
 import { hashOf } from './shape';
+import { parseMarks, compose } from '../marks';
 
 const isDataUrl = (v) => typeof v === 'string' && v.startsWith('data:');
 const isMark = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -222,6 +223,8 @@ export function merge3(base, local, remote, prefer = 'local') {
       if (lk && rk && SET_KEYS.has(k) && isStrings(local[k]) && isStrings(remote[k])
         && !same(local[k], remote[k])) {
         v = mergeSet(isStrings(b?.[k]) ? b[k] : [], local[k], remote[k]);
+      } else if (lk && rk && k === 'comments' && isObj(local[k]) && isObj(remote[k])) {
+        v = mergeComments(isObj(b?.[k]) ? b[k] : undefined, local[k], remote[k], side);
       } else if (lk && rk) v = merge3(b?.[k], local[k], remote[k], side);
       // Present on one side only. If the baseline had it, the other side
       // removed it — unless this side changed it since, in which case the
@@ -237,6 +240,46 @@ export function merge3(base, local, remote, prefer = 'local') {
   if (local === undefined) return remote;
   if (remote === undefined) return local;
   return prefer === 'remote' ? remote : local;
+}
+
+// A move's comment holds things edited apart — its words, and the arrows and
+// squares drawn on it ([%cal]/[%csl], lib/marks.js) — so when both devices
+// changed the same one (arrows drawn on the Mac while the iPad reworded the
+// note), each part merges on its own instead of one whole string winning.
+function mergeComment(base, local, remote, prefer) {
+  const b = base === undefined ? undefined : parseMarks(base);
+  const l = parseMarks(local);
+  const r = parseMarks(remote);
+  const cal = (m) => m.cal.map((a) => `${a.c}${a.from}${a.to}`);
+  const csl = (m) => m.csl.map((q) => `${q.c}${q.sq}`);
+  const text = merge3(b?.text, l.text, r.text, prefer);
+  const arrows = mergeSet(b ? cal(b) : [], cal(l), cal(r));
+  const squares = mergeSet(b ? csl(b) : [], csl(l), csl(r));
+  const other = merge3(b?.other, l.other, r.other, prefer);
+  return compose(
+    text,
+    {
+      cal: arrows.map((x) => ({ c: x[0], from: x.slice(1, 3), to: x.slice(3, 5) })),
+      csl: squares.map((x) => ({ c: x[0], sq: x.slice(1, 3) })),
+    },
+    Array.isArray(other) ? other : [],
+  );
+}
+
+function mergeComments(base, local, remote, prefer) {
+  const out = merge3(base, local, remote, prefer);
+  if (!isObj(out)) return out;
+  for (const k of Object.keys(out)) {
+    const l = local[k];
+    const r = remote[k];
+    if (typeof l !== 'string' || typeof r !== 'string' || l === r) continue;
+    const bk = base?.[k];
+    // Changed on one side only: merge3 already took that side.
+    if (typeof bk === 'string' && (bk === l || bk === r)) continue;
+    const merged = mergeComment(typeof bk === 'string' ? bk : undefined, l, r, prefer);
+    if (merged) out[k] = merged;
+  }
+  return out;
 }
 
 // The one entry point sync uses: every collection that syncs as records,

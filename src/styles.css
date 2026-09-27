@@ -3298,6 +3298,10 @@ input[type="date"] {
 
 /* Adding lines to one chapter: file, paste, then tick what goes in. */
 .pgn-import { max-width: 680px; }
+/* Taller than a phone (or a short window) once a file's lines are listed:
+   it scrolls, so Add is always reachable — without squashing what's in it. */
+.pgn-import { max-height: 100%; overflow-y: auto; }
+.pgn-import > * { flex-shrink: 0; }
 .pgn-import .dropzone {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   padding: 16px; margin-bottom: 12px;
@@ -3919,3 +3923,29 @@ input[type="date"] {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 body.card-dragging, body.card-dragging * { cursor: grabbing !important; user-select: none !important; -webkit-user-select: none !important; }
+
+/* ---------- Drawing arrows on a line's moves (VariationViewer) ---------- */
+.draw-bar { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.draw-pens { display: inline-flex; gap: 6px; }
+.draw-pen {
+  width: 22px; height: 22px; min-height: 0; padding: 0; border-radius: 50%;
+  border: 2px solid transparent; box-shadow: inset 0 0 0 2px var(--panel); cursor: pointer;
+}
+.draw-pen.on { border-color: var(--text); }
+@media (pointer: coarse) { .draw-pen { width: 32px; height: 32px; } }
+.draw-hint-line { font-size: 12px; margin: 6px 0 0; }
+/* Tap-to-draw: the square the arrow starts from. */
+.draw-tap-from {
+  position: absolute; z-index: 3; pointer-events: none; box-sizing: border-box;
+  border: 4px solid var(--accent); border-radius: 4px;
+}
+
+/* How to write arrows into a PGN (Add PGN, Import). */
+.pgn-marks-hint { margin: 8px 0 4px; font-size: 13px; color: var(--muted); }
+.pgn-marks-hint summary { cursor: pointer; }
+.pgn-marks-hint p { margin: 6px 0; }
+.pgn-marks-hint code { font-size: 12px; background: var(--chip-bg); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+.pgn-marks-hint > code { display: block; padding: 6px 8px; }
+.pgn-marks-hint ul { margin: 6px 0 0; padding-left: 18px; }
+.pgn-marks-hint li { margin: 3px 0; }
+.import-marks { flex: none; font-size: 12px; color: var(--green); white-space: nowrap; }

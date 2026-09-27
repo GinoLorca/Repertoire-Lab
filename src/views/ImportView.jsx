@@ -5,6 +5,8 @@ import { transcribeImages, prepareImage, testKey, friendlyError, isHeic } from '
 import { movetextToLines, validateLine, splitPgnGames, variationToPgn, downloadText } from '../lib/pgn';
 import MoveText from '../components/MoveText';
 import ScanProgress from '../components/ScanProgress';
+import PgnMarksHint from '../components/PgnMarksHint';
+import { splitLooseBlocks } from '../lib/pgnImport';
 import {
   CameraIcon, ClipboardIcon, FolderIcon, PencilIcon, AlertIcon, DownloadIcon,
 } from '../components/Icons';
@@ -339,19 +341,10 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
     if (/^\[\w+\s+"/m.test(text)) {
       entries = pgnGamesToEntries(splitPgnGames(text));
     } else {
-      // A new game starts wherever a line begins with "1." — lets you paste
-      // several variations at once, one per line/paragraph.
-      const blocks = [];
-      let cur = [];
-      for (const ln of text.split(/\r?\n/)) {
-        if (/^\s*1\s*\./.test(ln) && cur.some((l) => l.trim())) {
-          blocks.push(cur.join('\n'));
-          cur = [ln];
-        } else {
-          cur.push(ln);
-        }
-      }
-      if (cur.some((l) => l.trim())) blocks.push(cur.join('\n'));
+      // A new game starts wherever a line begins with "1." (or its opening
+      // comment) — lets you paste several variations at once, one per
+      // line/paragraph.
+      const blocks = splitLooseBlocks(text);
 
       const lines = blocks.flatMap((block) => movetextToLines(block));
       entries = lines.map((line, i) => {
@@ -729,6 +722,7 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
           />
+          <PgnMarksHint />
           <div style={{ marginTop: 10 }}>
             <button className="primary" onClick={parsePaste} disabled={!pasteText.trim()}>Parse</button>
           </div>
@@ -741,6 +735,7 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
             Import a .pgn file — e.g. a purchased course exported as PGN. Each game becomes a
             variation; nested variations are expanded into separate lines.
           </p>
+          <PgnMarksHint />
           <div className="dropzone" onClick={() => pgnRef.current?.click()}>
             <strong>Choose a .pgn file</strong>
             <input

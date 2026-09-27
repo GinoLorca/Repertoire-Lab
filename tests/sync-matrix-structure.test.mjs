@@ -45,6 +45,7 @@ import {
 import {
   arrangeTop, arrangeFolder, gatherIntoFolder, topItems, stepKey,
 } from '../src/lib/chapterOrder.js';
+import { parseMarks, withText, withMarks } from '../src/lib/marks.js';
 
 // ---------------------------------------------------------------------------
 // The app's own reducer and emptyState, straight from src/store.jsx.
@@ -67,8 +68,8 @@ const { reducer, emptyState } = (() => {
     'return { reducer, emptyState };',
   ].join('\n');
   // eslint-disable-next-line no-new-func
-  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', body)(
-    DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, sendLines, makeSub, leaveFolder, withFolderMates, arrangeTop, arrangeFolder, gatherIntoFolder,
+  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', body)(
+    DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, sendLines, makeSub, leaveFolder, withFolderMates, arrangeTop, arrangeFolder, gatherIntoFolder, parseMarks, withText, withMarks,
   );
 })();
 
@@ -1089,5 +1090,35 @@ test('arranging: ▲▼ on a sub-variation moves it in its folder and nothing el
   // The chapter page's Section button, into the existing folder.
   mac.do({ type: 'setChapterSection', openingId: 'o-dnd', chapterId: 'fantasy', section: 'Exchange', subsection: 'Fantasy' });
   assert.deepEqual(grid(mac.state), ['s:Exchange', 'c:adv', 'c:knights']);
+});
+
+// ---------- Arrows drawn on a line's moves ----------
+
+test('arrows drawn on the Mac reach the iPad and a new iPhone; editing the words there keeps them', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  const tal = idOf(mac.state, 'c-advance', 'Tal Variation');
+  mac.do({ type: 'setMoveMarks', openingId: 'o-caro', chapterId: 'c-advance', variationId: tal, moveIndex: 5, marks: { cal: [{ c: 'G', from: 'c8', to: 'f5' }], csl: [{ c: 'Y', sq: 'e5' }] } });
+  mac.do({ type: 'setMoveMarks', openingId: 'o-caro', chapterId: 'c-advance', variationId: tal, moveIndex: -1, marks: { cal: [{ c: 'R', from: 'e2', to: 'e4' }], csl: [] } });
+  await mac.sync();
+  await ipad.sync();
+  ipad.do({ type: 'setMoveComment', openingId: 'o-caro', chapterId: 'c-advance', variationId: tal, moveIndex: 5, text: 'The bishop gets out first.' });
+  await ipad.sync();
+  await mac.sync();
+  const iphone = new Device('iphone', 'a new iPhone');
+  await iphone.sync();
+  for (const [who, dev] of [['Mac', mac], ['iPad', ipad], ['iPhone', iphone]]) {
+    const v = lineIn(dev.state, 'c-advance', 'Tal Variation');
+    assert.equal(v.comments[5], 'The bishop gets out first. [%csl Ye5] [%cal Gc8f5]', who);
+    assert.equal(v.comments[-1], '[%cal Re2e4]', `${who}: the starting position's arrow`);
+  }
+});
+
+test('arrows go with lines copied to a student', () => {
+  const mac = buildLibrary(new Device('mac', 'Mac'));
+  const tal = idOf(mac.state, 'c-advance', 'Tal Variation');
+  mac.do({ type: 'setMoveMarks', openingId: 'o-caro', chapterId: 'c-advance', variationId: tal, moveIndex: 2, marks: { cal: [{ c: 'B', from: 'd2', to: 'd4' }], csl: [] } });
+  mac.do({ type: 'copyOpeningsToPlayers', playerIds: ['p-parker'], variationIds: [tal] });
+  const theirs = mac.state.openings.find((o) => o.ownerId === 'p-parker' && o.name === 'Caro-Kann');
+  assert.equal(theirs.chapters[0].variations[0].comments[2], '[%cal Bd2d4]');
 });
 
