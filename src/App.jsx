@@ -107,8 +107,23 @@ function AppInner() {
       pull = 0;
     };
 
+    // A finger in a panel that scrolls on its own (Study's text, a long list)
+    // and isn't at its own top is scrolling that panel back up — not asking
+    // for a reload.
+    const inScrolledPanel = (target) => {
+      for (let n = target; n && n !== document.body; n = n.parentElement) {
+        if (n.scrollTop > 0) {
+          const oy = getComputedStyle(n).overflowY;
+          if (oy === 'auto' || oy === 'scroll') return true;
+        }
+      }
+      return false;
+    };
     const onStart = (e) => {
-      if (refreshing || e.touches.length !== 1 || !atTop() || blocked(e.target)) { startY = null; return; }
+      if (refreshing || e.touches.length !== 1 || !atTop() || blocked(e.target) || inScrolledPanel(e.target)) {
+        startY = null;
+        return;
+      }
       startY = e.touches[0].clientY;
       pull = 0;
     };
@@ -267,13 +282,14 @@ function AppInner() {
     next();
   };
 
-  const goBack = (fromPop = false) => {
-    const prev = history.current.pop();
+  const goBack = (fromPop = false, steps = 1) => {
+    let prev;
+    for (let i = 0; i < steps; i += 1) prev = history.current.pop();
     if (!fromPop) {
-      // An in-app Back should also consume the matching browser entry, or the
-      // phone's gesture would replay a step we've already taken.
+      // An in-app Back should also consume the matching browser entries, or
+      // the phone's gesture would replay a step we've already taken.
       poppingRef.current = true;
-      try { window.history.back(); } catch { poppingRef.current = false; }
+      try { window.history.go(-steps); } catch { poppingRef.current = false; }
     }
     if (!prev) { setView('library'); return; }
     setSub(prev.sub ?? null);
@@ -285,6 +301,28 @@ function AppInner() {
     // Coming back to the library, make sure the chapter you were in is visible
     // even if it lives inside a collapsed section.
     revealChapter.current = prev.view === 'library' ? lastChapterId.current : null;
+  };
+
+  // A chapter page's "Chapters": out to wherever its chapters were opened
+  // from, past any chapter reached from another one (a sub-variation link) —
+  // not back into the chapter before.
+  const backToChapters = () => {
+    const stack = history.current;
+    let k = 0;
+    while (k < stack.length && stack[stack.length - 1 - k].view === 'chapter') k += 1;
+    if (k < stack.length) { goBack(false, k + 1); return; }
+    // Nothing but chapters to go back through — the page was reloaded on a
+    // chapter, or opened from a link: straight to the Library, without
+    // stepping the browser out of the app.
+    if (k) {
+      history.current = [];
+      poppingRef.current = true;
+      try { window.history.go(-k); } catch { poppingRef.current = false; }
+    }
+    revealChapter.current = lastChapterId.current;
+    pendingScroll.current = 0; // …and the chapter you were in brought into view
+    setSub(null);
+    setView('library');
   };
 
   const openChapter = (openingId, chapterId) => {
@@ -328,7 +366,9 @@ function AppInner() {
     const t1 = setTimeout(settle, 80);
     const t2 = setTimeout(settle, 250);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [view]);
+    // The chapter too: going from one chapter straight to another (a
+    // sub-variation link) is a new page, and has to start at its top.
+  }, [view, chapterNav?.openingId, chapterNav?.chapterId]);
 
   const startPractice = (scope) => {
     go(() => {
@@ -598,11 +638,16 @@ function AppInner() {
         )}
         {view === 'chapter' && chapterNav && (
           <ChapterView
+            // A fresh page per chapter: going straight from one chapter to
+            // another (a sub-variation link) must not carry over the last
+            // one's selection, open dialogs or notices.
+            key={`${chapterNav.openingId}/${chapterNav.chapterId}`}
             openingId={chapterNav.openingId}
             chapterId={chapterNav.chapterId}
-            onBack={goBack}
+            onBack={backToChapters}
             onPractice={startPractice}
             onAnalyze={analyze}
+            onOpenChapter={openChapter}
           />
         )}
         {view === 'import' && (

@@ -39,7 +39,9 @@ import { defaultMonsterId } from '../src/lib/monsters.js';
 import { asDevice, resetServer, server } from './fakes/firebase.mjs';
 import { resetDevices } from './fakes/idb.mjs';
 import { markPreUpdate, isPreUpdate, downgradeStorage } from './fakes/legacy.mjs';
-import { grouped, nest, unnest, moveGrouped } from '../src/lib/variationGroups.js';
+import {
+  sendLines, makeSub, leaveFolder, withFolderMates,
+} from '../src/lib/subVariations.js';
 
 // ---------------------------------------------------------------------------
 // The app's own reducer and emptyState, straight from src/store.jsx.
@@ -62,8 +64,8 @@ const { reducer, emptyState } = (() => {
     'return { reducer, emptyState };',
   ].join('\n');
   // eslint-disable-next-line no-new-func
-  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'grouped', 'nest', 'unnest', 'moveGrouped', body)(
-    DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, grouped, nest, unnest, moveGrouped,
+  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', body)(
+    DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, sendLines, makeSub, leaveFolder, withFolderMates,
   );
 })();
 
@@ -796,46 +798,202 @@ test('a sync landing just after an edit keeps the edit: the fold happens in the 
   assert.equal(mac.state.openings, before.openings, 'nothing new: the library isn\'t replaced, so no view restarts');
 });
 
-
 // ---------------------------------------------------------------------------
-// Sub-variations: a line filed under another line in the same chapter.
+// Sub-variations: some of a chapter's lines sent to a sub-variation of it —
+// a chapter of their own in a folder with it, the way the Library shows
+// Classical (Mainline) with its Tartakower and Karpov.
 // ---------------------------------------------------------------------------
 
-const idOf = (st, cid, name) => chapter(st, 'o-caro', cid).variations.find((x) => x.name === name).id;
-const nesting = (st, cid) => {
-  const vars = chapter(st, 'o-caro', cid).variations;
-  const nameOf = new Map(vars.map((x) => [x.id, x.name]));
-  return vars.map((x) => (x.parentId && nameOf.has(x.parentId) ? `${nameOf.get(x.parentId)} ▸ ${x.name}` : x.name));
-};
+const folderView = (st) => opening(st, 'o-caro').chapters.map((c) => `${c.section ?? '-'} / ${c.subsection ?? '-'} / ${c.name}: ${c.variations.map((x) => x.name).join(', ')}`);
+const lineIn = (st, cid, name) => chapter(st, 'o-caro', cid)?.variations.find((x) => x.name === name);
 
-test('sub-variations: the Mac files a line under another; the iPad and a new iPhone show it there, and moving the main line takes it along', async () => {
+test('sub-variations: the Mac sends lines to a new sub-variation; the iPad and a new iPhone get the folder, the chapter and the lines with their progress', async () => {
   const { mac, ipad } = await macAndIpadInSync();
-  mac.do({ type: 'addVariations', openingId: 'o-caro', chapterId: 'c-advance', variations: [line('Bayonet', ['e4', 'c6', 'd4', 'd5', 'e5', 'Bf5', 'g4'])] });
-  mac.do({ type: 'nestVariation', openingId: 'o-caro', chapterId: 'c-advance', variationId: idOf(mac.state, 'c-advance', 'Short System'), parentId: idOf(mac.state, 'c-advance', 'Tal Variation') });
-  mac.do({ type: 'moveVariation', openingId: 'o-caro', chapterId: 'c-advance', variationId: idOf(mac.state, 'c-advance', 'Bayonet'), dir: -1 });
-  const want = ['Bayonet', 'Tal Variation', 'Tal Variation ▸ Short System'];
-  assert.deepEqual(nesting(mac.state, 'c-advance'), want, 'on the Mac');
+  const tal = lineIn(mac.state, 'c-advance', 'Tal Variation');
+  mac.do({ type: 'recordPractice', openingId: 'o-caro', chapterId: 'c-advance', variationId: tal.id, srs: { level: 2, due: 2e12, lastReview: 1.9e12 } });
   await mac.sync();
   await ipad.sync();
-  assert.deepEqual(nesting(ipad.state, 'c-advance'), want, 'the iPad');
+  mac.do({ type: 'sendToSubVariation', openingId: 'o-caro', chapterId: 'c-advance', variationIds: [tal.id], newChapterId: 'c-tal', name: 'Tal Variation' });
+  await mac.sync();
+  await ipad.sync();
   const iphone = new Device('iphone', 'a new iPhone');
   await iphone.sync();
-  assert.deepEqual(nesting(iphone.state, 'c-advance'), want, 'a new iPhone');
-  // And back out, on the iPad this time.
-  ipad.do({ type: 'unnestVariation', openingId: 'o-caro', chapterId: 'c-advance', variationId: idOf(ipad.state, 'c-advance', 'Short System') });
-  await ipad.sync();
-  await mac.sync();
-  assert.deepEqual(nesting(mac.state, 'c-advance'), ['Bayonet', 'Tal Variation', 'Short System']);
+  for (const [who, dev] of [['iPad', ipad], ['iPhone', iphone], ['Mac', mac]]) {
+    assert.deepEqual(folderView(dev.state), folderView(mac.state), `${who} has the Mac's structure`);
+    const moved = lineIn(dev.state, 'c-tal', 'Tal Variation');
+    assert.equal(moved?.srs?.level, 2, `${who}: the line kept its progress`);
+    assert.equal(lineIn(dev.state, 'c-advance', 'Tal Variation'), undefined, `${who}: and left the old chapter`);
+    const tl = chapter(dev.state, 'o-caro', 'c-tal');
+    assert.equal(tl.section, 'Mainlines', `${who}: in the Advance chapter's folder`);
+    assert.equal(tl.subsection, 'Tal Variation');
+  }
 });
 
-test('sub-variations: the iPad deletes a main line while the Mac files a line under it — the line stays, as a main line, everywhere', async () => {
+test('sub-variations: the iPad practises a line while the Mac sends it to a sub-variation — the move and the practice both land', async () => {
   const { mac, ipad } = await macAndIpadInSync();
-  mac.do({ type: 'nestVariation', openingId: 'o-caro', chapterId: 'c-advance', variationId: idOf(mac.state, 'c-advance', 'Short System'), parentId: idOf(mac.state, 'c-advance', 'Tal Variation') });
-  ipad.do({ type: 'deleteVariation', openingId: 'o-caro', chapterId: 'c-advance', variationId: idOf(ipad.state, 'c-advance', 'Tal Variation') });
+  const tal = lineIn(mac.state, 'c-advance', 'Tal Variation');
+  mac.do({ type: 'sendToSubVariation', openingId: 'o-caro', chapterId: 'c-advance', variationIds: [tal.id], newChapterId: 'c-tal', name: 'Tal' });
+  ipad.do({ type: 'recordPractice', openingId: 'o-caro', chapterId: 'c-advance', variationId: tal.id, srs: { level: 1, due: 2e12, lastReview: 1.9e12 } });
   await mac.sync();
   await ipad.sync();
   await mac.sync();
   for (const [who, dev] of [['Mac', mac], ['iPad', ipad]]) {
-    assert.deepEqual(nesting(dev.state, 'c-advance'), ['Short System'], who);
+    const all = opening(dev.state, 'o-caro').chapters.flatMap((c) => c.variations.filter((x) => x.id === tal.id).map(() => c.id));
+    assert.deepEqual(all, ['c-tal'], `${who}: the line is in the sub-variation, once`);
+    assert.equal(lineIn(dev.state, 'c-tal', 'Tal Variation')?.srs?.level, 1, `${who}: with the iPad's practice`);
   }
+});
+
+test('sub-variations: a chapter filed under another on the iPad, and taken out again on the Mac, reaches every device', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  ipad.do({ type: 'makeSubVariation', openingId: 'o-caro', chapterId: 'c-misc', parentId: 'c-twoknights' });
+  await ipad.sync();
+  await mac.sync();
+  const misc = chapter(mac.state, 'o-caro', 'c-misc');
+  assert.deepEqual([misc.section, misc.subsection], ['Sidelines', 'Odds and ends'], 'the Mac: in Two Knights\' folder, as a sub-variation');
+  mac.do({ type: 'leaveFolder', openingId: 'o-caro', chapterId: 'c-misc' });
+  await mac.sync();
+  await ipad.sync();
+  const back = chapter(ipad.state, 'o-caro', 'c-misc');
+  assert.deepEqual([back.section, back.subsection], [null, null], 'the iPad: on its own again');
+});
+
+
+// ---------- Sub-variations: from the review ----------
+
+const idOf = (st, cid, name) => chapter(st, 'o-caro', cid).variations.find((x) => x.name === name).id;
+
+// Every line in exactly one chapter.
+const homesOf = (st) => {
+  const out = {};
+  for (const o of st.openings) for (const c of o.chapters) for (const v of c.variations) (out[v.id] ??= []).push(c.id);
+  return out;
+};
+const assertOneHome = (st, who) => {
+  for (const [id, where] of Object.entries(homesOf(st))) assert.equal(where.length, 1, `${who}: line ${id} is in ${where.join(', ')}`);
+};
+
+async function bothSend(macName, ipadName) {
+  const { mac, ipad } = await macAndIpadInSync();
+  const ids = chapter(mac.state, 'o-caro', 'c-advance').variations.map((x) => x.id);
+  mac.do({ type: 'sendToSubVariation', openingId: 'o-caro', chapterId: 'c-advance', variationIds: ids, newChapterId: 'c-mac', name: macName });
+  ipad.do({ type: 'sendToSubVariation', openingId: 'o-caro', chapterId: 'c-advance', variationIds: ids, newChapterId: 'c-ipad', name: ipadName });
+  await mac.sync();
+  await ipad.sync();
+  await mac.sync();
+  const iphone = new Device('iphone', 'a new iPhone');
+  await iphone.sync();
+  return { mac, ipad, iphone, ids };
+}
+
+for (const [label, macName, ipadName] of [['under the same name', 'Short lines', 'Short lines'], ['under different names', 'Short lines', 'Shorts']]) {
+  test(`sub-variations: both devices send the same lines ${label} before either syncs — every line ends up once, in one sub-variation, and no empty twin is left`, async () => {
+    const { mac, ipad, iphone, ids } = await bothSend(macName, ipadName);
+    for (const [who, dev] of [['Mac', mac], ['iPad', ipad], ['iPhone', iphone]]) {
+      assertOneHome(dev.state, who);
+      const holding = opening(dev.state, 'o-caro').chapters.filter((c) => c.variations.some((x) => ids.includes(x.id)));
+      assert.equal(holding.length, 1, `${who}: one sub-variation holds them`);
+      assert.deepEqual(opening(dev.state, 'o-caro').chapters.filter((c) => ['c-mac', 'c-ipad'].includes(c.id)).map((c) => c.id), [holding[0].id], `${who}: no empty twin`);
+    }
+    assert.deepEqual(chapterIds(mac.state, 'o-caro'), chapterIds(ipad.state, 'o-caro'), 'both agree');
+  });
+}
+
+test('sub-variations: the Mac sends a line while the iPad deletes it — it stays deleted everywhere', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  const tal = idOf(mac.state, 'c-advance', 'Tal Variation');
+  mac.do({ type: 'sendToSubVariation', openingId: 'o-caro', chapterId: 'c-advance', variationIds: [tal], newChapterId: 'c-tal', name: 'Tal' });
+  ipad.do({ type: 'deleteVariation', openingId: 'o-caro', chapterId: 'c-advance', variationId: tal });
+  await mac.sync();
+  await ipad.sync();
+  await mac.sync();
+  for (const [who, dev] of [['Mac', mac], ['iPad', ipad]]) assert.equal(homesOf(dev.state)[tal], undefined, who);
+});
+
+test('sub-variations: the Mac sends lines out of a chapter the iPad deletes — the lines the Mac kept survive', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  const tal = idOf(mac.state, 'c-advance', 'Tal Variation');
+  mac.do({ type: 'sendToSubVariation', openingId: 'o-caro', chapterId: 'c-advance', variationIds: [tal], newChapterId: 'c-tal', name: 'Tal' });
+  ipad.do({ type: 'deleteChapter', openingId: 'o-caro', chapterId: 'c-advance' });
+  await mac.sync();
+  await ipad.sync();
+  await mac.sync();
+  for (const [who, dev] of [['Mac', mac], ['iPad', ipad]]) assert.deepEqual(homesOf(dev.state)[tal], ['c-tal'], who);
+});
+
+test('sub-variations: the Mac and the iPad file the same chapter in different folders — it ends up in one of the places a device chose, not a mix', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  mac.do({ type: 'makeSubVariation', openingId: 'o-caro', chapterId: 'c-misc', parentId: 'c-twoknights' });
+  ipad.do({ type: 'makeSubVariation', openingId: 'o-caro', chapterId: 'c-misc', section: 'Mainlines' });
+  const chosen = [
+    [chapter(mac.state, 'o-caro', 'c-misc').section, chapter(mac.state, 'o-caro', 'c-misc').subsection],
+    [chapter(ipad.state, 'o-caro', 'c-misc').section, chapter(ipad.state, 'o-caro', 'c-misc').subsection],
+  ].map(String);
+  await mac.sync();
+  await ipad.sync();
+  await mac.sync();
+  for (const [who, dev] of [['Mac', mac], ['iPad', ipad]]) {
+    const c = chapter(dev.state, 'o-caro', 'c-misc');
+    assert.ok(chosen.includes(String([c.section, c.subsection])), `${who}: ${c.section} / ${c.subsection}`);
+  }
+});
+
+test('sub-variations: a practice session still open on the iPad after the line moved — its result lands on the line in its new chapter', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  const tal = idOf(mac.state, 'c-advance', 'Tal Variation');
+  mac.do({ type: 'sendToSubVariation', openingId: 'o-caro', chapterId: 'c-advance', variationIds: [tal], newChapterId: 'c-tal', name: 'Tal' });
+  await mac.sync();
+  await ipad.sync(); // the iPad now has the move, but its session still says c-advance
+  ipad.do({ type: 'recordPractice', openingId: 'o-caro', chapterId: 'c-advance', variationId: tal, srs: { level: 2, due: 2e12, lastReview: 1.9e12 } });
+  assert.equal(lineIn(ipad.state, 'c-tal', 'Tal Variation').srs.level, 2);
+  await ipad.sync();
+  await mac.sync();
+  assert.equal(lineIn(mac.state, 'c-tal', 'Tal Variation').srs.level, 2, 'and reaches the Mac');
+});
+
+test('sub-variations: a line in a playlist stays in it after being sent', () => {
+  const mac = buildLibrary(new Device('mac', 'Mac'));
+  const tal = idOf(mac.state, 'c-advance', 'Tal Variation');
+  mac.do({ type: 'addPlaylist', id: 'pl', name: 'Tricky' });
+  mac.do({ type: 'addToPlaylist', playlistId: 'pl', openingId: 'o-caro', chapterId: 'c-advance', variationId: tal });
+  mac.do({ type: 'sendToSubVariation', openingId: 'o-caro', chapterId: 'c-advance', variationIds: [tal], newChapterId: 'c-tal', name: 'Tal' });
+  const pl = mac.state.playlists.find((p) => p.id === 'pl');
+  assert.deepEqual(pl?.items, [{ openingId: 'o-caro', chapterId: 'c-tal', variationId: tal }]);
+});
+
+test('sub-variations: moving a sub-variation stays inside its folder; nesting a folder keeps its sub-variations\' names; a head changing course takes its folder', () => {
+  const mac = buildLibrary(new Device('mac', 'Mac'));
+  // Advance and Exchange are in "Mainlines" with no sub-sections; make two.
+  mac.do({ type: 'makeSubVariation', openingId: 'o-caro', chapterId: 'c-advance', section: 'Mainlines' });
+  mac.do({ type: 'makeSubVariation', openingId: 'o-caro', chapterId: 'c-exchange', section: 'Mainlines' });
+  const subsOrder = (st) => opening(st, 'o-caro').chapters.filter((c) => c.section === 'Mainlines' && c.subsection).map((c) => c.id);
+  const before = subsOrder(mac.state);
+  const otherSections = opening(mac.state, 'o-caro').chapters.filter((c) => c.section !== 'Mainlines').map((c) => c.id);
+  mac.do({ type: 'moveSection', openingId: 'o-caro', key: `Mainlines|${chapter(mac.state, 'o-caro', before[1]).subsection}`, dir: -1 });
+  assert.deepEqual(subsOrder(mac.state), [before[1], before[0]], 'swapped within the folder');
+  assert.deepEqual(opening(mac.state, 'o-caro').chapters.filter((c) => c.section !== 'Mainlines').map((c) => c.id), otherSections);
+
+  mac.do({ type: 'nestSection', openingId: 'o-caro', from: 'Mainlines', under: 'Sidelines' });
+  assert.equal(chapter(mac.state, 'o-caro', 'c-advance').subsection, 'Advance', 'kept its own name');
+
+  const ex = new Device('ex', 'Ex');
+  ex.do({ type: 'addOpening', id: 'o', name: 'O', color: 'black' });
+  ex.do({ type: 'addCourse', openingId: 'o', id: 'k', name: 'Moser' });
+  ex.do({ type: 'addChapter', openingId: 'o', id: 'h', name: 'Exchange' });
+  ex.do({ type: 'addVariations', openingId: 'o', chapterId: 'h', variations: [line('a', ['e4']), line('b', ['d4'])] });
+  const b = opening(ex.state, 'o').chapters[0].variations[1].id;
+  ex.do({ type: 'sendToSubVariation', openingId: 'o', chapterId: 'h', variationIds: [b], newChapterId: 's', name: 'Panov' });
+  ex.do({ type: 'setChapterCourse', openingId: 'o', chapterId: 'h', courseId: 'k' });
+  assert.deepEqual(opening(ex.state, 'o').chapters.map((c) => c.courseId), ['k', 'k']);
+});
+
+test('sub-variations: re-copying an opening to a student after lines were sent doesn\'t give the student a second copy', () => {
+  const mac = buildLibrary(new Device('mac', 'Mac'));
+  const lines = chapter(mac.state, 'o-caro', 'c-advance').variations.map((x) => x.id);
+  mac.do({ type: 'copyOpeningsToPlayers', playerIds: ['p-parker'], variationIds: lines });
+  mac.do({ type: 'sendToSubVariation', openingId: 'o-caro', chapterId: 'c-advance', variationIds: [lines[1]], newChapterId: 'c-tal', name: 'Tal' });
+  mac.do({ type: 'copyOpeningsToPlayers', playerIds: ['p-parker'], variationIds: lines });
+  const theirs = mac.state.openings.find((o) => o.ownerId === 'p-parker' && o.name === 'Caro-Kann');
+  const names = theirs.chapters.flatMap((c) => c.variations.map((x) => x.name));
+  assert.deepEqual(names.sort(), ['Short System', 'Tal Variation']);
 });

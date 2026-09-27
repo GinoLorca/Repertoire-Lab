@@ -27,6 +27,9 @@ export function useLongPress(onOpen, { disabled = false } = {}) {
   return {
     onPointerDown: (e) => {
       fired.current = false;
+      // Only presses on the element itself: a dialog or menu it opened is
+      // portaled elsewhere in the page, but React still passes its events up.
+      if (!e.currentTarget.contains(e.target)) return;
       if (e.pointerType === 'mouse') return;
       // A long press on a checkbox or a text box is theirs.
       if (e.target.closest('input, textarea, select')) return;
@@ -55,6 +58,7 @@ export function useLongPress(onOpen, { disabled = false } = {}) {
       e.stopPropagation();
     },
     onContextMenu: (e) => {
+      if (!e.currentTarget.contains(e.target)) return;
       if (e.target.closest('input, textarea, select')) return;
       e.preventDefault();
       // Android sends a contextmenu for a long press too; the timer has

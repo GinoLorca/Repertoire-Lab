@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { CommentIcon } from './Icons';
 import MoveBadge from './MoveBadge';
 import { useStore } from '../store';
+import { parseMarks } from '../lib/studyText';
 
 // "4." for White's move, "4…" for Black's, from a 0-based move index.
 const label = (i) => `${Math.floor(i / 2) + 1}${i % 2 === 0 ? '.' : '…'}`;
@@ -144,7 +145,10 @@ export default function MoveNote({
 }) {
   const { state } = useStore();
   const showBadges = state.settings.showMoveListBadges !== false;
-  if (!text) return null;
+  // A note from a Lichess or Chessable export carries its arrows as
+  // [%cal …] codes — for Study's board to draw, not for anyone to read.
+  const readable = parseMarks(text).text;
+  if (!readable) return null;
   return (
     <div className={`move-note${stale ? ' stale' : ''}${highlight ? ' called-out' : ''}${float ? ' floating' : ''}`}>
       <span className="mn-move">
@@ -153,7 +157,7 @@ export default function MoveNote({
         {showBadges && badgeId && <MoveBadge id={badgeId} size={14} />}
       </span>
       <div className="mn-body">
-        <p><AnnotatedText text={text} onMoveClick={onMoveClick} /></p>
+        <p><AnnotatedText text={readable} onMoveClick={onMoveClick} /></p>
       </div>
     </div>
   );
@@ -164,7 +168,7 @@ export default function MoveNote({
 export function noteFor(comments, moves, ply) {
   if (!comments || ply <= 0) return null;
   for (let i = ply - 1; i >= 0; i -= 1) {
-    if (comments[i]) {
+    if (comments[i] && parseMarks(comments[i]).text) {
       return { text: comments[i], san: moves[i], index: i, stale: i !== ply - 1 };
     }
   }

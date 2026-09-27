@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import ChapterVideo from '../components/ChapterVideo';
 import { fmtTime } from '../lib/videoLinks';
@@ -13,10 +13,8 @@ import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import PgnImport from '../components/PgnImport';
 import MoreMenu, { MenuSheet } from '../components/MoreMenu';
 import Pressable from '../components/Pressable';
-import {
-  grouped, moveGrouped, parentsOf, regroupIds, suggestParent,
-} from '../lib/variationGroups';
-import { useBackGuard } from '../lib/backGuard';
+import SendToSubVariation from '../components/SendToSubVariation';
+import { headOf, subVariationsOf, subLabel } from '../lib/subVariations';
 import ReorderSheet from '../components/ReorderSheet';
 import { useIsPhone } from '../components/useViewportWidth';
 import {
@@ -24,7 +22,9 @@ import {
   UploadIcon, CheckboxIcon, VideoIcon, LinkIcon,
 } from '../components/Icons';
 
-export default function ChapterView({ openingId, chapterId, onBack, onPractice, onAnalyze }) {
+export default function ChapterView({
+  openingId, chapterId, onBack, onPractice, onAnalyze, onOpenChapter,
+}) {
   const { state, dispatch } = useStore();
   const isPhone = useIsPhone();
   const opening = state.openings.find((o) => o.id === openingId);
@@ -42,7 +42,14 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
   const [browsing, setBrowsing] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [menuFor, setMenuFor] = useState(null); // { id, at } — a line's long-press / right-click menu
-  const [nestingId, setNestingId] = useState(null); // choosing the line to file this one under
+  const [sending, setSending] = useState(null); // { anchorId } or { ids } — lines on their way to a sub-variation
+  const [sentNote, setSentNote] = useState(null); // { chapterId, name, count } — where they went
+  // Said where it can be seen: the note sits under the title, and a send
+  // started from a line far down the chapter would otherwise go unconfirmed.
+  const subvarRef = useRef(null);
+  useEffect(() => {
+    if (sentNote) subvarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [sentNote]);
   const viewing = chapter?.variations.find((v) => v.id === viewingId);
   const videoRef = useRef(null);
   const videoBlockRef = useRef(null);
@@ -60,13 +67,13 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
   };
 
   const openBulk = () => {
-    setBulkText(grouped(chapter?.variations ?? []).map((v) => v.name).join('\n'));
+    setBulkText((chapter?.variations ?? []).map((v) => v.name).join('\n'));
     setBulkOpen(true);
   };
 
   const applyBulk = () => {
     const names = bulkText.split(/\r?\n/).map((n) => n.trim());
-    grouped(chapter.variations).forEach((v, i) => {
+    chapter.variations.forEach((v, i) => {
       const name = names[i];
       if (name && name !== v.name) {
         dispatch({ type: 'renameVariation', openingId, chapterId, variationId: v.id, name });
@@ -83,24 +90,19 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
     );
   }
 
-  // The lines in reading order — each main line followed by its
-  // sub-variations (lib/variationGroups.js).
-  const ordered = grouped(chapter.variations);
-  const parentOf = parentsOf(ordered);
-  const lineById = new Map(ordered.map((v) => [v.id, v]));
-  const subsOf = new Map();
-  for (const v of ordered) {
-    const p = parentOf.get(v.id);
-    if (p) subsOf.set(p, [...(subsOf.get(p) ?? []), v]);
-  }
+  const lineById = new Map(chapter.variations.map((v) => [v.id, v]));
+  // Where this chapter sits among sub-variations, the way the Library files
+  // them (lib/subVariations.js): the ones filed under it, or the one it's
+  // filed under.
+  // The folder's sub-variations are listed on every chapter in it that isn't
+  // one itself, as the Library shows them together.
+  const subChapters = chapter.subsection ? [] : subVariationsOf(opening, chapter);
+  const folderHead = chapter.subsection ? headOf(opening.chapters, chapter.section, chapter.courseId) : null;
 
   // Everything you can do to one line: behind ⋯ on a phone, and a long
   // press or right-click on any line anywhere.
   const lineMenu = (variation) => {
     const linked = showVideo && chapter.video && variation.videoTimestamp != null;
-    const parent = lineById.get(parentOf.get(variation.id));
-    const subs = subsOf.get(variation.id) ?? [];
-    const canNest = !parent && ordered.some((v) => v.id !== variation.id && !parentOf.get(v.id));
     const move = (dir) => () => dispatch({ type: 'moveVariation', openingId, chapterId, variationId: variation.id, dir });
     return [
       {
@@ -125,24 +127,11 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
         onClick: () => setTagging({ kind: 'variation', variationId: variation.id }),
       },
       { sep: true },
-      parent && {
-        label: 'Make it a main line again',
-        hint: `now a sub-variation of ${parent.name}`,
-        icon: '⤴',
-        onClick: () => dispatch({ type: 'unnestVariation', openingId, chapterId, variationId: variation.id }),
-      },
-      canNest && {
-        label: 'Make it a sub-variation of…',
-        hint: subs.length
-          ? `its ${subs.length} sub-variation${subs.length === 1 ? '' : 's'} come${subs.length === 1 ? 's' : ''} along`
-          : 'file it under another line in this chapter',
+      {
+        label: 'Send to a sub-variation…',
+        hint: 'a chapter of its own, filed with this one — like Tartakower under Classical',
         icon: '⤵',
-        onClick: () => setNestingId(variation.id),
-      },
-      subs.length > 0 && {
-        label: variation.subsCollapsed ? `Show its ${subs.length} sub-variation${subs.length === 1 ? '' : 's'}` : `Hide its ${subs.length} sub-variation${subs.length === 1 ? '' : 's'}`,
-        icon: variation.subsCollapsed ? '▸' : '▾',
-        onClick: () => dispatch({ type: 'toggleSubVariations', openingId, chapterId, variationId: variation.id }),
+        onClick: () => setSending({ anchorId: variation.id }),
       },
       showVideo && chapter.video && { sep: true },
       showVideo && chapter.video && !linked && {
@@ -166,15 +155,14 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
         }),
       },
       { sep: true },
-      { label: 'Move up', hint: parent ? `within ${parent.name}` : undefined, icon: '▲', onClick: move(-1) },
-      { label: 'Move down', hint: parent ? `within ${parent.name}` : undefined, icon: '▼', onClick: move(1) },
+      { label: 'Move up', icon: '▲', onClick: move(-1) },
+      { label: 'Move down', icon: '▼', onClick: move(1) },
       { sep: true },
       {
         label: 'Delete variation',
         danger: true,
         onClick: () => {
-          const also = subs.length ? `\n\nIts sub-variations stay, as main lines.` : '';
-          if (window.confirm(`Delete "${variation.name}"?${also}`)) {
+          if (window.confirm(`Delete "${variation.name}"?`)) {
             dispatch({ type: 'deleteVariation', openingId, chapterId, variationId: variation.id });
           }
         },
@@ -448,6 +436,37 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
       </div>
       )}
 
+      {(folderHead || chapter.subsection || subChapters.length > 0 || sentNote) && (
+        <div className="subvar-bar" ref={subvarRef}>
+          {chapter.subsection && (
+            <span>
+              Sub-variation of{' '}
+              {folderHead
+                ? <a onClick={() => onOpenChapter?.(openingId, folderHead.id)}>{chapter.section}</a>
+                : <strong>{chapter.section}</strong>}
+            </span>
+          )}
+          {subChapters.length > 0 && (
+            <span className="subvar-links">
+              Sub-variations:
+              {subChapters.map((c) => (
+                <button key={c.id} type="button" className="sub-chip link" onClick={() => onOpenChapter?.(openingId, c.id)}>
+                  {subLabel(opening, c)}
+                  <span className="muted-note"> · {c.variations.length}</span>
+                </button>
+              ))}
+            </span>
+          )}
+          {sentNote && (
+            <span className="subvar-sent" role="status">
+              Sent {sentNote.count} line{sentNote.count === 1 ? '' : 's'} to{' '}
+              <a onClick={() => onOpenChapter?.(openingId, sentNote.chapterId)}>{sentNote.name}</a>
+              <button type="button" className="small ghost" aria-label="Dismiss" onClick={() => setSentNote(null)}>✕</button>
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Nothing renders here at all when the setting is off, or wrapped in a
           ref div only while there's something to scroll to — a chapter with
           no video and the feature enabled still gets the slim "add a video"
@@ -486,6 +505,13 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
           <button className="small ghost" onClick={() => setChosen({})}>Clear</button>
           <span style={{ flex: 1 }} />
           <button
+            disabled={chosenIds.length === 0}
+            title="Move the ticked lines to a sub-variation of this chapter — a chapter of their own, filed with this one"
+            onClick={() => setSending({ ids: chosenIds })}
+          >
+            ⤵ Send to a sub-variation
+          </button>
+          <button
             className="danger"
             disabled={chosenIds.length === 0}
             onClick={() => setConfirmDelete(true)}
@@ -517,26 +543,13 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
         </div>
       )}
 
-      {ordered.map((variation) => {
-        const parent = lineById.get(parentOf.get(variation.id));
-        if (parent?.subsCollapsed) return null;
-        const subs = subsOf.get(variation.id) ?? [];
-        const subsToggle = subs.length > 0 && (
-          <button
-            type="button"
-            className="small ghost subs-toggle"
-            title={variation.subsCollapsed ? 'Show its sub-variations' : 'Hide its sub-variations'}
-            onClick={() => dispatch({ type: 'toggleSubVariations', openingId, chapterId, variationId: variation.id })}
-          >
-            {variation.subsCollapsed ? '▸' : '▾'} {subs.length} sub-variation{subs.length === 1 ? '' : 's'}
-          </button>
-        );
+      {chapter.variations.map((variation) => {
         const due = isDue(variation);
         const green = isPracticed(variation);
         return (
           <Pressable
             key={variation.id}
-            className={`variation-row${parent ? ' sub-variation' : ''}${green ? ' practiced' : ''}${due ? ' due' : ''}${picking && chosen[variation.id] ? ' chosen' : ''}`}
+            className={`variation-row${green ? ' practiced' : ''}${due ? ' due' : ''}${picking && chosen[variation.id] ? ' chosen' : ''}`}
             disabled={picking}
             onMenu={(at) => setMenuFor({ id: variation.id, at })}
           >
@@ -547,7 +560,7 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
               // Mainline: 3...e6 with 4...c6" down to one word per line.
               const linked = showVideo && chapter.video && variation.videoTimestamp != null;
               const hasMeta = green || variation.learned || due || variation.srs?.level > 0
-                || variation.tags?.length > 0 || linked || subs.length > 0;
+                || variation.tags?.length > 0 || linked;
               return (
                 <>
                   <div className="row-head phone-line-head">
@@ -571,7 +584,6 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
                   </div>
                   {hasMeta && (
                     <div className="phone-line-meta">
-                      {subsToggle}
                       {green && !due && (
                         <span className="practiced-pill"><CheckIcon size={13} /> practiced</span>
                       )}
@@ -621,7 +633,6 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
                 <StarIcon size={16} filled={variation.starred} />
               </button>
               <h3>{variation.name}</h3>
-              {subsToggle}
               <TagChips tags={variation.tags} max={3} />
               {green && !due && (
                 <span className="practiced-pill" title="Learned and recalled cleanly at least once">
@@ -771,15 +782,17 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
         />
       )}
 
-      {nestingId && lineById.get(nestingId) && (
-        <ParentPicker
-          line={lineById.get(nestingId)}
-          lines={ordered}
-          parentOf={parentOf}
-          onClose={() => setNestingId(null)}
-          onPick={(parentId) => {
-            dispatch({ type: 'nestVariation', openingId, chapterId, variationId: nestingId, parentId });
-            setNestingId(null);
+      {sending && (
+        <SendToSubVariation
+          opening={opening}
+          chapter={chapter}
+          anchorId={sending.anchorId ?? null}
+          initialIds={sending.ids ?? null}
+          onClose={() => setSending(null)}
+          onSent={(note) => {
+            setSending(null);
+            leavePicking();
+            setSentNote(note);
           }}
         />
       )}
@@ -787,9 +800,7 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
       {reordering && (
         <ReorderSheet
           title={chapter.name}
-          items={reorderItems(ordered, parentOf)}
-          regroup={(ids) => regroupIds(ids, parentOf)}
-          step={(ids, id, dir) => moveGrouped(ids.map((x) => lineById.get(x)), id, dir).map((v) => v.id)}
+          items={reorderItems(chapter.variations)}
           onClose={() => setReordering(false)}
           onDone={(ids) => {
             dispatch({ type: 'setVariationOrder', openingId, chapterId, ids });
@@ -813,7 +824,7 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
                 onChange={(e) => setBulkText(e.target.value)}
               />
               <ol className="bulk-preview">
-                {grouped(chapter.variations).map((v, i) => {
+                {chapter.variations.map((v, i) => {
                   const next = bulkText.split(/\r?\n/)[i]?.trim();
                   return (
                     <li key={v.id} className={next && next !== v.name ? 'changed' : ''}>
@@ -952,7 +963,7 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
 // One row per line for the Reorder sheet. Every line in a chapter starts the
 // same way, so each shows its moves from where it parts from the others —
 // that's what tells two lines apart.
-function reorderItems(variations, parentOf = new Map()) {
+function reorderItems(variations) {
   const shared = variations.length < 2 ? 0 : variations.reduce((n, v) => {
     let i = 0;
     while (i < n && v.moves[i] === variations[0].moves[i]) i += 1;
@@ -962,7 +973,6 @@ function reorderItems(variations, parentOf = new Map()) {
   return variations.map((v) => ({
     id: v.id,
     name: v.name,
-    parentId: parentOf.get(v.id) ?? null,
     moves: v.moves,
     sub: numbered(v.moves, from, 8) || '(no moves)',
   }));
@@ -978,40 +988,3 @@ function numbered(moves, from, count) {
   if (!out.length) return '';
   return (from > 0 ? '… ' : '') + out.join(' ') + (moves.length > from + count ? ' …' : '');
 }
-
-// "Make it a sub-variation of…": which main line to file it under. The one
-// it most likely belongs to — sharing the most moves with it — comes first.
-function ParentPicker({ line, lines, parentOf, onPick, onClose }) {
-  useBackGuard(true, onClose);
-  const candidates = lines.filter((v) => v.id !== line.id && !parentOf.get(v.id));
-  const suggested = suggestParent(lines, line.id);
-  const sorted = suggested
-    ? [candidates.find((v) => v.id === suggested), ...candidates.filter((v) => v.id !== suggested)]
-    : candidates;
-  const moves = new Map(reorderItems(lines).map((it) => [it.id, it.sub]));
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
-        <h3 style={{ marginTop: 0 }}>Make “{line.name}” a sub-variation of…</h3>
-        <p className="hint">It moves under the line you pick, indented beneath it. You can make it a main line again any time.</p>
-        <ul className="parent-pick">
-          {sorted.map((v) => (
-            <li key={v.id}>
-              <button type="button" className={v.id === suggested ? 'suggested' : ''} onClick={() => onPick(v.id)}>
-                <strong>
-                  {v.name}
-                  {v.id === suggested && <span className="muted-note"> · most likely — shares the most moves</span>}
-                </strong>
-                <span className="pick-moves">{moves.get(v.id)}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        <div className="modal-actions">
-          <button onClick={onClose}>Cancel</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-

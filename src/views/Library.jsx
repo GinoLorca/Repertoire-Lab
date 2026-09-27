@@ -8,7 +8,10 @@ import { processArtwork } from '../lib/artwork';
 import { useBackGuard } from '../lib/backGuard';
 import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import PgnImport from '../components/PgnImport';
-import MoreMenu from '../components/MoreMenu';
+import MoreMenu, { MenuSheet } from '../components/MoreMenu';
+import Pressable from '../components/Pressable';
+import FileAsSubVariation from '../components/FileAsSubVariation';
+import { headOf, isHead, subVariationsOf } from '../lib/subVariations';
 import { useIsPhone } from '../components/useViewportWidth';
 import {
   ImageIcon, TagIcon, StarIcon, PencilIcon, ClockIcon, CheckIcon, DownloadIcon, UploadIcon, PlayIcon,
@@ -151,7 +154,10 @@ function FolderCard({
   const isPhone = useIsPhone();
   const t = tallyChapters(chapters);
   const pct = t.variations ? Math.round((t.practiced / t.variations) * 100) : 0;
-  const green = chapters.length > 0 && chapters.every(chapterPracticed);
+  // A chapter with no lines doesn't hold a folder back — the opening counts
+  // it the same way (openingPracticed).
+  const withLines = chapters.filter((c) => c.variations.length > 0);
+  const green = withLines.length > 0 && withLines.every(chapterPracticed);
   return (
     <div
       className={`chapter-card folder-card${open ? ' open' : ''}${green ? ' practiced' : ''}`}
@@ -377,7 +383,24 @@ function ChapterCard({
   const isPhone = useIsPhone();
   const [importing, setImporting] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [menu, setMenu] = useState(null); // { at } — a long press or right-click on the card
+  const [filing, setFiling] = useState(false);
   const total = chapter.variations.length;
+  // Filing it as a sub-variation, and back out — see lib/subVariations.js.
+  const subItems = [
+    {
+      label: 'Make it a sub-variation of…',
+      hint: 'file it under another chapter — like Tartakower under Classical',
+      icon: '⤵',
+      onClick: () => setFiling(true),
+    },
+    chapter.section && !(isHead(opening.chapters, chapter) && subVariationsOf(opening, chapter).length) && {
+      label: `Move out of “${chapter.section}”`,
+      hint: 'a chapter on its own again',
+      icon: '⤴',
+      onClick: () => dispatch({ type: 'leaveFolder', openingId: opening.id, chapterId: chapter.id }),
+    },
+  ];
   const learned = learnedCount(chapter);
   const practiced = practicedCount(chapter);
   const due = dueCount(chapter);
@@ -385,10 +408,12 @@ function ChapterCard({
   const pctDone = total ? Math.round((practiced / total) * 100) : 0;
 
   return (
-    <div
+    <>
+    <Pressable
       className={`chapter-card${green ? ' practiced' : ''}`}
       data-chapter-id={chapter.id}
       onClick={onOpen}
+      onMenu={(at) => setMenu({ at })}
       title={green ? 'Every line here is learned and practiced' : undefined}
     >
       {groupLabel && <span className="card-group-label">{groupLabel}</span>}
@@ -440,6 +465,8 @@ function ChapterCard({
                   disabled: total === 0,
                   onClick: () => downloadText(`${safeFilename(chapter.name)}.pgn`, chapterToPgn(opening, chapter)),
                 },
+                { sep: true },
+                ...subItems,
                 onMove && { sep: true },
                 onMove && { label: 'Move up', icon: '▲', onClick: () => onMove(-1) },
                 onMove && { label: 'Move down', icon: '▼', onClick: () => onMove(1) },
@@ -482,32 +509,62 @@ function ChapterCard({
           </>
         )}
 
-        {importing && (
-          <PgnImport
-            chapterName={chapter.name}
-            onClose={() => setImporting(false)}
-            onAdd={(variations) => dispatch({
-              type: 'addVariations', openingId: opening.id, chapterId: chapter.id, variations,
-            })}
-          />
-        )}
-        {confirming && (
-          <div className="modal-overlay" onClick={() => setConfirming(false)}>
-            <div className="modal" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
-              <h3>Delete “{chapter.name}”?</h3>
-              <p className="hint">
-                Its {chapter.variations.length} variation{chapter.variations.length === 1 ? '' : 's'} go
-                with it, along with what you've learned about them. Only a backup can bring them back.
-              </p>
-              <div className="modal-actions">
-                <button onClick={() => setConfirming(false)}>Cancel</button>
-                <button className="danger" onClick={() => { setConfirming(false); onDelete(); }}>Delete</button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
-    </div>
+    </Pressable>
+    {/* Beside the card rather than inside it: in it, a tap in one of these
+        dialogs reached the card's own long-press and right-click. */}
+    {importing && (
+      <PgnImport
+        chapterName={chapter.name}
+        onClose={() => setImporting(false)}
+        onAdd={(variations) => dispatch({
+          type: 'addVariations', openingId: opening.id, chapterId: chapter.id, variations,
+        })}
+      />
+    )}
+    {confirming && (
+      <div className="modal-overlay" onClick={() => setConfirming(false)}>
+        <div className="modal" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+          <h3>Delete “{chapter.name}”?</h3>
+          <p className="hint">
+            Its {chapter.variations.length} variation{chapter.variations.length === 1 ? '' : 's'} go
+            with it, along with what you've learned about them. Only a backup can bring them back.
+          </p>
+          <div className="modal-actions">
+            <button onClick={() => setConfirming(false)}>Cancel</button>
+            <button className="danger" onClick={() => { setConfirming(false); onDelete(); }}>Delete</button>
+          </div>
+        </div>
+      </div>
+    )}
+    {menu && (
+      <MenuSheet
+        title={chapter.name}
+        at={menu.at}
+        onClose={() => setMenu(null)}
+        items={[
+          { label: 'Open', icon: '↗', onClick: onOpen },
+          { label: 'Practice', icon: <PlayIcon size={16} />, disabled: total === 0, onClick: onPractice },
+          { sep: true },
+          ...subItems,
+          { sep: true },
+          { label: 'Add lines (PGN)', icon: <UploadIcon size={16} />, onClick: () => setImporting(true) },
+          {
+            label: 'Export chapter (PGN)',
+            icon: <DownloadIcon size={16} />,
+            disabled: total === 0,
+            onClick: () => downloadText(`${safeFilename(chapter.name)}.pgn`, chapterToPgn(opening, chapter)),
+          },
+          onMove && { sep: true },
+          onMove && { label: 'Move up', icon: '▲', onClick: () => onMove(-1) },
+          onMove && { label: 'Move down', icon: '▼', onClick: () => onMove(1) },
+          { sep: true },
+          { label: 'Delete chapter', danger: true, onClick: () => setConfirming(true) },
+        ]}
+      />
+    )}
+    {filing && <FileAsSubVariation opening={opening} chapter={chapter} onClose={() => setFiling(false)} />}
+    </>
   );
 }
 
@@ -1108,14 +1165,15 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
               const sections = groups.filter((g) => g.section !== '');
               const sectionNames = sections.map((g) => g.section);
 
-              const chapterCard = (chapter) => (
+              // `fixed`: the chapter a folder is of, which stays first in it.
+              const chapterCard = (chapter, { fixed = false } = {}) => (
                 <ChapterCard
                   key={chapter.id}
                   opening={opening}
                   chapter={chapter}
                   onOpen={() => onOpenChapter(opening.id, chapter.id)}
                   onDelete={() => dispatch({ type: 'deleteChapter', openingId: opening.id, chapterId: chapter.id })}
-                  onMove={(dir) => dispatch({ type: 'moveChapter', openingId: opening.id, chapterId: chapter.id, dir })}
+                  onMove={fixed ? null : (dir) => dispatch({ type: 'moveChapter', openingId: opening.id, chapterId: chapter.id, dir })}
                   onToggleStar={() => dispatch({ type: 'toggleChapterStar', openingId: opening.id, chapterId: chapter.id })}
                   onPractice={() => onPractice({ openingId: opening.id, chapterId: chapter.id, mode: 'practice' })}
                 />
@@ -1128,6 +1186,13 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                     const isOpen = !!openGroups[`open:${section}`];
                     const others = sectionNames.filter((s) => s !== section);
                     const hasSubs = subs.some((s) => s.subsection);
+                    // The chapter the folder is of comes first, the way
+                    // Exchange Variation reads before its Panov Attack —
+                    // wherever a sync happened to put it in the list.
+                    const head = hasSubs ? headOf(chapterList, section, courseId) : null;
+                    const ordered = head
+                      ? [...subs.filter((g) => !g.subsection), ...subs.filter((g) => g.subsection)]
+                      : subs;
                     return (
                       <React.Fragment key={section}>
                         <FolderCard
@@ -1213,7 +1278,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                           <div className="folder-open-panel">
                             <div className="chapter-grid">
                               {hasSubs
-                                ? subs.map(({ subsection, chapters: subChapters, key }) => (
+                                ? ordered.map(({ subsection, chapters: subChapters, key }) => (
                                   // A sub-section holding a single chapter would
                                   // be a folder wrapping one item — show the
                                   // chapter itself and skip the empty level.
@@ -1298,7 +1363,11 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                                       )}
                                     </React.Fragment>
                                   ) : (
-                                    <React.Fragment key={key}>{subChapters.map(chapterCard)}</React.Fragment>
+                                    <React.Fragment key={key}>
+                                      {subChapters.map((c) => (head && subChapters.length === 1
+                                        ? chapterCard(c, { fixed: true })
+                                        : chapterCard(c)))}
+                                    </React.Fragment>
                                   )
                                 ))
                                 : chapters.map(chapterCard)}
@@ -1329,7 +1398,8 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                     const courseChapters = chaptersIn(course.id);
                     const t = tallyChapters(courseChapters);
                     const pct = t.variations ? Math.round((t.practiced / t.variations) * 100) : 0;
-                    const green = courseChapters.length > 0 && courseChapters.every(chapterPracticed);
+                    const filled = courseChapters.filter((c) => c.variations.length > 0);
+                    const green = filled.length > 0 && filled.every(chapterPracticed);
                     const toggleCourse = () => dispatch({
                       type: 'toggleCourseCollapse', openingId: opening.id, courseId: course.id,
                     });

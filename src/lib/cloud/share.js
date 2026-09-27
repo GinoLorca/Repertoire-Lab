@@ -115,7 +115,9 @@ export async function dismissDelivery(id) {
 // new lines arrive, existing ones take the coach's corrections, and the
 // student's own progress is never rolled back.
 export function applyDelivery(state, delivery) {
-  return mergeBackup(state, { openings: delivery.openings ?? [] });
+  // The coach's arrangement is the newer one: lines they've since sent to a
+  // sub-variation arrive there, once, with the student's progress on them.
+  return mergeBackup(state, { openings: delivery.openings ?? [] }, { structure: 'incoming' });
 }
 
 export async function acceptDelivery(id) {

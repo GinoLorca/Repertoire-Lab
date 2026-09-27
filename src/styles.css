@@ -90,6 +90,7 @@
 :root.has-custom-bg .variation-list,
 :root.has-custom-bg .practice-status,
 :root.has-custom-bg .book-panel,
+:root.has-custom-bg .study-panel,
 :root.has-custom-bg .move-note {
   border-color: var(--outline);
   box-shadow: 0 6px 22px var(--shadow);
@@ -107,6 +108,7 @@
 :root.has-custom-bg .page > .hint,
 :root.has-custom-bg .page > p.muted-note,
 :root.has-custom-bg .roster-subtitle,
+:root.has-custom-bg .subvar-bar,
 :root.has-custom-bg .opening-stats,
 :root.has-custom-bg .board-editor-panel,
 :root.has-custom-bg .cv-bar,
@@ -132,6 +134,7 @@
 :root.has-custom-bg .variation-list,
 :root.has-custom-bg .practice-status,
 :root.has-custom-bg .book-panel,
+:root.has-custom-bg .study-panel,
 :root.has-custom-bg .annotate-bar,
 :root.has-custom-bg .draw-hint,
 :root.has-custom-bg .settings-tabs,
@@ -142,6 +145,7 @@
   -webkit-backdrop-filter: blur(10px) saturate(1.1);
 }
 :root.has-custom-bg .panel,
+:root.has-custom-bg .study-panel,
 :root.has-custom-bg .settings-section,
 :root.has-custom-bg .page > .page-head,
 :root.has-custom-bg .breadcrumb,
@@ -390,7 +394,8 @@
 :root[data-theme="light"] .cmp-side,
 :root[data-theme="light"] .opening-row,
 :root[data-theme="light"] .practice-status,
-:root[data-theme="light"] .book-panel {
+:root[data-theme="light"] .book-panel,
+:root[data-theme="light"] .study-panel {
   box-shadow: 0 1px 2px rgba(31, 41, 61, 0.06);
 }
 :root[data-theme="light"] .topbar { box-shadow: 0 1px 3px rgba(31, 41, 61, 0.07); }
@@ -688,6 +693,17 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 .viewer-board { flex: 0 0 auto; }
 .viewer-side { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+/* Too narrow for board and list side by side (a phone, a phone on its side,
+   an iPad mini upright): one above the other, and the panel scrolls, so
+   nothing ends up off the screen. */
+.viewer-panel.stacked { flex-direction: column; overflow-y: auto; }
+.viewer-panel.stacked .viewer-board { align-self: center; }
+.viewer-panel.stacked .viewer-side { min-width: 0; overflow: visible; }
+@media (max-width: 600px) {
+  .viewer-panel { flex-direction: column; overflow-y: auto; }
+  .viewer-side { min-width: 0; }
+  .viewer-board { align-self: center; }
+}
 .viewer-side h3 { margin: 0; font-size: 17px; }
 .viewer-moves {
   flex: 1; overflow-y: auto; background: var(--bg); border-radius: 10px; padding: 12px;
@@ -2149,9 +2165,54 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   100% { background: var(--card); }
 }
 
-.folder-card { border-color: #3d4759; background: #262c39; }
-.folder-card:hover { background: var(--card-hover); }
-.folder-card.open { border-color: var(--accent-dim); }
+/* A folder of sub-variations (Classical (Mainline) ▸ Tartakower, Karpov).
+   It stands out by being highlighted in the theme's own accent — a bar down
+   its left edge and a faint wash of it — not by being a dark block, which on
+   a light theme read as a hole in the page.
+   The bar is its own element and the wash a layer on top of whatever
+   background the theme gives cards, because themes restyle a card's
+   background, border and shadow with stronger rules of their own (light,
+   Bauhaus, a custom picture). :root lifts these to the same strength, and
+   coming later in the file they win. */
+:root .chapter-card.folder-card {
+  position: relative;
+  overflow: hidden;
+  padding-left: 24px;
+  border-color: var(--accent-dim);
+  /* Fading down the card, so the counts and buttons at the bottom sit on the
+     plain card colour and keep their contrast. */
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%);
+}
+:root .chapter-card.folder-card:hover {
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%);
+}
+/* The bar takes a strip of the card; the buttons wrap rather than be cut off. */
+:root .chapter-card.folder-card .card-actions { flex-wrap: wrap; justify-content: flex-end; }
+:root .chapter-card.folder-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+  background: var(--accent);
+}
+/* On a light page a wash of a dark accent (navy on Bauhaus cream) comes out
+   grey, which reads as dimmed, not highlighted: there the card keeps its own
+   colour and the accent does the work — bar, border and title. */
+:root[data-theme="light"] .chapter-card.folder-card,
+:root[data-theme="light"] .chapter-card.folder-card:hover { background-image: none; }
+:root[data-theme="light"] .chapter-card.folder-card { border-color: var(--accent-dim); }
+:root .chapter-card.folder-card.open { border-color: var(--accent); }
+:root .chapter-card.folder-card.practiced { border-color: rgba(46, 204, 113, 0.55); }
+:root .chapter-card.folder-card.practiced::before { background: var(--green); }
+/* Done: the green wash every finished card has, in light themes too. */
+:root .chapter-card.folder-card.practiced,
+:root[data-theme="light"] .chapter-card.folder-card.practiced {
+  background-image: linear-gradient(180deg, rgba(46, 204, 113, 0.10), transparent 70%);
+}
+:root .chapter-card.folder-card.practiced:hover,
+:root[data-theme="light"] .chapter-card.folder-card.practiced:hover {
+  background-image: linear-gradient(180deg, rgba(46, 204, 113, 0.16), transparent 70%);
+}
+.folder-card h3 { color: var(--text); }
+.folder-card .sub-chip { border-color: var(--accent-dim); }
 .folder-caret { color: var(--muted); margin-right: 7px; font-size: 13px; }
 .folder-card.open .folder-caret { color: var(--accent); }
 .folder-chips { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -3629,28 +3690,10 @@ input[type="date"] {
   background: var(--red, #e5484d); box-shadow: 0 0 0 2px var(--bg);
 }
 
-/* ---------- Sub-variations ----------
-   A line filed under another in the same chapter sits indented beneath it,
-   joined to it by a rule down the left — the way a section in the Library
-   holds its sub-sections. */
-.variation-row.sub-variation {
-  margin-left: 32px;
-  position: relative;
-}
-.variation-row.sub-variation::before {
-  content: ''; position: absolute; left: -18px; top: -10px; bottom: 50%;
-  width: 12px; border-left: 2px solid var(--border); border-bottom: 2px solid var(--border);
-  border-bottom-left-radius: 8px;
-}
-.subs-toggle {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 12.5px; color: var(--muted); padding: 2px 8px;
-}
-.subs-toggle:hover { color: var(--accent); }
-.sub-of { font-size: 12px; color: var(--muted); }
-/* A long press opens the line's menu — not the text-selection callout. */
+/* A long press opens a menu (a line's, a chapter card's) — not the
+   text-selection callout. */
 @media (hover: none) {
-  .variation-row { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .variation-row, .chapter-card { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 }
 
 /* A right-click menu: small, where the pointer is. */
@@ -3677,9 +3720,142 @@ input[type="date"] {
 }
 .parent-pick li button.suggested { border-color: var(--accent); }
 .parent-pick .pick-moves { font-size: 12px; color: var(--muted); }
-.reorder-row.sub { padding-left: 28px; }
-.reorder-row.sub .reorder-name::before { content: '↳ '; color: var(--muted); }
-@media (max-width: 600px) {
-  .variation-row.sub-variation { margin-left: 18px; }
-  .variation-row.sub-variation::before { left: -12px; width: 8px; }
+
+/* ---------- Sub-variations of a chapter ---------- */
+.subvar-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  margin: -4px 0 12px; font-size: 13.5px; color: var(--muted);
 }
+.subvar-bar a { cursor: pointer; color: var(--accent); font-weight: 600; }
+.subvar-links { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sub-chip.link { cursor: pointer; font: inherit; font-size: 12.5px; }
+.sub-chip.link:hover { border-color: var(--accent); color: var(--accent); }
+.subvar-sent {
+  display: inline-flex; align-items: center; gap: 6px; color: var(--text);
+  padding: 2px 4px 2px 10px; border-radius: 20px; border: 1px solid var(--accent-dim);
+}
+.send-sub { max-width: 560px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; }
+.send-sub-section { margin: 10px 0; }
+.send-sub-label { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+.send-sub-dest { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.send-sub-dest input[type="text"] { flex: 1; min-width: 0; }
+.send-sub-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.send-sub-lines {
+  list-style: none; margin: 0; padding: 0; max-height: 34vh; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: var(--radius);
+}
+.send-sub-lines li { border-bottom: 1px solid var(--border); }
+.send-sub-lines li:last-child { border-bottom: none; }
+.send-sub-lines label { display: flex; gap: 10px; align-items: flex-start; padding: 7px 10px; cursor: pointer; }
+.send-sub-lines input { margin-top: 3px; }
+.send-sub-text { display: flex; flex-direction: column; min-width: 0; }
+.send-sub-name { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.send-sub-text .muted-note { font-size: 12px; }
+.send-sub-preview {
+  font-size: 13.5px; padding: 10px 12px; border-radius: var(--radius);
+  border: 1px dashed var(--border); margin-top: 4px;
+}
+.send-sub-indent { padding-left: 22px; }
+.send-sub-new { font-weight: 700; color: var(--accent); }
+
+/* The Send button stays in reach however long the list of lines is. */
+.send-sub .modal-actions {
+  position: sticky; bottom: -22px; margin: 0 -22px -22px; padding: 12px 22px 16px;
+  background: var(--panel); border-top: 1px solid var(--border);
+}
+
+/* ---------- Study: a line read like a course (StudyMode.jsx) ----------
+   The big board teaches; beside it the line reads like a book — bold runs
+   of moves, and after the move a note is about, the note. */
+.study-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.study-controls button { white-space: nowrap; }
+.study-controls button { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+.study-controls > button:nth-child(1),
+.study-controls > button:nth-child(2) { width: 52px; justify-content: center; }
+
+.study-panel {
+  display: flex; flex-direction: column; min-height: 0;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden;
+}
+.study-head {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 14px 16px 12px; border-bottom: 1px solid var(--border);
+}
+.study-head-text { flex: 1; min-width: 0; }
+.study-head h3 { margin: 0 0 2px; font-size: 17px; line-height: 1.3; overflow-wrap: anywhere; }
+.study-side-bar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px;
+  padding: 8px 16px; font-size: 13.5px; border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+@supports (background: color-mix(in srgb, red 50%, blue)) {
+  .study-side-bar { background: color-mix(in srgb, var(--accent) 12%, var(--panel)); }
+}
+.study-side-label { flex: 1; min-width: 0; }
+.study-side-steps { display: inline-flex; gap: 2px; }
+.study-text {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 16px 20px 22px; font-size: 16px; line-height: 1.65;
+}
+.study-moves {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 3px;
+  margin: 0 0 6px; font-weight: 700; font-size: 16.5px;
+}
+.study-mv, .study-start {
+  background: none; border: none; font: inherit; color: var(--text); cursor: pointer;
+  padding: 1px 5px; border-radius: 5px; min-height: 0;
+}
+.study-mv:hover, .study-start:hover { background: var(--card-hover); }
+.study-mv.current, .study-start.current { background: var(--accent-dim); color: #fff; }
+.study-num { color: var(--muted); font-weight: 600; margin-right: 3px; }
+.study-mv.current .study-num { color: inherit; opacity: 0.85; }
+.study-mv .move-badge, .study-mv svg { margin-left: 2px; vertical-align: -1px; }
+.study-start { color: var(--muted); display: inline-flex; align-items: center; padding: 3px 5px; }
+.study-note {
+  margin: 2px 0 18px; font-size: 15.5px; color: var(--text); overflow-wrap: anywhere;
+  padding-left: 0; border-left: 3px solid transparent; transition: border-color 0.15s, padding 0.15s;
+}
+.study-note.current { border-left-color: var(--accent); padding-left: 10px; }
+.study-ref {
+  background: none; border: none; padding: 0 1px; margin: 0; min-height: 0;
+  font: inherit; font-weight: 600; color: var(--accent); cursor: pointer; border-radius: 4px;
+}
+.study-ref:hover { text-decoration: underline; }
+.study-ref.current { background: var(--accent-dim); color: #fff; text-decoration: none; }
+.study-ref.unplayable, .study-ref.loose { color: var(--text); font-weight: 700; }
+.study-ref.unplayable:hover, .study-ref.loose:hover { color: var(--accent); }
+.study-seq { white-space: normal; }
+.study-seq-start { color: var(--accent); vertical-align: -1px; margin-right: 3px; }
+.study-end { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+
+/* Under the board (a tablet upright, a phone): a window of the text, so the
+   board stays in view while you read. */
+@media (max-width: 899px) {
+  .study-panel { width: 100%; }
+  .study-text { max-height: 46vh; }
+}
+@media (max-width: 600px) {
+  .study-text { padding: 12px 14px 18px; font-size: 15.5px; }
+  .study-controls { flex-wrap: wrap; }
+}
+
+/* Browse tree: a move played on the board that the chapter doesn't have. */
+.tb-offbook {
+  font-size: 13.5px; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--amber); color: var(--text);
+}
+
+/* Study on a touch screen: the small controls get a thumb-sized target. The
+   moves themselves keep their size, so the text reads like a book. */
+@media (pointer: coarse) {
+  .study-start { padding: 10px; margin: -7px -3px; }
+  .study-side-bar button { min-height: 44px; }
+  .study-side-steps button { min-width: 44px; }
+  .study-head .book-btn { min-width: 44px; min-height: 44px; }
+}
+
+/* "Make it a sub-variation of…": never taller than the screen. */
+.modal.file-sub { max-height: 100%; overflow-y: auto; }
+.modal.file-sub .parent-pick { flex-shrink: 0; }
+

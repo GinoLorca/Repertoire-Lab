@@ -6,7 +6,9 @@ import { defaultMonsterId } from './lib/monsters';
 import { DEFAULT_SETTINGS } from './lib/settingsDefaults';
 import { mergeLinkedGames, undoCoachChanges } from './lib/cloud/gameLink';
 import { foldInFlight } from './lib/cloud/merge3';
-import { grouped, nest, unnest, moveGrouped } from './lib/variationGroups';
+import {
+  sendLines, makeSub, leaveFolder, withFolderMates,
+} from './lib/subVariations';
 
 const STORAGE_KEY = 'repertoire-lab-state-v1';
 
@@ -119,15 +121,6 @@ const swap = (arr, i, j) => {
   return next;
 };
 
-function withoutParents(variations, gone) {
-  const ids = new Set(gone);
-  return variations.map((v) => {
-    if (!ids.has(v.parentId)) return v;
-    const { parentId: _gone, ...rest } = v;
-    return rest;
-  });
-}
-
 function moveInArray(arr, id, dir) {
   const i = arr.findIndex((x) => x.id === id);
   const j = i + dir;
@@ -167,9 +160,43 @@ function orderedGroups(chapters) {
 function moveGroup(chapters, key, dir) {
   const groups = orderedGroups(chapters);
   const i = groups.findIndex((g) => g.key === key);
+  if (i < 0) return chapters;
+  // A sub-variation moves among the sub-variations of its own folder — past
+  // the next one of them, not past whatever group happens to sit next to it
+  // in the flat list (another folder's, which changed nothing on screen or
+  // moved a whole folder). The chapter the folder is of stays first.
+  const bar = key.indexOf('|');
+  const section = key.slice(0, bar);
+  if (section && key.slice(bar + 1)) {
+    let j = i + dir;
+    while (j >= 0 && j < groups.length && !groups[j].key.startsWith(`${section}|`)) j += dir;
+    if (j < 0 || j >= groups.length || groups[j].key === `${section}|`) return chapters;
+    return swap(groups, i, j).flatMap((g) => g.items);
+  }
   const j = i + dir;
-  if (i < 0 || j < 0 || j >= groups.length) return chapters;
+  if (j < 0 || j >= groups.length) return chapters;
   return swap(groups, i, j).flatMap((g) => g.items);
+}
+
+// Actions on one line name the chapter it was in when the screen was drawn.
+// A line can move chapter underneath that — sent to a sub-variation, here or
+// on another device while a practice session stayed open — and the action
+// would then find nothing and quietly do nothing (a practice result lost).
+// So an action whose chapter no longer holds its line is pointed at the
+// chapter that does.
+const FOLLOWS_LINE = new Set([
+  'recordPractice', 'toggleStar', 'setVariationTags', 'setMoveBadge', 'setMoveComment',
+  'renameVariation', 'setVariationTimestamp', 'deleteVariation', 'moveVariation', 'addToPlaylist',
+]);
+function followLine(state, action) {
+  const opening = state?.openings?.find((o) => o.id === action.openingId);
+  const chapter = opening?.chapters.find((c) => c.id === action.chapterId);
+  if (chapter?.variations.some((v) => v.id === action.variationId)) return action;
+  for (const o of state?.openings ?? []) {
+    const home = o.chapters.find((c) => c.variations.some((v) => v.id === action.variationId));
+    if (home) return { ...action, openingId: o.id, chapterId: home.id };
+  }
+  return action;
 }
 
 function mapPlayer(state, playerId, fn) {
@@ -215,7 +242,8 @@ function stampEditedGames(before, after) {
   return changed ? { ...after, players } : after;
 }
 
-function reducer(state, action) {
+function reducer(state, incoming) {
+  const action = FOLLOWS_LINE.has(incoming.type) && incoming.variationId ? followLine(state, incoming) : incoming;
   // Before the saved library has loaded there is nothing to act on — and the
   // sync and the coach-games listeners can wake up before it has. Only the
   // load itself applies.
@@ -353,11 +381,21 @@ function reduce(state, action) {
           // student's own work on a line is never overwritten by a re-send.
           const newChapters = [];
           let chapters = existing.chapters;
+          // A line the student already has anywhere in this opening — the
+          // same name and moves — isn't sent again: after the coach moves
+          // lines to a sub-variation, a re-send would otherwise hand the
+          // student a second copy in the new chapter.
+          const lineKey = (v) => `${v.name.trim().toLowerCase()}|${(v.moves ?? []).join(' ')}`;
+          const haveAnywhere = new Set(existing.chapters.flatMap((c) => c.variations.map(lineKey)));
           for (const ch of source.chapters) {
             const mine = chapters.find((c) => sameName(c.name, ch.name));
-            if (!mine) { newChapters.push(freshChapter(ch, courseIds)); continue; }
+            const arriving = ch.variations.filter((v) => !haveAnywhere.has(lineKey(v)));
+            if (!mine) {
+              if (arriving.length) newChapters.push(freshChapter({ ...ch, variations: arriving }, courseIds));
+              continue;
+            }
             const have = new Set(mine.variations.map((v) => v.name.trim().toLowerCase()));
-            const missing = ch.variations.filter((v) => !have.has(v.name.trim().toLowerCase()));
+            const missing = arriving.filter((v) => !have.has(v.name.trim().toLowerCase()));
             if (missing.length === 0) continue;
             chapters = chapters.map((c) => (c.id === mine.id
               ? { ...c, variations: [...c.variations, ...missing.map(fresh)] }
@@ -479,11 +517,15 @@ function reduce(state, action) {
         ...o,
         courses: moveInArray(o.courses ?? [], action.courseId, action.dir),
       }));
+    // A chapter heading a folder takes the folder along (lib/subVariations.js).
     case 'setChapterCourse':
-      return mapChapter(state, action.openingId, action.chapterId, (c) => ({
-        ...c,
-        courseId: action.courseId || null,
-      }));
+      return mapOpening(state, action.openingId, (o) => {
+        const ids = new Set(withFolderMates(o, action.chapterId));
+        return {
+          ...o,
+          chapters: o.chapters.map((c) => (ids.has(c.id) ? { ...c, courseId: action.courseId || null } : c)),
+        };
+      });
     case 'addOpening': {
       const opening = {
         id: action.id ?? uid(),
@@ -548,36 +590,14 @@ function reduce(state, action) {
     case 'setVariationOrder':
       return mapChapter(state, action.openingId, action.chapterId, (c) => {
         const pos = new Map(action.ids.map((id, i) => [id, i]));
-        // …and sub-variations stay behind their main line (lib/variationGroups).
-        const variations = grouped([...c.variations]
-          .sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9)));
+        const variations = [...c.variations]
+          .sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9));
         return variations.every((v, i) => v === c.variations[i]) ? c : { ...c, variations };
       });
-    // A main line moves with its sub-variations; a sub-variation moves among
-    // its siblings.
     case 'moveVariation':
-      return mapChapter(state, action.openingId, action.chapterId, (c) => {
-        const variations = moveGrouped(c.variations, action.variationId, action.dir);
-        return variations === c.variations ? c : { ...c, variations };
-      });
-    // Filing a line under another in the same chapter, and back out again.
-    case 'nestVariation':
-      return mapChapter(state, action.openingId, action.chapterId, (c) => {
-        const variations = nest(c.variations, action.variationId, action.parentId);
-        return variations === c.variations ? c : { ...c, variations };
-      });
-    case 'unnestVariation':
       return mapChapter(state, action.openingId, action.chapterId, (c) => ({
         ...c,
-        variations: unnest(c.variations, action.variationId),
-      }));
-    // A main line's sub-variations folded away under it, or shown.
-    case 'toggleSubVariations':
-      return mapChapter(state, action.openingId, action.chapterId, (c) => ({
-        ...c,
-        variations: c.variations.map((v) => (v.id === action.variationId
-          ? { ...v, subsCollapsed: !v.subsCollapsed }
-          : v)),
+        variations: moveInArray(c.variations, action.variationId, action.dir),
       }));
     case 'renameSection':
       return mapOpening(state, action.openingId, (o) => ({
@@ -597,8 +617,10 @@ function reduce(state, action) {
     case 'nestSection':
       return mapOpening(state, action.openingId, (o) => ({
         ...o,
+        // Its sub-variations keep their own names; only its loose chapters
+        // take the folder's name as their sub-section.
         chapters: o.chapters.map((c) => (c.section === action.from
-          ? { ...c, section: action.under, subsection: action.from }
+          ? { ...c, section: action.under, subsection: c.subsection || action.from }
           : c)),
       }));
     // Promote a sub-section back to being its own section.
@@ -629,6 +651,39 @@ function reduce(state, action) {
       };
       return mapOpening(state, action.openingId, (o) => ({ ...o, chapters: [...o.chapters, chapter] }));
     }
+    // Sub-variations (lib/subVariations.js): a chapter's lines sent to a
+    // sub-variation of it, a chapter filed under another, and back out.
+    case 'sendToSubVariation': {
+      const target = action.toChapterId ?? action.newChapterId ?? uid();
+      const next = mapOpening(state, action.openingId, (o) => sendLines(o, {
+        fromId: action.chapterId,
+        ids: action.variationIds,
+        toId: action.toChapterId ?? null,
+        newId: action.toChapterId ? null : target,
+        name: action.name,
+      }));
+      // Playlists name a line by its chapter too: moved lines stay in them.
+      const moved = new Set(action.variationIds);
+      const landed = next.openings.find((o) => o.id === action.openingId)
+        ?.chapters.find((c) => c.id === target)?.variations.some((v) => moved.has(v.id));
+      if (!landed) return next;
+      return {
+        ...next,
+        playlists: (next.playlists ?? []).map((p) => (p.items.some((it) => moved.has(it.variationId) && it.chapterId === action.chapterId)
+          ? {
+            ...p,
+            items: p.items.map((it) => (moved.has(it.variationId) && it.chapterId === action.chapterId
+              ? { ...it, chapterId: target } : it)),
+          }
+          : p)),
+      };
+    }
+    case 'makeSubVariation':
+      return mapOpening(state, action.openingId, (o) => makeSub(o, {
+        chapterId: action.chapterId, parentId: action.parentId ?? null, section: action.section ?? null,
+      }));
+    case 'leaveFolder':
+      return mapOpening(state, action.openingId, (o) => leaveFolder(o, action.chapterId));
     case 'renameChapter':
       return mapChapter(state, action.openingId, action.chapterId, (c) => ({ ...c, name: action.name }));
     case 'deleteChapter':
@@ -651,17 +706,16 @@ function reduce(state, action) {
         variations: [...c.variations, ...fresh],
       }));
     }
-    // A deleted main line's sub-variations become main lines where they stand.
     case 'deleteVariation':
       return mapChapter(state, action.openingId, action.chapterId, (c) => ({
         ...c,
-        variations: withoutParents(c.variations.filter((v) => v.id !== action.variationId), [action.variationId]),
+        variations: c.variations.filter((v) => v.id !== action.variationId),
       }));
     case 'deleteVariations': {
       const gone = new Set(action.variationIds);
       return mapChapter(state, action.openingId, action.chapterId, (c) => ({
         ...c,
-        variations: withoutParents(c.variations.filter((v) => !gone.has(v.id)), gone),
+        variations: c.variations.filter((v) => !gone.has(v.id)),
       }));
     }
     case 'renameVariation':

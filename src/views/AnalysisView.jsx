@@ -30,6 +30,7 @@ import { BADGES } from '../lib/badges';
 import MoveBadge from '../components/MoveBadge';
 import MoveTree from '../components/MoveTree';
 import MoveNote from '../components/MoveNote';
+import { parseMarks } from '../lib/studyText';
 import {
   makeTree, lineThrough, nodePath, addMove, promote, promoteOne, removeNode,
   keepMainLineOnly, hasVariations, mainLineFrom, branchRootOf, lastMainLineAncestor, alternativesAt,
@@ -653,7 +654,9 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   // reflects the current position.
   const currentNote = useMemo(() => {
     const node = lineNodes[ply - 1];
-    if (node && moveNotes[node.id]) {
+    // A comment that's only [%cal]-style codes has nothing to read; MoveNote
+    // would render nothing, leaving an empty strip.
+    if (node && moveNotes[node.id] && parseMarks(moveNotes[node.id]).text) {
       return {
         text: moveNotes[node.id], san: node.san, index: ply - 1, badgeId: moveBadges[node.id], float: true,
       };

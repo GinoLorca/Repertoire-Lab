@@ -32,16 +32,73 @@ function mergeVariation(a, b) {
   return { ...a, ...b, learned, srs };
 }
 
-function mergeChapter(a, b) {
+// `structure` says whose arrangement of chapters wins where the two differ:
+// a restored file is older than this device ('local'); an opening a coach
+// sends is the coach's newer one ('incoming').
+function mergeChapter(a, b, structure = 'local') {
   if (!a) return b;
   if (!b) return a;
-  return { ...a, ...b, variations: mergeById(a.variations, b.variations, mergeVariation) };
+  const merged = { ...a, ...b, variations: mergeById(a.variations, b.variations, mergeVariation) };
+  // Restoring an older file mustn't take a chapter out of the folder it has
+  // been filed in since (a sub-variation, or the chapter a folder is of).
+  if (structure === 'local') {
+    merged.section = a.section ?? null;
+    merged.subsection = a.subsection ?? null;
+  }
+  return merged;
 }
 
-function mergeOpening(a, b) {
+function mergeOpening(a, b, structure = 'local') {
   if (!a) return b;
   if (!b) return a;
-  return { ...a, ...b, chapters: mergeById(a.chapters, b.chapters, mergeChapter) };
+  const merged = {
+    ...a,
+    ...b,
+    chapters: mergeById(a.chapters, b.chapters, (x, y) => mergeChapter(x, y, structure)),
+  };
+  return oneHomePerLine(merged, a, b, structure);
+}
+
+// A line lives in one chapter. Merging chapter by chapter, a line that moved
+// chapter on one side (sent to a sub-variation) would come out in both its
+// old and new chapter, twice under one id. It's kept once — in the chapter
+// the winning arrangement has it in — with both copies' progress.
+function oneHomePerLine(merged, local, incoming, structure) {
+  const homes = new Map();
+  for (const c of merged.chapters) {
+    for (const v of c.variations) {
+      if (!homes.has(v.id)) homes.set(v.id, []);
+      homes.get(v.id).push(c.id);
+    }
+  }
+  const twice = [...homes].filter(([, where]) => where.length > 1);
+  if (!twice.length) return merged;
+  const homeIn = (opening, id) => opening.chapters.find((c) => c.variations.some((v) => v.id === id))?.id;
+  const first = structure === 'incoming' ? incoming : local;
+  const second = structure === 'incoming' ? local : incoming;
+  const keep = new Map(); // line id → { chapterId, line }
+  for (const [id, where] of twice) {
+    const home = [homeIn(first, id), homeIn(second, id)].find((h) => where.includes(h)) ?? where[0];
+    const copies = merged.chapters.filter((c) => where.includes(c.id))
+      .map((c) => c.variations.find((v) => v.id === id));
+    // Content from the incoming copy, as mergeVariation does; progress from
+    // whichever is furthest along.
+    const localCopy = local.chapters.flatMap((c) => c.variations).find((v) => v.id === id) ?? copies[0];
+    const incomingCopy = incoming.chapters.flatMap((c) => c.variations).find((v) => v.id === id) ?? copies[1];
+    keep.set(id, { chapterId: home, line: mergeVariation(localCopy, incomingCopy) });
+  }
+  return {
+    ...merged,
+    chapters: merged.chapters.map((c) => {
+      if (!c.variations.some((v) => keep.has(v.id))) return c;
+      return {
+        ...c,
+        variations: c.variations
+          .filter((v) => !keep.has(v.id) || keep.get(v.id).chapterId === c.id)
+          .map((v) => (keep.has(v.id) ? keep.get(v.id).line : v)),
+      };
+    }),
+  };
 }
 
 // Games are records of what happened — nothing to reconcile field by field,
@@ -61,10 +118,10 @@ const preferIncoming = (a, b) => b ?? a;
 // backup file. Settings are deliberately left alone — they're a per-device
 // preference (theme, sound volume, shortcut bindings…), not something a
 // backup from another device should overwrite here.
-export function mergeBackup(state, incoming) {
+export function mergeBackup(state, incoming, { structure = 'local' } = {}) {
   return {
     ...state,
-    openings: mergeById(state.openings, incoming.openings, mergeOpening),
+    openings: mergeById(state.openings, incoming.openings, (a, b) => mergeOpening(a, b, structure)),
     players: mergeById(state.players ?? [], incoming.players ?? [], mergePlayer),
     categories: mergeById(state.categories ?? [], incoming.categories ?? [], preferIncoming),
     playlists: mergeById(state.playlists ?? [], incoming.playlists ?? [], preferIncoming),

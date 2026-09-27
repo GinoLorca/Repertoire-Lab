@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useBackGuard } from '../lib/backGuard';
+import { findLine } from '../lib/findLine';
 import {
   FolderIcon, PlayIcon, ShuffleIcon, PencilIcon,
 } from './Icons';
@@ -10,13 +11,10 @@ function PlaylistEditor({ playlist, state, dispatch, onPractice, onBack }) {
   const [query, setQuery] = useState('');
   useBackGuard(true, onBack);
 
+  // Found wherever the line is now, not only in the chapter it was added
+  // from — see lib/findLine.js.
   const items = useMemo(() => playlist.items
-    .map(({ openingId, chapterId, variationId }) => {
-      const opening = state.openings.find((o) => o.id === openingId);
-      const chapter = opening?.chapters.find((c) => c.id === chapterId);
-      const variation = chapter?.variations.find((v) => v.id === variationId);
-      return variation ? { opening, chapter, variation } : null;
-    })
+    .map((item) => findLine(state.openings, item))
     .filter(Boolean), [playlist.items, state.openings]);
 
   const inPlaylist = new Set(playlist.items.map((it) => it.variationId));

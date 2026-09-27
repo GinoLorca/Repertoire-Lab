@@ -4,7 +4,9 @@ import Board from './Board';
 import { lineFens } from '../lib/pgn';
 import { lastMoveOf } from '../lib/legalMoves';
 import { useBackGuard } from '../lib/backGuard';
-import { mergeVariations, moveNumberAt, isWhiteAt, runToNextBranch } from '../lib/repertoireTree';
+import {
+  mergeVariations, moveNumberAt, isWhiteAt, runToNextBranch, treeMove, treeTargets,
+} from '../lib/repertoireTree';
 import {
   PrevIcon, SkipStartIcon, StarIcon, CheckIcon, ClockIcon, PlayIcon, MonitorIcon,
 } from './Icons';
@@ -29,12 +31,52 @@ export default function TreeBrowser({
     [chapter.variations],
   );
 
-  const go = (child) => setPath((p) => [...p, child]);
-  const back = () => setPath((p) => p.slice(0, -1));
+  // Moves are played on the board too, not only picked from the list: drag
+  // a piece, or tap it and then where it goes. A move the chapter has takes
+  // you down that branch; one it hasn't snaps back, saying what it plays
+  // (lib/repertoireTree.js treeMove).
+  const [picked, setPicked] = useState(null);
+  const [offBook, setOffBook] = useState(null);
+  // Every way of moving through the tree clears what was about the last
+  // position — a picked piece, the "isn't in this chapter" note.
+  const jump = (next) => { setPicked(null); setOffBook(null); setPath(next); };
+  const go = (child) => jump([...path, child]);
+  const back = () => jump(path.slice(0, -1));
+  const turn = useMemo(() => new Chess(fen).turn(), [fen]);
+  const play = (from, to) => {
+    const result = treeMove(Chess, node, fen, path.length, from, to);
+    if (!result) return false;
+    if (result.child) { go(result.child); return true; }
+    const { san, theirs } = result.offBook;
+    setOffBook(theirs.length
+      ? `${san} isn’t in this chapter — here it plays ${theirs.join(' or ')}.`
+      : `${san} isn’t in this chapter — every line here ends at this position.`);
+    setPicked(null);
+    return false;
+  };
+  const onSquareClick = (square) => {
+    const game = new Chess(fen);
+    if (picked) {
+      if (picked === square) { setPicked(null); return; }
+      if (game.moves({ square: picked, verbose: true }).some((m) => m.to === square)) { play(picked, square); return; }
+    }
+    const piece = game.get(square);
+    setPicked(piece && piece.color === turn ? square : null);
+  };
+  // Where the picked piece can go and stay in the chapter.
+  const squareStyles = useMemo(() => {
+    if (!picked) return undefined;
+    const out = { [picked]: { background: 'rgba(59, 156, 255, 0.5)' } };
+    for (const sq of treeTargets(Chess, node, fen, picked)) {
+      out[sq] = { boxShadow: 'inset 0 0 0 4px rgba(46, 204, 113, 0.85)' };
+    }
+    return out;
+  }, [picked, fen, node]);
+
   // Down a forced run in one go: everything up to the next real decision.
   const skipAhead = () => {
     const run = runToNextBranch(node);
-    if (run.length) setPath((p) => [...p, ...run]);
+    if (run.length) jump([...path, ...run]);
   };
 
   React.useEffect(() => {
@@ -48,23 +90,44 @@ export default function TreeBrowser({
     return () => window.removeEventListener('keydown', onKey);
   }, [node, onClose]);
 
-  const boardWidth = Math.min(460, window.innerWidth - 140);
+  // Sized for both directions: on a phone, or a phone on its side, a board as
+  // wide as the screen allows could run off the bottom — and it's the board
+  // that plays the moves now.
+  const narrow = window.innerWidth < 800;
+  const boardWidth = Math.max(200, Math.min(
+    460,
+    narrow ? window.innerWidth - 64 : window.innerWidth - 140,
+    window.innerHeight - (narrow ? 150 : 120),
+  ));
+  const downOnBackdrop = React.useRef(false);
   const total = tree.lines.length;
 
   return (
-    <div className="viewer-overlay" onClick={onClose}>
-      <div className="viewer-panel" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="viewer-overlay"
+      onPointerDown={(e) => { downOnBackdrop.current = e.target === e.currentTarget; }}
+      // A piece dragged off the board and let go over the backdrop isn't a
+      // tap on it — only a press that began there closes the tree.
+      onClick={(e) => { if (e.target === e.currentTarget && downOnBackdrop.current) onClose(); }}
+    >
+      <div className={`viewer-panel${narrow ? ' stacked' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="viewer-board">
           <Board
             id="tree-browser"
             position={fen}
             lastMove={lastMoveOf(Chess, sans, sans.length)}
             boardOrientation={orientation}
-            arePiecesDraggable={false}
+            isDraggablePiece={({ piece }) => piece[0] === turn}
+            onPieceDragBegin={(piece, square) => { setOffBook(null); setPicked(square); }}
+            onPieceDragEnd={() => setPicked(null)}
+            onPieceDrop={(from, to) => play(from, to)}
+            onPromotionCheck={() => false}
+            onSquareClick={onSquareClick}
+            customSquareStyles={squareStyles}
             boardWidth={boardWidth}
           />
           <div className="viewer-controls" style={{ marginTop: 12 }}>
-            <button title="Back to the start" disabled={!path.length} onClick={() => setPath([])}>
+            <button title="Back to the start" disabled={!path.length} onClick={() => jump([])}>
               <SkipStartIcon size={17} />
             </button>
             <button title="Back one move (←)" disabled={!path.length} onClick={back}>
@@ -96,7 +159,7 @@ export default function TreeBrowser({
           <div className="tree-path">
             <span
               className={`tb-crumb${path.length === 0 ? ' current' : ''}`}
-              onClick={() => setPath([])}
+              onClick={() => jump([])}
             >
               Start
             </span>
@@ -104,13 +167,15 @@ export default function TreeBrowser({
               <span
                 key={n.key}
                 className={`tb-crumb${i === path.length - 1 ? ' current' : ''}`}
-                onClick={() => setPath((p) => p.slice(0, i + 1))}
+                onClick={() => jump(path.slice(0, i + 1))}
               >
                 {isWhiteAt(i + 1) && <span className="mvnum">{moveNumberAt(i + 1)}.</span>}
                 {n.san}
               </span>
             ))}
           </div>
+
+          {offBook && <div className="tb-offbook" role="status">{offBook}</div>}
 
           <div className="tree-body">
             {node.children.length > 0 && (

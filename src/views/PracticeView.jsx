@@ -18,10 +18,12 @@ import PromotionPicker from '../components/PromotionPicker';
 import { lastMoveOf, NOTE_HIGHLIGHT_STYLE } from '../lib/legalMoves';
 import { badgeAt } from '../lib/badges';
 import BoardArrows from '../components/BoardArrows';
+import { useStudy, StudyBoard, StudyText } from '../components/StudyMode';
+import { findLine } from '../lib/findLine';
 import { useBackGuard } from '../lib/backGuard';
 import {
   BookIcon, TagIcon, StarIcon, SoundOnIcon, SoundOffIcon, ClockIcon,
-  SkipStartIcon, SkipEndIcon, PrevIcon, NextIcon, BulbIcon, CheckIcon, AlertIcon,
+  SkipStartIcon, PrevIcon, NextIcon, BulbIcon, CheckIcon, AlertIcon,
   PlayIcon, CapIcon, FolderIcon, MonitorIcon,
 } from '../components/Icons';
 import PlaylistPicker from '../components/PlaylistPicker';
@@ -70,12 +72,7 @@ function collectItems(state, scope) {
     const playlist = (state.playlists ?? []).find((p) => p.id === scope.playlistId);
     if (!playlist) return [];
     const resolved = playlist.items
-      .map(({ openingId, chapterId, variationId }) => {
-        const opening = state.openings.find((o) => o.id === openingId);
-        const chapter = opening?.chapters.find((c) => c.id === chapterId);
-        const variation = chapter?.variations.find((v) => v.id === variationId);
-        return variation ? { opening, chapter, variation } : null;
-      })
+      .map((item) => findLine(state.openings, item))
       .filter(Boolean);
     const ordered = scope.shuffle ? shuffleArray(resolved) : resolved;
     // A line already learned is drilled from memory; anything not yet
@@ -423,7 +420,6 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   const [completed, setCompleted] = useState(false);
   const [results, setResults] = useState([]);
   const [bookOpen, setBookOpen] = useState(false);
-  const [bookPly, setBookPly] = useState(0);
   const [flipped, setFlipped] = useState(false); // F turns the board round
   // Guards the end-of-line handling so it runs once per item, after the board settles.
   const finishingRef = useRef(false);
@@ -459,7 +455,6 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   const [reviewPly, setReviewPly] = useState(null);
   const boardRef = useRef(null);
   const prevPlyRef = useRef(0);
-  const touchRef = useRef(null);
   const viewportWidth = useViewportWidth();
   const viewportHeight = useViewportHeight();
   const soundOn = state.settings.soundEnabled ?? true;
@@ -497,7 +492,10 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   // Practice altogether — you're usually working down it.
   const cameFromList = !!browse && !!scope;
   useBackGuard(cameFromList && !bookOpen, () => onScopeChange(false));
-  const leaveSession = () => (cameFromList ? onScopeChange(false) : onExit());
+  const leaveSession = () => {
+    setBookOpen(false);
+    return cameFromList ? onScopeChange(false) : onExit();
+  };
 
   const resetPerItem = (item) => {
     finishingRef.current = false; // a new item can finish again
@@ -521,6 +519,9 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   // Build the queue once when scope is chosen (not reactively, so SRS updates
   // mid-session don't reshuffle it).
   useEffect(() => {
+    // Out of a session (the Chapters breadcrumb, Back): Study closes with it,
+    // or its keys and back guard would outlive the session.
+    if (scope === undefined || scope === false) setBookOpen(false);
     if (scope !== undefined && scope !== false) {
       const items = collectItems(state, scope);
       setQueue(items);
@@ -619,30 +620,46 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   }, [timedMoves, moveTimerMs, current, userTurn, completed, reviewing, bookOpen,
     wrongMove, ply, moves.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Cheat-sheet ("book") preview position — independent of the practice board.
-  const bookFen = useMemo(() => {
-    const c = new Chess();
-    for (let i = 0; i < Math.min(bookPly, moves.length); i += 1) c.move(moves[i]);
-    return c.fen();
-  }, [bookPly, current]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Opening the book jumps its preview to the current practice position.
-  useEffect(() => {
-    if (bookOpen) setBookPly(ply);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookOpen, current?.variation.id]);
-
-  // Arrow keys drive the book preview while it's open.
-  useEffect(() => {
-    if (!bookOpen || !current) return undefined;
-    const onKey = (e) => {
-      if (e.key === 'ArrowLeft') { e.preventDefault(); setBookPly((p) => Math.max(0, p - 1)); }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); setBookPly((p) => Math.min(moves.length, p + 1)); }
-      else if (e.key === 'Escape') setBookOpen(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [bookOpen, current, moves.length]);
+  // Study: the line read like a course, on the big board — see StudyMode.
+  // Opens at the position practice is at; ↑ ↓ and Next variation move
+  // through the session without leaving it.
+  // Study reads through the session's lines on its own: its Next and ↓ move
+  // what Study shows, not the practice session, so Exit comes back to
+  // practice exactly where it was — repairs still to do included — and a
+  // press never lands on a drill of the same line, which reads the same.
+  const [studyAt, setStudyAt] = useState(null);
+  useEffect(() => { setStudyAt(bookOpen ? qi : null); }, [bookOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  const studyIndex = bookOpen && studyAt != null && queue?.[studyAt] ? studyAt : qi;
+  const studyItem = queue?.[studyIndex] ?? null;
+  // The line as it is now — a note edited or a line moved since the session
+  // began shows as it is.
+  const studyLine = studyItem ? (findLine(state.openings, {
+    openingId: studyItem.opening.id, chapterId: studyItem.chapter.id, variationId: studyItem.variation.id,
+  })?.variation ?? studyItem.variation) : null;
+  const otherLine = (dir) => {
+    if (!queue || !studyItem) return -1;
+    for (let i = studyIndex + dir; i >= 0 && i < queue.length; i += dir) {
+      if (queue[i].variation.id !== studyItem.variation.id) return i;
+    }
+    return -1;
+  };
+  const studyNext = otherLine(1);
+  const studyPrev = otherLine(-1);
+  const studyLines = queue ? [...new Set(queue.map((q) => q.variation.id))] : [];
+  const study = useStudy({
+    active: bookOpen && !!studyItem,
+    lineKey: `${studyItem?.variation.id ?? ''}:${studyIndex}:${bookOpen}`,
+    moves: studyLine?.moves ?? [],
+    comments: studyLine?.comments,
+    badges: studyLine?.badges,
+    // The position practice was showing — the move being looked back at, the
+    // live one mid-line, or the top of a finished line. Another line read
+    // from Study starts at its top.
+    startPly: studyIndex === qi ? (reviewPly ?? (completed ? 0 : ply)) : 0,
+    onClose: () => setBookOpen(false),
+    onPrevVariation: studyPrev >= 0 ? () => setStudyAt(studyPrev) : null,
+    onNextVariation: studyNext >= 0 ? () => setStudyAt(studyNext) : null,
+  });
 
   // Every position in the repertoire (for the side being practiced), so an
   // "off-line" move that reaches a position from another repertoire line —
@@ -669,7 +686,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
 
   // Opponent auto-play, teach→recall transition, and end-of-line handling.
   useEffect(() => {
-    if (!current || completed) return undefined;
+    if (!current || completed || bookOpen) return undefined;
     if (ply >= endPly) {
       if (phase === 'teach') {
         setPhase('run');
@@ -858,7 +875,9 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
       return () => clearTimeout(t);
     }
     return undefined;
-  }, [ply, current, userTurn, completed, phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  // bookOpen: the reply (and the end of the line, with its confetti) waits
+  // for Study to close — played behind it, it happened unseen.
+  }, [ply, current, userTurn, completed, phase, bookOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goTo = (index) => {
     if (!queue || index < 0 || index >= queue.length) return;
@@ -890,7 +909,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   // Move straight on when a line is finished, rather than dropping out of the
   // session. A short pause leaves time to read the result and see the confetti.
   useEffect(() => {
-    if (!completed || !autoAdvance) return undefined;
+    if (!completed || !autoAdvance || bookOpen) return undefined;
     if (qi + 1 >= (queue?.length ?? 0)) return undefined;
     // Repetitions flow into each other; every change of exercise waits for a
     // press. Starting the repairs, starting the closing full run and leaving it
@@ -905,7 +924,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
     const wait = pace.advance;
     const t = setTimeout(nextVariation, wait);
     return () => clearTimeout(t);
-  }, [completed, autoAdvance, qi, queue?.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [completed, autoAdvance, qi, queue?.length, bookOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ↑ / ↓ step between variations; ← / → review moves inside the current one.
   useEffect(() => {
@@ -1296,9 +1315,12 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   // margin, which reads as broken. Only a phone on its side, with no height
   // to speak of, still gets capped.
   const isPhone = viewportWidth <= 600;
+  // Study on a tablet upright puts its text under the board: the board gives
+  // up enough height for a useful window of it.
+  const underReserve = bookOpen && !isPhone ? Math.round(viewportHeight * 0.36) + 170 : 350;
   const tallCap = Math.max(
     280,
-    viewportHeight - topInset() - bottomInset() - (rowFits ? 210 : (isPhone ? 160 : 350)),
+    viewportHeight - topInset() - bottomInset() - (rowFits ? 210 : (isPhone ? 160 : underReserve)),
   );
   const boardWidth = Math.floor(
     Math.max(240, Math.min(720, forBoard, tallCap)) / 8,
@@ -1350,7 +1372,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
         {showList && (
           <VariationList
             items={listItems}
-            currentId={current.variation.id}
+            currentId={(bookOpen && studyItem ? studyItem : current).variation.id}
             doneIds={doneIds}
             open={listOpen}
             onToggle={() => dispatch({ type: 'setSettings', settings: { practiceList: !listOpen } })}
@@ -1359,11 +1381,26 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             artwork={current.opening.artwork?.small}
             onPick={(item) => {
               const i = queue.findIndex((q) => q.variation.id === item.variation.id);
+              // In Study, a line picked from the list is read there; the
+              // session stays where it was.
+              if (bookOpen) { if (i >= 0) setStudyAt(i); return; }
               if (i >= 0) goTo(i);
             }}
           />
         )}
         <div className="practice-board" ref={boardRef}>
+          {bookOpen ? (
+            <StudyBoard
+              study={study}
+              boardWidth={boardWidth}
+              orientation={studyItem && studyItem.opening.id !== current.opening.id
+                ? (studyItem.opening.color === 'white' ? 'white' : 'black')
+                : orientation}
+              onExit={() => setBookOpen(false)}
+              onNextVariation={studyNext >= 0 ? () => setStudyAt(studyNext) : null}
+            />
+          ) : (
+          <>
           <div className="board-stack" style={{ width: boardWidth, height: boardWidth }}>
           <Board
             id="practice"
@@ -1505,8 +1542,25 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
               </button>
             </div>
           )}
+          </>
+          )}
         </div>
         <div className="practice-side">
+          {bookOpen ? (
+            <StudyText
+              key={`${studyItem?.variation.id ?? ''}:${studyIndex}`}
+              study={study}
+              // Beside the board, as tall as the board and its buttons, the
+              // text scrolling inside; under it (a tablet upright, a phone),
+              // a window of the text with the board still in view above.
+              style={rowFits ? { height: boardWidth + 58 } : undefined}
+              title={studyLine?.name ?? shown.name}
+              meta={`Line ${studyLines.indexOf(studyItem?.variation.id) + 1} of ${studyLines.length} · you play ${studyItem?.opening.color === 'white' ? 'White' : 'Black'}`}
+              onExit={() => setBookOpen(false)}
+              onNextVariation={studyNext >= 0 ? () => setStudyAt(studyNext) : null}
+            />
+          ) : (
+          <>
           <div className="practice-status">
             <div className="practice-title-row">
               <button
@@ -1543,7 +1597,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
               </button>
               <button
                 className={`ghost small book-btn${bookOpen ? ' active' : ''}`}
-                title="Cheat sheet — see the move order and step through it"
+                title="Study — read the line like a course, notes and arrows on the board (B)"
                 onClick={() => setBookOpen((o) => !o)}
               >
                 <BookIcon />
@@ -1572,56 +1626,6 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
                 : ' ')}
             </div>
           </div>
-          {bookOpen && (() => {
-            const stepBook = (d) => setBookPly((p) => Math.min(moves.length, Math.max(0, p + d)));
-            return (
-              <div className="book-panel">
-                {/* Swiping the little board steps the line — the phone equivalent of ← / →. */}
-                <div
-                  className="book-board"
-                  onTouchStart={(e) => { touchRef.current = e.touches[0].clientX; }}
-                  onTouchEnd={(e) => {
-                    const dx = e.changedTouches[0].clientX - (touchRef.current ?? 0);
-                    if (Math.abs(dx) > 35) stepBook(dx < 0 ? 1 : -1);
-                  }}
-                >
-                  <Board
-                    id="book"
-                    position={bookFen}
-                    boardOrientation={orientation}
-                    arePiecesDraggable={false}
-                    customSquareStyles={noteHighlight ? { [noteHighlight.square]: NOTE_HIGHLIGHT_STYLE } : undefined}
-                    boardWidth={230}
-                  />
-                  <div className="book-controls">
-                    <button title="Start" disabled={bookPly === 0} onClick={() => setBookPly(0)}><SkipStartIcon size={17} /></button>
-                    <button title="Previous move" disabled={bookPly === 0} onClick={() => stepBook(-1)}><PrevIcon size={17} /></button>
-                    <span className="book-count">{bookPly} / {moves.length}</span>
-                    <button title="Next move" disabled={bookPly >= moves.length} onClick={() => stepBook(1)}><NextIcon size={17} /></button>
-                    <button title="End" disabled={bookPly >= moves.length} onClick={() => setBookPly(moves.length)}><SkipEndIcon size={17} /></button>
-                  </div>
-                </div>
-                <div className="book-moves">
-                  <div>
-                    <MoveText
-                      moves={moves}
-                      comments={current.variation.comments}
-                      currentIndex={bookPly - 1}
-                      onClickMove={(i) => setBookPly(i + 1)}
-                    />
-                  </div>
-                  {(() => {
-                    const note = noteFor(current.variation.comments, moves, bookPly);
-                    return note ? <MoveNote {...note} onMoveClick={highlightNoteSquare} /> : null;
-                  })()}
-                  <div className="book-foot">
-                    <span className="muted-note">Tap a move, swipe the board, or use the arrows / arrow keys</span>
-                    <button className="small" onClick={() => setBookOpen(false)}>Close</button>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
           {(() => {
             // What the course says about this move — the note stays up while
             // you play on, dimmed, so the point of the line isn't lost after a
@@ -1672,6 +1676,8 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             <span style={{ flex: 1 }} />
             <button className="ghost" onClick={nextVariation}>Skip variation</button>
           </div>
+          </>
+          )}
         </div>
       </div>
 

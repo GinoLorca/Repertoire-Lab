@@ -92,12 +92,17 @@ export function MenuSheet({ items, title, onClose, at = null }) {
       </span>
     </button>
   )));
+  // Portaled to <body>, but React still hands its events up to whatever
+  // opened it — a Library chapter card opens its chapter on a click. None of
+  // them are meant for that.
+  const own = { onPointerDown: (e) => e.stopPropagation() };
   if (at) {
     return createPortal(
       <div
         className="menu-pop-scrim"
-        onClick={onClose}
-        onContextMenu={(e) => { e.preventDefault(); onClose(); }}
+        {...own}
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+        onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
       >
         <div
           ref={popRef}
@@ -114,7 +119,12 @@ export function MenuSheet({ items, title, onClose, at = null }) {
     );
   }
   return createPortal(
-    <div className="sheet-scrim" onClick={onClose}>
+    <div
+      className="sheet-scrim"
+      {...own}
+      onClick={(e) => { e.stopPropagation(); onClose(); }}
+      onContextMenu={(e) => e.stopPropagation()}
+    >
       <div className="sheet" role="menu" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-grip" aria-hidden="true" />
         {title && <div className="sheet-title">{title}</div>}

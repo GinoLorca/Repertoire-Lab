@@ -269,34 +269,108 @@ const byId = (containers, itemsOf) => {
   return m;
 };
 
-function remergeById(merged, base, local, remote, itemsOf, withItems, prefer) {
+// A record lives in one container. Each side's copy of it is merged once
+// more on its own (so a move and an edit made on different devices both
+// land), and then kept in exactly one place:
+//   · moved on one side only → where that side put it
+//   · moved on both, to different places (the same line sent to a
+//     sub-variation on two devices before either synced) → the preferred
+//     side's place; with no common ancestor, likewise
+//   · deleted on one side while the other moved it → gone, the same "deleting
+//     wins" as everywhere else — unless it was its whole old container that
+//     was deleted there, in which case the move stands
+// `dropEmptied`: a container new since the baseline that this leaves empty —
+// the other device's copy of that same sub-variation — goes too, rather than
+// sitting there as a second, empty "Panov Attack".
+function remergeById(merged, base, local, remote, itemsOf, withItems, prefer, { dropEmptied = false } = {}) {
   const B = byId(base, itemsOf);
   const L = byId(local, itemsOf);
   const R = byId(remote, itemsOf);
-  return (merged ?? []).map((container) => {
+  const ids = (list) => new Set((list ?? []).map((c) => c.id));
+  const baseC = ids(base);
+  const localC = ids(local);
+  const remoteC = ids(remote);
+  const mergedC = ids(merged);
+  const homeOf = (id) => {
+    const b = B.get(id)?.c;
+    const l = L.get(id)?.c;
+    const r = R.get(id)?.c;
+    if (l !== undefined && r !== undefined) {
+      if (l === r) return l;
+      const lMoved = b === undefined || l !== b;
+      const rMoved = b === undefined || r !== b;
+      if (lMoved && !rMoved) return l;
+      if (rMoved && !lMoved) return r;
+      return prefer === 'remote' ? r : l;
+    }
+    if (l !== undefined) return b !== undefined && l !== b && remoteC.has(b) ? null : l;
+    if (r !== undefined) return b !== undefined && r !== b && localC.has(b) ? null : r;
+    return undefined;
+  };
+  const out = [];
+  for (const container of merged ?? []) {
+    const before = itemsOf(container) ?? [];
     let changed = false;
-    const items = (itemsOf(container) ?? []).map((item) => {
+    const items = [];
+    for (const item of before) {
+      const home = homeOf(item.id);
+      // Elsewhere, and that place survived the merge: not here.
+      if (home === null || (home !== undefined && home !== container.id && mergedC.has(home))) {
+        changed = true;
+        continue;
+      }
       const l = L.get(item.id);
       const r = R.get(item.id);
-      // Only where the two sides disagree about where it lives.
-      if (!l || !r || l.c === r.c) return item;
-      changed = true;
-      return merge3(B.get(item.id)?.r, l.r, r.r, prefer);
-    });
-    return changed ? withItems(container, items) : container;
-  });
+      if (l && r && l.c !== r.c) {
+        changed = true;
+        items.push(merge3(B.get(item.id)?.r, l.r, r.r, prefer));
+      } else items.push(item);
+    }
+    if (dropEmptied && changed && before.length && !items.length && !baseC.has(container.id)) continue;
+    out.push(changed ? withItems(container, items) : container);
+  }
+  return out;
 }
 
 // Lines live two levels down (opening → chapter → line), and move between
 // chapters of any opening.
 function remergeNested(merged, base, local, remote, prefer) {
   const flat = (openings) => (openings ?? []).flatMap((o) => o.chapters ?? []);
-  const chapters = remergeById(flat(merged), flat(base), flat(local), flat(remote),
-    (c) => c.variations ?? [], (c, variations) => ({ ...c, variations }), prefer);
+  const chapters = keepPlacement(
+    remergeById(flat(merged), flat(base), flat(local), flat(remote),
+      (c) => c.variations ?? [], (c, variations) => ({ ...c, variations }), prefer, { dropEmptied: true }),
+    flat(base), flat(local), flat(remote), prefer,
+  );
   const byChapter = new Map(chapters.map((c) => [c.id, c]));
   return (merged ?? []).map((o) => {
-    const next = (o.chapters ?? []).map((c) => byChapter.get(c.id) ?? c);
-    return next.some((c, i) => c !== o.chapters[i]) ? { ...o, chapters: next } : o;
+    const next = (o.chapters ?? []).filter((c) => byChapter.has(c.id)).map((c) => byChapter.get(c.id));
+    const same = next.length === (o.chapters ?? []).length && next.every((c, i) => c === o.chapters[i]);
+    return same ? o : { ...o, chapters: next };
+  });
+}
+
+// Where a chapter sits — its folder and its sub-variation — is one decision,
+// made on one device. Merged key by key, two devices filing the same chapter
+// differently could produce a place neither chose (the folder from one, the
+// sub-variation from the other). When both moved it, it goes where the
+// preferred side put it, whole.
+function keepPlacement(chapters, base, local, remote, prefer) {
+  const index = (list) => new Map((list ?? []).map((c) => [c.id, c]));
+  const B = index(base);
+  const L = index(local);
+  const R = index(remote);
+  const at = (c) => `${c?.section ?? ''}\u0000${c?.subsection ?? ''}`;
+  return chapters.map((c) => {
+    const b = B.get(c.id);
+    const l = L.get(c.id);
+    const r = R.get(c.id);
+    if (!b || !l || !r) return c;
+    if (at(l) === at(b) || at(r) === at(b) || at(l) === at(r)) return c;
+    const win = prefer === 'remote' ? r : l;
+    if (at(c) === at(win)) return c;
+    const out = { ...c, section: win.section ?? null, subsection: win.subsection ?? null };
+    if ((win.courseId ?? null) !== (b.courseId ?? null)) out.courseId = win.courseId ?? null;
+    return out;
   });
 }
 
