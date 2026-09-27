@@ -509,6 +509,16 @@ function reduce(state, action) {
         ...o,
         chapters: moveGroup(o.chapters, action.key, action.dir),
       }));
+    // A whole new order at once, from the Reorder sheet. Anything the list
+    // doesn't mention (a line added on another device while the sheet was
+    // open) keeps its place at the end rather than vanishing.
+    case 'setVariationOrder':
+      return mapChapter(state, action.openingId, action.chapterId, (c) => {
+        const pos = new Map(action.ids.map((id, i) => [id, i]));
+        const variations = [...c.variations]
+          .sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9));
+        return variations.every((v, i) => v === c.variations[i]) ? c : { ...c, variations };
+      });
     case 'moveVariation':
       return mapChapter(state, action.openingId, action.chapterId, (c) => ({
         ...c,

@@ -12,6 +12,7 @@ import TreeBrowser from '../components/TreeBrowser';
 import TagEditor, { TagChips, allTags } from '../components/TagEditor';
 import PgnImport from '../components/PgnImport';
 import MoreMenu from '../components/MoreMenu';
+import ReorderSheet from '../components/ReorderSheet';
 import { useIsPhone } from '../components/useViewportWidth';
 import {
   TagIcon, StarIcon, PencilIcon, ClockIcon, CheckIcon, DownloadIcon, CapIcon, PlayIcon, FolderIcon,
@@ -34,6 +35,7 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
   const [chosen, setChosen] = useState({}); // { [variationId]: true }
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [browsing, setBrowsing] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const viewing = chapter?.variations.find((v) => v.id === viewingId);
   const videoRef = useRef(null);
   const videoBlockRef = useRef(null);
@@ -164,6 +166,12 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
                   hint: picking ? undefined : 'tick several and delete them in one go',
                   icon: <CheckboxIcon size={16} />,
                   onClick: () => (picking ? leavePicking() : setPicking(true)),
+                },
+                chapter.variations.length > 1 && {
+                  label: 'Reorder variations',
+                  hint: 'drag lines into place, or sort them',
+                  icon: '⇅',
+                  onClick: () => setReordering(true),
                 },
                 chapter.variations.length > 0 && {
                   label: 'Rename all variations',
@@ -296,6 +304,13 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
           onClick={() => (picking ? leavePicking() : setPicking(true))}
         >
           <CheckboxIcon size={15} /> {picking ? 'Done selecting' : 'Select'}
+        </button>
+        <button
+          disabled={chapter.variations.length < 2}
+          title="Drag lines into a new order, or sort them by moves or name"
+          onClick={() => setReordering(true)}
+        >
+          ⇅ Reorder
         </button>
         <button
           disabled={chapter.variations.length === 0}
@@ -680,6 +695,18 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
         );
       })}
 
+      {reordering && (
+        <ReorderSheet
+          title={chapter.name}
+          items={reorderItems(chapter.variations)}
+          onClose={() => setReordering(false)}
+          onDone={(ids) => {
+            dispatch({ type: 'setVariationOrder', openingId, chapterId, ids });
+            setReordering(false);
+          }}
+        />
+      )}
+
       {bulkOpen && (
         <div className="modal-overlay" onClick={() => setBulkOpen(false)}>
           <div className="modal" style={{ maxWidth: 620 }} onClick={(e) => e.stopPropagation()}>
@@ -829,4 +856,33 @@ export default function ChapterView({ openingId, chapterId, onBack, onPractice, 
 
     </div>
   );
+}
+
+// One row per line for the Reorder sheet. Every line in a chapter starts the
+// same way, so each shows its moves from where it parts from the others —
+// that's what tells two lines apart.
+function reorderItems(variations) {
+  const shared = variations.length < 2 ? 0 : variations.reduce((n, v) => {
+    let i = 0;
+    while (i < n && v.moves[i] === variations[0].moves[i]) i += 1;
+    return i;
+  }, variations[0].moves.length);
+  const from = Math.max(0, shared - 1); // start on the last shared move, for context
+  return variations.map((v) => ({
+    id: v.id,
+    name: v.name,
+    moves: v.moves,
+    sub: numbered(v.moves, from, 8) || '(no moves)',
+  }));
+}
+
+function numbered(moves, from, count) {
+  const out = [];
+  for (let i = from; i < Math.min(moves.length, from + count); i += 1) {
+    const n = Math.floor(i / 2) + 1;
+    if (i % 2 === 0) out.push(`${n}.${moves[i]}`);
+    else out.push(i === from ? `${n}...${moves[i]}` : moves[i]);
+  }
+  if (!out.length) return '';
+  return (from > 0 ? '… ' : '') + out.join(' ') + (moves.length > from + count ? ' …' : '');
 }

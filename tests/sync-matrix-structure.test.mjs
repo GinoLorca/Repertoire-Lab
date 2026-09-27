@@ -733,3 +733,47 @@ test('the coach\'s opening order stays put across syncs when the cloud lists ope
   const ipadAfter = ipad.state.openings.map((o) => o.id);
   assert.deepEqual({ mac: macAfter, ipad: ipadAfter }, { mac: arranged, ipad: arranged });
 });
+
+// ---------------------------------------------------------------------------
+// The Reorder sheet: a whole chapter rearranged in one change.
+// ---------------------------------------------------------------------------
+
+const lineNames = (st, cid) => chapter(st, 'o-caro', cid).variations.map((x) => x.name);
+const reorderByName = (dev, cid, names) => {
+  const vars = chapter(dev.state, 'o-caro', cid).variations;
+  dev.do({ type: 'setVariationOrder', openingId: 'o-caro', chapterId: cid, ids: names.map((n) => vars.find((x) => x.name === n).id) });
+};
+
+test('Reorder sheet: the Mac rearranges a whole chapter while the iPad adds a line to it — the new order and the new line both land', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  for (const n of ['Bayonet', 'Van der Wiel']) {
+    mac.do({ type: 'addVariations', openingId: 'o-caro', chapterId: 'c-advance', variations: [line(n, ['e4', 'c6', 'd4', 'd5', 'e5', 'Bf5', 'g4'])] });
+  }
+  await mac.sync();
+  await ipad.sync();
+  await mac.sync();
+  reorderByName(mac, 'c-advance', ['Van der Wiel', 'Tal Variation', 'Short System', 'Bayonet']);
+  ipad.do({ type: 'addVariations', openingId: 'o-caro', chapterId: 'c-advance', variations: [line('Botvinnik-Carls', ['e4', 'c6', 'd4', 'd5', 'e5', 'c5'])] });
+  await mac.sync();
+  await ipad.sync();
+  await mac.sync();
+  const iphone = new Device('iphone', 'a new iPhone');
+  await iphone.sync();
+  const want = ['Van der Wiel', 'Tal Variation', 'Short System', 'Bayonet', 'Botvinnik-Carls'];
+  assert.deepEqual(lineNames(ipad.state, 'c-advance'), want, 'iPad');
+  assert.deepEqual(lineNames(mac.state, 'c-advance'), want, 'Mac');
+  assert.deepEqual(lineNames(iphone.state, 'c-advance'), want, 'a new iPhone');
+});
+
+test('Reorder sheet: a line the sheet didn\'t list keeps its place at the end; the same order changes nothing', () => {
+  const mac = buildLibrary(new Device('mac', 'Mac'));
+  mac.do({ type: 'addVariations', openingId: 'o-caro', chapterId: 'c-advance', variations: [line('Bayonet', ['e4', 'c6', 'd4', 'd5', 'e5', 'Bf5', 'g4'])] });
+  const vars = chapter(mac.state, 'o-caro', 'c-advance').variations;
+  const byName = (n) => vars.find((x) => x.name === n).id;
+  // The sheet opened before Bayonet arrived: it lists only the first two.
+  mac.do({ type: 'setVariationOrder', openingId: 'o-caro', chapterId: 'c-advance', ids: [byName('Tal Variation'), byName('Short System')] });
+  assert.deepEqual(lineNames(mac.state, 'c-advance'), ['Tal Variation', 'Short System', 'Bayonet']);
+  const before = mac.state;
+  mac.do({ type: 'setVariationOrder', openingId: 'o-caro', chapterId: 'c-advance', ids: chapter(before, 'o-caro', 'c-advance').variations.map((x) => x.id) });
+  assert.equal(chapter(mac.state, 'o-caro', 'c-advance'), chapter(before, 'o-caro', 'c-advance'), 'no change, no new chapter object');
+});
