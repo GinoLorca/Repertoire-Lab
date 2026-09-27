@@ -88,14 +88,16 @@ export async function addLinkedStudent(coach, studentAccountName) {
         linkedAt: serverTimestamp(),
       });
     } catch (err) {
-      // Firestore denies anything a rule doesn't explicitly allow, and a
-      // collection nobody has published rules for is denied whole. The raw
-      // message for that is "Missing or insufficient permissions", which
-      // reads as "you're not allowed" when it actually means "this half of
-      // the app was never switched on" — see the note at the top of
+      // Firestore denies anything a rule doesn't explicitly allow — a
+      // collection nobody published rules for, or an older ruleset that
+      // expects something else (the approval-era rules only let a coach
+      // create a link as 'pending', and this writes 'active'). Either way the
+      // raw message is "Missing or insufficient permissions", which reads as
+      // "you're not allowed" when it actually means "the rules in Firebase
+      // aren't the ones in this repo" — see the note at the top of
       // firebase/firestore.rules.
       if (err?.code === 'permission-denied') {
-        throw new Error('Firebase refused that. The link rules haven’t been published to this project yet — run `npm run deploy:rules`, or paste firebase/firestore.rules into the Firebase console.');
+        throw new Error('Firebase refused that. The link rules published to this project are missing or out of date — run `npm run deploy:rules`, or paste firebase/firestore.rules into the Firebase console.');
       }
       throw err;
     }
