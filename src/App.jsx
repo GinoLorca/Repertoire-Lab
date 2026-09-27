@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { StoreProvider, useStore } from './store';
 import { CloudProvider, useCloud } from './lib/cloud/useCloud';
 import { GameLinkProvider } from './components/GameLinkProvider';
+import { unseenStudentGames, gameSummary } from './lib/cloud/gameLink';
+import { openPlayerCard } from './lib/openPlayer';
 import { resolveTheme, applyTheme, applyBackground, applySkin } from './lib/theme';
 import { runTopGuard } from './lib/backGuard';
 import { parsePath, pathFor, SECTION_LABEL } from './lib/routes';
@@ -415,6 +417,14 @@ function AppInner() {
     go(() => setView('groups'));
   };
 
+  // Asked for by the bell (lib/openPlayer.js): go to the screen, and the
+  // roster there opens the card.
+  const navToRef = useRef(null);
+  useEffect(() => {
+    const on = (e) => navToRef.current?.(e.detail);
+    window.addEventListener('repertoire-open-screen', on);
+    return () => window.removeEventListener('repertoire-open-screen', on);
+  }, []);
   const navTo = (v) => {
     if (v === view) return;
     go(() => {
@@ -423,6 +433,7 @@ function AppInner() {
       setView(v);
     });
   };
+  navToRef.current = navTo;
 
   // The name and knight are the home button: the library, from the top.
   // Pressing it while already there scrolls back up rather than doing nothing.
@@ -677,6 +688,40 @@ function CoachGamesToast() {
   );
 }
 
+// The coach's side: a note when a linked student adds a game while the app
+// is open. Games already waiting when the app opened are the bell's job.
+function StudentGamesToast() {
+  const { state } = useStore();
+  const known = useRef(null);
+  const [fresh, setFresh] = useState([]);
+  useEffect(() => {
+    if (!state) return;
+    const now = unseenStudentGames(state.players);
+    const ids = new Set(now.map((x) => x.game.id));
+    if (known.current === null) { known.current = ids; return; }
+    const arrived = now.filter((x) => !known.current.has(x.game.id));
+    known.current = ids;
+    if (arrived.length) setFresh(arrived);
+  }, [state]);
+  useEffect(() => {
+    if (!fresh.length) return undefined;
+    const t = setTimeout(() => setFresh([]), 9000);
+    return () => clearTimeout(t);
+  }, [fresh]);
+  if (!fresh.length) return null;
+  const { card, game } = fresh[0];
+  const text = fresh.length === 1
+    ? `${card.name} added a game: ${gameSummary(game)}.`
+    : `${card.name} and others added ${fresh.length} games.`;
+  return (
+    <div className="coach-toast" role="status">
+      <span>{text}</span>
+      <button className="small primary" onClick={() => { openPlayerCard(card); setFresh([]); }}>Open</button>
+      <button className="small ghost" onClick={() => setFresh([])}>OK</button>
+    </div>
+  );
+}
+
 // A new version of the app has been installed while this one was running.
 // Offered, not forced: reloading in the middle of a practice session would
 // throw away where you were, even though nothing you've saved is at risk.
@@ -707,6 +752,7 @@ export default function App() {
         <GameLinkProvider>
           <AppInner />
           <CoachGamesToast />
+          <StudentGamesToast />
           <UpdateBar />
         </GameLinkProvider>
       </CloudProvider>

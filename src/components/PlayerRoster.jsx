@@ -169,6 +169,7 @@ function GameRow({
         {linkStatus && <LinkPill status={linkStatus} name={partnerName} onAction={onLinkAction} />}
         {/* The student's side: a game their coach put here, and a way back
             from a coach's corrections. */}
+        {game.link?.unseen && <span className="link-pill new">New</span>}
         {game.addedBy && (
           <span className="link-pill ok">Added by {game.addedBy.name || 'your coach'}</span>
         )}
@@ -375,6 +376,9 @@ function PlayerPage({
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState(null);
   const gameLink = useGameLink();
+  // New games from the student are marked seen when the coach leaves the
+  // card — so the "New" pill is there to see while they're looking at it.
+  useEffect(() => () => dispatch({ type: 'markLinkedGamesSeen', cardId: player.id }), [player.id, dispatch]);
 
   const linkNow = async () => {
     setLinkError(null);
@@ -803,12 +807,27 @@ function PlayerPage({
 // Landing: one section per person — either just you (Games) or each student
 // (Coaches). Shared by both tabs; `kind` picks which half of state.players
 // shows and colours the copy.
+// A request to open one person's card, left by the bell before the roster
+// is on screen (see openPlayerCard in lib/openPlayer.js).
+function takePendingOpen(kind) {
+  const want = window.__repertoireOpenPlayer;
+  if (!want || want.kind !== kind) return null;
+  window.__repertoireOpenPlayer = null;
+  return want.id;
+}
+
 export default function PlayerRoster({
   kind, title, subtitle, addLabel, emptyLabel, onAnalyze, onGameStudio, onScan, onOpenLibrary, onOpenCollections,
   onOpenStudio,
 }) {
   const { state, dispatch } = useStore();
-  const [openPlayerId, setOpenPlayerId] = useState(null);
+  // Opened straight from the bell ("Parker added a game → Open").
+  const [openPlayerId, setOpenPlayerId] = useState(() => takePendingOpen(kind));
+  useEffect(() => {
+    const on = () => { const id = takePendingOpen(kind); if (id) setOpenPlayerId(id); };
+    window.addEventListener('repertoire-open-player', on);
+    return () => window.removeEventListener('repertoire-open-player', on);
+  }, [kind]);
   const [manageCats, setManageCats] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null); // 'new' | player
   // Adding a student two ways: type in what you know by hand (the roster

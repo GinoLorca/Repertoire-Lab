@@ -967,6 +967,21 @@ function reduce(state, action) {
           ? { ...g, link: { uid: g.link.uid, base: {}, seen: false, sent: null, resend: true } }
           : g)),
       }));
+    // The coach has looked at the card: its new games are no longer news.
+    // (Not in GAME_EDITS — seeing a game isn't editing it.)
+    case 'markLinkedGamesSeen':
+      return mapPlayer(state, action.cardId, (p) => {
+        if (!p.games.some((g) => g.link?.unseen)) return p;
+        return {
+          ...p,
+          games: p.games.map((g) => {
+            if (!g.link?.unseen) return g;
+            const link = { ...g.link };
+            delete link.unseen;
+            return { ...g, link };
+          }),
+        };
+      });
     case 'dismissLinkLost':
       return mapPlayer(state, action.cardId, (p) => ({
         ...p,
@@ -1051,6 +1066,9 @@ const StoreContext = createContext(null);
 
 export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, () => null);
+  // Development only: lets a test drive the store from the console, the way
+  // a sync or a listener would. Stripped from production builds.
+  if (import.meta.env.DEV) window.__repertoireDispatch = dispatch;
   const [loaded, setLoaded] = useState(false);
   const saveTimer = useRef(null);
 

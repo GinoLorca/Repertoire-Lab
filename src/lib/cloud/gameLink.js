@@ -497,6 +497,10 @@ export function mergeLinkedGames(card, {
   const hidden = card.hiddenLinkedGames ?? {};
   let list = card.games ?? [];
   let changed = false;
+  // The first time a card is folded together with the student's account,
+  // everything they already had comes across at once — that's history, not
+  // news. Only games arriving after that are marked new for the coach.
+  const primed = Boolean(card.linkPrimed);
   const overflow = [];
   const studentById = new Map(games.map((s) => [s.id, s]));
 
@@ -537,6 +541,8 @@ export function mergeLinkedGames(card, {
       const copy = sharedCopy(s);
       copy.updatedAt = s.updatedAt ?? now;
       copy.link = { uid: studentUid, origin: 'student', base: hashesOf(s), seen: true, sent: null };
+      // A game the student added since the coach last looked: the bell.
+      if (primed) copy.link.unseen = now;
       list = [copy, ...list];
       changed = true;
       continue;
@@ -627,8 +633,8 @@ export function mergeLinkedGames(card, {
     }
   }
 
-  if (!changed) return { card, overflow };
-  return { card: { ...card, games: list }, overflow };
+  if (!changed && primed) return { card, overflow };
+  return { card: { ...card, games: list, linkPrimed: true }, overflow };
 }
 
 // ---------------------------------------------------------------------------
@@ -657,4 +663,17 @@ export function gameSummary(game) {
   const bits = [players];
   if (m.event) bits.push(m.round ? `${m.event} R${m.round}` : m.event);
   return bits.join(' · ');
+}
+
+// Games on linked cards that arrived from the student since the coach last
+// opened that card — what the coach's bell counts.
+export function unseenStudentGames(players) {
+  const out = [];
+  for (const card of players ?? []) {
+    if (card.kind !== 'student') continue;
+    for (const g of card.games ?? []) {
+      if (g.link?.unseen) out.push({ card, game: g, at: g.link.unseen });
+    }
+  }
+  return out.sort((a, b) => b.at - a.at);
 }

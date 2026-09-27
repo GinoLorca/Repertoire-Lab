@@ -8,6 +8,8 @@ import {
 import { watchStudentLinks, endLink } from '../lib/cloud/links';
 import { BellIcon, CheckIcon } from './Icons';
 import { useCloud } from '../lib/cloud/useCloud';
+import { unseenStudentGames, gameSummary } from '../lib/cloud/gameLink';
+import { openPlayerCard } from '../lib/openPlayer';
 
 const stamp = (t) => {
   const ms = t?.toMillis ? t.toMillis() : t;
@@ -70,9 +72,12 @@ export default function Inbox() {
   // eligibleGameDelivery: the sender can write acceptedAt themselves.
   const taken = (d) => (d.kind === 'game' ? cloud.isGameConsented(d.id) : Boolean(d.acceptedAt));
   const waiting = shown.filter((d) => !taken(d) && !d.dismissedAt);
+  // The coach's side of the bell: games linked students added since the coach
+  // last opened their card.
+  const studentGames = unseenStudentGames(state?.players);
   const seen = readSeen();
   const newLinks = links.filter((l) => !seen.has(l.id));
-  const count = waiting.length + newLinks.length;
+  const count = waiting.length + newLinks.length + studentGames.length;
 
   const accept = async (delivery) => {
     setBusy(delivery.id);
@@ -139,7 +144,28 @@ export default function Inbox() {
               </div>
             ))}
 
-            {shown.length === 0 && links.length === 0 && (
+            {studentGames.map(({ card, game, at }) => (
+              <div key={game.id} className="inbox-item unread">
+                <div className="inbox-head">
+                  <strong>{card.name}</strong>
+                  <span className="muted-note">added a game · {new Date(at).toLocaleDateString()}</span>
+                </div>
+                <div className="muted-note">{gameSummary(game)} · {game.moves.length} moves</div>
+                <div className="settings-row">
+                  <button className="primary small" onClick={() => { setOpen(false); openPlayerCard(card); }}>
+                    Open
+                  </button>
+                  <button
+                    className="small ghost"
+                    onClick={() => dispatch({ type: 'markLinkedGamesSeen', cardId: card.id })}
+                  >
+                    Mark seen
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {shown.length === 0 && links.length === 0 && studentGames.length === 0 && (
               <p className="hint">
                 Nothing yet. When a coach sends you an opening or a new line, it lands here.
               </p>

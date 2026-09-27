@@ -552,3 +552,31 @@ test('review: "Send again" isn\'t cancelled by the next snapshot while it\'s on 
   assert.ok(w.studentGame('abc123'), 'it arrives');
   assert.equal(w.coachGame('abc123').link.resend, undefined, 'and the resend is spent once it\'s there');
 });
+
+// ---------------------------------------------------------------------------
+// The coach's bell
+// ---------------------------------------------------------------------------
+import { unseenStudentGames } from '../src/lib/cloud/gameLink.js';
+
+test('bell: the games a student already had when the link was made are not news', () => {
+  const first = mirror(card([]), [game('old001'), game('old002')]).card;
+  assert.equal(unseenStudentGames([first]).length, 0);
+  assert.equal(first.linkPrimed, true);
+});
+
+test('bell: a game the student adds after that is', () => {
+  const first = mirror(card([]), [game('old001')]).card;
+  const next = mirror(first, [game('old001'), game('new001')]).card;
+  const news = unseenStudentGames([next]);
+  assert.equal(news.length, 1);
+  assert.equal(news[0].game.id, 'new001');
+  assert.equal(news[0].card.id, 'card1');
+});
+
+test('bell: a game the coach added and the student received is not news for the coach', () => {
+  const primedCard = mirror(card([]), []).card;
+  const w = world();
+  w.card = { ...primedCard, games: [linked(game('abc123'))] };
+  w.cycle(); w.cycle();
+  assert.equal(unseenStudentGames([w.card]).length, 0);
+});

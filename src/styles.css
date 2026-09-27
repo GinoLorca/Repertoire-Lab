@@ -3572,6 +3572,7 @@ input[type="date"] {
 }
 .link-pill.ok { color: var(--green); border-color: color-mix(in srgb, var(--green) 40%, transparent); }
 .link-pill.bad { color: var(--red); border-color: color-mix(in srgb, var(--red) 45%, transparent); }
+.link-pill.new { color: #fff; background: var(--accent); border-color: var(--accent); font-weight: 600; }
 .link-pill-btn {
   font: inherit; font-size: 12px; font-weight: 600;
   padding: 0 4px; border: none; background: none; color: var(--accent); cursor: pointer;
