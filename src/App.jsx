@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { StoreProvider, useStore } from './store';
+import { CloudProvider } from './lib/cloud/useCloud';
 import { resolveTheme, applyTheme, applyBackground, applySkin } from './lib/theme';
 import { runTopGuard } from './lib/backGuard';
 import { parsePath, pathFor, SECTION_LABEL } from './lib/routes';
@@ -651,7 +652,11 @@ function AppInner() {
 export default function App() {
   return (
     <StoreProvider>
-      <AppInner />
+      {/* Sync runs for the whole app, not just while Settings → Account is
+          open — see CloudProvider. */}
+      <CloudProvider>
+        <AppInner />
+      </CloudProvider>
     </StoreProvider>
   );
 }

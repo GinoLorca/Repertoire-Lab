@@ -20,10 +20,16 @@ import {
   toCloud, fromCloud, hashOf, localBlobIndex, keepLocalImages, encodeForStore, decodeFromStore,
 } from './shape';
 import { makeInlineStore } from './blobs';
-import { DEFAULT_SETTINGS } from '../../store';
+import { DEFAULT_SETTINGS } from '../settingsDefaults';
 import { mergeBackup } from '../backup';
+import { mergeState, toBaseline, SYNCED_COLLECTIONS } from './merge3';
 
 const META_KEY = 'repertoire-lab-sync-v1';
+// What this device and the cloud last agreed on — the common ancestor the
+// three-way merge needs (see merge3.js). Kept apart from META_KEY because
+// it's the size of the whole repertoire, and the small meta record is
+// rewritten far more often than this needs to be.
+const BASE_KEY = 'repertoire-lab-sync-base-v1';
 
 const emptyMeta = () => ({ ids: {}, hashes: {}, settingsHash: null, lastSync: null, deviceId: null });
 
@@ -42,7 +48,17 @@ const writeMeta = (meta) => set(META_KEY, meta);
 
 // Wipe the local sync memory — used when signing out, so signing in as
 // someone else can't inherit the previous account's idea of what existed.
-export const forgetMeta = () => set(META_KEY, emptyMeta());
+export const forgetMeta = async () => {
+  await set(META_KEY, emptyMeta());
+  // A baseline from one account is meaningless for another — and worse than
+  // meaningless, since it would make the next account's records look like
+  // deletions.
+  await set(BASE_KEY, null);
+};
+const readBaseline = async () => (await get(BASE_KEY)) ?? null;
+const writeBaseline = (merged) => set(BASE_KEY, toBaseline(
+  Object.fromEntries(SYNCED_COLLECTIONS.map((k) => [k, merged[k] ?? []])),
+));
 
 const idsOf = (arr) => (arr ?? []).map((x) => x.id);
 
@@ -173,7 +189,39 @@ async function push(c, uid, docs, meta, removals, device) {
 // The whole decision, with no network in it: what the merged state should be,
 // and what this device deleted that the cloud still has. Exported so it can
 // be tested directly — everything that could quietly lose work lives here.
-export function reconcile(localState, remoteState, remoteDocs, meta, defaults = DEFAULT_SETTINGS) {
+export function reconcile(
+  localState, remoteState, remoteDocs, meta, defaults = DEFAULT_SETTINGS, baseline = null,
+) {
+  if (baseline) return reconcileThreeWay(localState, remoteState, remoteDocs, meta, defaults, baseline);
+  return reconcileTwoWay(localState, remoteState, remoteDocs, meta, defaults);
+}
+
+// The merge every sync uses once this device has synced once under it: this
+// device, the cloud, and what they last agreed on. Edits survive, deletions
+// stick, and a game deleted on one device is deleted on the other — none of
+// which the two-way merge below could promise.
+function reconcileThreeWay(localState, remoteState, remoteDocs, meta, defaults, baseline) {
+  let merged = mergeState(baseline, localState, remoteState);
+  merged = mergeSettings(merged, localState, remoteState, remoteDocs, meta, defaults);
+
+  // What the merge dropped that the cloud still has: exactly the documents
+  // the push has to delete.
+  const keep = (arr) => new Set(idsOf(arr));
+  const keptChapters = new Set((merged.openings ?? []).flatMap((o) => idsOf(o.chapters)));
+  const goneHere = {
+    openings: idsOf(remoteDocs.openings).filter((id) => !keep(merged.openings).has(id)),
+    chapters: idsOf(remoteDocs.chapters).filter((id) => !keptChapters.has(id)),
+    players: idsOf(remoteDocs.players).filter((id) => !keep(merged.players).has(id)),
+    labEntries: idsOf(remoteDocs.labEntries).filter((id) => !keep(merged.labEntries).has(id)),
+  };
+  return { merged, goneHere };
+}
+
+// The merge a device uses for its very first sync after an update that
+// introduced the baseline, when there's nothing to compare against yet. Its
+// rules are the old ones — the cloud's content wins a clash — which is why it
+// only ever runs once per device.
+function reconcileTwoWay(localState, remoteState, remoteDocs, meta, defaults) {
   const goneHere = {
     openings: deletedSince(meta.ids.openings, idsOf(localState.openings)),
     chapters: deletedSince(meta.ids.chapters, (localState.openings ?? []).flatMap((o) => idsOf(o.chapters))),
@@ -207,6 +255,12 @@ export function reconcile(localState, remoteState, remoteDocs, meta, defaults = 
     };
   }
 
+  merged = mergeSettings(merged, localState, remoteState, remoteDocs, meta, defaults);
+
+  return { merged, goneHere };
+}
+
+function mergeSettings(merged, localState, remoteState, remoteDocs, meta, defaults) {
   // Settings are one object rather than a set of records, so recency decides
   // rather than sync order. Two rules:
   //
@@ -231,10 +285,10 @@ export function reconcile(localState, remoteState, remoteDocs, meta, defaults = 
   const untouchedHere = defaults && localSettingsHash === hashOf(JSON.stringify(defaults));
   const remoteHasSettings = remoteState.settings && Object.keys(remoteState.settings).length > 0;
   if (remoteHasSettings && (untouchedHere || (!changedHere && !neverSyncedHere && remoteIsNewer))) {
-    merged = { ...merged, settings: { ...localState.settings, ...remoteState.settings } };
+    return { ...merged, settings: { ...localState.settings, ...remoteState.settings } };
   }
 
-  return { merged, goneHere };
+  return merged;
 }
 
 // ---------------------------------------------------------------------------
@@ -297,7 +351,8 @@ export async function syncNow(localState, { onProgress } = {}) {
 
   onProgress?.('Merging…');
   const remoteState = await fromCloud(remoteDocs, download, have);
-  const reconciled = reconcile(localState, remoteState, remoteDocs, meta);
+  const baseline = await readBaseline();
+  const reconciled = reconcile(localState, remoteState, remoteDocs, meta, DEFAULT_SETTINGS, baseline);
   const { goneHere } = reconciled;
   // Whatever the merge decided, pictures already on this device stay on it.
   const merged = keepLocalImages(reconciled.merged, localState);
@@ -339,7 +394,13 @@ export async function syncNow(localState, { onProgress } = {}) {
     },
     // Blob hashes live alongside document hashes; both say "this is already
     // in the cloud exactly as it is here".
-    hashes: { ...Object.fromEntries(Object.entries(meta.hashes).filter(([k]) => k.startsWith('blob:'))), ...hashes },
+    // `doc:` too — those are pictures stored inline in Firestore (blobs.js),
+    // and forgetting them made every sync upload every picture again.
+    hashes: {
+      ...Object.fromEntries(Object.entries(meta.hashes)
+        .filter(([k]) => k.startsWith('blob:') || k.startsWith('doc:'))),
+      ...hashes,
+    },
     settingsHash,
     // When the settings we're now carrying were last written by anyone, so a
     // later sync can tell "newer than what I have" from "older, ignore it".
@@ -348,6 +409,9 @@ export async function syncNow(localState, { onProgress } = {}) {
     deviceId: me,
   };
   await writeMeta(next);
+  // Only now, with the push committed: this is what the cloud holds, so it's
+  // what the next sync measures both sides' changes against.
+  await writeBaseline(merged);
 
   return {
     state: merged,

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "lint": "eslint src scripts",
+    "lint": "eslint src scripts tests",
+    "test": "node --import ./tests/resolve.mjs --test tests/*.test.mjs",
     "deploy:rules": "npx -y firebase-tools deploy --only firestore:rules",
     "build": "npm run lint && vite build && node scripts/precache.mjs",
     "preview": "vite preview",

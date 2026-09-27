@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  createContext, useCallback, useContext, useEffect, useRef, useState,
+} from 'react';
 import { useStore } from '../../store';
 import { cloudConfigured } from './config';
 import { watchAuth, signOutNow } from './auth';
 import { syncNow, readMeta, forgetMeta, watchRemoteChanges } from './sync';
 import { hashOf } from './shape';
+import { foldInFlight } from './merge3';
 
 // What sync cares about. The analysis draft is excluded on purpose (it's the
 // board in front of you on this device) and so is anything else that isn't
@@ -18,7 +21,14 @@ const syncableHash = (state) => hashOf(JSON.stringify({
 // sync rather than twenty, short enough that walking to the iPad is slower.
 const QUIET_MS = 6000;
 
-export function useCloud() {
+// The sync engine: one per app, mounted at the top by CloudProvider below.
+//
+// It used to live inside the Settings → Account screen, which meant every
+// automatic trigger — the quiet timer after an edit, the app coming back to
+// the front, another device's pulse — only ran while that one screen was
+// open. Anywhere else in the app nothing synced at all. Now it runs for the
+// whole life of the app, and the Account screen just reads its status.
+function useCloudEngine() {
   const { state, dispatch } = useStore();
   const [user, setUser] = useState(null);
   const [ready, setReady] = useState(!cloudConfigured);
@@ -46,14 +56,27 @@ export function useCloud() {
     setStatus('syncing');
     setDetail(null);
     try {
-      const result = await syncNow(stateRef.current, { onProgress: setDetail });
+      const started = stateRef.current;
+      const result = await syncNow(started, { onProgress: setDetail });
+      // A sync takes a second or two, and the app doesn't stop while it runs:
+      // a move played, a note typed, a game saved in that window is in the
+      // store but not in `result.state`, which was merged from the state as
+      // it was when the sync began. Hydrating with the result straight would
+      // quietly throw that work away. So when anything moved underneath, it's
+      // merged once more — the sync's result against what's here now, with
+      // the state the sync started from as the common ancestor — and the
+      // newer local work goes out on the next sync.
+      const now = stateRef.current;
+      const next = foldInFlight(started, now, result.state);
       // Only touch the store if the merge actually changed something —
       // hydrating with an identical state would restart every view for
       // nothing, mid-practice included.
-      const before = syncableHash(stateRef.current);
-      const after = syncableHash(result.state);
-      if (before !== after) dispatch({ type: 'hydrate', state: result.state });
-      lastHash.current = after;
+      const before = syncableHash(now);
+      const after = syncableHash(next);
+      if (before !== after) dispatch({ type: 'hydrate', state: next });
+      // What the cloud now holds, not what's on screen: if local work was
+      // folded in above, the hashes differ and the quiet timer sends it.
+      lastHash.current = syncableHash(result.state);
       setLastSync(result.at);
       setStatus('idle');
       // Both halves of the round trip, because "Sent 1 change" alone can't
@@ -125,4 +148,24 @@ export function useCloud() {
   return {
     configured: cloudConfigured, ready, user, status, detail, lastSync, sync: run, signOut: signOutEverywhere,
   };
+}
+
+const CloudContext = createContext(null);
+
+// Mount once, inside StoreProvider, around the whole app.
+export function CloudProvider({ children }) {
+  const cloud = useCloudEngine();
+  return React.createElement(CloudContext.Provider, { value: cloud }, children);
+}
+
+const OFF = {
+  configured: false, ready: true, user: null, status: 'idle', detail: null, lastSync: null,
+  sync: async () => {}, signOut: async () => {},
+};
+
+// What any screen reads: sign-in state and how the last sync went. Outside a
+// CloudProvider (a test harness, say) it reads as "not configured" rather
+// than throwing.
+export function useCloud() {
+  return useContext(CloudContext) ?? OFF;
 }
