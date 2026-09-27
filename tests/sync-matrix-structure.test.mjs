@@ -42,6 +42,9 @@ import { markPreUpdate, isPreUpdate, downgradeStorage } from './fakes/legacy.mjs
 import {
   sendLines, makeSub, leaveFolder, withFolderMates,
 } from '../src/lib/subVariations.js';
+import {
+  arrangeTop, arrangeFolder, gatherIntoFolder, topItems, stepKey,
+} from '../src/lib/chapterOrder.js';
 
 // ---------------------------------------------------------------------------
 // The app's own reducer and emptyState, straight from src/store.jsx.
@@ -64,8 +67,8 @@ const { reducer, emptyState } = (() => {
     'return { reducer, emptyState };',
   ].join('\n');
   // eslint-disable-next-line no-new-func
-  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', body)(
-    DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, sendLines, makeSub, leaveFolder, withFolderMates,
+  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', body)(
+    DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, sendLines, makeSub, leaveFolder, withFolderMates, arrangeTop, arrangeFolder, gatherIntoFolder,
   );
 })();
 
@@ -997,3 +1000,94 @@ test('sub-variations: re-copying an opening to a student after lines were sent d
   const names = theirs.chapters.flatMap((c) => c.variations.map((x) => x.name));
   assert.deepEqual(names.sort(), ['Short System', 'Tal Variation']);
 });
+
+// ---------- Arranging chapter cards by hand (drag and drop, ▲▼) ----------
+
+// An opening laid out like the user's Caro-Kann: a folder with a
+// sub-variation, and loose chapters.
+function dragLibrary(dev) {
+  dev.do({ type: 'addOpening', id: 'o-dnd', name: 'Caro (arranged)', color: 'black' });
+  const add = (id, name, extra = {}) => dev.do({ type: 'addChapter', openingId: 'o-dnd', id, name, ...extra });
+  add('adv', 'Advance');
+  add('ex', 'Exchange', { section: 'Exchange' });
+  add('panov', 'Panov', { section: 'Exchange', subsection: 'Panov' });
+  add('knights', 'Two Knights');
+  add('fantasy', 'Fantasy');
+  return dev;
+}
+const grid = (st) => topItems(opening(st, 'o-dnd'), null);
+
+async function dragPair() {
+  const mac = dragLibrary(new Device('mac', 'Mac'));
+  await mac.sync();
+  const ipad = new Device('ipad', 'iPad');
+  await ipad.sync();
+  await mac.sync();
+  await ipad.sync();
+  return { mac, ipad };
+}
+
+test('arranging: a drag on the Mac reaches the iPad and a new iPhone, folders and all', async () => {
+  const { mac, ipad } = await dragPair();
+  assert.deepEqual(grid(mac.state), ['s:Exchange', 'c:adv', 'c:knights', 'c:fantasy'], 'before: folders first, as always');
+  const want = ['c:fantasy', 'c:adv', 's:Exchange', 'c:knights'];
+  mac.do({ type: 'arrangeChapters', openingId: 'o-dnd', courseId: null, order: want });
+  await mac.sync();
+  await ipad.sync();
+  const iphone = new Device('iphone', 'a new iPhone');
+  await iphone.sync();
+  for (const [who, dev] of [['Mac', mac], ['iPad', ipad], ['iPhone', iphone]]) assert.deepEqual(grid(dev.state), want, who);
+});
+
+test('arranging: the Mac arranges while the iPad (never arranged) files a chapter — every device agrees, on an order a device showed', async () => {
+  const { mac, ipad } = await dragPair();
+  const macOrder = ['c:fantasy', 'c:adv', 's:Exchange', 'c:knights'];
+  mac.do({ type: 'arrangeChapters', openingId: 'o-dnd', courseId: null, order: macOrder });
+  ipad.do({ type: 'makeSubVariation', openingId: 'o-dnd', chapterId: 'knights', section: 'Exchange' });
+  const ipadShowed = grid(ipad.state);
+  await mac.sync();
+  await ipad.sync();
+  await mac.sync();
+  const iphone = new Device('iphone', 'a new iPhone');
+  await iphone.sync();
+  const results = [mac, ipad, iphone].map((d) => grid(d.state));
+  assert.deepEqual(results[1], results[0], 'iPad agrees with the Mac');
+  assert.deepEqual(results[2], results[0], 'and the iPhone');
+  const macWithFiling = macOrder.filter((k) => k !== 'c:knights');
+  assert.ok([JSON.stringify(macWithFiling), JSON.stringify(ipadShowed)].includes(JSON.stringify(results[0])), `got ${results[0]}`);
+  assert.equal(chapter(mac.state, 'o-dnd', 'knights').section, 'Exchange', 'the filing lands either way');
+});
+
+test('arranging: the Mac moves a folder while the iPad adds a sub-variation to it — the new one is in its folder, wherever the folder went', async () => {
+  const { mac, ipad } = await dragPair();
+  mac.do({ type: 'arrangeChapters', openingId: 'o-dnd', courseId: null, order: ['c:adv', 'c:knights', 'c:fantasy', 's:Exchange'] });
+  ipad.do({ type: 'addVariations', openingId: 'o-dnd', chapterId: 'ex', variations: [line('Carlsbad', ['e4', 'c6', 'd4', 'd5', 'exd5', 'cxd5', 'Bd3'])] });
+  await ipad.sync();
+  const carls = chapter(ipad.state, 'o-dnd', 'ex').variations[0].id;
+  ipad.do({ type: 'sendToSubVariation', openingId: 'o-dnd', chapterId: 'ex', variationIds: [carls], newChapterId: 'carlsbad', name: 'Carlsbad' });
+  await mac.sync();
+  await ipad.sync();
+  await mac.sync();
+  for (const [who, dev] of [['Mac', mac], ['iPad', ipad]]) {
+    assert.deepEqual(grid(dev.state), ['c:adv', 'c:knights', 'c:fantasy', 's:Exchange'], `${who}: the Mac's arrangement`);
+    const flat = opening(dev.state, 'o-dnd').chapters.map((c) => c.id);
+    assert.deepEqual(flat.slice(-3).sort(), ['carlsbad', 'ex', 'panov'], `${who}: the folder's chapters together`);
+  }
+});
+
+test('arranging: ▲▼ on a sub-variation moves it in its folder and nothing else; filing from the chapter page keeps the folder where it is', () => {
+  const mac = dragLibrary(new Device('mac', 'Mac'));
+  mac.do({ type: 'addChapter', openingId: 'o-dnd', id: 'carlsbad', name: 'Carlsbad', section: 'Exchange', subsection: 'Carlsbad' });
+  mac.do({ type: 'arrangeChapters', openingId: 'o-dnd', courseId: null, order: ['c:fantasy', 's:Exchange', 'c:adv', 'c:knights'] });
+  const before = grid(mac.state);
+  mac.do({ type: 'arrangeFolder', openingId: 'o-dnd', courseId: null, section: 'Exchange', order: stepKey(['sub:Panov', 'sub:Carlsbad'], 'sub:Carlsbad', -1).map((k) => k.slice(4)) });
+  assert.deepEqual(grid(mac.state), before);
+  assert.deepEqual(opening(mac.state, 'o-dnd').chapters.filter((c) => c.section === 'Exchange').map((c) => c.id), ['ex', 'carlsbad', 'panov']);
+  // The old group move (still what an old build sends) no longer scrambles it either.
+  mac.do({ type: 'moveSection', openingId: 'o-dnd', key: 'Exchange|Panov', dir: -1 });
+  assert.deepEqual(grid(mac.state), before);
+  // The chapter page's Section button, into the existing folder.
+  mac.do({ type: 'setChapterSection', openingId: 'o-dnd', chapterId: 'fantasy', section: 'Exchange', subsection: 'Fantasy' });
+  assert.deepEqual(grid(mac.state), ['s:Exchange', 'c:adv', 'c:knights']);
+});
+

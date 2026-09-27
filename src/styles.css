@@ -3859,3 +3859,63 @@ input[type="date"] {
 .modal.file-sub { max-height: 100%; overflow-y: auto; }
 .modal.file-sub .parent-pick { flex-shrink: 0; }
 
+
+/* ---------- Arranging chapter cards by dragging (useCardDrag.js) ---------- */
+.drag-item { position: relative; }
+.drag-source { opacity: 0.35; }
+/* Where it will land: a bar in the gap before or after a card (above or
+   below when the cards stack), or the whole folder when it's going in. */
+.drag-item:not(.folder-card).drop-before::before,
+.drag-item:not(.folder-card).drop-after::after,
+.drag-item:not(.folder-card).drop-before-y::before,
+.drag-item:not(.folder-card).drop-after-y::after {
+  content: ''; position: absolute; z-index: 5; border-radius: 3px; background: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.drag-item:not(.folder-card).drop-before::before { left: -12px; top: 8px; bottom: 8px; width: 4px; }
+.drag-item:not(.folder-card).drop-after::after { right: -12px; top: 8px; bottom: 8px; width: 4px; }
+.drag-item:not(.folder-card).drop-before-y::before { top: -8px; left: 8px; right: 8px; height: 4px; }
+.drag-item:not(.folder-card).drop-after-y::after { bottom: -8px; left: 8px; right: 8px; height: 4px; }
+/* A folder card clips what's outside it and uses ::before for its own accent
+   bar, so its marks are drawn as an outer shadow on the side it'll land. */
+:root .chapter-card.folder-card.drop-before { box-shadow: -8px 0 0 -4px var(--accent); }
+:root .chapter-card.folder-card.drop-after { box-shadow: 8px 0 0 -4px var(--accent); }
+:root .chapter-card.folder-card.drop-before-y { box-shadow: 0 -8px 0 -4px var(--accent); }
+:root .chapter-card.folder-card.drop-after-y { box-shadow: 0 8px 0 -4px var(--accent); }
+.drop-into { outline: 3px solid var(--accent); outline-offset: 3px; }
+.drag-grip {
+  display: inline-flex; align-items: center; justify-content: center; align-self: flex-start;
+  margin-left: auto; padding: 4px 6px; border-radius: 6px; flex: 0 0 auto;
+  color: var(--muted); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.drag-grip:hover { color: var(--accent); background: var(--card-hover); }
+/* A thumb-sized grip, without making the title row taller. */
+@media (pointer: coarse) {
+  .drag-grip { min-width: 44px; min-height: 44px; padding: 0; margin: -12px -10px -12px auto; }
+}
+/* A mouse drag starting on a card's title doesn't leave text selected. */
+@media (hover: hover) {
+  .drag-item h3, .drag-item .card-title-text { user-select: none; -webkit-user-select: none; }
+}
+/* The folder title as it was: at the top of the card, caret on its first
+   line, the rest of the card pushed to the bottom. */
+.folder-card h3.card-title-flex {
+  display: flex; align-items: flex-start; gap: 2px;
+  flex: 0 0 auto; margin-bottom: auto;
+}
+.card-title-flex .card-title-text { flex: 1; min-width: 0; }
+/* The green "done" dot goes after the title, not after the grip. */
+.chapter-card.folder-card.practiced h3.card-title-flex::after { content: none; }
+.chapter-card.folder-card.practiced .card-title-text::after {
+  content: ''; display: inline-block; width: 8px; height: 8px; margin-left: 8px;
+  border-radius: 50%; background: var(--green); vertical-align: middle;
+}
+/* Placed by the drag itself (beside the pointer, above a finger, on screen). */
+.drag-ghost {
+  position: fixed; left: 0; top: 0; z-index: 300; pointer-events: none;
+  max-width: min(300px, calc(100vw - 16px)); padding: 7px 12px; border-radius: 8px;
+  background: var(--panel); color: var(--text); border: 1px solid var(--accent);
+  box-shadow: 0 8px 24px var(--shadow); font-size: 14px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body.card-dragging, body.card-dragging * { cursor: grabbing !important; user-select: none !important; -webkit-user-select: none !important; }

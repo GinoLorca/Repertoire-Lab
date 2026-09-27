@@ -42,3 +42,17 @@ test('a coach\'s delivery after they made the sub-variation: the student gets th
   assert.equal(merged.openings[0].chapters.find((c) => c.id === 'c-panov').variations[0].srs.level, 3);
   assert.equal(merged.openings[0].chapters[0].section, 'Exchange', 'the coach\'s folder arrives');
 });
+
+test('"arranged by hand" travels only with its order: a coach\'s arranged opening arrives in the coach\'s order; a restore keeps this device\'s', () => {
+  const plain = () => ({ openings: [{ id: 'o', name: 'O', chapters: [{ id: 'a', variations: [] }, { id: 'b', variations: [] }, { id: 'c', variations: [] }] }] });
+  const arranged = () => ({ openings: [{ id: 'o', name: 'O', freeChapterOrder: true, chapters: [{ id: 'c', variations: [] }, { id: 'a', variations: [] }, { id: 'b', variations: [] }] }] });
+  const order = (st) => st.openings[0].chapters.map((c) => c.id).join('');
+  const delivered = mergeBackup(plain(), arranged(), { structure: 'incoming' });
+  assert.equal(order(delivered), 'cab');
+  assert.equal(delivered.openings[0].freeChapterOrder, true);
+  const restored = mergeBackup(plain(), arranged());
+  assert.equal(order(restored), 'abc');
+  assert.equal(restored.openings[0].freeChapterOrder, undefined, 'not the file\'s setting without its order');
+  assert.equal(mergeBackup(arranged(), plain()).openings[0].freeChapterOrder, true, 'and not lost either');
+});
+

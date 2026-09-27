@@ -12,6 +12,11 @@ import MoreMenu, { MenuSheet } from '../components/MoreMenu';
 import Pressable from '../components/Pressable';
 import FileAsSubVariation from '../components/FileAsSubVariation';
 import { headOf, isHead, subVariationsOf } from '../lib/subVariations';
+import {
+  topItems, stepKey, dropOrder, folderSubKeys,
+} from '../lib/chapterOrder';
+import { useCardDrag } from '../components/useCardDrag';
+import { createPortal } from 'react-dom';
 import { useIsPhone } from '../components/useViewportWidth';
 import {
   ImageIcon, TagIcon, StarIcon, PencilIcon, ClockIcon, CheckIcon, DownloadIcon, UploadIcon, PlayIcon,
@@ -56,6 +61,24 @@ function groupChapters(chapters) {
     group.subs[group.subIndex.get(subsection)].chapters.push(chapter);
   }
   return sections;
+}
+
+// The six dots a card is dragged by.
+function GripIcon() {
+  return (
+    <svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true">
+      {[3, 9, 15].map((y) => [4, 10].map((x) => <circle key={`${x}${y}`} cx={x} cy={y} r="1.6" fill="currentColor" />))}
+    </svg>
+  );
+}
+
+// What a draggable card needs: `drag.item` from useCardDrag (its data
+// attributes, its drag classes, the mouse drag) and `drag.grip` (a finger's
+// handle).
+function dragParts(drag) {
+  if (!drag) return { attrs: {}, cls: '', onPointerDown: undefined, grip: null };
+  const { dragClass, onPointerDown, ...attrs } = drag.item;
+  return { attrs, cls: ` ${dragClass}`, onPointerDown, grip: <span {...drag.grip}><GripIcon /></span> };
 }
 
 // Compact ▲▼ pair used for every reorderable row.
@@ -149,9 +172,10 @@ function FolderCard({
   title, chapters, chips, open, onToggle, actions, practiceLabel, onPractice, onSave,
   // The phone's version of `onSave` and `actions`: a callback and menu rows
   // rather than ready-made buttons, so they can go in the ⋯ sheet.
-  onSaveProgress, menu,
+  onSaveProgress, menu, drag = null,
 }) {
   const isPhone = useIsPhone();
+  const dragBits = dragParts(drag);
   const t = tallyChapters(chapters);
   const pct = t.variations ? Math.round((t.practiced / t.variations) * 100) : 0;
   // A chapter with no lines doesn't hold a folder back — the opening counts
@@ -160,12 +184,15 @@ function FolderCard({
   const green = withLines.length > 0 && withLines.every(chapterPracticed);
   return (
     <div
-      className={`chapter-card folder-card${open ? ' open' : ''}${green ? ' practiced' : ''}`}
+      className={`chapter-card folder-card${open ? ' open' : ''}${green ? ' practiced' : ''}${dragBits.cls}`}
       onClick={onToggle}
+      onPointerDown={dragBits.onPointerDown}
+      {...dragBits.attrs}
     >
-      <h3>
+      <h3 className="card-title-flex">
         <span className="folder-caret">{open ? '▾' : '▸'}</span>
-        {title}
+        <span className="card-title-text">{title}</span>
+        {dragBits.grip}
       </h3>
       {chips?.length > 0 && (
         <div className="folder-chips">
@@ -377,8 +404,9 @@ function GroupByAuthorModal({ opening, authors, onApply, onClose }) {
 }
 
 function ChapterCard({
-  opening, chapter, onOpen, onDelete, onMove, onToggleStar, onPractice, groupLabel,
+  opening, chapter, onOpen, onDelete, onMove, onToggleStar, onPractice, groupLabel, drag = null,
 }) {
+  const dragBits = dragParts(drag);
   const { dispatch } = useStore();
   const isPhone = useIsPhone();
   const [importing, setImporting] = useState(false);
@@ -410,9 +438,11 @@ function ChapterCard({
   return (
     <>
     <Pressable
-      className={`chapter-card${green ? ' practiced' : ''}`}
+      className={`chapter-card${green ? ' practiced' : ''}${dragBits.cls}`}
       data-chapter-id={chapter.id}
       onClick={onOpen}
+      onPointerDown={dragBits.onPointerDown}
+      {...dragBits.attrs}
       onMenu={(at) => setMenu({ at })}
       title={green ? 'Every line here is learned and practiced' : undefined}
     >
@@ -426,6 +456,7 @@ function ChapterCard({
           <StarIcon size={16} filled={chapter.starred} />
         </button>
         <h3>{chapter.name}</h3>
+        {dragBits.grip}
       </div>
       <TagChips tags={chapter.tags} max={3} />
       <div className="chapter-meta">
@@ -574,6 +605,32 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
     onPractice({ openingId, chapterIds: chapters.map((c) => c.id), mode: 'practice' });
   const { state, dispatch } = useStore();
   const isPhone = useIsPhone();
+
+  // Chapter cards dragged into a new order (useCardDrag, lib/chapterOrder).
+  // A chapter dropped on the middle of a folder is filed in it.
+  const cardDrag = useCardDrag((meta, target) => {
+    const opening = state.openings.find((o) => o.id === meta.openingId);
+    if (!opening) return;
+    if (meta.level === 'top') {
+      if (target.where === 'into' && meta.key.startsWith('c:') && target.key.startsWith('s:')) {
+        const section = target.key.slice(2);
+        dispatch({ type: 'makeSubVariation', openingId: opening.id, chapterId: meta.key.slice(2), section });
+        if (!opening.collapsedGroups?.[`open:${section}`]) {
+          dispatch({ type: 'toggleGroupCollapse', openingId: opening.id, key: `open:${section}` });
+        }
+        return;
+      }
+      if (target.where === 'into') return;
+      const keys = topItems(opening, meta.courseId);
+      dispatch({ type: 'arrangeChapters', openingId: opening.id, courseId: meta.courseId, order: dropOrder(keys, meta.key, target) });
+      return;
+    }
+    // The folder's sub-variations as they are now — a sync may have landed
+    // mid-drag.
+    const keys = folderSubKeys(opening, meta.courseId, meta.section);
+    const order = dropOrder(keys, meta.key, target).map((k) => k.slice(4));
+    dispatch({ type: 'arrangeFolder', openingId: opening.id, courseId: meta.courseId, section: meta.section, order });
+  });
 
   // Who's signed in, for the Send button. Null when sync isn't configured or
   // nobody has signed in, which is what hides the button entirely.
@@ -765,6 +822,14 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
 
   return (
     <div className="page">
+      {cardDrag.drag && createPortal(
+        <div className="drag-ghost" ref={cardDrag.ghostRef} aria-hidden="true">
+          {cardDrag.drag.target?.where === 'into'
+            ? <>File <strong>{cardDrag.drag.meta.label}</strong> in <strong>{cardDrag.drag.target.key.slice(2)}</strong></>
+            : cardDrag.drag.meta.label}
+        </div>,
+        document.body,
+      )}
       <input
         ref={artInputRef}
         type="file"
@@ -1161,27 +1226,59 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
               const renderGrid = (chapterList, courseId) => (() => {
               const groups = groupChapters(chapterList);
               const openGroups = opening.collapsedGroups ?? {};
-              const ungrouped = groups.find((g) => g.section === '');
               const sections = groups.filter((g) => g.section !== '');
               const sectionNames = sections.map((g) => g.section);
 
+              // The grid's cards in the order they're shown, and the drags
+              // and ▲▼ that rearrange them — one order for both.
+              const course = courseId ?? null;
+              const topKeys = topItems(opening, course);
+              const topScope = `top|${opening.id}|${course ?? ''}`;
+              const moveTop = (key, dir) => dispatch({
+                type: 'arrangeChapters', openingId: opening.id, courseId: course, order: stepKey(topKeys, key, dir),
+              });
+              const topDrag = (key, label) => {
+                const meta = {
+                  scope: topScope, key, label, level: 'top', openingId: opening.id, courseId: course, canInto: key.startsWith('c:'),
+                };
+                return { item: cardDrag.item(meta, { into: key.startsWith('s:') }), grip: cardDrag.grip(meta) };
+              };
+              const folderScope = (section) => `folder|${opening.id}|${course ?? ''}|${section}`;
+              const subDrag = (section, subsection) => {
+                const meta = {
+                  scope: folderScope(section), key: `sub:${subsection}`, label: subsection, level: 'folder',
+                  openingId: opening.id, courseId: course, section,
+                };
+                return { item: cardDrag.item(meta), grip: cardDrag.grip(meta) };
+              };
+              // ▲▼ on a sub-variation: the same arrangement a drag makes, so
+              // nothing outside the folder moves.
+              const moveSub = (section, subsection, dir) => dispatch({
+                type: 'arrangeFolder',
+                openingId: opening.id,
+                courseId: course,
+                section,
+                order: stepKey(folderSubKeys(opening, course, section), `sub:${subsection}`, dir).map((k) => k.slice(4)),
+              });
+
               // `fixed`: the chapter a folder is of, which stays first in it.
-              const chapterCard = (chapter, { fixed = false } = {}) => (
+              const chapterCard = (chapter, opts = {}) => (
                 <ChapterCard
                   key={chapter.id}
                   opening={opening}
                   chapter={chapter}
+                  drag={opts.drag ?? null}
                   onOpen={() => onOpenChapter(opening.id, chapter.id)}
                   onDelete={() => dispatch({ type: 'deleteChapter', openingId: opening.id, chapterId: chapter.id })}
-                  onMove={fixed ? null : (dir) => dispatch({ type: 'moveChapter', openingId: opening.id, chapterId: chapter.id, dir })}
+                  onMove={opts.fixed ? null : (opts.onMove ?? ((dir) => dispatch({ type: 'moveChapter', openingId: opening.id, chapterId: chapter.id, dir })))}
                   onToggleStar={() => dispatch({ type: 'toggleChapterStar', openingId: opening.id, chapterId: chapter.id })}
                   onPractice={() => onPractice({ openingId: opening.id, chapterId: chapter.id, mode: 'practice' })}
                 />
               );
 
-              return (
-                <div className="chapter-grid">
-                  {sections.map(({ section, subs }) => {
+              const sectionByName = new Map(sections.map((g) => [g.section, g]));
+              const chapterById = new Map(chapterList.map((c) => [c.id, c]));
+              const renderFolder = ({ section, subs }) => {
                     const chapters = subs.flatMap((s) => s.chapters);
                     const isOpen = !!openGroups[`open:${section}`];
                     const others = sectionNames.filter((s) => s !== section);
@@ -1190,13 +1287,15 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                     // Exchange Variation reads before its Panov Attack —
                     // wherever a sync happened to put it in the list.
                     const head = hasSubs ? headOf(chapterList, section, courseId) : null;
-                    const ordered = head
-                      ? [...subs.filter((g) => !g.subsection), ...subs.filter((g) => g.subsection)]
-                      : subs;
+                    // Its own loose chapters first, whether or not one of
+                    // them is the chapter the folder is of — the order a
+                    // drag inside the folder assumes too.
+                    const ordered = [...subs.filter((g) => !g.subsection), ...subs.filter((g) => g.subsection)];
                     return (
                       <React.Fragment key={section}>
                         <FolderCard
                           title={section}
+                          drag={topDrag(`s:${section}`, section)}
                           chapters={chapters}
                           chips={subs.map((s) => s.subsection).filter(Boolean)}
                           open={isOpen}
@@ -1230,8 +1329,8 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                               },
                             },
                             { sep: true },
-                            { label: 'Move up', icon: '▲', onClick: () => dispatch({ type: 'moveSection', openingId: opening.id, key: subs[0].key, dir: -1 }) },
-                            { label: 'Move down', icon: '▼', onClick: () => dispatch({ type: 'moveSection', openingId: opening.id, key: subs[subs.length - 1].key, dir: 1 }) },
+                            { label: 'Move up', icon: '▲', onClick: () => moveTop(`s:${section}`, -1) },
+                            { label: 'Move down', icon: '▼', onClick: () => moveTop(`s:${section}`, 1) },
                           ]}
                           actions={(
                             <>
@@ -1266,8 +1365,8 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                               )}
                               <Reorder
                                 label="section"
-                                onUp={() => dispatch({ type: 'moveSection', openingId: opening.id, key: subs[0].key, dir: -1 })}
-                                onDown={() => dispatch({ type: 'moveSection', openingId: opening.id, key: subs[subs.length - 1].key, dir: 1 })}
+                                onUp={() => moveTop(`s:${section}`, -1)}
+                                onDown={() => moveTop(`s:${section}`, 1)}
                               />
                             </>
                           )}
@@ -1275,8 +1374,8 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
 
                         {/* Contents open on the row directly beneath their own card. */}
                         {isOpen && (
-                          <div className="folder-open-panel">
-                            <div className="chapter-grid">
+                          <div className="folder-open-panel" data-drag-panel-scope={topScope} data-drag-panel-key={`s:${section}`}>
+                            <div className="chapter-grid" data-drag-grid={folderScope(section)}>
                               {hasSubs
                                 ? ordered.map(({ subsection, chapters: subChapters, key }) => (
                                   // A sub-section holding a single chapter would
@@ -1288,9 +1387,10 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                                       opening={opening}
                                       chapter={subChapters[0]}
                                       groupLabel={subsection}
+                                      drag={subDrag(section, subsection)}
                                       onOpen={() => onOpenChapter(opening.id, subChapters[0].id)}
                                       onDelete={() => dispatch({ type: 'deleteChapter', openingId: opening.id, chapterId: subChapters[0].id })}
-                                      onMove={(dir) => dispatch({ type: 'moveSection', openingId: opening.id, key, dir })}
+                                      onMove={(dir) => moveSub(section, subsection, dir)}
                                       onToggleStar={() => dispatch({ type: 'toggleChapterStar', openingId: opening.id, chapterId: subChapters[0].id })}
                                       onPractice={() => onPractice({ openingId: opening.id, chapterId: subChapters[0].id, mode: 'practice' })}
                                     />
@@ -1298,6 +1398,7 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                                     <React.Fragment key={key}>
                                       <FolderCard
                                         title={subsection}
+                                        drag={subDrag(section, subsection)}
                                         chapters={subChapters}
                                         open={!!openGroups[`open:${key}`]}
                                         onToggle={() => dispatch({ type: 'toggleGroupCollapse', openingId: opening.id, key: `open:${key}` })}
@@ -1322,8 +1423,8 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                                             onClick: () => dispatch({ type: 'unnestSubsection', openingId: opening.id, section, subsection }),
                                           },
                                           { sep: true },
-                                          { label: 'Move up', icon: '▲', onClick: () => dispatch({ type: 'moveSection', openingId: opening.id, key, dir: -1 }) },
-                                          { label: 'Move down', icon: '▼', onClick: () => dispatch({ type: 'moveSection', openingId: opening.id, key, dir: 1 }) },
+                                          { label: 'Move up', icon: '▲', onClick: () => moveSub(section, subsection, -1) },
+                                          { label: 'Move down', icon: '▼', onClick: () => moveSub(section, subsection, 1) },
                                         ]}
                                         actions={(
                                           <>
@@ -1348,8 +1449,8 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                                             </button>
                                             <Reorder
                                               label="sub-section"
-                                              onUp={() => dispatch({ type: 'moveSection', openingId: opening.id, key, dir: -1 })}
-                                              onDown={() => dispatch({ type: 'moveSection', openingId: opening.id, key, dir: 1 })}
+                                              onUp={() => moveSub(section, subsection, -1)}
+                                              onDown={() => moveSub(section, subsection, 1)}
                                             />
                                           </>
                                         )}
@@ -1376,12 +1477,23 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                         )}
                       </React.Fragment>
                     );
-                  })}
+              };
 
-                  {ungrouped?.subs[0]?.chapters.map(chapterCard)}
+              return (
+                <div className="chapter-grid" data-drag-grid={topScope}>
+                  {topKeys.map((k) => (k.startsWith('s:')
+                    ? (sectionByName.has(k.slice(2)) ? renderFolder(sectionByName.get(k.slice(2))) : null)
+                    : (chapterById.has(k.slice(2))
+                      ? chapterCard(chapterById.get(k.slice(2)), {
+                        drag: topDrag(k, chapterById.get(k.slice(2)).name),
+                        onMove: (dir) => moveTop(k, dir),
+                      })
+                      : null)))}
 
                   <div
                     className="add-card"
+                    data-drag-end={topScope}
+                    data-drag-last={topKeys[topKeys.length - 1]}
                     onClick={() => setModal({ kind: 'addChapter', openingId: opening.id, courseId })}
                   >
                     + Add Chapter

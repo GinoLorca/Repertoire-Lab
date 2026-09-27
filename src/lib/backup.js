@@ -56,6 +56,18 @@ function mergeOpening(a, b, structure = 'local') {
     ...b,
     chapters: mergeById(a.chapters, b.chapters, (x, y) => mergeChapter(x, y, structure)),
   };
+  // "Arranged by hand" (lib/chapterOrder.js) describes an order, so it only
+  // travels with it: a coach's arranged opening arrives in the coach's order;
+  // a restored file keeps this device's order, and so its own setting.
+  if (structure === 'incoming' && b.freeChapterOrder) {
+    const rank = new Map(b.chapters.map((c, i) => [c.id, i]));
+    merged.chapters = [...merged.chapters].sort((x, y) => (rank.get(x.id) ?? 1e9) - (rank.get(y.id) ?? 1e9));
+    merged.freeChapterOrder = true;
+  } else if (a.freeChapterOrder) {
+    merged.freeChapterOrder = true;
+  } else {
+    delete merged.freeChapterOrder;
+  }
   return oneHomePerLine(merged, a, b, structure);
 }
 

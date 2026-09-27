@@ -93,8 +93,10 @@ function AppInner() {
     // A drag that starts on a board is a chess move, and one inside a popup
     // is that popup's business — neither should ever reload the app.
     const blocked = (target) => !!target?.closest?.(
-      '[data-boardid], .board-stack, .board-frame, .book-board, .viewer-board, input, textarea, select',
-    ) || !!document.querySelector('.modal-overlay, .viewer-overlay, .menu-scrim');
+      '[data-boardid], .board-stack, .board-frame, .book-board, .viewer-board, .drag-grip, input, textarea, select',
+    ) || !!document.querySelector('.modal-overlay, .viewer-overlay, .menu-scrim')
+      // A chapter card being dragged down the page isn't a pull to refresh.
+      || document.body.classList.contains('card-dragging');
 
     const place = (y, spin) => {
       el.style.transform = `translate(-50%, ${y}px)`;
@@ -129,6 +131,7 @@ function AppInner() {
     };
     const onMove = (e) => {
       if (startY === null || refreshing) return;
+      if (document.body.classList.contains('card-dragging')) { if (pull) release(); startY = null; return; }
       const dy = e.touches[0].clientY - startY;
       if (dy <= 0 || !atTop()) { if (pull) release(); startY = null; return; }
       // Damped, so the finger travels further than the indicator — the

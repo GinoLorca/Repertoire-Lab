@@ -31,6 +31,8 @@ export function useLongPress(onOpen, { disabled = false } = {}) {
       // portaled elsewhere in the page, but React still passes its events up.
       if (!e.currentTarget.contains(e.target)) return;
       if (e.pointerType === 'mouse') return;
+      // A second finger resting on a card while another card is dragged.
+      if (document.body.classList.contains('card-dragging')) return;
       // A long press on a checkbox or a text box is theirs.
       if (e.target.closest('input, textarea, select')) return;
       cancel();

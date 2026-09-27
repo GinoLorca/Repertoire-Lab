@@ -24,6 +24,8 @@
 // marker ({ __img: hash }) instead of the data URL — so it stays small enough
 // to keep around — and a real data URL on either side is equal to a marker
 // with the same hash.
+
+import { legacyOrder, keepFoldersTogether } from '../chapterOrder';
 import { hashOf } from './shape';
 
 const isDataUrl = (v) => typeof v === 'string' && v.startsWith('data:');
@@ -245,7 +247,20 @@ export const SYNCED_COLLECTIONS = [
 
 // `prefer` settles a genuine clash on a plain value: 'local' in an ordinary
 // sync, 'remote' when this state is known to be older than the cloud's.
-export function mergeState(baseline, local, remote, prefer = 'local') {
+export function mergeState(baselineIn, localIn, remoteIn, prefer = 'local') {
+  // An opening arranged by hand on some device (freeChapterOrder) is compared
+  // with every other copy of it as that copy's screen showed it — folders
+  // first — so a device that never arranged doesn't seem to have "moved"
+  // chapters it merely held in their old order, and the merge can't produce
+  // an order no screen ever showed (lib/chapterOrder.js).
+  const arranged = new Set([baselineIn, localIn, remoteIn]
+    .flatMap((st) => (st?.openings ?? []).filter((o) => o.freeChapterOrder).map((o) => o.id)));
+  const even = (st) => (st && arranged.size
+    ? { ...st, openings: (st.openings ?? []).map((o) => (arranged.has(o.id) ? legacyOrder(o) : o)) }
+    : st);
+  const baseline = even(baselineIn);
+  const local = even(localIn);
+  const remote = even(remoteIn);
   const out = { ...local };
   for (const key of SYNCED_COLLECTIONS) {
     out[key] = merge3(baseline?.[key], local?.[key] ?? [], remote?.[key] ?? [], prefer) ?? [];
@@ -259,6 +274,12 @@ export function mergeState(baseline, local, remote, prefer = 'local') {
   out.players = remergeById(out.players, baseline?.players, local?.players, remote?.players,
     (p) => p.games ?? [], (p, games) => ({ ...p, games }), prefer);
   out.openings = remergeNested(out.openings, baseline?.openings, local?.openings, remote?.openings, prefer);
+  // A chapter new since the last sync joins its folder where the folder is
+  // now — a sub-variation made on one device while another moved the folder.
+  if (baseline && arranged.size) {
+    const known = new Map((baseline.openings ?? []).map((o) => [o.id, new Set((o.chapters ?? []).map((c) => c.id))]));
+    out.openings = out.openings.map((o) => (known.has(o.id) ? keepFoldersTogether(o, known.get(o.id)) : o));
+  }
   return out;
 }
 

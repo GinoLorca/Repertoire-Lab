@@ -9,6 +9,7 @@ import { foldInFlight } from './lib/cloud/merge3';
 import {
   sendLines, makeSub, leaveFolder, withFolderMates,
 } from './lib/subVariations';
+import { arrangeTop, arrangeFolder, gatherIntoFolder } from './lib/chapterOrder';
 
 const STORAGE_KEY = 'repertoire-lab-state-v1';
 
@@ -171,11 +172,21 @@ function moveGroup(chapters, key, dir) {
     let j = i + dir;
     while (j >= 0 && j < groups.length && !groups[j].key.startsWith(`${section}|`)) j += dir;
     if (j < 0 || j >= groups.length || groups[j].key === `${section}|`) return chapters;
-    return swap(groups, i, j).flatMap((g) => g.items);
+    return swapGroups(chapters, groups[i], groups[j], dir);
   }
   const j = i + dir;
   if (j < 0 || j >= groups.length) return chapters;
-  return swap(groups, i, j).flatMap((g) => g.items);
+  return swapGroups(chapters, groups[i], groups[j], dir);
+}
+
+// Two groups trade places using only the slots their own chapters hold —
+// rebuilding the whole array group by group would gather every loose chapter
+// of the opening into one block, scrambling an arrangement made by hand.
+function swapGroups(chapters, moving, other, dir) {
+  const ids = new Set([...moving.items, ...other.items].map((c) => c.id));
+  const sequence = dir < 0 ? [...moving.items, ...other.items] : [...other.items, ...moving.items];
+  let next = 0;
+  return chapters.map((c) => (ids.has(c.id) ? sequence[next++] : c));
 }
 
 // Actions on one line name the chapter it was in when the screen was drawn.
@@ -547,13 +558,20 @@ function reduce(state, action) {
       return mapOpening(state, action.openingId, (o) => ({ ...o, collapsed: !o.collapsed }));
     case 'setOpeningArtwork':
       return mapOpening(state, action.openingId, (o) => ({ ...o, artwork: action.artwork }));
-    case 'setChapterSection':
-      return mapChapter(state, action.openingId, action.chapterId, (c) => ({
+    case 'setChapterSection': {
+      const next = mapChapter(state, action.openingId, action.chapterId, (c) => ({
         ...c,
         section: action.section || null,
         // Sub-sections only make sense inside a section.
         subsection: action.section ? (action.subsection ?? c.subsection ?? null) : null,
       }));
+      // Into a folder that's already there: in with it, so it keeps its place.
+      if (!action.section) return next;
+      return mapOpening(next, action.openingId, (o) => {
+        const chapters = gatherIntoFolder(o.chapters, [action.chapterId]);
+        return chapters === o.chapters ? o : { ...o, chapters };
+      });
+    }
     // The video at the top of a chapter. `video` is metadata only (see
     // lib/videoStore.js for the actual file) — set to null to remove it. The
     // caller is responsible for deleting the stored blob first, since the
@@ -600,12 +618,15 @@ function reduce(state, action) {
         variations: moveInArray(c.variations, action.variationId, action.dir),
       }));
     case 'renameSection':
-      return mapOpening(state, action.openingId, (o) => ({
-        ...o,
-        chapters: o.chapters.map((c) => (c.section === action.from
+      return mapOpening(state, action.openingId, (o) => {
+        const renamed = o.chapters.filter((c) => c.section === action.from).map((c) => c.id);
+        const chapters = o.chapters.map((c) => (c.section === action.from
           ? { ...c, section: action.to || null, subsection: action.to ? c.subsection : null }
-          : c)),
-      }));
+          : c));
+        // Renamed onto a folder that already exists: the two become one,
+        // where that one was.
+        return { ...o, chapters: action.to ? gatherIntoFolder(chapters, renamed) : chapters };
+      });
     case 'toggleGroupCollapse':
       return mapOpening(state, action.openingId, (o) => {
         const collapsed = { ...(o.collapsedGroups ?? {}) };
@@ -615,14 +636,16 @@ function reduce(state, action) {
       });
     // Turn a whole top-level section into a sub-section of another one.
     case 'nestSection':
-      return mapOpening(state, action.openingId, (o) => ({
-        ...o,
+      return mapOpening(state, action.openingId, (o) => {
+        const moved = o.chapters.filter((c) => c.section === action.from).map((c) => c.id);
         // Its sub-variations keep their own names; only its loose chapters
-        // take the folder's name as their sub-section.
-        chapters: o.chapters.map((c) => (c.section === action.from
+        // take the folder's name as their sub-section. They go in behind the
+        // folder they join, which keeps its place.
+        const chapters = o.chapters.map((c) => (c.section === action.from
           ? { ...c, section: action.under, subsection: c.subsection || action.from }
-          : c)),
-      }));
+          : c));
+        return { ...o, chapters: gatherIntoFolder(chapters, moved) };
+      });
     // Promote a sub-section back to being its own section.
     case 'unnestSubsection':
       return mapOpening(state, action.openingId, (o) => ({
@@ -678,6 +701,12 @@ function reduce(state, action) {
           : p)),
       };
     }
+    // Chapter cards arranged by hand (lib/chapterOrder.js): a course's grid
+    // of folders and chapters, or the sub-variations inside one folder.
+    case 'arrangeChapters':
+      return mapOpening(state, action.openingId, (o) => arrangeTop(o, action.courseId ?? null, action.order));
+    case 'arrangeFolder':
+      return mapOpening(state, action.openingId, (o) => arrangeFolder(o, action.courseId ?? null, action.section, action.order));
     case 'makeSubVariation':
       return mapOpening(state, action.openingId, (o) => makeSub(o, {
         chapterId: action.chapterId, parentId: action.parentId ?? null, section: action.section ?? null,
