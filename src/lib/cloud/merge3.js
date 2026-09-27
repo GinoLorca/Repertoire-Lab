@@ -67,13 +67,16 @@ export function same(a, b) {
   return false;
 }
 
-// A list of records is merged by id rather than by position. Only lists
-// whose entries all carry a string id qualify — a move list is a list of
-// strings and is merged whole.
-const isRecordList = (v) => Array.isArray(v)
-  && v.every((x) => isObj(x) && typeof x.id === 'string');
-const recordLists = (...vs) => vs.every((v) => v === undefined || isRecordList(v))
-  && vs.some((v) => Array.isArray(v) && v.length > 0);
+// A list of records is merged by identity rather than by position. Most
+// records carry an `id`; a playlist's entries are identified by the line they
+// point at, `variationId`. A list qualifies only if every entry has the same
+// kind of key — a move list is a list of strings and is merged whole.
+const RECORD_KEYS = ['id', 'variationId'];
+const keyedBy = (v, k) => Array.isArray(v) && v.every((x) => isObj(x) && typeof x[k] === 'string');
+function recordKey(...vs) {
+  if (!vs.some((v) => Array.isArray(v) && v.length > 0)) return null;
+  return RECORD_KEYS.find((k) => vs.every((v) => v === undefined || keyedBy(v, k))) ?? null;
+}
 
 // Practice progress keeps its own rule inside the merge: once learned,
 // always learned, and the review schedule from whichever side reviewed the
@@ -88,6 +91,21 @@ function keepProgress(out, local, remote) {
   if (ls && rs) merged.srs = (rs.lastReview ?? 0) > (ls.lastReview ?? 0) ? rs : ls;
   else if (ls || rs) merged.srs = ls ?? rs;
   return merged;
+}
+
+// Lists that are really sets: a line's tags, a game's flags. Two devices each
+// adding a different tag both mean it, so these merge as sets — everything
+// added on either side, minus anything removed on either side — rather than
+// one list replacing the other.
+const SET_KEYS = new Set(['tags', 'flags']);
+const isStrings = (v) => Array.isArray(v) && v.every((x) => typeof x === 'string');
+export function mergeSet(base, local, remote) {
+  const B = new Set(base ?? []);
+  const L = new Set(local);
+  const R = new Set(remote);
+  const out = local.filter((x) => R.has(x) || !B.has(x));
+  for (const x of remote) if (!L.has(x) && !B.has(x) && !out.includes(x)) out.push(x);
+  return out;
 }
 
 // When both sides changed the same plain value, which one stands. A record
@@ -119,9 +137,9 @@ const sameSeq = (a, b) => a.length === b.length && a.every((x, i) => x === b[i])
 // With no baseline to tell who moved what, `prefer` decides: the careful path
 // passes 'remote', because a state that's behind the account mustn't push its
 // old order back over a newer one.
-export function mergeOrder(base, local, remote, prefer = 'local') {
-  const L = local.map((r) => r.id);
-  const R = remote.map((r) => r.id);
+export function mergeOrder(base, local, remote, prefer = 'local', key = 'id') {
+  const L = local.map((r) => r[key]);
+  const R = remote.map((r) => r[key]);
   const inR = new Set(R);
   const shared = new Set(L.filter((id) => inR.has(id)));
   const l = L.filter((id) => shared.has(id));
@@ -129,7 +147,7 @@ export function mergeOrder(base, local, remote, prefer = 'local') {
   let skeleton;
   if (sameSeq(l, r)) skeleton = l;
   else if (base) {
-    const b = base.map((x) => x.id).filter((id) => shared.has(id));
+    const b = base.map((x) => x[key]).filter((id) => shared.has(id));
     const localMoved = !sameSeq(l, b);
     const remoteMoved = !sameSeq(r, b);
     if (remoteMoved && !localMoved) skeleton = r;
@@ -156,12 +174,12 @@ export function mergeOrder(base, local, remote, prefer = 'local') {
   return out;
 }
 
-function mergeRecords(base, local, remote, prefer) {
-  const B = new Map((base ?? []).map((r) => [r.id, r]));
-  const L = new Map((local ?? []).map((r) => [r.id, r]));
-  const R = new Map((remote ?? []).map((r) => [r.id, r]));
+function mergeRecords(base, local, remote, prefer, key = 'id') {
+  const B = new Map((base ?? []).map((r) => [r[key], r]));
+  const L = new Map((local ?? []).map((r) => [r[key], r]));
+  const R = new Map((remote ?? []).map((r) => [r[key], r]));
   const out = [];
-  for (const id of mergeOrder(base, local ?? [], remote ?? [], prefer)) {
+  for (const id of mergeOrder(base, local ?? [], remote ?? [], prefer, key)) {
     const b = B.get(id);
     const l = L.get(id);
     const r = R.get(id);
@@ -186,7 +204,8 @@ export function merge3(base, local, remote, prefer = 'local') {
 
   // Both changed (or there's nothing to compare against). Go deeper where
   // there's structure to go into.
-  if (recordLists(base, local, remote)) return mergeRecords(base, local, remote, prefer);
+  const key = recordKey(base, local, remote);
+  if (key) return mergeRecords(base, local, remote, prefer, key);
 
   if (isObj(local) && isObj(remote) && imgKey(local) === null && imgKey(remote) === null) {
     const b = isObj(base) ? base : undefined;
@@ -198,7 +217,10 @@ export function merge3(base, local, remote, prefer = 'local') {
       const rk = k in remote;
       const bk = b !== undefined && k in b;
       let v;
-      if (lk && rk) v = merge3(b?.[k], local[k], remote[k], side);
+      if (lk && rk && SET_KEYS.has(k) && isStrings(local[k]) && isStrings(remote[k])
+        && !same(local[k], remote[k])) {
+        v = mergeSet(isStrings(b?.[k]) ? b[k] : [], local[k], remote[k]);
+      } else if (lk && rk) v = merge3(b?.[k], local[k], remote[k], side);
       // Present on one side only. If the baseline had it, the other side
       // removed it — unless this side changed it since, in which case the
       // change is the newer intent and stays.
@@ -228,7 +250,54 @@ export function mergeState(baseline, local, remote, prefer = 'local') {
   for (const key of SYNCED_COLLECTIONS) {
     out[key] = merge3(baseline?.[key], local?.[key] ?? [], remote?.[key] ?? [], prefer) ?? [];
   }
+  // A game moved to another student's card, or a line saved into another
+  // chapter, is — to the container-by-container merge above — deleted from
+  // one place and added to another. If the other device edited it meanwhile,
+  // the edit was on the "deleted" copy, and went with it. So each moved
+  // record is merged once more on its own, by id, from wherever each side
+  // had it: the move and the edit both land.
+  out.players = remergeById(out.players, baseline?.players, local?.players, remote?.players,
+    (p) => p.games ?? [], (p, games) => ({ ...p, games }), prefer);
+  out.openings = remergeNested(out.openings, baseline?.openings, local?.openings, remote?.openings, prefer);
   return out;
+}
+
+// Every record of one kind, by id, wherever it lives.
+const byId = (containers, itemsOf) => {
+  const m = new Map();
+  for (const c of containers ?? []) for (const r of itemsOf(c) ?? []) if (r?.id) m.set(r.id, { c: c.id, r });
+  return m;
+};
+
+function remergeById(merged, base, local, remote, itemsOf, withItems, prefer) {
+  const B = byId(base, itemsOf);
+  const L = byId(local, itemsOf);
+  const R = byId(remote, itemsOf);
+  return (merged ?? []).map((container) => {
+    let changed = false;
+    const items = (itemsOf(container) ?? []).map((item) => {
+      const l = L.get(item.id);
+      const r = R.get(item.id);
+      // Only where the two sides disagree about where it lives.
+      if (!l || !r || l.c === r.c) return item;
+      changed = true;
+      return merge3(B.get(item.id)?.r, l.r, r.r, prefer);
+    });
+    return changed ? withItems(container, items) : container;
+  });
+}
+
+// Lines live two levels down (opening → chapter → line), and move between
+// chapters of any opening.
+function remergeNested(merged, base, local, remote, prefer) {
+  const flat = (openings) => (openings ?? []).flatMap((o) => o.chapters ?? []);
+  const chapters = remergeById(flat(merged), flat(base), flat(local), flat(remote),
+    (c) => c.variations ?? [], (c, variations) => ({ ...c, variations }), prefer);
+  const byChapter = new Map(chapters.map((c) => [c.id, c]));
+  return (merged ?? []).map((o) => {
+    const next = (o.chapters ?? []).map((c) => byChapter.get(c.id) ?? c);
+    return next.some((c, i) => c !== o.chapters[i]) ? { ...o, chapters: next } : o;
+  });
 }
 
 // Work done while a sync was in flight. The sync merged from `started`; the

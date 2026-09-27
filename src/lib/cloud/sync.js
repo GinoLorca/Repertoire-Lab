@@ -21,8 +21,9 @@ import {
 } from './shape';
 import { makeInlineStore } from './blobs';
 import { DEFAULT_SETTINGS } from '../settingsDefaults';
-import { mergeBackup } from '../backup';
-import { mergeState, toBaseline, SYNCED_COLLECTIONS } from './merge3';
+import {
+  mergeState, merge3, same, toBaseline, SYNCED_COLLECTIONS,
+} from './merge3';
 import { applyCoachGames, stableStringify } from './gameLink';
 
 // What this device knows about its last sync, kept per account: signing out
@@ -64,11 +65,45 @@ const pulseName = async () => `${await deviceId()}:${TAB}`;
 
 export const readMeta = async (uid) => (uid && (await get(META_PREFIX + uid))) || emptyMeta();
 const writeMeta = (uid, meta) => set(META_PREFIX + uid, meta);
-const readBaseline = async (uid) => (await get(BASE_PREFIX + uid)) ?? null;
-const writeBaseline = (uid, merged, gen) => set(BASE_PREFIX + uid, {
-  gen,
-  value: toBaseline(Object.fromEntries(SYNCED_COLLECTIONS.map((k) => [k, merged[k] ?? []]))),
-});
+// The last few baselines, newest first, each under the generation it was
+// written for. Keeping only the newest meant a state one sync behind — a tab
+// that missed the other tab's sync, an iPad relaunched from a save made just
+// before its last sync — had no ancestor at all, and fell back to a blunt
+// merge that lost its edits and brought back deletions. With the history,
+// such a state is merged against exactly the baseline it came from.
+const BASE_HISTORY = 4;
+async function readBaselines(uid) {
+  const stored = await get(BASE_PREFIX + uid);
+  if (!stored) return [];
+  if (Array.isArray(stored.history)) return stored.history;
+  return stored.value ? [{ gen: stored.gen, value: stored.value }] : [];
+}
+async function writeBaseline(uid, merged, gen) {
+  const value = toBaseline(Object.fromEntries([
+    ...SYNCED_COLLECTIONS.map((k) => [k, merged[k] ?? []]),
+    ['settings', merged.settings ?? {}],
+  ]));
+  const history = [{ gen, value }, ...(await readBaselines(uid)).filter((b) => b.gen !== gen)]
+    .slice(0, BASE_HISTORY);
+  await set(BASE_PREFIX + uid, { history });
+}
+
+// Which baseline, if any, this state descends from.
+//
+//   · A state stamped by a sync: the baseline written with that stamp, if
+//     it's still in the history.
+//   · A state with no stamp at all: one saved before stamps existed, so it
+//     descends from the baseline that was current then — carried over as
+//     'migrated'. That's every device's first sync after this update.
+//   · Anything else — a reset or restored library (stamped 'local-…'), or a
+//     state older than the whole history — descends from nothing we still
+//     know, and takes the careful path.
+function baselineFor(history, state) {
+  if (!history.length) return { kind: 'none' };
+  const want = state.syncGen ?? 'migrated';
+  const found = history.find((b) => b.gen === want);
+  return found ? { kind: 'match', value: found.value } : { kind: 'unknown' };
+}
 
 // The single pre-account record, handed to the first account that syncs.
 async function migrateOnce(uid) {
@@ -79,7 +114,7 @@ async function migrateOnce(uid) {
     await set(META_PREFIX + uid, { ...emptyMeta(), ...meta });
     const oldBase = await get(OLD_BASE_KEY);
     // No generation: whichever state comes next takes the careful path once.
-    if (oldBase) await set(BASE_PREFIX + uid, { gen: 'migrated', value: oldBase });
+    if (oldBase) await set(BASE_PREFIX + uid, { history: [{ gen: 'migrated', value: oldBase }] });
     if (!(await get(OWNER_KEY)) && meta.lastSync) await set(OWNER_KEY, uid);
   }
   await set(OLD_META_KEY, null);
@@ -194,7 +229,7 @@ class SyncConflict extends Error {
 // Offline, a transaction can't run at all, so nothing is queued blind: the
 // work stays in this device's own storage and goes up on the next sync with
 // a connection.
-async function push(c, uid, docs, meta, removals, device, extraSets = [], seen = {}) {
+async function push(c, uid, docs, meta, removals, device, extraSets = [], seen = {}, writeSettings = false) {
   const { doc, setDoc, runTransaction } = c.firestore;
   const hashes = {};
   let written = 0;
@@ -229,7 +264,7 @@ async function push(c, uid, docs, meta, removals, device, extraSets = [], seen =
   }
 
   const settingsHash = hashOf(JSON.stringify(docs.settings));
-  if (meta.settingsHash !== settingsHash) {
+  if (writeSettings) {
     ops.push({
       key: 'singletons/settings',
       ref: doc(c.db, 'users', uid, 'singletons', 'settings'),
@@ -286,9 +321,40 @@ async function push(c, uid, docs, meta, removals, device, extraSets = [], seen =
 // be tested directly — everything that could quietly lose work lives here.
 export function reconcile(
   localState, remoteState, remoteDocs, meta, defaults = DEFAULT_SETTINGS, baseline = null,
+  sinceLastPush = { changed: new Set(), unchanged: new Set() },
 ) {
   if (baseline) return reconcileThreeWay(localState, remoteState, remoteDocs, meta, defaults, baseline);
-  return reconcileTwoWay(localState, remoteState, remoteDocs, meta, defaults);
+  return reconcileTwoWay(localState, remoteState, remoteDocs, meta, defaults, sinceLastPush);
+}
+
+// Which of this device's documents it has changed since it last uploaded
+// them, and which it hasn't. `meta.hashes` remembers each document as this
+// device last sent it — the one piece of history a device without a baseline
+// still has. A document that no longer matches was edited here; one that
+// still matches wasn't touched, so whatever the account holds for it now is
+// simply newer.
+export async function changedSinceLastPush(localState, meta) {
+  const changed = new Set();
+  const unchanged = new Set();
+  const out = { changed, unchanged };
+  if (!meta?.hashes || !Object.keys(meta.hashes).length) return out;
+  // Pictures in the form they're uploaded in (blobs.js), so a document with
+  // one hashes the way it did when it was sent.
+  const asUploaded = async (_path, dataUrl) => {
+    const h = hashOf(dataUrl);
+    return { __doc: h, hash: h, bytes: dataUrl.length };
+  };
+  const docs = await toCloud(localState, asUploaded);
+  for (const [name, items] of [['openings', docs.openings], ['chapters', docs.chapters],
+    ['players', docs.players], ['labEntries', docs.labEntries]]) {
+    for (const item of items) {
+      const key = `${name}/${item.id}`;
+      const sent = meta.hashes[key];
+      if (sent === undefined) continue; // never sent from here: new here
+      (sent === hashOf(JSON.stringify(item)) ? unchanged : changed).add(key);
+    }
+  }
+  return out;
 }
 
 // The merge every sync uses once this device has synced once under it: this
@@ -297,7 +363,17 @@ export function reconcile(
 // which the two-way merge below could promise.
 function reconcileThreeWay(localState, remoteState, remoteDocs, meta, defaults, baseline) {
   let merged = mergeState(baseline, localState, remoteState);
-  merged = mergeSettings(merged, localState, remoteState, remoteDocs, meta, defaults);
+  // Settings, when the baseline knows them, merge like everything else —
+  // field by field — so the theme changed on the iPad and the volume changed
+  // on the Mac both survive. A baseline from before settings were kept in it,
+  // or a device keeping a look of its own (see syncOnce), falls back to the
+  // whole-object rules.
+  if (!meta.settingsDiverged && baseline.settings
+    && remoteState.settings && Object.keys(remoteState.settings).length) {
+    merged = { ...merged, settings: merge3(baseline.settings, localState.settings ?? {}, remoteState.settings) };
+  } else {
+    merged = mergeSettings(merged, localState, remoteState, remoteDocs, meta, defaults);
+  }
 
   // What the merge dropped that the cloud still has: exactly the documents
   // the push has to delete.
@@ -312,11 +388,62 @@ function reconcileThreeWay(localState, remoteState, remoteDocs, meta, defaults, 
   return { merged, goneHere };
 }
 
-// The merge a device uses for its very first sync after an update that
-// introduced the baseline, when there's nothing to compare against yet. Its
-// rules are the old ones — the cloud's content wins a clash — which is why it
-// only ever runs once per device.
-function reconcileTwoWay(localState, remoteState, remoteDocs, meta, defaults) {
+// The two-way path, per document. A document this device hasn't touched since
+// it last uploaded it is replaced by the account's copy outright — including
+// what was deleted from it elsewhere: a line removed from a chapter, a comment
+// cleared. Merging the two instead brought those back, because without a
+// baseline a union can't tell "deleted there" from "added here". A document
+// this device DID change keeps its own edits over the account's. Anything
+// else — new here, or unknown — is the plain union.
+//
+// Without this, a device coming from a build that kept no baseline lost every
+// rename, reorder and edit it made after its last sync, and brought back
+// everything deleted elsewhere — and on that build sync only ran on one
+// screen, so there could be plenty of both.
+function byDocument(merged, local, remote, { changed, unchanged }) {
+  const index = (list) => new Map((list ?? []).map((x) => [x.id, x]));
+  const Lo = index(local.openings);
+  const Ro = index(remote.openings);
+  const openings = (merged.openings ?? []).map((o) => {
+    const lo = Lo.get(o.id);
+    const ro = Ro.get(o.id);
+    const key = `openings/${o.id}`;
+    let next = o;
+    if (ro && unchanged.has(key)) next = { ...ro, chapters: o.chapters };
+    else if (lo && ro && changed.has(key)) next = merge3(undefined, lo, ro, 'local');
+    const Lc = index(lo?.chapters);
+    const Rc = index(ro?.chapters);
+    const Mc = index(o.chapters);
+    const chapters = (next.chapters ?? []).map((c) => {
+      const ck = `chapters/${c.id}`;
+      if (Rc.has(c.id) && unchanged.has(ck)) return Rc.get(c.id);
+      if (Lc.has(c.id) && Rc.has(c.id) && changed.has(ck)) return merge3(undefined, Lc.get(c.id), Rc.get(c.id), 'local');
+      return Mc.get(c.id) ?? c;
+    });
+    return { ...next, chapters };
+  });
+  const perRecord = (name, list) => {
+    const L = index(local[name]);
+    const R = index(remote[name]);
+    return (list ?? []).map((x) => {
+      const key = `${name}/${x.id}`;
+      if (R.has(x.id) && unchanged.has(key)) return R.get(x.id);
+      if (L.has(x.id) && R.has(x.id) && changed.has(key)) return merge3(undefined, L.get(x.id), R.get(x.id), 'local');
+      return x;
+    });
+  };
+  return {
+    ...merged,
+    openings,
+    players: perRecord('players', merged.players),
+    labEntries: perRecord('labEntries', merged.labEntries),
+  };
+}
+
+function reconcileTwoWay(
+  localState, remoteState, remoteDocs, meta, defaults,
+  sinceLastPush = { changed: new Set(), unchanged: new Set() },
+) {
   const goneHere = {
     openings: deletedSince(meta.ids.openings, idsOf(localState.openings)),
     chapters: deletedSince(meta.ids.chapters, (localState.openings ?? []).flatMap((o) => idsOf(o.chapters))),
@@ -330,7 +457,13 @@ function reconcileTwoWay(localState, remoteState, remoteDocs, meta, defaults) {
     ...deletedSince(meta.ids.labEntries, idsOf(remoteDocs.labEntries)),
   ]);
 
-  let merged = mergeBackup(localState, remoteState);
+  // Union, with the account's version winning a clash and its order kept —
+  // the same careful merge a stale state gets, plus the old id-based
+  // deletions this device remembers.
+  let merged = mergeState(undefined, localState, remoteState, 'remote');
+  if (sinceLastPush.changed.size || sinceLastPush.unchanged.size) {
+    merged = byDocument(merged, localState, remoteState, sinceLastPush);
+  }
 
   // Anything the other device deleted goes, and anything this one deleted
   // never came back in the merge to begin with — it isn't in the ancestor's
@@ -377,7 +510,11 @@ function mergeSettings(merged, localState, remoteState, remoteDocs, meta, defaul
   // bring your own look across rather than leaving you with the factory one —
   // and this is the only case where taking the account's settings can't
   // overwrite a choice, because no choice has been made here yet.
-  const untouchedHere = defaults && localSettingsHash === hashOf(JSON.stringify(defaults));
+  // Only on a first sync: a device that has synced before and is on the
+  // defaults got there deliberately — switched back to them — and that's a
+  // choice like any other.
+  const untouchedHere = neverSyncedHere && defaults
+    && localSettingsHash === hashOf(JSON.stringify(defaults));
   const remoteHasSettings = remoteState.settings && Object.keys(remoteState.settings).length > 0;
   if (remoteHasSettings && (untouchedHere || (!changedHere && !neverSyncedHere && remoteIsNewer))) {
     return { ...merged, settings: { ...localState.settings, ...remoteState.settings } };
@@ -494,7 +631,17 @@ async function syncOnce(localState, { onProgress, inbound = [] } = {}) {
   // account's own data replaces it, and the old library is set aside on this
   // device — it's also still in its own account.
   const owner = await get(OWNER_KEY);
-  const stored = await readBaseline(uid);
+  const ancestor = baselineFor(await readBaselines(uid), localState);
+  // A lists document written by an app from before the order was kept says
+  // nothing about order; the cloud's documents then come back in id order,
+  // which must not be read as the other device rearranging everything.
+  if (!remoteDocs.lists?.order) {
+    for (const key of ['openings', 'players', 'labEntries']) {
+      const pos = new Map((localState[key] ?? []).map((x, i) => [x.id, i]));
+      remoteState[key] = [...(remoteState[key] ?? [])]
+        .sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9));
+    }
+  }
   let reconciled;
   if (owner && owner !== uid) {
     await set(STASH_PREFIX + owner, localState);
@@ -504,9 +651,9 @@ async function syncOnce(localState, { onProgress, inbound = [] } = {}) {
       merged: mergeSettings(replaced, localState, remoteState, remoteDocs, meta, DEFAULT_SETTINGS),
       goneHere: {},
     };
-  } else if (stored?.value && stored.gen && stored.gen === localState.syncGen) {
-    reconciled = reconcile(localState, remoteState, remoteDocs, meta, DEFAULT_SETTINGS, stored.value);
-  } else if (stored?.value) {
+  } else if (ancestor.kind === 'match') {
+    reconciled = reconcile(localState, remoteState, remoteDocs, meta, DEFAULT_SETTINGS, ancestor.value);
+  } else if (ancestor.kind === 'unknown') {
     reconciled = {
       merged: mergeSettings(
         mergeState(undefined, localState, remoteState, 'remote'),
@@ -515,7 +662,10 @@ async function syncOnce(localState, { onProgress, inbound = [] } = {}) {
       goneHere: {},
     };
   } else {
-    reconciled = reconcile(localState, remoteState, remoteDocs, meta, DEFAULT_SETTINGS, null);
+    reconciled = reconcile(
+      localState, remoteState, remoteDocs, meta, DEFAULT_SETTINGS, null,
+      await changedSinceLastPush(localState, meta),
+    );
   }
   const { goneHere } = reconciled;
   // Pictures that couldn't be downloaded stay on the device that has them;
@@ -553,6 +703,29 @@ async function syncOnce(localState, { onProgress, inbound = [] } = {}) {
     }
   }
 
+  // Whether this sync's settings are the account's news.
+  //
+  // A device signing in with a look of its own keeps it (see mergeSettings) —
+  // but keeping it isn't a change anyone made, and spreading it would repaint
+  // every other device just because a tablet signed in. So it stays this
+  // device's own, remembered as such, until someone deliberately changes a
+  // setting: here (then it goes everywhere) or elsewhere (then this device
+  // takes it). Everything else writes the settings only when the account's
+  // copy is actually different.
+  const remoteHasSettings = Boolean(remoteState.settings && Object.keys(remoteState.settings).length);
+  const localLook = hashOf(JSON.stringify(localState.settings ?? {}));
+  const differsFromAccount = !same(merged.settings ?? {}, remoteState.settings ?? {});
+  let writeSettings = differsFromAccount;
+  let settingsDiverged = Boolean(meta.settingsDiverged);
+  if (meta.settingsHash == null && remoteHasSettings && differsFromAccount) {
+    writeSettings = false;
+    settingsDiverged = true;
+  } else if (settingsDiverged) {
+    if (meta.settingsHash !== localLook) settingsDiverged = false; // changed here, on purpose
+    else if (!differsFromAccount) settingsDiverged = false; // took the account's
+    else writeSettings = false;
+  }
+
   onProgress?.('Uploading…');
   const uploads = [];
   const { uploadString, getMetadata } = c.storage;
@@ -579,8 +752,8 @@ async function syncOnce(localState, { onProgress, inbound = [] } = {}) {
 
   const docs = await toCloud(merged, upload);
   await Promise.all(uploads);
-  const { hashes, settingsHash, written, deleted } = await push(
-    c, uid, docs, meta, goneHere, me, extraSets, remoteDocs.seen,
+  const { hashes, written, deleted } = await push(
+    c, uid, docs, meta, goneHere, me, extraSets, remoteDocs.seen, writeSettings,
   );
 
   const next = {
@@ -599,10 +772,15 @@ async function syncOnce(localState, { onProgress, inbound = [] } = {}) {
         .filter(([k]) => k.startsWith('blob:') || k.startsWith('doc:'))),
       ...hashes,
     },
-    settingsHash,
-    // When the settings we're now carrying were last written by anyone, so a
+    // The settings as this device now holds them, in the same form
+    // mergeSettings measures "changed here" by — it used to be the upload
+    // form, which differs whenever a background picture is involved, so a
+    // device with a wallpaper looked changed on every sync.
+    settingsHash: hashOf(JSON.stringify(merged.settings ?? {})),
+    settingsDiverged,
+    // When the settings this device holds were last written by anyone, so a
     // later sync can tell "newer than what I have" from "older, ignore it".
-    settingsAt: Math.max(remoteDocs.settingsAt ?? 0, Date.now()),
+    settingsAt: writeSettings ? Date.now() : (remoteDocs.settingsAt ?? 0),
     lastSync: Date.now(),
   };
   // Only now, with the push committed: this is what the cloud holds, so it's

@@ -188,7 +188,9 @@ export default function DataSection() {
                   className="ghost danger"
                   title="Discards anything on this device the file doesn't already have, including progress"
                   onClick={() => {
-                    dispatch({ type: 'hydrate', state: restoring.parsed });
+                    // Stamped as a restore: this library didn't come from a sync,
+                    // so the next one mustn't read what it lacks as deletions.
+                    dispatch({ type: 'hydrate', state: { ...restoring.parsed, syncGen: 'local-restore' } });
                     setRestoring(null);
                     setNote('Replaced everything on this device.');
                   }}
@@ -231,7 +233,11 @@ export default function DataSection() {
               'Erase ALL openings, games and progress on this device?\n\n'
               + 'This cannot be undone — take a Backup first if you might want it back.',
             )) {
-              dispatch({ type: 'hydrate', state: { ...emptyState(), settings: state.settings } });
+              // Stamped as a reset, so a signed-in device's next sync brings the
+              // account back instead of reading "empty" as "delete everything".
+              dispatch({
+                type: 'hydrate', state: { ...emptyState(), settings: state.settings, syncGen: 'local-reset' },
+              });
               setNote('Cleared.');
             }
           }}

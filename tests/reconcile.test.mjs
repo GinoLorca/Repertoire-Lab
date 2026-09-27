@@ -59,7 +59,13 @@ test('a new install opens on Tournament Felt', () => {
   assert.equal(fresh.skin, 'felt');
 });
 
-for (const [label, baseline] of [['two-way', null], ['three-way', toBaseline(st([]))]]) {
+// The three-way variants use a baseline with no settings in it — what a device
+// has right after updating from a build whose baselines didn't hold them —
+// which is when the whole-object settings rules below apply. Settings merged
+// field by field against a baseline that does hold them are covered in
+// sync-matrix-edges.test.mjs.
+const { settings: _noSettings, ...baselineWithoutSettings } = toBaseline(st([]));
+for (const [label, baseline] of [['two-way', null], ['three-way', baselineWithoutSettings]]) {
   test(`${label}: signing in on a fresh device brings your own theme across`, () => {
     const { merged } = reconcile(withSettings(fresh), withSettings({ ...fresh, skin: 'outerspace' }),
       docsOf(st([]), 10), neverSynced, DEFAULT_SETTINGS, baseline);
