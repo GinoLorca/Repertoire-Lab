@@ -10,8 +10,19 @@ const nextId = () => `imp${(seq += 1)}-${Date.now().toString(36)}`;
 
 // Course PGNs name their lines in different places: two real players, a single
 // White tag holding the line's name, or only the Event.
-function nameFor(h, gi) {
-  const real = (v) => v && v !== '?' && v.trim();
+const real = (v) => (v && v.trim() !== '?' ? v.trim() : '');
+
+// The chapter a game's lines go to in a course import: its Event, as written
+// but without stray spaces — "?" (PGN's "unknown") counts as none.
+export const eventOf = (h) => real(h.Event) || null;
+
+// A game set up from a position ([FEN "…"]) — this app's lines all start from
+// the normal starting position, so its moves can't be played as written.
+const START_POSITION = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq';
+export const fromSetUpPosition = (h) => Boolean(h.FEN?.trim())
+  && h.FEN.trim().split(/\s+/).slice(0, 3).join(' ') !== START_POSITION;
+
+export function nameFor(h, gi) {
   if (real(h.White) && real(h.Black)) return `${h.White} – ${h.Black}`;
   return real(h.White) || real(h.Black) || real(h.Event) || `Game ${gi + 1}`;
 }
@@ -21,17 +32,26 @@ function gameEntries(games, { mainLineOnly = false } = {}) {
   games.forEach((game, gi) => {
     const h = game.headers;
     const baseName = nameFor(h, gi);
+    // Listed, not added, with the reason — rather than left out without a
+    // word, or played from the wrong position into a line that looks fine.
+    if (fromSetUpPosition(h)) {
+      entries.push({
+        id: nextId(), name: baseName, event: eventOf(h), comments: {}, badges: {},
+        ok: false, moves: [], failedToken: null, unusable: 'starts from a set-up position',
+      });
+      return;
+    }
     const lines = movetextToLines(game.movetext);
     (mainLineOnly ? lines.slice(0, 1) : lines).forEach((line, li) => {
       const result = validateLine(line.moves);
-      if (result.moves.length === 0) return;
       entries.push({
         id: nextId(),
         name: li > 0 ? `${baseName} (alt ${li})` : baseName,
-        event: h.Event || null,
+        event: eventOf(h),
         comments: line.comments,
         badges: line.badges,
         ...result,
+        ...(result.moves.length === 0 ? { unusable: `can’t read its first move, “${result.failedToken}”` } : {}),
       });
     });
   });
@@ -83,8 +103,9 @@ function looseEntries(text, { mainLineOnly = false } = {}) {
       comments: line.comments,
       badges: line.badges,
       ...result,
+      ...(result.moves.length === 0 && line.moves.length ? { unusable: `can’t read its first move, “${result.failedToken}”` } : {}),
     };
-  }).filter((e) => e.moves.length > 0);
+  }).filter((e) => e.moves.length > 0 || e.unusable);
 }
 
 // Two games with the same tags would otherwise arrive as two identically named
@@ -92,6 +113,9 @@ function looseEntries(text, { mainLineOnly = false } = {}) {
 function deduplicate(entries) {
   const seen = new Map();
   return entries.map((e) => {
+    // A row that can't be added keeps its own name and takes none from a
+    // line that can.
+    if (e.moves.length === 0) return e;
     const n = (seen.get(e.name) ?? 0) + 1;
     seen.set(e.name, n);
     return n === 1 ? e : { ...e, name: `${e.name} (${n})` };
@@ -104,10 +128,14 @@ function deduplicate(entries) {
 // (the default, used for study/course import) — but a game someone just
 // played and pasted in isn't a set of games, whatever engine-analysis
 // branches its export happens to carry alongside the moves actually played.
-export function pgnTextToEntries(text, { mainLineOnly = false } = {}) {
+//
+// includeUnusable: also list games that can't become a line (no moves, or set
+// up from a position), each with `unusable` saying why — the Add PGN list
+// shows them so nothing a file held goes missing without a word.
+export function pgnTextToEntries(text, { mainLineOnly = false, includeUnusable = false } = {}) {
   if (!text?.trim()) return [];
   const entries = /\[\w+\s+"/.test(text)
     ? gameEntries(splitPgnGames(text), { mainLineOnly })
     : looseEntries(text, { mainLineOnly });
-  return deduplicate(entries);
+  return deduplicate(includeUnusable ? entries : entries.filter((e) => e.moves.length > 0));
 }

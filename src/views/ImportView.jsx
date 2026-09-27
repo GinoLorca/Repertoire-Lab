@@ -6,7 +6,9 @@ import { movetextToLines, validateLine, splitPgnGames, variationToPgn, downloadT
 import MoveText from '../components/MoveText';
 import ScanProgress from '../components/ScanProgress';
 import PgnMarksHint from '../components/PgnMarksHint';
-import { splitLooseBlocks } from '../lib/pgnImport';
+import {
+  splitLooseBlocks, nameFor, eventOf, fromSetUpPosition,
+} from '../lib/pgnImport';
 import {
   CameraIcon, ClipboardIcon, FolderIcon, PencilIcon, AlertIcon, DownloadIcon,
 } from '../components/Icons';
@@ -368,9 +370,12 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
     const entries = [];
     games.forEach((game, gi) => {
       const h = game.headers;
-      const baseName =
-        (h.White && h.White !== '?' && h.Black && h.Black !== '?' && `${h.White} – ${h.Black}`) ||
-        h.Event || `Game ${gi + 1}`;
+      // Named the same way Add PGN names them — a course's line name is
+      // usually in White alone, with Black "?".
+      const baseName = nameFor(h, gi);
+      // Lines here all start from the normal starting position; a game set
+      // up from another can't be played as written.
+      if (fromSetUpPosition(h)) return;
       const lines = movetextToLines(game.movetext);
       lines.forEach((line, li) => {
         const result = validateLine(line.moves);
@@ -379,7 +384,7 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
           id: uid(),
           cardId: 'pgn',
           name: lines.length > 1 && li > 0 ? `${baseName} (alt ${li})` : baseName,
-          event: h.Event || null,
+          event: eventOf(h),
           comments: line.comments,
           badges: line.badges,
           ...result,

@@ -4,6 +4,20 @@ import { withoutArrow } from './marks';
 
 // ---------- Tokenizing movetext ----------
 
+// Words in movetext that aren't moves and carry nothing the app keeps:
+// evaluation signs a book or course writes between moves ("±", "+=", "∞",
+// "N" for a novelty …) and "e.p.". Read as moves they cut the line short.
+// Not "Δ" ("with the idea") or "⌓" ("better is"): the move after those
+// wasn't played, and skipping the sign would make it look as if it was — the
+// line stops at them instead, where it shows.
+const NOT_A_MOVE = new Set([
+  '+=', '=+', '±', '∓', '+-', '-+', '+/-', '-/+', '+/=', '=/+', '+−', '−+', '=', '∞', '=/∞', '∞/=',
+  '⩲', '⩱', 'N', 'TN', '□', '→', '↑', '⇆', '<=>', '○', '⨀', '⟳', '⊕', 'e.p.',
+]);
+// Castling written with zeros ("0-0", "0-0-0"), as many books and people do.
+const castleZeros = (w) => w.replace(/^0-0(-0)?(?=$|[+#!?])/, (x) => x.replace(/0/g, 'O'));
+const GLYPH_ONLY = /^(\?\?|!!|!\?|\?!|[!?])$/;
+
 function tokenize(input) {
   // A pasted game usually arrives with its PGN tag pairs attached. They aren't
   // moves, so drop them before reading the movetext.
@@ -26,6 +40,10 @@ function tokenize(input) {
     }
     if (c === '(') { tokens.push({ type: 'open' }); i += 1; continue; }
     if (c === ')') { tokens.push({ type: 'close' }); i += 1; continue; }
+    // A stray "}" — a comment with braces nested inside it closes at the
+    // first one — is skipped. Read as a word it was zero characters long, so
+    // the reader never moved past it and the page froze.
+    if (c === '}') { i += 1; continue; }
     if (c === '$') {
       i += 1;
       let start = i;
@@ -39,20 +57,34 @@ function tokenize(input) {
       continue;
     }
     let j = i;
-    while (j < movetext.length && !/[\s(){};]/.test(movetext[j])) j += 1;
-    const word = movetext.slice(i, j);
+    // (A "$" ends a word too: "e4$1" is the move and its NAG.)
+    while (j < movetext.length && !/[\s(){};$]/.test(movetext[j])) j += 1;
+    const word = castleZeros(movetext.slice(i, j));
     i = j;
     if (/^(1-0|0-1|1\/2-1\/2|½-½|\*)$/.test(word)) continue;
-    // strip attached move numbers: "12.", "12...", "12.e4"
-    const m = word.match(/^\d+\.{0,3}(.*)$/);
-    let san = m ? m[1] : word;
-    // …and a trailing annotation glyph ("Nf6??", "d4!") — chess.js accepts
-    // and silently discards these itself, which is exactly how a badge used
-    // to vanish on import. Longest match first, so "?!" reads as one glyph
-    // rather than "?" with a stray "!" left dangling.
+    // A lone "N" is a novelty mark — unless a square follows: "N f3" is as
+    // likely a knight move typed with a space, and dropping the "N" would
+    // quietly turn Nf3 into f3. Left in, the line stops at it, visibly.
+    if (word === 'N' && /^\s+[a-h]?[1-8]?x?[a-h][1-8]/.test(movetext.slice(i))) {
+      tokens.push({ type: 'san', san: 'N', glyph: null });
+      continue;
+    }
+    if (NOT_A_MOVE.has(word)) continue;
+    // strip attached move numbers: "12.", "12...", "12.e4", and Black's
+    // written with the one-character ellipsis: "12…", "12…Rxc6"
+    const m = word.match(/^\d+(?:\.?…|\.{0,3})(.*)$/);
+    // …and dots standing on their own ("12. ... Rxc6") or leading a move
+    // with no number ("...Rxc6").
+    let san = castleZeros((m ? m[1] : word).replace(/^[.…]+/, ''));
+    // A glyph written apart from its move ("Nf6 ??") belongs to that move.
+    if (GLYPH_ONLY.test(san)) { tokens.push({ type: 'glyph', glyph: san }); continue; }
+    // …and a trailing annotation glyph ("Nf6??", "d4!", "Bxf7!+") — chess.js
+    // accepts and silently discards these itself, which is exactly how a
+    // badge used to vanish on import. Longest match first, so "?!" reads as
+    // one glyph rather than "?" with a stray "!" left dangling.
     let glyph = null;
-    const gm = san.match(/(\?\?|!!|!\?|\?!|[!?])$/);
-    if (gm) { glyph = gm[1]; san = san.slice(0, -glyph.length); }
+    const gm = san.match(/(\?\?|!!|!\?|\?!|[!?])([+#]?)$/);
+    if (gm) { glyph = gm[1]; san = san.slice(0, -gm[0].length) + gm[2]; }
     if (san) tokens.push({ type: 'san', san, glyph });
   }
   return tokens;
@@ -80,6 +112,13 @@ function parseSequence(tokens, pos) {
         last.comment = last.comment ? `${last.comment} ${t.text}` : t.text;
       } else {
         lead = lead ? `${lead} ${t.text}` : t.text;
+      }
+      pos += 1;
+      continue;
+    }
+    if (t.type === 'glyph') {
+      if (moves.length > 0 && !moves[moves.length - 1].badge) {
+        moves[moves.length - 1].badge = badgeIdForGlyph(t.glyph);
       }
       pos += 1;
       continue;
@@ -123,6 +162,19 @@ function expandTree(moves, prefix, lead = null, prefixLead = null) {
     }
   }
   for (const m of moves) {
+    // A bracket with no moves in it — "(An alternative is …)" written as a
+    // side line — would come out as a copy of the line cut off before this
+    // move. Its words go on the position it's about, in this line.
+    for (const v of m.variations) {
+      if (v.moves.length || !v.lead) continue;
+      if (mainLine.length) {
+        const last = mainLine[mainLine.length - 1];
+        mainLine[mainLine.length - 1] = { ...last, comment: joined(last.comment, v.lead) };
+      } else {
+        startLead = joined(startLead, v.lead);
+      }
+    }
+    m.variations = m.variations.filter((v) => v.moves.length);
     if (m.variations.length) {
       // A side line takes the main line's moves up to here, comments and all
       // — but an arrow on the move before, pointing out the main line's reply
@@ -223,7 +275,8 @@ export function splitPgnGames(text) {
   let current = { headers: {}, movetext: '' };
   let inMoves = false;
   for (const line of text.split(/\r?\n/)) {
-    const hm = line.match(/^\[(\w+)\s+"(.*)"\]\s*$/);
+    // (Indented, or with a space before the "]", it's still a tag.)
+    const hm = line.match(/^\s*\[(\w+)\s+"(.*)"\s*\]\s*$/);
     if (hm) {
       if (inMoves) {
         games.push(current);

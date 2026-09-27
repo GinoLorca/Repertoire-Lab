@@ -30,7 +30,9 @@ export const FILL = {
 };
 export const PEN_ORDER = ['G', 'R', 'B', 'Y'];
 
-const COMMAND = /\[%(\w+)\s*([^\]]*)\]/g;
+// …and ChessBase's "[#]", which marks where a book would print a diagram:
+// nothing to read, kept as it was like any other command.
+const COMMAND = /\[%(\w+)\s*([^\]]*)\]|\[#\]/g;
 
 // The comment taken apart:
 //   text    — the words, with every [%…] command taken out
@@ -43,7 +45,7 @@ export function parseMarks(raw) {
   const cal = [];
   const csl = [];
   const other = [];
-  const text = String(raw ?? '').replace(COMMAND, (all, cmd, args) => {
+  const text = String(raw ?? '').replace(COMMAND, (all, cmd, args = '') => {
     const items = args.split(/[,\s]+/).filter(Boolean);
     if (cmd === 'cal') {
       for (const it of items) {

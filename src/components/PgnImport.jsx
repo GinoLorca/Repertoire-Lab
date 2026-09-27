@@ -11,11 +11,15 @@ import { UploadIcon, ClipboardIcon, AlertIcon, LinkIcon } from './Icons';
 function ImportRow({ entry: e, skip, setSkip, names, setNames }) {
   const marks = countMarks(e.comments);
   const drawn = marks.arrows + marks.squares;
+  // A game that can't become a line is still listed, with why, so the count
+  // matches what was written — it just can't be ticked.
+  const dead = e.moves.length === 0;
   return (
-    <label className={`import-row${skip[e.id] ? ' off' : ''}`}>
+    <label className={`import-row${skip[e.id] || dead ? ' off' : ''}`}>
       <input
         type="checkbox"
-        checked={!skip[e.id]}
+        checked={!skip[e.id] && !dead}
+        disabled={dead}
         onChange={(ev) => setSkip((s) => ({ ...s, [e.id]: !ev.target.checked }))}
       />
       <input
@@ -38,14 +42,19 @@ function ImportRow({ entry: e, skip, setSkip, names, setNames }) {
             marks.squares && `${marks.squares} highlighted square${marks.squares === 1 ? '' : 's'}`,
           ].filter(Boolean).join(', ')}
         >
-          ✎ {marks.arrows
-            ? `${marks.arrows} arrow${marks.arrows === 1 ? '' : 's'}`
-            : `${marks.squares} square${marks.squares === 1 ? '' : 's'}`}
+          ✎ {[
+            marks.arrows && `${marks.arrows} arrow${marks.arrows === 1 ? '' : 's'}`,
+            marks.squares && `${marks.squares} square${marks.squares === 1 ? '' : 's'}`,
+          ].filter(Boolean).join(' · ')}
         </span>
       )}
-      {!e.ok && (
+      {dead ? (
+        <span className="import-warn">
+          <AlertIcon size={13} /> can’t be added: {e.unusable ?? 'no moves'}
+        </span>
+      ) : !e.ok && (
         <span className="import-warn" title={`Stopped at ${e.failedToken}`}>
-          <AlertIcon size={13} /> cut short
+          <AlertIcon size={13} /> cut short at “{e.failedToken}”
         </span>
       )}
     </label>
@@ -79,7 +88,7 @@ export default function PgnImport({ chapterName, courseName, onAdd, onClose }) {
   useBackGuard(true, onClose);
 
   const byCourse = !!courseName;
-  const entries = useMemo(() => pgnTextToEntries(text), [text]);
+  const entries = useMemo(() => pgnTextToEntries(text, { includeUnusable: true }), [text]);
   const chosen = entries.filter((e) => !skip[e.id] && e.moves.length > 0);
   const entryGroups = useMemo(() => (byCourse ? groupByEvent(entries) : null), [byCourse, entries]);
   const chosenGroups = useMemo(() => (byCourse ? groupByEvent(chosen) : null), [byCourse, chosen]);
@@ -222,7 +231,12 @@ export default function PgnImport({ chapterName, courseName, onAdd, onClose }) {
                   {entryGroups.map((g) => (
                     <div key={g.name} className="import-group">
                       <div className="import-group-head">
-                        {g.name} <span className="muted-note">→ new chapter</span>
+                        {g.name}{' '}
+                        <span className="muted-note">
+                          {chosenGroups.some((c) => c.name === g.name)
+                            ? '→ new chapter'
+                            : g.entries.some((e) => e.moves.length > 0) ? '· not imported' : '· nothing here can be added'}
+                        </span>
                       </div>
                       <div className="import-list">
                         {g.entries.map((e) => (

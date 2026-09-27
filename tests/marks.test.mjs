@@ -124,3 +124,18 @@ test('sync: arrows drawn on one device and words changed on another, same move, 
     'hello',
   );
 });
+
+test('a stray "}" in pasted text is skipped, not read forever', () => {
+  assert.deepEqual(movetextToLines('1. e4 } c6 *')[0].moves, ['e4', 'c6']);
+  // A brace nested in a comment closes it early; the rest can't be moves.
+  const [line] = movetextToLines('1. e4 {a {nested} b} c6 *');
+  assert.equal(line.comments[0], 'a {nested');
+});
+
+test('ChessBase\'s diagram marker "[#]" isn\'t shown as words, and is kept', () => {
+  const m = parseMarks('Knight to e5. [#] [%cal Gf3e5]');
+  assert.equal(m.text, 'Knight to e5.');
+  assert.deepEqual(m.other, ['[#]']);
+  assert.equal(parseMarks('[#]').text, '');
+  assert.equal(withText('[#] [%cal Gf3e5]', 'New words'), 'New words [%cal Gf3e5] [#]');
+});
