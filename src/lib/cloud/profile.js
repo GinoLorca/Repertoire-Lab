@@ -67,6 +67,17 @@ export async function claimScreenName(uid, name, { role = 'student', displayName
   return { uid, screenName: name.trim(), screenNameKey: wanted, role, displayName };
 }
 
+// Your real name — kept in your own profile, which only you and coaches
+// you're linked with can read (the rules on users/{uid}), and deliberately
+// NOT in the account-name directory every signed-in account can read. A
+// coach linking your account sees it on their card for you instead of your
+// account name.
+export async function setRealName(uid, realName) {
+  const c = await cloud();
+  const { doc, setDoc } = c.firestore;
+  await setDoc(doc(c.db, 'users', uid, 'singletons', 'profile'), { realName: realName.trim() }, { merge: true });
+}
+
 export async function setRole(uid, role) {
   const c = await cloud();
   const { doc, setDoc, getDoc } = c.firestore;

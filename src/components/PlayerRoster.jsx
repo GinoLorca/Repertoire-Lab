@@ -36,6 +36,8 @@ function ProfileLine({ profile }) {
   const best = (r, keys) => keys.map((k) => r?.[k]).find((v) => v);
   const withRating = (label, rating) => (rating ? `${label} (${rating})` : label);
   const bits = [
+    // Their account, under the real name the card leads with.
+    p.accountName && `@${p.accountName}`,
     p.rating && `rating ${p.rating}`,
     p.uscf && withRating(`USCF ${p.uscf}`, best(live.uscf, ['regular', 'quick', 'blitz'])),
     p.fide && `FIDE ${p.fide}`,
@@ -369,7 +371,7 @@ function PlayerPage({
   const linkedUid = player.profile?.linkedUid ?? null;
   const link = linkedUid ? coachLinks.find((l) => l.studentUid === linkedUid) : null;
   const linked = !!link;
-  const [linkName, setLinkName] = useState('');
+  const [linkName, setLinkName] = useState(player.profile?.accountName ?? '');
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState(null);
   const gameLink = useGameLink();
@@ -384,7 +386,10 @@ function PlayerPage({
       dispatch({
         type: 'updatePlayer',
         playerId: player.id,
-        profile: { ...(seed.profile ?? {}), ...p, linkedUid: student.uid },
+        // The name the coach already gave this card stays; a blank one takes
+        // their real name.
+        name: player.name?.trim() ? undefined : seed.realName || undefined,
+        profile: { ...(seed.profile ?? {}), ...p, linkedUid: student.uid, accountName: student.name },
       });
       setLinkName('');
     } catch (err) {
@@ -725,11 +730,11 @@ function PlayerPage({
           student={player}
           // Typed once, then remembered on the student's own record — a coach
           // sending every week shouldn't have to look it up every week.
-          savedScreenName={player.profile?.screenName ?? ''}
+          savedScreenName={player.profile?.accountName || player.profile?.screenName || ''}
           onSaveScreenName={(screenName) => dispatch({
             type: 'updatePlayer',
             playerId: player.id,
-            profile: { ...(player.profile ?? {}), screenName },
+            profile: { ...(player.profile ?? {}), screenName, accountName: screenName },
           })}
           onClose={() => setSending(false)}
         />
@@ -828,8 +833,10 @@ export default function PlayerRoster({
         type: 'addPlayer',
         id,
         kind,
-        name: student.name || linkName.trim(),
-        profile: { ...(seed.profile ?? {}), linkedUid: student.uid },
+        // The card leads with their real name when their account has one;
+        // until then, the account name stands in.
+        name: seed.realName || student.name || linkName.trim(),
+        profile: { ...(seed.profile ?? {}), linkedUid: student.uid, accountName: student.name || linkName.trim() },
         avatar: seed.avatar ?? undefined,
       });
       setAddMode(null);
@@ -862,6 +869,7 @@ export default function PlayerRoster({
         {editingPlayer && (
           <PlayerEditor
             initial={editingPlayer === 'new' ? null : editingPlayer}
+            kind={editingPlayer === 'new' ? kind : editingPlayer.kind}
             onClose={() => setEditingPlayer(null)}
             onSave={(name, profile, avatar) => {
               dispatch({ type: 'updatePlayer', playerId: editingPlayer.id, name, profile, avatar });
@@ -957,6 +965,7 @@ export default function PlayerRoster({
       {editingPlayer && (
         <PlayerEditor
           initial={editingPlayer === 'new' ? null : editingPlayer}
+          kind={editingPlayer === 'new' ? kind : editingPlayer.kind}
           onClose={() => setEditingPlayer(null)}
           onSave={(name, profile, avatar, id) => {
             if (editingPlayer === 'new') dispatch({ type: 'addPlayer', id, name, profile, avatar, kind });

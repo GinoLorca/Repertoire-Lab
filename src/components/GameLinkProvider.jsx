@@ -5,6 +5,7 @@ import { useStore } from '../store';
 import { useMe } from '../lib/cloud/useMe';
 import { watchCoachLinks, watchLinkedPlayers, watchCoachLedger } from '../lib/cloud/links';
 import { sendGamePatch, withdrawGameDeliveries } from '../lib/cloud/share';
+import { loadProfile } from '../lib/cloud/profile';
 import {
   buildPatch, needsSend, nextRev, patchHash, ph, gameLinkStatus, gameSummary,
 } from '../lib/cloud/gameLink';
@@ -90,6 +91,25 @@ export function GameLinkProvider({ children }) {
           },
         });
       };
+      // Cards linked before real names existed are named after the account.
+      // Record the account name, and — only where the card still carries
+      // the account name, or nothing — show their real name instead. A name
+      // the coach typed is never replaced.
+      loadProfile(S).then((theirs) => {
+        const live = stateRef.current.players.find((p) => p.id === card.id);
+        if (!live || !theirs) return;
+        const account = theirs.screenName ?? live.profile?.accountName ?? '';
+        const current = (live.name ?? '').trim().toLowerCase();
+        const namedAfterAccount = !current || (account && current === account.toLowerCase());
+        const name = namedAfterAccount && theirs.realName ? theirs.realName : undefined;
+        if (account === (live.profile?.accountName ?? '') && !name) return;
+        dispatch({
+          type: 'updatePlayer',
+          playerId: card.id,
+          name,
+          profile: { ...(live.profile ?? {}), accountName: account },
+        });
+      }).catch(() => {});
       watchCoachLedger(S, (l) => {
         ledger = l?.games ? l : { games: {} };
         ledgers.current[S] = ledger;

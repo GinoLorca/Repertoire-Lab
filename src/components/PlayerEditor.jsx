@@ -7,7 +7,9 @@ import { defaultMonsterId } from '../lib/monsters';
 import Avatar from './Avatar';
 import AvatarPicker from './AvatarPicker';
 
-const EMPTY = { uscf: '', fide: '', chesscom: '', lichess: '', rating: '' };
+const EMPTY = {
+  uscf: '', fide: '', chesscom: '', lichess: '', rating: '', accountName: '',
+};
 
 // Look a rating up as soon as an ID or handle is typed, then keep it. `ready`
 // says the value is worth a lookup at all; the wait lets you finish typing.
@@ -52,7 +54,10 @@ const nums = (pairs) => pairs.filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).
 
 // Who a section belongs to: their name plus the handles and IDs their games
 // turn up under, so imported games can be matched to them later.
-export default function PlayerEditor({ initial, onSave, onClose }) {
+export default function PlayerEditor({
+  initial, onSave, onClose, kind = initial?.kind ?? 'self',
+}) {
+  const isStudent = kind === 'student';
   const [name, setName] = useState(initial?.name ?? '');
   const [profile, setProfile] = useState({ ...EMPTY, ...(initial?.profile ?? {}) });
   const set = (key) => (e) => setProfile((p) => ({ ...p, [key]: e.target.value }));
@@ -77,6 +82,8 @@ export default function PlayerEditor({ initial, onSave, onClose }) {
       ...p,
       rating: p.rating || (uscf.data.regular ? String(uscf.data.regular) : p.rating),
     }));
+    // A student with no name typed yet gets the one on their US Chess card.
+    if (isStudent && uscf.data.name) setName((n) => n || uscf.data.name);
   }, [uscf.status, uscf.data]);
 
   const live = {
@@ -108,16 +115,32 @@ export default function PlayerEditor({ initial, onSave, onClose }) {
 
         <div className="game-fields">
           <label>
-            Name
+            {isStudent ? 'Real name' : 'Name'}
             <input
               type="text"
               autoFocus
               value={name}
-              placeholder='e.g. "My games" or "Alex Rivera"'
+              placeholder={isStudent ? 'e.g. Alex Rivera' : 'e.g. "My games" or "Alex Rivera"'}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && name.trim()) save(); }}
             />
           </label>
+          {/* Their Repertoire Lab account name, alongside the real one: the
+              card shows the real name, and this is what links it to their
+              own app. Fixed once linked — the link is to that account. */}
+          {isStudent && (
+            <label>
+              Account name
+              <input
+                type="text"
+                value={profile.accountName ?? ''}
+                placeholder="their Repertoire Lab account name"
+                disabled={Boolean(profile.linkedUid)}
+                title={profile.linkedUid ? 'Linked to this account' : ''}
+                onChange={set('accountName')}
+              />
+            </label>
+          )}
           <label>
             Rating
             <input type="text" inputMode="numeric" value={profile.rating} placeholder="e.g. 1850" onChange={set('rating')} />

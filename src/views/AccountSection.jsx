@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useCloud } from '../lib/cloud/useCloud';
 import { signIn, signUp, sendReset, authMessage } from '../lib/cloud/auth';
-import { claimScreenName, loadProfile, screenNameProblem } from '../lib/cloud/profile';
+import {
+  claimScreenName, loadProfile, screenNameProblem, setRealName,
+} from '../lib/cloud/profile';
 
 const when = (ms) => {
   if (!ms) return 'never';
@@ -27,12 +29,15 @@ export default function AccountSection() {
   const [name, setName] = useState('');
   const [role, setRole] = useState('student');
   const [savingName, setSavingName] = useState(false);
+  const [realName, setRealNameText] = useState('');
+  const [savingReal, setSavingReal] = useState(false);
 
   useEffect(() => {
     if (!user) { setProfile(null); return; }
     loadProfile(user.uid).then((p) => {
       setProfile(p);
       setName(p?.screenName ?? '');
+      setRealNameText(p?.realName ?? '');
       setRole(p?.role ?? 'student');
     }).catch(() => {});
   }, [user]);
@@ -86,6 +91,21 @@ export default function AccountSection() {
       setError(err.message);
     } finally {
       setSavingName(false);
+    }
+  };
+
+  const saveRealName = async () => {
+    setSavingReal(true); setError(null); setNote(null);
+    try {
+      await setRealName(user.uid, realName);
+      setProfile((p) => ({ ...(p ?? {}), realName: realName.trim() }));
+      setNote(realName.trim()
+        ? 'Saved. A coach linked to your account sees this name instead of your account name.'
+        : 'Removed.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingReal(false);
     }
   };
 
@@ -173,6 +193,24 @@ export default function AccountSection() {
         />
         <button onClick={saveName} disabled={savingName}>
           {savingName ? 'Saving…' : (profile?.screenName ? 'Change name' : 'Claim name')}
+        </button>
+      </div>
+      <div className="settings-row" style={{ marginTop: 18 }}>
+        <span><strong>Your real name</strong></span>
+      </div>
+      <p className="hint">
+        Optional. Your account name stays what people type to find you; this is what a coach you're
+        linked with sees on their card for you. Only you and coaches linked to your account can see it.
+      </p>
+      <div className="settings-row">
+        <input
+          value={realName}
+          onChange={(e) => setRealNameText(e.target.value)}
+          placeholder="e.g. Parker Davis"
+          style={{ maxWidth: 260 }}
+        />
+        <button onClick={saveRealName} disabled={savingReal || realName.trim() === (profile?.realName ?? '')}>
+          {savingReal ? 'Saving…' : 'Save'}
         </button>
       </div>
       <div className="theme-choices" style={{ marginTop: 10 }}>

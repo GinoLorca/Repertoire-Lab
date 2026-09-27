@@ -11,7 +11,7 @@
 // rules are what actually grant the read access; this file only ever asks
 // for it, it doesn't enforce it.
 import { cloud } from './app';
-import { findByScreenName } from './profile';
+import { findByScreenName, loadProfile } from './profile';
 import { fromCloud, decodeFromStore } from './shape';
 
 const linkId = (coachUid, studentUid) => `${coachUid}_${studentUid}`;
@@ -103,11 +103,18 @@ export async function addLinkedStudent(coach, studentAccountName) {
     }
   }
 
-  let seed = { profile: null, avatar: null };
+  let seed = { profile: null, avatar: null, realName: null };
+  // Their real name, if they've given one in their own Settings → Account —
+  // readable now that the link exists (see the rules), and only by coaches
+  // they're linked with.
+  try {
+    const theirs = await loadProfile(who.uid);
+    if (theirs?.realName) seed.realName = theirs.realName;
+  } catch { /* not readable yet, or none given */ }
   try {
     const account = await loadLinkedAccount(who.uid);
     const self = (account.players ?? []).find((pl) => (pl.kind ?? 'self') === 'self');
-    if (self) seed = { profile: self.profile ?? null, avatar: self.avatar ?? null };
+    if (self) seed = { ...seed, profile: self.profile ?? null, avatar: self.avatar ?? null };
   } catch {
     // Their account exists but nothing's synced from it yet, or the read
     // raced the write above. The link still stands either way — the coach's
