@@ -321,7 +321,7 @@ export default function SearchPanel({ onClose, onOpenChapter, onAnalyze }) {
                         <span style={{ flex: 1 }} />
                         <button
                           className="small"
-                          onClick={(e) => { e.stopPropagation(); onAnalyze({ name: variation.name, moves: moveSearch.moves }); onClose(); }}
+                          onClick={(e) => { e.stopPropagation(); onAnalyze({ name: variation.name, moves: moveSearch.moves, orientation: opening.color }); onClose(); }}
                         >
                           Analyze
                         </button>

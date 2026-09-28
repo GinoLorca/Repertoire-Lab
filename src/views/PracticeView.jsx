@@ -1395,6 +1395,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
               comments: current.variation.comments,
               badges: current.variation.badges,
               startFen: current.variation.startFen ?? null,
+              orientation: current.opening.color,
             })}
           >
             <MonitorIcon size={14} /><span className="btn-label"> Send to analysis</span>

@@ -211,7 +211,7 @@ function Side({ side, item, at, ply, boardWidth, onJump, onAnalyze }) {
         <span className="muted-note" title={item?.chapter.name}>{item?.chapter.name}</span>
         <span style={{ flex: 1 }} />
         {item && (
-          <button className="small ghost" title="Open this line in the engine" onClick={() => onAnalyze(item.variation)}>
+          <button className="small ghost" title="Open this line in the engine" onClick={() => onAnalyze(item.variation, item.opening?.color)}>
             <PlayIcon size={13} /> Analyze
           </button>
         )}

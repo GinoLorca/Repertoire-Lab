@@ -436,6 +436,9 @@ function AppInner() {
         badges: line.badges ?? null,
         // A line set up from a position is analysed from there.
         startFen: line.startFen ?? null,
+        // The side it's seen from, when the sender knows (a repertoire line:
+        // its opening's side). A game's own side comes with its meta.
+        orientation: line.orientation ?? null,
         // Arrows/highlights saved from a previous Studio "Save changes" —
         // see AnalysisView's annotations state.
         annotations: line.annotations ?? null,

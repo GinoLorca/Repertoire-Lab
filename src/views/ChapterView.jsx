@@ -904,6 +904,7 @@ export default function ChapterView({
               moves,
               startFen: startFen ?? null,
               subtitle: `${opening.name} — ${chapter.name}`,
+              orientation: opening.color,
             });
           }}
         />
@@ -931,7 +932,7 @@ export default function ChapterView({
           onAnalyze={(v) => {
             setDrawOnOpen(false);
             setViewingId(null);
-            onAnalyze({ ...v, subtitle: `${opening.name} — ${chapter.name}` });
+            onAnalyze({ ...v, subtitle: `${opening.name} — ${chapter.name}`, orientation: opening.color });
           }}
           onToggleStar={() => dispatch({ type: 'toggleStar', openingId, chapterId, variationId: viewing.id })}
           onEditTags={() => setTagging({ kind: 'variation', variationId: viewing.id })}

@@ -1,4 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useEffect, useLayoutEffect, useMemo, useRef, useState,
+} from 'react';
 import { Chess } from 'chess.js';
 import Board from '../components/Board';
 import { useStore, uid } from '../store';
@@ -17,7 +19,10 @@ import { playMoveSound } from '../lib/sound';
 import {
   EVENT_TYPES, resultFor, tidyEvent, matchPlayerByName,
 } from '../lib/games';
-import { buildPositionIndex, bookMovesAt, matchGameToRepertoire, moveLabel } from '../lib/repertoire';
+import {
+  buildPositionIndex, bookMovesAt, matchGameToRepertoire, moveLabel, repertoireSide,
+} from '../lib/repertoire';
+import { sideOf, sideFromNames } from '../lib/pov';
 import LegalDots from '../components/LegalDots';
 import PromotionPicker from '../components/PromotionPicker';
 import BoardEditor from '../components/BoardEditor';
@@ -465,6 +470,39 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   const fromStart = isStandardStart(baseFen)
     || (positionIndex.get(positionKey(baseFen)) ?? []).some((h) => h.ply === 0 && h.variation.startFen);
 
+  // Whatever's sent here is seen from your side of the board: the side you had
+  // in a game (a student's, in theirs), the side a repertoire line is played
+  // from, or — a game with no side on record — the side of the repertoire it
+  // follows. White only when there's nothing to go on. Set before the first
+  // paint, so a Black game never flashes up the wrong way round; after that
+  // the board is yours to flip.
+  // A game or line with no side of its own: the side your name is on in its
+  // PGN tags, else the side of your repertoire it follows.
+  const guessSide = (entry, startFen) => sideFromNames(entry.players, state.players)
+    ?? repertoireSide(entry.moves ?? [], positionIndex, startFen);
+  useLayoutEffect(() => {
+    if (initialLine) {
+      setOrientation(
+        sideOf(initialLine.orientation)
+        ?? sideOf(initialLine.meta?.color)
+        ?? sideOf(liveGame?.meta?.color)
+        ?? guessSide(initialLine, startFenOf(initialLine))
+        ?? 'white',
+      );
+    } else if (initialLab) {
+      // A Lab session reopens the way it was saved; one saved before the
+      // side was kept, from the game it came from or the repertoire it follows.
+      const owner = state.players.find((p) => p.id === initialLab.source?.playerId);
+      const game = owner?.games.find((g) => g.id === initialLab.source?.gameId);
+      setOrientation(
+        sideOf(initialLab.orientation)
+        ?? sideOf(game?.meta?.color)
+        ?? repertoireSide(initialLab.moves ?? [], positionIndex, initialLab.baseFen)
+        ?? 'white',
+      );
+    }
+  }, [initialLine, initialLab]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Which of your uploaded lines does this game follow, and where did it leave book?
   const gameMatch = useMemo(
     () => (fromStart && moves.length ? matchGameToRepertoire(moves, positionIndex, baseFen) : { matched: false }),
@@ -837,6 +875,8 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
         moveBadges,
         moveNotes: notesWithDraft(),
         variationHighlights,
+        // The side it was being looked at from, so it reopens that way.
+        orientation,
         coach: !!coachMode,
         // Where this started, when it started somewhere: a repertoire line or a
         // saved game. Kept so the entry can say what it was about.
@@ -1062,6 +1102,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
       loadMoves(entries[0].moves, {
         title: entries[0].name, comments: entries[0].comments, badges: entries[0].badges,
       });
+      setOrientation(guessSide(entries[0], startFenOf(entries[0])) ?? 'white');
     } else {
       setStudyGames(entries);
     }
@@ -1130,15 +1171,24 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   // 1040 catches every iPad in landscape (1080, 1112, 1133, 1180, 1194).
   const wide = viewportWidth >= 1040;
   const tight = wide && viewportWidth < 1380; // three columns, iPad-sized
+  // Tighter padding in the side columns wherever height is short — an iPad on
+  // its side, and a laptop screen too — so the game, repertoire and engine
+  // cards all land on one screen beside the board.
+  const compact = tight || (viewportWidth >= 900 && viewportHeight < 960);
   const layoutClass = sideFitsFor(viewportWidth, wide);
-  // The grid decides the split (see .analysis-layout); we just read how wide the
-  // board's column ended up. That survives the scrollbar appearing or vanishing,
-  // which never fires a resize event and used to leave the board mis-sized.
-  const [colEl, setColEl] = useState(null);
-  const [colW, setColW] = useState(0);
+  // The board's column is exactly as wide as the board (--board-col below), and
+  // the column beside it takes the rest. So whatever width a short window
+  // leaves the board unable to use — it's capped by height — goes to the game,
+  // repertoire and engine cards, which then fit without scrolling. What's
+  // measured is the whole layout, less the side columns at their widest: the
+  // board's own column can't be measured any more, being sized from the board.
+  // Measuring still survives the scrollbar appearing or vanishing, which never
+  // fires a resize event and used to leave the board mis-sized.
+  const [layoutEl, setLayoutEl] = useState(null);
+  const [layoutW, setLayoutW] = useState(0);
   useEffect(() => {
-    if (!colEl || typeof ResizeObserver === 'undefined') return undefined;
-    const read = (w) => { if (w > 200) setColW(w); };
+    if (!layoutEl || typeof ResizeObserver === 'undefined') return undefined;
+    const read = (w) => { if (w > 200) setLayoutW(w); };
     // Debounced past react-chessboard's ~300ms move animation: the scrollbar
     // flickering in or out as the engine panel repaints right after a move
     // used to resize the board mid-slide, stranding the piece between
@@ -1150,10 +1200,39 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
       clearTimeout(pending);
       pending = setTimeout(() => read(w), 350);
     });
-    ro.observe(colEl);
-    read(colEl.getBoundingClientRect().width); // the initial measurement can land immediately
+    ro.observe(layoutEl);
+    read(layoutEl.getBoundingClientRect().width); // the initial measurement can land immediately
     return () => { clearTimeout(pending); ro.disconnect(); };
-  }, [colEl]);
+  }, [layoutEl]);
+  // The evaluation bar and its gap, beside the board in the same column.
+  const EVAL_W = showEvalBar ? 26 : 0;
+  // The side columns at their widest, with the gaps (see .analysis-layout).
+  const SIDES_W = layoutClass === 'three-col' ? (tight ? 310 + 210 + 2 * 14 : 340 + 260 + 2 * 22)
+    : layoutClass === 'two-col' ? 400 + 22 : 0;
+  // Only while Engine's layout is on screen: the Board Editor sizes from this
+  // too, and a width measured under another layout (before the iPad turned)
+  // would leave its board stuck small.
+  const boardRoom = layoutEl && layoutW ? layoutW - SIDES_W - EVAL_W : 0;
+  // A turned iPad or a resized window changes the layout at once — measure
+  // then too, before the paint, rather than wait out the debounce above with
+  // the side columns already at their new widths and the board squeezed.
+  useLayoutEffect(() => {
+    if (!layoutEl) return;
+    const w = layoutEl.getBoundingClientRect().width;
+    if (w > 200) setLayoutW(w);
+  }, [layoutEl, viewportWidth, layoutClass]);
+
+  // How tall the engine column's cards come to, so the moves column beside it
+  // can run as far down (see .analysis-moves-col). Nothing feeds back: the
+  // grid aligns its items to the top, so each column is its own height.
+  const [engineColEl, setEngineColEl] = useState(null);
+  const [sideH, setSideH] = useState(0);
+  useEffect(() => {
+    if (!engineColEl || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(() => setSideH(Math.ceil(engineColEl.getBoundingClientRect().height)));
+    ro.observe(engineColEl);
+    return () => ro.disconnect();
+  }, [engineColEl]);
 
   // eslint-disable-next-line no-inner-declarations
   function sideFitsFor(w, isWide) {
@@ -1204,7 +1283,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   // bar beside the board and a margin either side, where 26 had the pair
   // running edge to edge.
   const boardWidth = Math.floor(
-    Math.max(280, Math.min(BOARD_MAX, colW || 520, heightCap, viewportWidth - 48)) / 8,
+    Math.max(280, Math.min(BOARD_MAX, boardRoom || 520, heightCap, viewportWidth - 48)) / 8,
   ) * 8;
   // The editor gets a much bigger board than Engine mode — it can afford it:
   // setting a position up by hand is the one job here that's all board, and
@@ -1250,7 +1329,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
             <button onClick={() => setMode('editor')}>Board Editor</button>
           </div>
         </div>
-        <CompareView onAnalyze={(v) => { setMode('engine'); loadLine(v); }} />
+        <CompareView onAnalyze={(v, color) => { setMode('engine'); loadLine(v, color); }} />
       </div>
     );
   }
@@ -1285,7 +1364,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
 
   return (
     <div className={`page wide${tight ? ' tight-page' : ''}`}>
-      <div className="page-head">
+      <div className="page-head analysis-head">
         <h1>Analysis</h1>
         <div className="mode-tabs">
           <button className="active">Engine</button>
@@ -1395,6 +1474,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
                   onClick={() => {
                     setBaseFen(newGameAt(startFenOf(g)).fen());
                     loadMoves(g.moves, { title: g.name, comments: g.comments, badges: g.badges });
+                    setOrientation(guessSide(g, startFenOf(g)) ?? 'white');
                     setStudyGames(null);
                     setStudyUrl('');
                     setPgnText('');
@@ -1423,13 +1503,17 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
       )}
 
       <div
-        className={`analysis-layout ${layoutClass}${tight ? ' tight' : ''}`}
-        // The side columns take their height from the board, so everything
-        // beside it stays beside it.
-        style={{ '--board-h': `${boardWidth + 86}px` }}
+        ref={setLayoutEl}
+        className={`analysis-layout ${layoutClass}${tight ? ' tight' : ''}${compact ? ' compact' : ''}`}
+        // The board's column is the board's width; the moves column runs at
+        // least as far down as the board, and as far as the cards beside it.
+        style={{
+          '--board-h': `${boardWidth + 86}px`,
+          '--board-col': `${boardWidth + EVAL_W}px`,
+          '--side-h': `${sideH}px`,
+        }}
       >
         <div
-          ref={setColEl}
           className="analysis-board"
           onMouseDown={onMouseDown}
           onMouseUp={onMouseUp}
@@ -1443,6 +1527,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
             <EvalBar
               score={engineLines[1]?.score}
               running={engineOn && engineStatus === 'running'}
+              flipped={orientation === 'black'}
             />
           )}
           <div className="board-column" style={{ width: boardWidth }}>
@@ -1710,7 +1795,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
           </div>
         </div>
 
-        <div className="analysis-engine">
+        <div className="analysis-engine" ref={setEngineColEl}>
           {/* Whatever's been badged or written on the move that's on the board
               — a coach's from Coaches Corner, or your own — pinned to the top
               of this column so it's visible whichever of Engine/Explorer/
@@ -1722,8 +1807,12 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
             </div>
           )}
 
+          {/* The game and the repertoire it follows: one above the other in a
+              narrow column, side by side when the column has the room. */}
+          {moves.length > 0 && ((initialLine?.meta || initialLine?.subtitle) || fromStart) && (
+          <div className="analysis-cards">
           {(initialLine?.meta || initialLine?.subtitle) && moves.length > 0 && (
-            <AnalysedGame line={initialLine} />
+            <AnalysedGame line={initialLine} hideSubtitle={fromStart && gameMatch.matched} />
           )}
           {fromStart && moves.length > 0 && (
             <div className={`panel book-panel-summary${gameMatch.matched ? '' : ' unmatched'}`}>
@@ -1758,6 +1847,8 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
                 </div>
               )}
             </div>
+          )}
+          </div>
           )}
 
           <div className="panel side-tabs-panel">
@@ -1806,7 +1897,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
                 </span>
               </div>
             ))}
-            {bookHere.length > 0 && (
+            {bookHere.length > 0 && !compact && (
               <div className="muted-note" style={{ margin: '2px 0 10px' }}>
                 From your uploaded openings. Engine lines below.
               </div>
@@ -2045,9 +2136,11 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
                 style={layoutClass === 'stacked' ? undefined : {
                   // In two columns the moves share the height with the engine
                   // below them; in three they get the board's full height.
+                  // Three columns: down to the board's foot, or as far as the
+                  // cards beside it run, whichever is further.
                   maxHeight: layoutClass === 'two-col'
                     ? Math.max(150, (boardWidth + 86) * 0.44 - 52)
-                    : Math.max(200, boardWidth - 44),
+                    : Math.max(200, Math.max(boardWidth + 86, sideH) - 130),
                 }}
               >
                 <MoveTree
@@ -2158,7 +2251,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
 
 // What's on the board: the players, result and where it came from, so the
 // analysis isn't just an anonymous position.
-function AnalysedGame({ line }) {
+function AnalysedGame({ line, hideSubtitle = false }) {
   const m = line.meta ?? {};
   const res = m.result && m.result !== '*' ? resultFor({ meta: m }) : null;
   const site = EVENT_TYPES.find((t) => t.value === m.eventType)?.label;
@@ -2195,7 +2288,9 @@ function AnalysedGame({ line }) {
         <h3 style={{ margin: 0 }}>{line.name}</h3>
       )}
       {bits.length > 0 && <div className="game-meta-row">{bits.join(' · ')}</div>}
-      {line.subtitle && (
+      {/* The line it's filed under — left off when the repertoire card below
+          already names it, which is most of the height the two cards need. */}
+      {line.subtitle && !hideSubtitle && (
         <div className="cat-chip repertoire" style={{ alignSelf: 'flex-start' }}>{line.subtitle}</div>
       )}
       {m.notes && <div className="comment-box">{m.notes}</div>}

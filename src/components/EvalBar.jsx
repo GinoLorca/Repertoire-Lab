@@ -1,8 +1,11 @@
 import React from 'react';
 
-// Vertical evaluation bar, chess.com style: White fills from the bottom.
-// The score is always from White's point of view.
-export default function EvalBar({ score, height, running }) {
+// Vertical evaluation bar, chess.com style: White fills from White's side of
+// the board — the bottom, or the top when the board is seen from Black
+// (`flipped`). The score is always from White's point of view.
+export default function EvalBar({
+  score, height, running, flipped = false,
+}) {
   const mate = score?.type === 'mate';
   const cp = score ? (mate ? (score.value > 0 ? 1500 : -1500) : score.value) : 0;
   // A gentle curve: small edges move the bar a lot, big ones saturate.
@@ -13,7 +16,7 @@ export default function EvalBar({ score, height, running }) {
     : '–';
 
   return (
-    <div className="eval-bar" style={{ height }} title={running ? 'Engine evaluation' : 'Engine is off'}>
+    <div className={`eval-bar${flipped ? ' flipped' : ''}`} style={{ height }} title={running ? 'Engine evaluation' : 'Engine is off'}>
       <div className="eval-bar-black" />
       <div className="eval-bar-white" style={{ height: `${whitePct}%` }} />
       <span className={`eval-bar-label${whitePct > 50 ? ' low' : ' high'}`}>{label}</span>

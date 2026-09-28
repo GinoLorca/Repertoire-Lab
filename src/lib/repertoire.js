@@ -86,6 +86,27 @@ export function matchGameToRepertoire(moves, index, startFen = START_FEN) {
   };
 }
 
+// The side you play in the repertoire a game follows: for a game with no side
+// on record (a pasted PGN, an import), the best guess at which side was yours.
+// Null unless the game stays in book at least two moves, and the lines it
+// reaches deepest are all played from the one side — the same position can
+// sit in a White repertoire and in a Black defence against it.
+export function repertoireSide(moves, index, startFen = START_FEN) {
+  const chess = newGameAt(startFen);
+  let hits = [];
+  let depth = 0;
+  for (let i = 0; i < (moves?.length ?? 0); i += 1) {
+    try { chess.move(moves[i]); } catch { break; }
+    const here = index.get(fen4(chess.fen())) ?? [];
+    if (!here.length) break;
+    hits = here;
+    depth = i + 1;
+  }
+  if (depth < 2) return null;
+  const sides = new Set(hits.map((h) => h.opening?.color).filter((c) => c === 'white' || c === 'black'));
+  return sides.size === 1 ? [...sides][0] : null;
+}
+
 // Positions a line passes through, as position keys (index 0 = its start).
 function fenTrail(moves, startFen = START_FEN) {
   const chess = newGameAt(startFen);

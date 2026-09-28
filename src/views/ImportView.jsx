@@ -12,6 +12,7 @@ import {
 import {
   CameraIcon, ClipboardIcon, FolderIcon, PencilIcon, AlertIcon, DownloadIcon,
 } from '../components/Icons';
+import { sideFromNames } from '../lib/pov';
 
 // Text sitting just before a variation's moves is its title in course
 // screenshots ("Jobava London: 3...a6 with 4.e3"). Keep only a plausible
@@ -801,6 +802,8 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
                     onClick={() => onAnalyze({
                       name: entry.name, moves: entry.moves, comments: entry.comments, badges: entry.badges,
                       startFen: entry.startFen ?? null,
+                      // Your side, if the PGN's White/Black names say which was you.
+                      orientation: sideFromNames(entry.players, state.players),
                     })}
                   >
                     ⇢ Analyze game

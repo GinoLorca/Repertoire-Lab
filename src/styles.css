@@ -969,28 +969,34 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 /* ---------- Analysis ---------- */
 
 /* Analysis columns: board (with its evaluation bar), then the engine, then the
-   moves. Explicit grid tracks, so nothing can wrap unexpectedly. */
+   moves. Explicit grid tracks, so nothing can wrap unexpectedly.
+   The board's column is exactly the board (--board-col, set from the board's
+   size in AnalysisView), and the engine column takes whatever is left — so
+   when a short window caps the board by its height, the width it can't use
+   goes to the game, repertoire and engine cards instead of sitting empty. */
 .analysis-layout {
   display: grid;
   gap: 22px;
   align-items: start;
 }
-.analysis-layout.three-col { grid-template-columns: minmax(0, 1fr) minmax(300px, 340px) minmax(240px, 300px); }
+.analysis-layout.three-col { grid-template-columns: var(--board-col, minmax(0, 1fr)) minmax(300px, 1fr) minmax(220px, 260px); }
 /* iPad landscape: narrower side columns and a smaller board, so the game card,
    the repertoire card and the engine all sit beside the board on one screen. */
 .analysis-layout.three-col.tight {
   gap: 14px;
-  grid-template-columns: minmax(0, 1fr) minmax(268px, 310px) minmax(178px, 210px);
+  grid-template-columns: var(--board-col, minmax(0, 1fr)) minmax(268px, 1fr) minmax(178px, 210px);
 }
-.analysis-layout.tight .panel { padding: 11px 12px; }
-.analysis-layout.tight .analysis-engine > .panel + .panel,
-.analysis-layout.tight .analysis-moves-col > .panel + .panel { margin-top: 10px; }
-.analysis-layout.tight .engine-line { padding: 5px 6px; font-size: 13px; gap: 7px; }
-.analysis-layout.tight .engine-line .eval { min-width: 46px; }
-.analysis-layout.tight .analysed-game { gap: 5px; }
-.analysis-layout.tight .side-tabs { margin-bottom: 8px; }
-.analysis-layout.tight .side-tabs button { padding: 5px 8px; font-size: 13px; }
-.analysis-layout.tight h3 { font-size: 15px; }
+.analysis-layout.compact .panel { padding: 11px 12px; }
+.analysis-layout.compact .analysis-engine,
+.analysis-layout.compact .analysis-cards { gap: 10px; }
+.analysis-layout.compact .analysis-moves-col > .panel + .panel { margin-top: 10px; }
+.analysis-layout.compact .engine-line { padding: 5px 6px; font-size: 13px; gap: 7px; }
+.analysis-layout.compact .engine-line .eval { min-width: 46px; }
+.analysis-layout.compact .analysed-game { gap: 5px; }
+.analysis-layout.compact .side-tabs { margin-bottom: 8px; }
+.analysis-layout.compact .side-tabs button { padding: 5px 8px; font-size: 13px; }
+.analysis-layout.compact h3 { font-size: 15px; }
+.analysis-layout.compact .panel h3 { margin-bottom: 8px; }
 .analysis-layout.tight .mt-move { font-size: 13px; padding: 2px 5px; }
 .analysis-layout.tight .mt-num { font-size: 11.5px; }
 /* Reclaim the space under the board so the step controls stay on screen. */
@@ -1000,35 +1006,33 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .tight-page .viewer-controls { margin-top: 6px; }
 .tight-page .fen-row { margin-top: 8px; }
 .tight-page .annotate-bar { margin-top: 6px; }
-.analysis-layout.two-col { grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); }
+.analysis-layout.two-col { grid-template-columns: var(--board-col, minmax(0, 1fr)) minmax(320px, 1fr); }
 .analysis-layout.two-col .analysis-moves-col,
 .analysis-layout.three-col .analysis-moves-col,
 .analysis-layout.two-col .analysis-engine,
 .analysis-layout.three-col .analysis-engine { min-width: 0; }
-/* Two columns (iPad, narrow desktop): board on the left spanning both rows, the
-   moves top-right beside it, the engine below them. */
+/* Two columns (a 1024-wide iPad, a narrow desktop window): board on the left
+   spanning both rows, the game, repertoire and engine cards top-right beside
+   it, the moves under them — the cards are what has to be in view. */
 .analysis-layout.two-col { grid-template-rows: auto minmax(0, 1fr); }
 .analysis-layout.two-col .analysis-board { grid-column: 1; grid-row: 1 / span 2; }
-.analysis-layout.two-col .analysis-moves-col { grid-column: 2; grid-row: 1; }
-.analysis-layout.two-col .analysis-engine { grid-column: 2; grid-row: 2; }
-/* Beside the board means *beside* it: each side column is capped at the board's
-   own height and scrolls inside itself, so nothing trails off below the board
-   and the whole page doesn't have to scroll to read an engine line. */
-.analysis-layout.two-col .analysis-moves-col {
-  max-height: calc(var(--board-h, 520px) * 0.44); overflow-y: auto;
+.analysis-layout.two-col .analysis-engine { grid-column: 2; grid-row: 1; }
+.analysis-layout.two-col .analysis-moves-col { grid-column: 2; grid-row: 2; }
+/* The engine column shows every card whole — the game, the repertoire it
+   follows and the engine — never a scrollbar of its own: cut off at the
+   board's height, the engine lines were the part that went missing. It runs
+   on beside the controls under the board instead, which is room the board's
+   column has anyway.
+   The moves are a list that can run to a hundred rows, so that column does
+   scroll inside itself: from the board's height down to wherever the cards
+   beside it end (--side-h, measured), so the two columns finish together.
+   In two columns only the list itself scrolls (.movelist-scroll's own
+   height) — a cap here too gave the panel a second scrollbar beside it. */
+.analysis-layout.three-col .analysis-moves-col {
+  max-height: max(var(--board-h, 520px), var(--side-h, 0px)); overflow-y: auto;
 }
-.analysis-layout.two-col .analysis-engine {
-  max-height: calc(var(--board-h, 520px) * 0.56 - 22px); overflow-y: auto;
-}
-.analysis-layout.three-col .analysis-moves-col,
-.analysis-layout.three-col .analysis-engine {
-  max-height: var(--board-h, 520px); overflow-y: auto;
-}
-/* The columns scroll, so their scrollbars shouldn't sit under the panel edge. */
-.analysis-layout.two-col .analysis-moves-col,
-.analysis-layout.two-col .analysis-engine,
-.analysis-layout.three-col .analysis-moves-col,
-.analysis-layout.three-col .analysis-engine { scrollbar-width: thin; padding-right: 2px; }
+/* The list scrolls, so its scrollbar shouldn't sit under the panel edge. */
+.analysis-layout.three-col .analysis-moves-col { scrollbar-width: thin; padding-right: 2px; }
 /* Narrow: one column, board centred, everything beneath it. */
 .analysis-layout.stacked { grid-template-columns: minmax(0, 1fr); }
 .analysis-layout.stacked .analysis-board { justify-self: center; }
@@ -1036,6 +1040,14 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .analysis-engine, .analysis-moves-col {
   display: flex; flex-direction: column; gap: 16px; min-width: 0;
 }
+/* The game and the repertoire card: one above the other in a narrow column,
+   side by side once each can have 260px (a wide column, an iPad on its side
+   with a short board, the stacked layout on an iPad held upright). */
+.analysis-cards {
+  display: grid; gap: 16px; min-width: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+}
+.analysis-cards > * { min-width: 0; }
 
 /* The evaluation bar sits flush against the left edge of the board. */
 /* stretch, not flex-start: the eval bar has no height of its own any more —
@@ -1056,6 +1068,10 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 .eval-bar-label.low { bottom: 2px; color: #10151d; }
 .eval-bar-label.high { top: 2px; color: #eef2f8; }
+/* Seen from Black, White's share grows down from the top — White's side. */
+.eval-bar.flipped .eval-bar-white { top: 0; bottom: auto; }
+.eval-bar.flipped .eval-bar-label.low { top: 2px; bottom: auto; }
+.eval-bar.flipped .eval-bar-label.high { bottom: 2px; top: auto; }
 
 .analysis-board { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .analysis-side { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
@@ -1321,12 +1337,17 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   align-items: center;
   justify-content: center;
 }
+/* The board's column is only as wide as the board, which a short window can
+   make narrower than the row — a button then drops to a second row whole
+   rather than being squeezed until "⇅ Flip" breaks in two. */
+.viewer-controls { flex-wrap: wrap; }
 .book-controls button,
 .viewer-controls button {
   min-width: 46px;
   min-height: 44px;
   font-size: 16px;
   padding: 0 10px;
+  white-space: nowrap;
 }
 .book-count {
   min-width: 58px;
@@ -3333,6 +3354,13 @@ input[type="date"] {
 /* Repertoire line names are long; the picker takes what's there and no more,
    so it can't push the page sideways on a phone. */
 .line-picker { min-width: 0; max-width: 100%; flex: 1 1 240px; }
+/* Analysis's header on one row from a 1024-wide iPad up: the title keeps only
+   its own width and the line picker gives way, so the cards below start a row
+   higher — which is what lets them land on one screen. */
+@media (min-width: 980px) {
+  .analysis-head h1 { flex: 0 0 auto; min-width: 0; }
+  .analysis-head .line-picker { flex: 1 1 150px; min-width: 120px; max-width: 380px; }
+}
 
 /* A button that reads as a link, for one-tap fixes inside a note. */
 .linkish {

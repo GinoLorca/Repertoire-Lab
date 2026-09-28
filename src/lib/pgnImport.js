@@ -87,6 +87,9 @@ export function gameEntries(games, { mainLineOnly = false } = {}) {
         comments: line.comments,
         badges: line.badges,
         ...(startFen ? { startFen } : {}),
+        // Who played it, when the tags say — so a game sent to the analysis
+        // board can open from your side (lib/pov.js).
+        ...(real(h.White) || real(h.Black) ? { players: { white: real(h.White) || null, black: real(h.Black) || null } } : {}),
         ...result,
         ...(result.moves.length === 0 ? { unusable: `can’t read its first move, “${result.failedToken}”` } : {}),
       });
