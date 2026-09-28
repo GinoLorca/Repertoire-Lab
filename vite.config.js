@@ -19,6 +19,13 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/uscf-api/, '/api/v1/members'),
       },
+      // The whole API, for a member's rated history and crosstables
+      // (lib/uscfHistory.js; netlify/functions/uscf-history.mjs in production).
+      '/uscf-root': {
+        target: 'https://ratings-api.uschess.org',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/uscf-root/, '/api/v1'),
+      },
     },
   },
   build: {

@@ -117,6 +117,16 @@ export function GameLinkProvider({ children }) {
       }).then((fn) => stops.push(fn));
       watchLinkedPlayers(S, (snap) => {
         latest = snap;
+        // Their US Chess ID (and the others) on the card where it has none —
+        // what the dashboard is built from. One the coach typed stays.
+        const live = stateRef.current.players.find((p) => p.id === card.id);
+        const fill = {};
+        for (const [key, value] of Object.entries(snap.ids ?? {})) {
+          if (live && !String(live.profile?.[key] ?? '').trim()) fill[key] = value;
+        }
+        if (live && Object.keys(fill).length) {
+          dispatch({ type: 'updatePlayer', playerId: card.id, profile: { ...(live.profile ?? {}), ...fill } });
+        }
         setCards((c) => ({ ...c, [S]: { ...(c[S] ?? {}), state: 'live' } }));
         fold();
       }, (err) => {

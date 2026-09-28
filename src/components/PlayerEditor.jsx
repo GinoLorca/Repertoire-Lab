@@ -93,7 +93,16 @@ export default function PlayerEditor({
     ...(chesscom.status === 'done' && chesscom.data ? { chesscom: chesscom.data } : {}),
     ...(lichess.status === 'done' && lichess.data ? { lichess: lichess.data } : {}),
   };
-  const save = () => onSave(name.trim(), { ...profile, ratings: live }, avatar, id);
+  // A lookup still running (or failed) when Save is pressed keeps the
+  // rating already saved for that site — as long as its ID didn't change.
+  const was = initial?.profile ?? {};
+  const same = (key, now) => now && now === String(was[key] ?? '').trim();
+  const kept = {
+    ...(saved.uscf && uscfId && uscfId === String(was.uscf ?? '').replace(/\D/g, '') ? { uscf: saved.uscf } : {}),
+    ...(saved.chesscom && same('chesscom', profile.chesscom.trim()) ? { chesscom: saved.chesscom } : {}),
+    ...(saved.lichess && same('lichess', profile.lichess.trim()) ? { lichess: saved.lichess } : {}),
+  };
+  const save = () => onSave(name.trim(), { ...profile, ratings: { ...kept, ...live } }, avatar, id);
 
   return (
     <>

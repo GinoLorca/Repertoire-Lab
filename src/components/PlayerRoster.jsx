@@ -23,11 +23,13 @@ import {
 } from '../lib/cloud/links';
 import {
   BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon, StarIcon,
-  CameraIcon, FlaskIcon, SendIcon, UsersIcon, LinkIcon,
+  CameraIcon, FlaskIcon, SendIcon, UsersIcon, LinkIcon, TargetIcon,
 } from '../components/Icons';
 import { useMe } from '../lib/cloud/useMe';
 import { useGameLink } from './GameLinkProvider';
 import { parseMarks, withText } from '../lib/marks';
+import PlayerDashboard from './PlayerDashboard';
+import { confirmMeta } from '../lib/uscfMatch';
 
 // The handles a player is known by, with whatever live ratings we last fetched
 // for them, shown compactly wherever they're useful.
@@ -293,7 +295,13 @@ function PlayerPage({
 }) {
   const { state, dispatch } = useStore();
   const [viewingGameId, setViewingGameId] = useState(null);
-  const [editing, setEditing] = useState(null); // 'new' | game
+  const [editing, setEditing] = useState(null); // 'new' | game | { isNew, meta } (prefilled)
+  // Opens on the dashboard when there's a US Chess ID — unless the student
+  // has sent games not yet seen, which are what the bell brought you for.
+  const [tab, setTab] = useState(() => (
+    String(player.profile?.uscf ?? '').replace(/\D/g, '') && !player.games.some((g) => g.link?.unseen)
+      ? 'dashboard' : 'games'
+  ));
 
   // Back from a player's page returns to the section list rather than the app's
   // home screen. (The editor registers its own guard, which wins while open.)
@@ -394,7 +402,13 @@ function PlayerPage({
         // The name the coach already gave this card stays; a blank one takes
         // their real name.
         name: player.name?.trim() ? undefined : seed.realName || undefined,
-        profile: { ...(seed.profile ?? {}), ...p, linkedUid: student.uid, accountName: student.name },
+        // (Key by key: a field left blank on the card doesn't wipe theirs.)
+        profile: {
+          ...(seed.profile ?? {}),
+          ...Object.fromEntries(Object.entries(p).filter(([, v]) => v !== '' && v != null)),
+          linkedUid: student.uid,
+          accountName: student.name,
+        },
       });
       setLinkName('');
     } catch (err) {
@@ -488,90 +502,8 @@ function PlayerPage({
       <ProfileLine profile={player.profile} />
       {refreshError && <div className="muted-note"><AlertIcon size={13} /> {refreshError}</div>}
 
-      {player.kind === 'student' && (
-        <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)' }}>
-          <div className="scope-info">
-            <h3><BookIcon size={15} /> Repertoire</h3>
-            <div className="sub">
-              {myOpenings.length === 0
-                ? "Nothing built for them yet"
-                : `${myOpenings.length} opening${myOpenings.length === 1 ? '' : 's'} — ${
-                  myOpenings.map((o) => o.name).join(', ')}`}
-              {' · '}shows automatically when you analyze one of their games below
-            </div>
-          </div>
-          {me && sendable.length > 0 && (
-            <button
-              className="small primary"
-              title={`Pick openings, chapters or single lines and send them straight to ${player.name}'s app`}
-              onClick={() => setSending(true)}
-            >
-              <SendIcon size={14} /> Send
-            </button>
-          )}
-          <button className="small" onClick={() => onOpenLibrary(player.id)}>
-            {myOpenings.length === 0 ? 'Build it' : 'Open in Library'}
-          </button>
-        </div>
-      )}
-
-      {player.kind === 'student' && (
-        <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)' }}>
-          <div className="scope-info">
-            <h3><StarIcon size={15} /> Collections</h3>
-            <div className="sub">
-              {favCount === 0 && themeCount === 0
-                ? 'Nothing starred or themed for them yet'
-                : `${favCount} favorite line${favCount === 1 ? '' : 's'} · ${themeCount} theme${themeCount === 1 ? '' : 's'}`}
-              {' · '}star or tag any of their lines in the Library, right where you build them
-            </div>
-          </div>
-          <button className="small" onClick={() => onOpenCollections(player.id)}>
-            Open in Collections
-          </button>
-        </div>
-      )}
-
-      {player.kind === 'student' && me && (
-        <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)' }}>
-          <div className="scope-info">
-            <h3><UsersIcon size={15} /> Their account</h3>
-            <div className="sub">
-              {linked
-                ? `Linked — games ${player.name} adds in their own app appear below, and games you add
-                  here go to their account too.`
-                : `The games and profile above are just your own notes on ${player.name}. Link their
-                  account instead and this becomes the real thing — instantly, and they can end it
-                  any time.`}
-            </div>
-            {linkError && <div className="muted-note" style={{ color: 'var(--red)' }}>{linkError}</div>}
-          </div>
-          {!linked && (
-            <>
-              <input
-                value={linkName}
-                onChange={(e) => setLinkName(e.target.value)}
-                placeholder="their account name"
-                style={{ maxWidth: 160 }}
-              />
-              <button className="small primary" disabled={linking || !linkName.trim()} onClick={linkNow}>
-                {linking ? 'Linking…' : <><LinkIcon size={14} /> Link account</>}
-              </button>
-            </>
-          )}
-          {linked && (
-            <button
-              className="small ghost danger"
-              onClick={() => {
-                if (window.confirm(`Stop seeing ${player.name}'s real account?`)) endLink(link.id);
-              }}
-            >
-              End link
-            </button>
-          )}
-        </div>
-      )}
-
+      {/* Anything about the link with their account that needs doing shows
+          on both tabs. */}
       {linked && (() => {
         // Games on this card from before the link: nothing sends them on its
         // own — the coach may not want every old note going to the student —
@@ -619,114 +551,237 @@ function PlayerPage({
         );
       })()}
 
-      {player.games.length > 0 && (
-        <div className="player-summary">
-          <div className="ps-record">
-            <strong>{record.wins}</strong>W <strong>{record.draws}</strong>D <strong>{record.losses}</strong>L
-            {record.other > 0 && <span className="muted-note"> · {record.other} unscored</span>}
-          </div>
-          <span className="muted-note">
-            {filtered.length} of {player.games.length} games shown · {byCategory.length} categor
-            {byCategory.length === 1 ? 'y' : 'ies'}
-          </span>
-        </div>
-      )}
+      {/* A card with a US Chess ID opens on its dashboard; the games are a tab
+          away. (Chosen once per visit — switching stays put.) */}
+      <div className="player-tabs" role="tablist" aria-label="Player page">
+        <button role="tab" aria-selected={tab === 'dashboard'} className={tab === 'dashboard' ? 'on' : ''} onClick={() => setTab('dashboard')}>
+          <TargetIcon size={15} /> Dashboard
+        </button>
+        <button role="tab" aria-selected={tab === 'games'} className={tab === 'games' ? 'on' : ''} onClick={() => setTab('games')}>
+          Games <span className="muted-note">{player.games.length}</span>
+        </button>
+      </div>
 
-      {player.games.length > 0 && (
-        <div className="game-filters">
-          <span className="gf-search">
-            <SearchIcon size={15} />
-            <input
-              type="text"
-              value={query}
-              placeholder="Search players, events, notes, moves, tags…"
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </span>
-          <select value={color} onChange={(e) => setColor(e.target.value)} title="Filter by the colour you had">
-            <option value="all">Either colour</option>
-            <option value="white">I had White</option>
-            <option value="black">I had Black</option>
-            <option value="none">Someone else's game</option>
-          </select>
-          <select value={cat} onChange={(e) => setCat(e.target.value)} title="Filter by opening / variation">
-            <option value="all">All openings</option>
-            {byCategory.map(([id, entry]) => (
-              <option key={id} value={id}>{entry.label} ({entry.count})</option>
-            ))}
-          </select>
-          <select value={where} onChange={(e) => setWhere(e.target.value)} title="Filter by where the game was played">
-            <option value="all">Anywhere</option>
-            {EVENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-          {(color !== 'all' || cat !== 'all' || where !== 'all' || query) && (
-            <button
-              className="small ghost"
-              onClick={() => { setColor('all'); setCat('all'); setWhere('all'); setQuery(''); }}
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
-      )}
-
-      {player.games.length === 0 && (
-        <div className="empty-note">
-          No games yet. Press <strong>+ Add game</strong> to type one in from a scoresheet or paste a
-          PGN — or save one straight off the analysis board.
-        </div>
-      )}
-
-      {player.games.length > 0 && filtered.length === 0 && (
-        <div className="empty-note">No games match those filters.</div>
-      )}
-
-      {filtered.map(({ game, category }) => (
-        <GameRow
-          key={game.id}
-          game={game}
-          playerId={player.id}
-          category={category}
-          state={state}
-          onEdit={() => setEditing(game)}
-          onView={() => setViewingGameId(game.id)}
-          onAnalyze={() => onAnalyze(lineFor(game, { subtitle: category.label }))}
-          onGameStudio={onGameStudio && (() => onGameStudio(lineFor(game, { subtitle: category.label })))}
-          onSetCategory={(categoryId) => dispatch({
-            type: 'setGameCategory', playerId: player.id, gameId: game.id, categoryId,
-          })}
-          onSetPhoto={(photo) => dispatch({
-            type: 'setGamePhoto', playerId: player.id, gameId: game.id, photo,
-          })}
-          onScan={() => onScan({
+      {tab === 'dashboard' && (
+        <PlayerDashboard
+          player={player}
+          index={index}
+          onOpenGame={(gameId) => setViewingGameId(gameId)}
+          onEditProfile={onEditProfile}
+          // A fresh look-up brings the card's own rating line up to date.
+          onRatings={(uscf) => dispatch({
+            type: 'updatePlayer',
             playerId: player.id,
-            gameId: game.id,
-            gameName: game.name,
-            photo: game.meta?.photo,
+            profile: { ...(player.profile ?? {}), ratings: { ...(player.profile?.ratings ?? {}), uscf } },
           })}
-          onDelete={() => {
-            const ask = game.link
-              ? `Remove "${game.name}" from your card? It stays in ${player.name}'s account.`
-              : `Delete "${game.name}"?`;
-            if (window.confirm(ask)) {
-              dispatch({ type: 'deleteGame', playerId: player.id, gameId: game.id });
-              // Anything of it not yet picked up by their app never arrives.
-              if (game.link) gameLink.withdraw(game.id);
-            }
-          }}
-          onEditTags={() => setTaggingGameId(game.id)}
-          onTagClick={(t) => setQuery(t)}
-          linkStatus={linked ? gameLink.statusOf(player, game) : null}
-          partnerName={player.name}
-          onLinkAction={(what) => {
-            if (what === 'send') dispatch({ type: 'shareGamesWithStudent', cardId: player.id, gameIds: [game.id] });
-            if (what === 'resend') dispatch({ type: 'resendLinkedGame', cardId: player.id, gameId: game.id });
-            if (what === 'dismiss') dispatch({ type: 'dismissLinkLost', cardId: player.id, gameId: game.id });
-            if (what === 'retry') gameLink.retry(game.id);
-            if (what === 'undo') dispatch({ type: 'undoCoachChanges', playerId: player.id, gameId: game.id });
+          onAddGame={(section, round, asPlayed) => {
+            // The game as US Chess has it — event, round, date, colour, result
+            // and opponent — with only the moves left to type.
+            const meta = confirmMeta({ meta: {} }, section, round, asPlayed);
+            setEditing({ isNew: true, moves: [], comments: {}, badges: {}, meta: { ...meta, uscfNot: undefined } });
           }}
         />
-      ))}
+      )}
+
+      {tab === 'games' && (
+        <>
+
+        {player.kind === 'student' && (
+          <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)' }}>
+            <div className="scope-info">
+              <h3><BookIcon size={15} /> Repertoire</h3>
+              <div className="sub">
+                {myOpenings.length === 0
+                  ? "Nothing built for them yet"
+                  : `${myOpenings.length} opening${myOpenings.length === 1 ? '' : 's'} — ${
+                    myOpenings.map((o) => o.name).join(', ')}`}
+                {' · '}shows automatically when you analyze one of their games below
+              </div>
+            </div>
+            {me && sendable.length > 0 && (
+              <button
+                className="small primary"
+                title={`Pick openings, chapters or single lines and send them straight to ${player.name}'s app`}
+                onClick={() => setSending(true)}
+              >
+                <SendIcon size={14} /> Send
+              </button>
+            )}
+            <button className="small" onClick={() => onOpenLibrary(player.id)}>
+              {myOpenings.length === 0 ? 'Build it' : 'Open in Library'}
+            </button>
+          </div>
+        )}
+
+        {player.kind === 'student' && (
+          <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)' }}>
+            <div className="scope-info">
+              <h3><StarIcon size={15} /> Collections</h3>
+              <div className="sub">
+                {favCount === 0 && themeCount === 0
+                  ? 'Nothing starred or themed for them yet'
+                  : `${favCount} favorite line${favCount === 1 ? '' : 's'} · ${themeCount} theme${themeCount === 1 ? '' : 's'}`}
+                {' · '}star or tag any of their lines in the Library, right where you build them
+              </div>
+            </div>
+            <button className="small" onClick={() => onOpenCollections(player.id)}>
+              Open in Collections
+            </button>
+          </div>
+        )}
+
+        {player.kind === 'student' && me && (
+          <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)' }}>
+            <div className="scope-info">
+              <h3><UsersIcon size={15} /> Their account</h3>
+              <div className="sub">
+                {linked
+                  ? `Linked — games ${player.name} adds in their own app appear below, and games you add
+                    here go to their account too.`
+                  : `The games and profile above are just your own notes on ${player.name}. Link their
+                    account instead and this becomes the real thing — instantly, and they can end it
+                    any time.`}
+              </div>
+              {linkError && <div className="muted-note" style={{ color: 'var(--red)' }}>{linkError}</div>}
+            </div>
+            {!linked && (
+              <>
+                <input
+                  value={linkName}
+                  onChange={(e) => setLinkName(e.target.value)}
+                  placeholder="their account name"
+                  style={{ maxWidth: 160 }}
+                />
+                <button className="small primary" disabled={linking || !linkName.trim()} onClick={linkNow}>
+                  {linking ? 'Linking…' : <><LinkIcon size={14} /> Link account</>}
+                </button>
+              </>
+            )}
+            {linked && (
+              <button
+                className="small ghost danger"
+                onClick={() => {
+                  if (window.confirm(`Stop seeing ${player.name}'s real account?`)) endLink(link.id);
+                }}
+              >
+                End link
+              </button>
+            )}
+          </div>
+        )}
+
+
+        {player.games.length > 0 && (
+          <div className="player-summary">
+            <div className="ps-record">
+              <strong>{record.wins}</strong>W <strong>{record.draws}</strong>D <strong>{record.losses}</strong>L
+              {record.other > 0 && <span className="muted-note"> · {record.other} unscored</span>}
+            </div>
+            <span className="muted-note">
+              {filtered.length} of {player.games.length} games shown · {byCategory.length} categor
+              {byCategory.length === 1 ? 'y' : 'ies'}
+            </span>
+          </div>
+        )}
+
+        {player.games.length > 0 && (
+          <div className="game-filters">
+            <span className="gf-search">
+              <SearchIcon size={15} />
+              <input
+                type="text"
+                value={query}
+                placeholder="Search players, events, notes, moves, tags…"
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </span>
+            <select value={color} onChange={(e) => setColor(e.target.value)} title="Filter by the colour you had">
+              <option value="all">Either colour</option>
+              <option value="white">I had White</option>
+              <option value="black">I had Black</option>
+              <option value="none">Someone else's game</option>
+            </select>
+            <select value={cat} onChange={(e) => setCat(e.target.value)} title="Filter by opening / variation">
+              <option value="all">All openings</option>
+              {byCategory.map(([id, entry]) => (
+                <option key={id} value={id}>{entry.label} ({entry.count})</option>
+              ))}
+            </select>
+            <select value={where} onChange={(e) => setWhere(e.target.value)} title="Filter by where the game was played">
+              <option value="all">Anywhere</option>
+              {EVENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+            {(color !== 'all' || cat !== 'all' || where !== 'all' || query) && (
+              <button
+                className="small ghost"
+                onClick={() => { setColor('all'); setCat('all'); setWhere('all'); setQuery(''); }}
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
+
+        {player.games.length === 0 && (
+          <div className="empty-note">
+            No games yet. Press <strong>+ Add game</strong> to type one in from a scoresheet or paste a
+            PGN — or save one straight off the analysis board.
+          </div>
+        )}
+
+        {player.games.length > 0 && filtered.length === 0 && (
+          <div className="empty-note">No games match those filters.</div>
+        )}
+
+        {filtered.map(({ game, category }) => (
+          <GameRow
+            key={game.id}
+            game={game}
+            playerId={player.id}
+            category={category}
+            state={state}
+            onEdit={() => setEditing(game)}
+            onView={() => setViewingGameId(game.id)}
+            onAnalyze={() => onAnalyze(lineFor(game, { subtitle: category.label }))}
+            onGameStudio={onGameStudio && (() => onGameStudio(lineFor(game, { subtitle: category.label })))}
+            onSetCategory={(categoryId) => dispatch({
+              type: 'setGameCategory', playerId: player.id, gameId: game.id, categoryId,
+            })}
+            onSetPhoto={(photo) => dispatch({
+              type: 'setGamePhoto', playerId: player.id, gameId: game.id, photo,
+            })}
+            onScan={() => onScan({
+              playerId: player.id,
+              gameId: game.id,
+              gameName: game.name,
+              photo: game.meta?.photo,
+            })}
+            onDelete={() => {
+              const ask = game.link
+                ? `Remove "${game.name}" from your card? It stays in ${player.name}'s account.`
+                : `Delete "${game.name}"?`;
+              if (window.confirm(ask)) {
+                dispatch({ type: 'deleteGame', playerId: player.id, gameId: game.id });
+                // Anything of it not yet picked up by their app never arrives.
+                if (game.link) gameLink.withdraw(game.id);
+              }
+            }}
+            onEditTags={() => setTaggingGameId(game.id)}
+            onTagClick={(t) => setQuery(t)}
+            linkStatus={linked ? gameLink.statusOf(player, game) : null}
+            partnerName={player.name}
+            onLinkAction={(what) => {
+              if (what === 'send') dispatch({ type: 'shareGamesWithStudent', cardId: player.id, gameIds: [game.id] });
+              if (what === 'resend') dispatch({ type: 'resendLinkedGame', cardId: player.id, gameId: game.id });
+              if (what === 'dismiss') dispatch({ type: 'dismissLinkLost', cardId: player.id, gameId: game.id });
+              if (what === 'retry') gameLink.retry(game.id);
+              if (what === 'undo') dispatch({ type: 'undoCoachChanges', playerId: player.id, gameId: game.id });
+            }}
+          />
+        ))}
+
+        </>
+      )}
 
       {sending && me && (
         <SendToStudent
@@ -768,7 +823,13 @@ function PlayerPage({
           linkedTo={linked ? player.name : null}
           onSave={(game) => {
             if (editing === 'new') dispatch({ type: 'addGame', playerId: player.id, game });
-            else dispatch({ type: 'updateGame', playerId: player.id, gameId: editing.id, game });
+            else if (editing.isNew) {
+              // Added from a rated round on the dashboard: linked to it.
+              const link = editing.meta?.uscfRef
+                ? { uscfRef: editing.meta.uscfRef, ...(editing.meta.uscfOpp ? { uscfOpp: editing.meta.uscfOpp } : {}) }
+                : {};
+              dispatch({ type: 'addGame', playerId: player.id, game: { ...game, meta: { ...game.meta, ...link } } });
+            } else dispatch({ type: 'updateGame', playerId: player.id, gameId: editing.id, game });
             setEditing(null);
           }}
         />
@@ -888,6 +949,7 @@ export default function PlayerRoster({
     return (
       <>
         <PlayerPage
+          key={openPlayer.id}
           player={openPlayer}
           rosterTitle={title}
           onBack={() => setOpenPlayerId(null)}

@@ -28,7 +28,7 @@ const SYSTEMS = {
 // The records come in capitals ("PARKER RECKHOW DOWNING"). Capitals become
 // Parker Reckhow Downing — O'Brien and Smith-Jones included — but a name
 // that already has its own mix of cases (McDonald) is left exactly as it is.
-function tidyName(raw) {
+export function tidyName(raw) {
   const text = String(raw ?? '').trim().replace(/\s+/g, ' ');
   if (text !== text.toUpperCase()) return text;
   return text.toLowerCase().replace(/(^|[\s'-])(\p{L})/gu, (m, sep, ch) => sep + ch.toUpperCase());

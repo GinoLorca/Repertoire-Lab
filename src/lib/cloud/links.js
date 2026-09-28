@@ -190,10 +190,16 @@ export async function watchLinkedPlayers(studentUid, onChange, onError) {
       // nothing drops every picture reference.
       const account = await fromCloud({ players }, async () => null);
       if (mine !== latest) return;
-      const games = (account.players ?? [])
-        .filter((p) => (p.kind ?? 'self') === 'self')
-        .flatMap((p) => p.games ?? []);
-      onChange({ games, complete: !snap.metadata.fromCache });
+      const own = (account.players ?? []).filter((p) => (p.kind ?? 'self') === 'self');
+      const games = own.flatMap((p) => p.games ?? []);
+      // Their own IDs (US Chess, FIDE, Chess.com, Lichess), for the coach's
+      // card to fill in any it's missing.
+      const ids = {};
+      for (const key of ['uscf', 'fide', 'chesscom', 'lichess']) {
+        const found = own.map((p) => String(p.profile?.[key] ?? '').trim()).find(Boolean);
+        if (found) ids[key] = found;
+      }
+      onChange({ games, complete: !snap.metadata.fromCache, ids });
     },
     (err) => onError?.(err),
   );
