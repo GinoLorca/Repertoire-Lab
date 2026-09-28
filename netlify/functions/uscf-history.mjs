@@ -11,7 +11,7 @@
 // anything else. The shaping is src/lib/uscfHistory.js, shared with the dev
 // server and the tests.
 import {
-  USCF_ROOT, loadHistory, loadStandings, validMemberId, parseSectionKey,
+  USCF_ROOT, loadHistory, loadStandings, loadSearch, validMemberId, validSearch, SEARCH_HELP, parseSectionKey,
 } from '../../src/lib/uscfHistory.js';
 
 const json = (body, status = 200, extra = {}) => new Response(JSON.stringify(body), {
@@ -35,6 +35,16 @@ const getJson = async (path) => {
 
 export default async (req) => {
   const params = new URL(req.url).searchParams;
+  // ?search=Elliott Crawford — members by name, to scout an opponent.
+  const search = params.get('search');
+  if (search != null) {
+    if (!validSearch(search)) return json({ error: SEARCH_HELP }, 400);
+    try {
+      return json({ members: await loadSearch(getJson, search) }, 200, { 'cache-control': 'public, max-age=3600' });
+    } catch (err) {
+      return json({ error: `Couldn't reach US Chess — ${err.message}.` }, 502);
+    }
+  }
   const id = (params.get('id') ?? '').replace(/\D/g, '');
   if (!validMemberId(id)) return json({ error: 'A US Chess ID is 8 digits.' }, 400);
   try {

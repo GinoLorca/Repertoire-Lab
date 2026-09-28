@@ -7,7 +7,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 //
 // `series`: [{ key, date, eventName, pre, post, change }], oldest first.
 
-const H = 220;
+const HEIGHT = 220;
 const PAD = { top: 18, right: 16, bottom: 30, left: 44 };
 
 function niceTicks(min, max, count = 4) {
@@ -28,7 +28,10 @@ const shortDate = (iso) => {
   return `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(m) - 1]} ’${y.slice(2)}`;
 };
 
-export default function RatingChart({ series, marked, peak, onPick, label = 'Rating' }) {
+export default function RatingChart({
+  series, marked, peak, onPick, label = 'Rating', height = HEIGHT,
+}) {
+  const H = height;
   const wrap = useRef(null);
   const [width, setWidth] = useState(640);
   const [hover, setHover] = useState(null);
@@ -60,7 +63,7 @@ export default function RatingChart({ series, marked, peak, onPick, label = 'Rat
     const every = Math.max(1, Math.ceil(coords.length / Math.max(2, Math.floor(iw / 90))));
     const labels = coords.filter((c, i) => i === 0 || i === coords.length - 1 || i % every === 0);
     return { coords, line, area, ticks, y, labels, ih };
-  }, [series, width]);
+  }, [series, width, H]);
 
   if (!geo) return <div className="muted-note">No rated events in this system yet.</div>;
 

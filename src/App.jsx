@@ -44,6 +44,19 @@ function AppInner() {
   // Settings tab. Lifted up here only so it can be part of the address; each
   // view still owns its own switching.
   const [sub, setSub] = useState(route.sub ?? null);
+  // One person's page open in Games or Coaches Corner ({ view, id, tab }), so
+  // it has an address too — PlayerRoster reports it and follows it. It
+  // carries its view: a card belongs to one roster, and must not follow you
+  // from Games into Coaches Corner as a "link" to someone who isn't there.
+  const withView = (player, v) => (player ? { ...player, view: v } : null);
+  const [playerNav, setPlayerNav] = useState(withView(route.player, route.view));
+  const onPlayerView = view === 'games' || view === 'coaches';
+  const openPlayerNav = onPlayerView && playerNav?.view === view ? playerNav : null;
+  // Leaving the person's roster leaves the person's page too: coming back by
+  // the tab lands on the list, as it always has.
+  useEffect(() => {
+    if (playerNav && playerNav.view !== view) setPlayerNav(null);
+  }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
   const [practiceScope, setPracticeScope] = useState(undefined);
   const [analysisLine, setAnalysisLine] = useState(null);
   const [verifyDraft, setVerifyDraft] = useState(null);
@@ -201,9 +214,13 @@ function AppInner() {
   useEffect(() => {
     const onPop = () => {
       if (poppingRef.current) { poppingRef.current = false; return; }
+      // Forward lands on an entry `go` stamped deeper than our own stack. That
+      // is never a "back", so it mustn't be spent closing whatever is open —
+      // a person's page restored by Back would otherwise eat the Forward.
+      const forward = (window.history.state?.rlDepth ?? 0) > history.current.length;
       // A modal or editor is open: back closes that, not the page — otherwise a
       // stray edge-swipe throws away whatever you were typing.
-      if (runTopGuard()) {
+      if (!forward && runTopGuard()) {
         try { window.history.pushState({ rlGuard: true }, ''); } catch { /* ignore */ }
         return;
       }
@@ -218,6 +235,7 @@ function AppInner() {
       const target = parsePath(here);
       setSub(target.sub ?? null);
       setChapterNav(target.chapterNav ?? null);
+      setPlayerNav(withView(target.player, target.view));
       setView(target.view);
     };
     window.addEventListener('popstate', onPop);
@@ -234,12 +252,14 @@ function AppInner() {
   // typed, for no gain.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const path = pathFor({ view, sub, chapterNav });
+    const path = pathFor({
+      view, sub, chapterNav, player: openPlayerNav,
+    });
     const here = window.location.pathname;
     if (here === path) return;
     if (here === '/' && path === '/library') return;
     try { window.history.replaceState(window.history.state, '', path); } catch { /* history unavailable */ }
-  }, [view, sub, chapterNav?.openingId, chapterNav?.chapterId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [view, sub, chapterNav?.openingId, chapterNav?.chapterId, playerNav?.view, playerNav?.id, playerNav?.tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ⌘K / Ctrl-K, or "/" when not already typing, opens search from anywhere.
   useEffect(() => {
@@ -266,6 +286,8 @@ function AppInner() {
     view,
     sub,
     chapterNav,
+    // (Named `player` so pathFor reads it straight off a snapshot.)
+    player: openPlayerNav,
     practiceScope,
     analysisLine,
     scrollY: window.scrollY,
@@ -297,6 +319,7 @@ function AppInner() {
     if (!prev) { setView('library'); return; }
     setSub(prev.sub ?? null);
     setChapterNav(prev.chapterNav);
+    setPlayerNav(prev.player ?? null);
     setPracticeScope(prev.practiceScope);
     setAnalysisLine(prev.analysisLine);
     setView(prev.view);
@@ -562,7 +585,7 @@ function AppInner() {
               useful. This copies wherever you're standing. */}
           <button
             className={`nav-icon${linkCopied ? ' active' : ''}`}
-            title={`Copy a link to ${SECTION_LABEL[view] ?? 'this page'}`}
+            title={`Copy a link to ${openPlayerNav ? 'this player’s page' : SECTION_LABEL[view] ?? 'this page'}`}
             aria-label="Copy a link to this page"
             onClick={async () => {
               const url = window.location.href;
@@ -681,13 +704,21 @@ function AppInner() {
           />
         )}
         {view === 'games' && (
-          <GamesView onAnalyze={analyze} onGameStudio={analyzeInStudio} onScan={scanPhoto} />
+          <GamesView
+            onAnalyze={analyze}
+            onGameStudio={analyzeInStudio}
+            onScan={scanPhoto}
+            routePlayer={openPlayerNav}
+            onPlayerChange={(p) => setPlayerNav(withView(p, view))}
+          />
         )}
         {view === 'coaches' && (
           <CoachesView
             onAnalyze={analyze}
             onGameStudio={analyzeInStudio}
             onScan={scanPhoto}
+            routePlayer={openPlayerNav}
+            onPlayerChange={(p) => setPlayerNav(withView(p, view))}
             onOpenLibrary={openLibraryFor}
             onOpenCollections={openCollectionsFor}
             onOpenStudio={openStudio}

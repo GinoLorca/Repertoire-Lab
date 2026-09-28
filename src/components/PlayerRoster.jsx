@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../store';
 import SendToStudent from './SendToStudent';
 import { buildPositionIndex, moveLabel } from '../lib/repertoire';
@@ -292,16 +292,20 @@ function GameRow({
 
 function PlayerPage({
   player, rosterTitle, onBack, onAnalyze, onGameStudio, onScan, onEditProfile, onOpenLibrary, onOpenCollections,
+  initialTab = null, onTabChange,
 }) {
   const { state, dispatch } = useStore();
   const [viewingGameId, setViewingGameId] = useState(null);
   const [editing, setEditing] = useState(null); // 'new' | game | { isNew, meta } (prefilled)
   // Opens on the dashboard when there's a US Chess ID — unless the student
   // has sent games not yet seen, which are what the bell brought you for.
-  const [tab, setTab] = useState(() => (
-    String(player.profile?.uscf ?? '').replace(/\D/g, '') && !player.games.some((g) => g.link?.unseen)
-      ? 'dashboard' : 'games'
-  ));
+  const [tab, setTab] = useState(() => {
+    if (initialTab === 'games' || initialTab === 'dashboard') return initialTab; // from a link
+    return String(player.profile?.uscf ?? '').replace(/\D/g, '') && !player.games.some((g) => g.link?.unseen)
+      ? 'dashboard' : 'games';
+  });
+  // The tab is part of the page's address (/coaches/<card>/games).
+  useEffect(() => { onTabChange?.(tab); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Back from a player's page returns to the section list rather than the app's
   // home screen. (The editor registers its own guard, which wins while open.)
@@ -567,6 +571,11 @@ function PlayerPage({
           player={player}
           index={index}
           onOpenGame={(gameId) => setViewingGameId(gameId)}
+          // The same hand-off as the Games tab's "Send to analysis board".
+          onAnalyzeGame={(gameId) => {
+            const game = player.games.find((g) => g.id === gameId);
+            if (game?.moves?.length) onAnalyze(lineFor(game, { subtitle: categoryOf(game, index, state)?.label }));
+          }}
           onEditProfile={onEditProfile}
           // A fresh look-up brings the card's own rating line up to date.
           onRatings={(uscf) => dispatch({
@@ -892,16 +901,42 @@ function takePendingOpen(kind) {
 
 export default function PlayerRoster({
   kind, title, subtitle, addLabel, emptyLabel, onAnalyze, onGameStudio, onScan, onOpenLibrary, onOpenCollections,
-  onOpenStudio,
+  onOpenStudio, routePlayer = null, onPlayerChange,
 }) {
   const { state, dispatch } = useStore();
-  // Opened straight from the bell ("Parker added a game → Open").
-  const [openPlayerId, setOpenPlayerId] = useState(() => takePendingOpen(kind));
+  // Opened straight from the bell ("Parker added a game → Open"), or from a
+  // link to the person's page (/coaches/<card>).
+  const [pendingId] = useState(() => takePendingOpen(kind));
+  const [openPlayerId, setOpenPlayerId] = useState(pendingId ?? routePlayer?.id ?? null);
+  // The page's tab, for its address. From the bell it's the games just added.
+  const [tab, setTab] = useState(pendingId ? 'games' : (routePlayer?.tab ?? null));
   useEffect(() => {
-    const on = () => { const id = takePendingOpen(kind); if (id) setOpenPlayerId(id); };
+    const on = () => { const id = takePendingOpen(kind); if (id) { setOpenPlayerId(id); setTab('games'); } };
     window.addEventListener('repertoire-open-player', on);
     return () => window.removeEventListener('repertoire-open-player', on);
   }, [kind]);
+  // The address last seen or told — so the two effects below can tell a real
+  // change of address (Back, Forward, a link pasted in) from the echo of our
+  // own report. Without it, opening from the bell (card open, address not yet
+  // caught up) had each effect undo the other, forever.
+  const routeSeen = useRef(routePlayer?.id ?? null);
+  useEffect(() => {
+    const want = routePlayer?.id ?? null;
+    if (want === routeSeen.current) return;
+    routeSeen.current = want;
+    if (want !== openPlayerId) {
+      setOpenPlayerId(want);
+      setTab(routePlayer?.tab ?? null);
+    }
+  }, [routePlayer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // …and tell the address where we are.
+  useEffect(() => {
+    const next = openPlayerId ? { id: openPlayerId, tab: tab === 'games' ? 'games' : null } : null;
+    if ((next?.id ?? null) !== (routePlayer?.id ?? null) || (next?.tab ?? null) !== (routePlayer?.tab ?? null)) {
+      routeSeen.current = next?.id ?? null;
+      onPlayerChange?.(next);
+    }
+  }, [openPlayerId, tab]); // eslint-disable-line react-hooks/exhaustive-deps
   const [manageCats, setManageCats] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null); // 'new' | player
   // Adding a student two ways: type in what you know by hand (the roster
@@ -944,6 +979,9 @@ export default function PlayerRoster({
 
   const players = state.players.filter((p) => (p.kind ?? 'self') === kind);
   const openPlayer = players.find((p) => p.id === openPlayerId);
+  // A link to a card this account doesn't have (someone else's, or one not
+  // synced here yet — it opens if it arrives).
+  const missingLink = openPlayerId && !openPlayer ? openPlayerId : null;
 
   if (openPlayer) {
     return (
@@ -952,7 +990,9 @@ export default function PlayerRoster({
           key={openPlayer.id}
           player={openPlayer}
           rosterTitle={title}
-          onBack={() => setOpenPlayerId(null)}
+          initialTab={tab}
+          onTabChange={setTab}
+          onBack={() => { setOpenPlayerId(null); setTab(null); }}
           onAnalyze={onAnalyze}
           onGameStudio={onGameStudio}
           onScan={onScan}
@@ -979,6 +1019,15 @@ export default function PlayerRoster({
 
   return (
     <div className="page">
+      {missingLink && (
+        <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)', display: 'block' }}>
+          <p className="hint" style={{ margin: 0 }}>
+            That link is for a {kind === 'student' ? 'student' : 'section'} who isn’t on this account
+            {' '}— it opens here if they sync in.{' '}
+            <button className="small ghost" onClick={() => { setOpenPlayerId(null); setTab(null); }}>Dismiss</button>
+          </p>
+        </div>
+      )}
       <div className="page-head">
         <h1>{title}</h1>
         <span style={{ flex: 1 }} />
@@ -1018,7 +1067,7 @@ export default function PlayerRoster({
         const cats = new Set(player.games.map((g) => categoryOf(g, index, state).id));
         const offbeat = player.games.filter((g) => categoryOf(g, index, state).id === OFFBEAT).length;
         return (
-          <div key={player.id} className="scope-card" onClick={() => setOpenPlayerId(player.id)}>
+          <div key={player.id} className="scope-card" onClick={() => { setOpenPlayerId(player.id); setTab(null); }}>
             <Avatar avatar={player.avatar} seed={player.id} size={48} />
             <div className="scope-info">
               <h3>{player.name}</h3>

@@ -17,3 +17,6 @@ export const get = async (k) => structuredClone(mine().get(k));
 export const set = async (k, v) => { mine().set(k, structuredClone(v)); };
 export const del = async (k) => { mine().delete(k); };
 export const resetDevices = () => stores.clear();
+// A named store (lib/uscfClient.js keeps its own) shares the device's map —
+// the keys are prefixed, and nothing here needs them apart.
+export const createStore = () => null;

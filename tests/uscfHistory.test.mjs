@@ -6,8 +6,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   normalizeHistory, normalizeStanding, standing, ratingSeries, outcomeCode, loadHistory, loadStandings,
-  mainSystem, parseSectionKey, patient,
+  mainSystem, parseSectionKey, patient, normalizeSearch, validSearch, tidySearch,
 } from '../src/lib/uscfHistory.js';
+import { sectionStamp } from '../src/lib/uscfClient.js';
 import {
   ratedGames, sectionSummary, timeClass, splits, form, highlights, expectedScore,
 } from '../src/lib/uscfStats.js';
@@ -106,7 +107,7 @@ test('a crosstable as the member saw it: rounds, colours, opponents and their ra
   assert.deepEqual(ny.rounds.map((r) => r.result), ['BF', 'L', 'W', 'W', 'L', 'U']);
   assert.deepEqual(ny.rounds[1], {
     round: 2, result: 'L', color: 'white', oppId: '16416245', oppFirst: 'Elliott', oppLast: 'Crawford',
-    oppName: 'Elliott Crawford', oppPre: 1182, oppPost: 1190,
+    oppName: 'Elliott Crawford', oppPre: 1182, oppPost: 1190, oppPreExact: 1182, oppPostExact: 1190,
   });
   assert.equal(ny.rounds[0].oppName, null);
   assert.equal(outcomeCode('ForfeitWin'), 'FW');
@@ -362,4 +363,45 @@ test('told to slow down, the reader waits and asks again; other errors aren\'t r
   const broken = async () => { m += 1; const e = new Error('nope'); e.status = 500; throw e; };
   await assert.rejects(() => patient(broken)('/x'), /nope/);
   assert.equal(m, 1);
+});
+
+test('scouting: members found by name, and only names are searched', async () => {
+  const found = normalizeSearch([{ id: '16416245', firstName: 'ELLIOTT', lastName: 'CRAWFORD', stateRep: 'NY', status: 'Active',
+    ratings: [{ ratingSystem: 'R', rating: 1031 }, { ratingSystem: 'Q', rating: 1119 }, { ratingSystem: 'OR', rating: 979 }] }]);
+  assert.deepEqual(found, [{ id: '16416245', name: 'Elliott Crawford', state: 'NY', status: 'Active', ratings: { R: 1031, Q: 1119 } }]);
+  assert.ok(validSearch('Elliott Crawford'));
+  assert.ok(validSearch("O'Brien"));
+  assert.ok(validSearch('José Núñez'));
+  assert.ok(!validSearch('a'));
+  assert.ok(!validSearch('../../members'));
+  assert.ok(!validSearch('x&Size=1000'));
+  // Pasted from a crosstable, and accents typed as separate marks.
+  assert.equal(tidySearch('CRAWFORD,  ELLIOTT '), 'ELLIOTT CRAWFORD');
+  assert.ok(validSearch('Crawford, Elliott'));
+  assert.ok(validSearch('Jose\u0301 Nun\u0303ez'));
+  assert.equal(tidySearch('Jose\u0301'), 'José');
+  assert.ok(!validSearch('a, b, c'));
+  const { default: handler } = await import('../netlify/functions/uscf-history.mjs');
+  const realFetch = globalThis.fetch;
+  const asked = [];
+  globalThis.fetch = async (url) => {
+    asked.push(String(url));
+    return new Response(JSON.stringify({ items: [{ id: '16416245', firstName: 'ELLIOTT', lastName: 'CRAWFORD', ratings: [] }] }), { status: 200 });
+  };
+  try {
+    const res = await handler(new Request('https://x/?search=Elliott%20Crawford'));
+    assert.equal((await res.json()).members[0].name, 'Elliott Crawford');
+    assert.equal(asked[0], 'https://ratings-api.uschess.org/api/v1/members?Fuzzy=Elliott%20Crawford&Offset=0&Size=12');
+    assert.equal((await handler(new Request('https://x/?search=..%2F..%2Fx'))).status, 400);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test('a kept crosstable stays good when the records gain fields a re-rating doesn’t change', () => {
+  // What the build before the decimals kept, byte for byte.
+  const before = JSON.stringify({ R: { pre: 475, post: 700, provisionalGames: 10 } });
+  const now = { records: { R: { pre: 475, post: 700, preExact: 475.26, postExact: 699.8, provisionalGames: 10 } } };
+  assert.equal(sectionStamp(now), before);
+  assert.notEqual(sectionStamp({ records: { R: { ...now.records.R, post: 701 } } }), before);
 });

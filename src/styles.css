@@ -4153,8 +4153,17 @@ a.dash-chip:hover { border-color: var(--accent); }
   .dash-event-score { grid-area: score; }
   .dash-chips-row { grid-area: chips; justify-content: flex-start; max-width: none; }
   .hide-narrow { display: none; }
-  .dash-game-cell { white-space: normal; }
+}
+/* Open + Send to analysis + the flag don't fit on one line in an iPad-portrait card. */
+@media (max-width: 820px) {
+  .dash-game-cell { white-space: normal; width: auto; }
   .dash-game { flex-wrap: wrap; }
+  .dash-game > button { white-space: nowrap; }
+}
+@media (max-width: 560px) {
+  .dash-game-cell { width: 1%; }
+  .dash-game > button { white-space: normal; text-align: left; }
+  .dash-opp { flex-wrap: wrap; }
 }
 
 /* Coaching splits. */
@@ -4208,3 +4217,55 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 :root[data-skin="bauhaus"] .dash-rchip,
 :root[data-skin="bauhaus"] .player-tabs,
 :root[data-skin="bauhaus"] .player-tabs button { border-radius: 0; }
+
+/* Scouting an opponent (components/ScoutBox.jsx). */
+.scout-form { display: flex; gap: 8px; margin-bottom: 10px; }
+.scout-form input { flex: 1; min-width: 0; }
+.scout-error { color: var(--red); }
+.scout-results { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.scout-results button {
+  width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; min-height: 0;
+}
+.scout-results button.on, .scout-results button:hover { border-color: var(--accent); }
+.scout-card { display: flex; flex-direction: column; gap: 12px; }
+.scout-top { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+.scout-name { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.scout-rating { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.scout-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 720px) { .scout-grid { grid-template-columns: 1fr; } .scout-rating { align-items: flex-start; } }
+.scout-h2h { margin: 0 0 6px; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.scout-h2h b.w, .scout-stake b.w { color: var(--green); }
+.scout-h2h b.d, .scout-stake b.d { color: var(--amber); }
+.scout-h2h b.l, .scout-stake b.l { color: var(--red); }
+.scout-next p { margin: 4px 0; }
+.scout-stake { display: flex; gap: 14px; flex-wrap: wrap; align-items: baseline; font-variant-numeric: tabular-nums; }
+.dash-opp button.link { color: var(--text); text-decoration: underline dotted; text-underline-offset: 3px; }
+.dash-opp button.link:hover { color: var(--accent); }
+
+/* Rating estimator (components/EstimatorBox.jsx). */
+.est-inputs { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-bottom: 12px; }
+.est-inputs label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.est-inputs label.grow { flex: 1; min-width: 200px; }
+.est-inputs input { width: 130px; font-variant-numeric: tabular-nums; }
+.est-rows { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.est-rows li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.est-rows input { width: 150px; font-variant-numeric: tabular-nums; }
+.est-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.est-n { width: 18px; text-align: right; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.est-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.est-seg { display: inline-flex; background: var(--track); border: 1px solid var(--border); border-radius: 9px; padding: 2px; }
+.est-seg button { border: 0; background: transparent; min-height: 0; padding: 4px 10px; border-radius: 7px; font-weight: 700; color: var(--muted); }
+.est-seg button.W.on { background: var(--green); color: #fff; }
+.est-seg button.D.on { background: var(--amber); color: #fff; }
+.est-seg button.L.on { background: var(--red); color: #fff; }
+.est-result {
+  display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.est-result > div { display: grid; grid-template-columns: auto auto; align-items: end; column-gap: 10px; }
+.est-result > div .dash-label { grid-column: 1 / -1; }
+.est-facts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--muted); }
+.est-facts b { color: var(--text); }
+.est-check { flex-basis: 100%; margin: 0; font-size: 13px; padding: 8px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--border); }
+:root.has-custom-bg .estimator, :root.has-custom-bg .scout { border-color: var(--outline); box-shadow: 0 6px 22px var(--shadow); }

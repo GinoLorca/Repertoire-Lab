@@ -2,7 +2,9 @@ import React from 'react';
 import PlayerRoster from '../components/PlayerRoster';
 
 // Your own games — students live in the Coaches tab instead.
-export default function GamesView({ onAnalyze, onGameStudio, onScan }) {
+export default function GamesView({
+  onAnalyze, onGameStudio, onScan, routePlayer, onPlayerChange,
+}) {
   return (
     <PlayerRoster
       kind="self"
@@ -14,6 +16,8 @@ export default function GamesView({ onAnalyze, onGameStudio, onScan }) {
       onAnalyze={onAnalyze}
       onGameStudio={onGameStudio}
       onScan={onScan}
+      routePlayer={routePlayer}
+      onPlayerChange={onPlayerChange}
     />
   );
 }

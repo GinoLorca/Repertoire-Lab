@@ -13,7 +13,9 @@
 // goes into the player's synced record: a long history would crowd the one
 // document a player's games live in.
 import { createStore, get, set } from 'idb-keyval';
-import { loadHistory, loadStandings, validMemberId } from './uscfHistory';
+import {
+  loadHistory, loadStandings, loadSearch, validMemberId, validSearch, tidySearch, SEARCH_HELP,
+} from './uscfHistory';
 
 let store = null;
 const cache = () => {
@@ -64,8 +66,38 @@ export async function fetchHistory(id, { fresh = false } = {}) {
 
 export const cachedHistory = (id) => cacheGet(`history:${id}`);
 
+// A member's history, kept copy first — for scouting someone, where a copy
+// from earlier today is as good as a fresh one.
+export async function historyFor(id, maxAgeMs = 6 * 3600000) {
+  const kept = await cachedHistory(id);
+  if (kept && Date.now() - (kept.fetchedAt ?? 0) < maxAgeMs) return kept;
+  try {
+    return await fetchHistory(id);
+  } catch (err) {
+    if (kept) return kept;
+    throw err;
+  }
+}
+
+// Members by name.
+export async function searchMembers(q) {
+  const query = tidySearch(q);
+  if (!validSearch(query)) throw new Error(SEARCH_HELP);
+  if (DEV) return loadSearch(devGetJson, query);
+  const body = await getJson(`/.netlify/functions/uscf-history?search=${encodeURIComponent(query)}`);
+  return body?.members ?? [];
+}
+
 // What a section's rating looked like when its crosstable was kept.
-export const sectionStamp = (section) => JSON.stringify(section?.records ?? {});
+// Only the figures a re-rating changes, in the order they were first kept —
+// so a field added to the records later (the decimals, say) doesn't make
+// every kept crosstable look stale and send the whole record to be fetched
+// again.
+export const sectionStamp = (section) => JSON.stringify(Object.fromEntries(
+  Object.entries(section?.records ?? {}).map(([sys, r]) => [sys, {
+    pre: r?.pre ?? null, post: r?.post ?? null, provisionalGames: r?.provisionalGames ?? null,
+  }]),
+));
 const hash = (text) => {
   let h = 0;
   for (let i = 0; i < text.length; i += 1) h = (h * 31 + text.charCodeAt(i)) | 0;

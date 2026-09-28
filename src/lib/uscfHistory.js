@@ -26,6 +26,22 @@ export const validMemberId = (id) => /^\d{6,10}$/.test(String(id ?? ''));
 export const validEventId = (id) => /^\d{8,14}$/.test(String(id ?? ''));
 export const validSection = (n) => /^\d{1,3}$/.test(String(n ?? ''));
 
+// A name as typed, made searchable: accents composed (a separately typed
+// accent is its own character otherwise), and US Chess's own "CRAWFORD,
+// ELLIOTT" — pasted from a crosstable — turned round to "ELLIOTT CRAWFORD".
+export function tidySearch(q) {
+  let t = String(q ?? '').normalize('NFC').trim();
+  const lastFirst = t.match(/^([^,]+),\s*([^,]+)$/);
+  if (lastFirst) t = `${lastFirst[2]} ${lastFirst[1]}`;
+  return t.replace(/\s+/g, ' ').trim();
+}
+export const SEARCH_HELP = 'Search by a US Chess ID, or a name — letters, spaces, hyphens and apostrophes.';
+
+// A name to look someone up by: letters (any language, with their accents),
+// spaces and the punctuation names carry — nothing that could steer the
+// request elsewhere.
+export const validSearch = (q) => /^[\p{L}][\p{L}\p{M}\s.'’-]{1,59}$/u.test(tidySearch(q));
+
 // "202609070223:5" — one rated section of one event.
 export const sectionKey = (eventId, section) => `${eventId}:${section}`;
 export function parseSectionKey(key) {
@@ -88,6 +104,9 @@ function normalizeSection(s) {
     records[r.ratingSource] = {
       pre: num(r.preRating),
       post: num(r.postRating),
+      // The decimals US Chess actually rates from (634.81, shown as 635).
+      preExact: num(r.preRatingDecimal),
+      postExact: num(r.postRatingDecimal),
       provisionalGames: num(r.postProvisionalGameCount),
     };
   }
@@ -156,8 +175,10 @@ export function standing(history, today = new Date().toISOString().slice(0, 10))
     const official = history?.ratings?.[sys] ?? {};
     const live = latest?.post ?? official.official ?? null;
     if (live == null && official.official == null) continue;
+    const latestRecord = latest ? history.sections.find((x) => x.key === latest.key)?.records[sys] : null;
     out[sys] = {
       live,
+      liveExact: latestRecord?.postExact ?? live,
       liveDate: latest?.date ?? null,
       liveEvent: latest?.eventName ?? null,
       change: latest?.change ?? null,
@@ -247,7 +268,12 @@ export function normalizeStanding(items, memberId, detail = null, system = null)
     ?? SYSTEMS.find((s) => mine.has(s)) ?? 'R';
   const ratingOf = (row) => {
     const r = (row?.ratings ?? []).find((x) => x.ratingSystem === sys);
-    return { pre: num(r?.preRating), post: num(r?.postRating) };
+    return {
+      pre: num(r?.preRating),
+      post: num(r?.postRating),
+      preExact: num(r?.preRatingDecimal) ?? num(r?.preRating),
+      postExact: num(r?.postRatingDecimal) ?? num(r?.postRating),
+    };
   };
   const rounds = [...(me.roundOutcomes ?? [])]
     .sort((a, b) => (a.roundNumber ?? 0) - (b.roundNumber ?? 0))
@@ -267,6 +293,8 @@ export function normalizeStanding(items, memberId, detail = null, system = null)
           : null,
         oppPre: hasOpp ? ratingOf(opp).pre : null,
         oppPost: hasOpp ? ratingOf(opp).post : null,
+        oppPreExact: hasOpp ? ratingOf(opp).preExact : null,
+        oppPostExact: hasOpp ? ratingOf(opp).postExact : null,
       };
     });
   const myRating = ratingOf(me);
@@ -332,6 +360,33 @@ export async function loadHistory(rawGetJson, id) {
     allPages(getJson, `/members/${id}/rating-supplements`, 3).catch(() => []),
   ]);
   return normalizeHistory(member, sections, lists);
+}
+
+// Members whose name is like `q`, best first: [{ id, name, state, status,
+// ratings: { R, Q, B } }] — enough to pick the right one.
+export function normalizeSearch(items) {
+  return (items ?? []).filter((m) => m?.id).map((m) => {
+    const ratings = {};
+    for (const r of m.ratings ?? []) {
+      if (['R', 'Q', 'B'].includes(r.ratingSystem) && num(r.rating) != null) ratings[r.ratingSystem] = num(r.rating);
+    }
+    const first = tidyName(m.firstName);
+    const last = tidyName(m.lastName);
+    return {
+      id: String(m.id),
+      name: [first, last].filter(Boolean).join(' '),
+      state: m.stateRep ?? m.jurisdiction ?? null,
+      status: m.status ?? null,
+      ratings,
+    };
+  });
+}
+
+export async function loadSearch(rawGetJson, q) {
+  const query = tidySearch(q);
+  if (!validSearch(query)) throw new Error(SEARCH_HELP);
+  const body = await patient(rawGetJson)(`/members?Fuzzy=${encodeURIComponent(query)}&Offset=0&Size=12`);
+  return normalizeSearch(body?.items);
 }
 
 // Crosstables for these sections ("eventId:n" keys), a few at a time:

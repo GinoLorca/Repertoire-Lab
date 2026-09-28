@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../store';
 import RatingChart from './RatingChart';
+import ScoutBox from './ScoutBox';
+import EstimatorBox from './EstimatorBox';
+import { estimateRating } from '../lib/uscfEstimate';
 import {
   SYSTEM_NAME, standing, ratingSeries, mainSystem, PLAYED, ratingSummary,
 } from '../lib/uscfHistory';
@@ -15,7 +18,7 @@ import { tidyName } from '../lib/uscf';
 import { categoryOf, resultFor } from '../lib/games';
 import { ratingAge } from '../lib/ratings';
 import {
-  AlertIcon, CheckIcon, ClockIcon, PlayIcon, TargetIcon, PencilIcon,
+  AlertIcon, CheckIcon, ClockIcon, PlayIcon, TargetIcon, PencilIcon, MonitorIcon,
 } from './Icons';
 
 // A player's US Chess dashboard — the rated history their card's USCF ID
@@ -103,7 +106,7 @@ function useUscf(id) {
 }
 
 export default function PlayerDashboard({
-  player, index, onOpenGame, onAddGame, onEditProfile, onRatings,
+  player, index, onOpenGame, onAnalyzeGame, onAddGame, onEditProfile, onRatings,
 }) {
   const id = String(player.profile?.uscf ?? '').replace(/\D/g, '');
   if (!id) {
@@ -121,11 +124,22 @@ export default function PlayerDashboard({
   }
   // Keyed by the ID: another player (or an edited ID) starts afresh, never
   // with the last one's record on screen.
-  return <Dashboard key={id} id={id} player={player} index={index} onOpenGame={onOpenGame} onAddGame={onAddGame} onRatings={onRatings} />;
+  return (
+    <Dashboard
+      key={id}
+      id={id}
+      player={player}
+      index={index}
+      onOpenGame={onOpenGame}
+      onAnalyzeGame={onAnalyzeGame}
+      onAddGame={onAddGame}
+      onRatings={onRatings}
+    />
+  );
 }
 
 function Dashboard({
-  id, player, index, onOpenGame, onAddGame, onRatings,
+  id, player, index, onOpenGame, onAnalyzeGame, onAddGame, onRatings,
 }) {
   const { state, dispatch } = useStore();
   const {
@@ -143,6 +157,11 @@ function Dashboard({
     if (!same) onRatings(summary);
   }, [history?.fetchedAt]); // eslint-disable-line react-hooks/exhaustive-deps
   const [system, setSystem] = useState(null);
+  // An opponent being scouted ({ id, n }): `n` makes a second pick of the
+  // same person a new request, so a fetch that failed can be tried again.
+  const [scoutPick, setScoutPick] = useState(null);
+  const pickScout = (oppId) => setScoutPick(oppId ? { id: oppId, n: Date.now() } : null);
+  const [toEstimate, setToEstimate] = useState(null); // an opponent sent from scouting
   const [open, setOpen] = useState(null); // expanded section key
   const [showAll, setShowAll] = useState(false);
 
@@ -182,6 +201,21 @@ function Dashboard({
 
   const w = where[sys] ?? {};
   const sysName = SYSTEM_NAME[sys] ?? 'Rating';
+  // Rated games so far, for the estimator: known while provisional (US
+  // Chess counts them); established players are "26+", where the count
+  // no longer matters below about 1900.
+  const gamesIn = (x) => (x?.provisional && x.provisionalGames != null ? x.provisionalGames : null);
+  const startGames = gamesIn(w);
+  // Their own figures in one system, for scouting — which has to compare an
+  // opponent's rating with theirs in the same system.
+  const mine = (s) => {
+    const x = where[s];
+    const rating = x?.liveExact ?? x?.live ?? x?.official;
+    if (rating == null) return null;
+    return {
+      rating, shown: x.live ?? x.official, games: gamesIn(x), floor: x.floor, online: s.startsWith('O'),
+    };
+  };
   const noEvents = !history.sections.length;
   const sections = history.sections;
   const shown = showAll ? sections : sections.slice(0, 6);
@@ -199,6 +233,10 @@ function Dashboard({
   const refuse = (key, gameId) => {
     const g = gameById.get(gameId);
     if (g) act(gameId, refuseMeta(g, key));
+  };
+  const scout = (oppId) => {
+    pickScout(oppId);
+    requestAnimationFrame(() => document.getElementById('dash-scout')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
   const unlink = (gameId) => {
     const g = gameById.get(gameId);
@@ -253,7 +291,7 @@ function Dashboard({
             {systems.length > 1 && (
               <div className="dash-seg" role="tablist" aria-label="Rating system">
                 {systems.map((s) => (
-                  <button key={s} role="tab" aria-selected={s === sys} className={s === sys ? 'on' : ''} onClick={() => setSystem(s)}>
+                  <button key={s} role="tab" aria-selected={s === sys} className={s === sys ? 'on' : ''} onClick={() => { setSystem(s); setToEstimate(null); }}>
                     {SYSTEM_NAME[s]}
                   </button>
                 ))}
@@ -392,7 +430,9 @@ function Dashboard({
               loading={loadingRounds}
               failed={failed.includes(s.key)}
               onRetry={refresh}
+              onScout={scout}
               onOpenGame={onOpenGame}
+              onAnalyzeGame={onAnalyzeGame}
               onAddGame={(sec, round) => onAddGame(sec, round, asPlayed(sec))}
               onConfirm={confirm}
               onRefuse={refuse}
@@ -408,6 +448,46 @@ function Dashboard({
           </button>
         )}
       </section>
+      )}
+
+      {/* ---------- Scouting, and what's at stake ---------- */}
+      <div id="dash-scout">
+        <ScoutBox
+          scoutId={scoutPick?.id ?? null}
+          scoutNonce={scoutPick?.n}
+          onScout={pickScout}
+          games={games}
+          system={sys}
+          mine={mine}
+          myName={player.name}
+          atStake={(oppRating, s) => {
+            const me = mine(s);
+            if (!me) return null;
+            const base = {
+              rating: me.rating, games: me.games, floor: me.floor, online: me.online,
+            };
+            const change = (score) => estimateRating({ ...base, results: [{ opp: oppRating, score }] })?.change ?? null;
+            const W = change(1);
+            return W == null ? null : { W, D: change(0.5), L: change(0) };
+          }}
+          onEstimate={(opp) => {
+            setToEstimate({ ...opp, n: Date.now() });
+            requestAnimationFrame(() => document.getElementById('dash-estimator')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+          }}
+        />
+      </div>
+      {(w.live ?? w.official) != null && (
+        <div id="dash-estimator">
+          <EstimatorBox
+            key={sys}
+            start={{ rating: w.liveExact ?? w.live ?? w.official, games: startGames, floor: w.floor }}
+            sections={sections}
+            standings={standings}
+            incoming={toEstimate}
+            onConsumed={() => setToEstimate(null)}
+            system={sys}
+          />
+        </div>
       )}
 
       {/* ---------- Coaching splits ---------- */}
@@ -519,8 +599,8 @@ function Highlight({ title, games, empty }) {
 }
 
 function EventRow({
-  section, standing: st, match, gameById, spare, open, onToggle, onOpenGame, onAddGame,
-  onConfirm, onRefuse, onUnlink, loading, failed, onRetry,
+  section, standing: st, match, gameById, spare, open, onToggle, onOpenGame, onAnalyzeGame, onAddGame,
+  onConfirm, onRefuse, onUnlink, loading, failed, onRetry, onScout,
 }) {
   const sys = mainSystem(section);
   const rec = section.records[sys] ?? {};
@@ -600,7 +680,9 @@ function EventRow({
                       gameById={gameById}
                       spare={spare}
                       onOpenGame={onOpenGame}
+                      onAnalyzeGame={onAnalyzeGame}
                       onAddGame={onAddGame}
+                      onScout={onScout}
                       onConfirm={onConfirm}
                       onRefuse={onRefuse}
                       onUnlink={onUnlink}
@@ -617,7 +699,7 @@ function EventRow({
 }
 
 function RoundRow({
-  section, round: r, myPre, m, gameById, spare, onOpenGame, onAddGame, onConfirm, onRefuse, onUnlink,
+  section, round: r, myPre, m, gameById, spare, onOpenGame, onAnalyzeGame, onAddGame, onConfirm, onRefuse, onUnlink, onScout,
 }) {
   const key = roundKey(section.key, r.round);
   const played = PLAYED.has(r.result);
@@ -632,7 +714,9 @@ function RoundRow({
         {r.oppName ? (
           <span className="dash-opp">
             <span className={`dash-side ${r.color ?? ''}`} title={r.color ? `Played ${r.color}` : ''} />
-            {r.oppName}
+            {r.oppId && onScout
+              ? <button type="button" className="link" title={`Scout ${r.oppName}`} onClick={() => onScout(r.oppId)}>{r.oppName}</button>
+              : r.oppName}
             {r.oppPre != null && <span className="muted-note"> {r.oppPre}</span>}
           </span>
         ) : <span className="muted-note">{RESULT_LABEL[r.result]}</span>}
@@ -645,6 +729,16 @@ function RoundRow({
             <button className="small" onClick={() => onOpenGame(game.id)} title={game.name}>
               <PlayIcon size={12} /> Open
             </button>
+            {/* A photo not yet scanned has no moves to analyse (its Scan is on the Games tab). */}
+            {onAnalyzeGame && game.moves?.length > 0 && (
+              <button
+                className="small"
+                onClick={() => onAnalyzeGame(game.id)}
+                title="Send this game to the analysis board — the engine, the explorer and your repertoire"
+              >
+                <MonitorIcon size={12} /> Send to analysis
+              </button>
+            )}
             {m.conflict
               ? <span className="dash-flag warn" title="The game’s colour or result disagrees with US Chess"><AlertIcon size={12} /> check result</span>
               : <span className="dash-flag ok"><CheckIcon size={12} /> {m.state === 'linked' ? 'linked' : 'matched'}</span>}

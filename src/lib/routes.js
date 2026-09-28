@@ -35,15 +35,28 @@ export const SUB_VIEWS = {
   settings: ['account', 'appearance', 'themes', 'board', 'trainer', 'analysis', 'keyboard', 'explorer', 'sounds', 'data'],
 };
 
+// One person's page — a student in Coaches Corner, or one of your own sections
+// in Games — is addressed by its card's id: /coaches/<card>, with /games on
+// the end for its games tab rather than its dashboard. Card ids are the same
+// on all of your devices (they sync), so a coach can send themselves a link
+// to a student's dashboard; on another account it simply finds no one.
+const PLAYER_VIEWS = new Set(['games', 'coaches']);
+export const validCardId = (id) => /^[A-Za-z0-9_-]{3,64}$/.test(String(id ?? ''));
+
 // A chapter is addressed by the two ids it actually needs. They're stable for
 // a given repertoire — they survive Backup/Restore — so a chapter link works
 // across your own devices, though not on someone else's data.
-export function pathFor({ view, sub, chapterNav } = {}) {
+export function pathFor({
+  view, sub, chapterNav, player,
+} = {}) {
   if (view === 'chapter' && chapterNav?.openingId && chapterNav?.chapterId) {
     return `/chapter/${chapterNav.openingId}/${chapterNav.chapterId}`;
   }
   const base = VIEW_TO_PATH[view];
   if (!base) return '/';
+  if (PLAYER_VIEWS.has(view) && player?.id && validCardId(player.id)) {
+    return `/${base}/${player.id}${player.tab === 'games' ? '/games' : ''}`;
+  }
   if (sub && SUB_VIEWS[view]?.includes(sub)) return `/${base}/${sub}`;
   return `/${base}`;
 }
@@ -56,6 +69,9 @@ export function parsePath(pathname = '/') {
   }
   const view = PATH_TO_VIEW[head];
   if (!view) return { view: 'library' };
+  if (PLAYER_VIEWS.has(view) && validCardId(a)) {
+    return { view, sub: null, player: { id: a, tab: b === 'games' ? 'games' : null } };
+  }
   return { view, sub: SUB_VIEWS[view]?.includes(a) ? a : null };
 }
 
