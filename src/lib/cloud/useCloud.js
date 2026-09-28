@@ -7,6 +7,7 @@ import { watchAuth, signOutNow } from './auth';
 import { syncNow, readMeta, forgetMeta, watchRemoteChanges } from './sync';
 import { hashOf } from './shape';
 import { watchInbox, eligibleGameDelivery } from './share';
+import { eligibleReviewDelivery } from './reviews';
 import { watchStudentLinks } from './links';
 import { recordDevice } from './devices';
 
@@ -67,6 +68,7 @@ function useCloudEngine() {
   // Games a linked coach has sent that this device hasn't applied yet —
   // handed to syncNow, which applies them inside the sync.
   const inbound = useRef([]);
+  const coachNames = useRef({});
   const [coachApplied, setCoachApplied] = useState([]);
   // Game deliveries the student said yes to from the inbox, on this device —
   // the only consent that counts for a sender they aren't linked to. Kept in
@@ -138,7 +140,7 @@ function useCloudEngine() {
       // Past the deadline the sync is left to finish (or not) on its own;
       // anything it does is safe to repeat, and its result is ignored.
       const result = await Promise.race([
-        syncNow(started, { onProgress: setDetail, inbound: inbound.current }),
+        syncNow(started, { onProgress: setDetail, inbound: inbound.current, coachNames: coachNames.current }),
         new Promise((_, reject) => {
           deadline = setTimeout(() => reject(new Error('Sync took too long — trying again shortly.')), SYNC_DEADLINE_MS);
         }),
@@ -172,7 +174,7 @@ function useCloudEngine() {
       // What the cloud now holds, not what's on screen: if local work was
       // folded in above, the hashes differ and the quiet timer sends it.
       lastHash.current = syncableHash(result.state);
-      const arrived = (result.coachApplied ?? []).filter((o) => o.outcome === 'inserted' || o.outcome === 'applied');
+      const arrived = (result.coachApplied ?? []).filter((o) => ['inserted', 'applied', 'reviewed', 'review-updated', 'too-big'].includes(o.outcome));
       if (arrived.length) setCoachApplied(arrived);
       setLastSync(result.at);
       setStatus('idle');
@@ -284,7 +286,8 @@ function useCloudEngine() {
     let coaches = new Set();
     let items = [];
     const refresh = () => {
-      const eligible = items.filter((d) => eligibleGameDelivery(d, coaches, consented.current));
+      const eligible = items.filter((d) => eligibleGameDelivery(d, coaches, consented.current)
+        || eligibleReviewDelivery(d, coaches));
       const known = new Set(inbound.current.map((d) => d.id));
       inbound.current = eligible;
       if (eligible.some((d) => !known.has(d.id))) run();
@@ -292,7 +295,10 @@ function useCloudEngine() {
     let stopLinks = () => {};
     let stopInbox = () => {};
     watchStudentLinks(user.uid, (links) => {
-      coaches = new Set(links.filter((l) => l.status === 'active').map((l) => l.coachUid));
+      const active = links.filter((l) => l.status === 'active');
+      coaches = new Set(active.map((l) => l.coachUid));
+      // Who a review is from, as the link says — not as the sender wrote it.
+      coachNames.current = Object.fromEntries(active.map((l) => [l.coachUid, l.coachName ?? '']));
       refresh();
     }).then((fn) => { stopLinks = fn; });
     watchInbox(user.uid, (list) => { items = list; refresh(); }).then((fn) => { stopInbox = fn; });

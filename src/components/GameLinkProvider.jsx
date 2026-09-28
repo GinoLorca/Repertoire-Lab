@@ -4,11 +4,15 @@ import React, {
 import { useStore } from '../store';
 import { useMe } from '../lib/cloud/useMe';
 import { watchCoachLinks, watchLinkedPlayers, watchCoachLedger } from '../lib/cloud/links';
-import { sendGamePatch, withdrawGameDeliveries } from '../lib/cloud/share';
+import {
+  sendGamePatch, withdrawGameDeliveries, sendGameReview, withdrawOlderReviews,
+} from '../lib/cloud/share';
+import { needsReviewSend, reviewHash } from '../lib/cloud/reviews';
 import { loadProfile } from '../lib/cloud/profile';
 import {
   buildPatch, needsSend, nextRev, patchHash, ph, gameLinkStatus, gameSummary,
 } from '../lib/cloud/gameLink';
+import { sendsHeld, sentNow } from '../lib/cloud/sendHold';
 
 // The coach's half of games shared with linked students. Headless, mounted
 // once for the whole app (inside CloudProvider), so it works on every screen
@@ -142,7 +146,9 @@ export function GameLinkProvider({ children }) {
   }, [me?.uid, cardKey, activeStudents, dispatch]);
 
   // Coach → student: send whatever's pending, a moment after it settles.
-  const sendPending = useCallback(async () => {
+  // `force`: the app going to the background sends even what Studio is
+  // holding (lib/cloud/sendHold) — the coach has stepped away.
+  const sendPending = useCallback(async ({ force = false } = {}) => {
     if (!me?.uid || paused) return;
     for (const card of linkedCards) {
       const S = card.profile.linkedUid;
@@ -152,6 +158,40 @@ export function GameLinkProvider({ children }) {
         // A game tied to some other account — this card was linked to
         // someone else before — never goes to this one.
         if (g.link?.uid !== S) continue;
+        // The coach's review of the student's own game (lib/cloud/reviews):
+        // sent once they've saved it — not held, since saving is the send.
+        if (needsReviewSend(g, { linkActive })) {
+          const { body, savedAt } = g.review;
+          const rph = reviewHash(body);
+          const reviewKey = `${g.id}:r:${rph}`;
+          if (!inFlight.has(reviewKey)) {
+            const rev = nextRev(Date.now(), g.link.reviewSent?.rev ?? 0, g.link.theirReview?.rev ?? 0);
+            setInFlight((x) => new Set(x).add(reviewKey));
+            sendGameReview({
+              to: { uid: S, name: card.name }, from: me, gameId: g.id, rev, body, summary: gameSummary(g),
+            }).then(() => {
+              dispatch({
+                type: 'markReviewSent', cardId: card.id, gameId: g.id, sent: { rev, ph: rph, savedAt },
+              });
+              setFailed((f) => { const n = { ...f }; delete n[g.id]; return n; });
+              // Only the newest waits for them.
+              withdrawOlderReviews(me.uid, g.id, rev).catch(() => {});
+            }).catch((err) => {
+              setFailed((f) => ({ ...f, [g.id]: err.message }));
+              if (/rules/.test(err.message)) setPaused(err.message);
+              // Too big to ever go: remembered as tried, until it changes.
+              if (err.permanent) {
+                dispatch({
+                  type: 'markReviewSent', cardId: card.id, gameId: g.id, sent: { rev: g.link.reviewSent?.rev ?? 0, ph: rph, savedAt, failed: true },
+                });
+              }
+            }).finally(() => {
+              setInFlight((x) => { const n = new Set(x); n.delete(reviewKey); return n; });
+            });
+          }
+        }
+        if (!force && sendsHeld(g.id)) continue;
+        sentNow(g.id);
         if (!needsSend(g, { linkActive })) continue;
         const { patch } = buildPatch(g);
         const deliveryKey = `${g.id}:${patchHash(patch)}`;
@@ -200,12 +240,15 @@ export function GameLinkProvider({ children }) {
   // waiting out the pause.
   useEffect(() => {
     const now = () => sendRef.current();
-    const onHide = () => { if (document.visibilityState === 'hidden') now(); };
+    const onHide = () => { if (document.visibilityState === 'hidden') sendRef.current({ force: true }); };
     document.addEventListener('visibilitychange', onHide);
     window.addEventListener('online', now);
+    // Studio let go of a game (saved, or the board closed).
+    window.addEventListener('repertoire-send-now', now);
     return () => {
       document.removeEventListener('visibilitychange', onHide);
       window.removeEventListener('online', now);
+      window.removeEventListener('repertoire-send-now', now);
     };
   }, []);
 

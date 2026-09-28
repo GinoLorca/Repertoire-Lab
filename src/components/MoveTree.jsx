@@ -84,7 +84,7 @@ function InlineLine({
 // lands in the Black column of row one, White's cell left blank.
 export default function MoveTree({
   root, headId, badges: badgesIn, highlights, onHighlight, onGo, onPromote, onPromoteOne, onDelete,
-  startNumber = 1, startColor = 'w',
+  startNumber = 1, startColor = 'w', readOnly = false,
 }) {
   const { state } = useStore();
   // Gated once, here, rather than in every downstream renderer (InlineLine
@@ -108,6 +108,9 @@ export default function MoveTree({
     setMenuPos(null);
     setMenu({ nodeId, x: e.clientX, y: e.clientY });
   };
+  // Read-only (a student reading a review): moves to click, and nothing to
+  // promote, delete or colour — no ⋮, no right-click menu.
+  const openMenuIfEditable = (id, e) => { if (!readOnly) openMenu(id, e); };
 
   // The menu opens at the click point, which on a narrow screen (or a move
   // near the right edge of the panel) can push it partly off-screen — this
@@ -143,7 +146,7 @@ export default function MoveTree({
         key={node.id}
         className={`mt-move${headId === node.id ? ' current' : ''}`}
         onClick={() => onGo(node.id)}
-        onContextMenu={(e) => { e.preventDefault(); openMenu(node.id, e); }}
+        onContextMenu={(e) => { e.preventDefault(); openMenuIfEditable(node.id, e); }}
       >
         {node.san}
         {badges?.[node.id] && <MoveBadge id={badges[node.id]} size={12} />}
@@ -168,6 +171,7 @@ export default function MoveTree({
               {cell(blackReal)}
               {branches.map(([branch, realPly]) => (
                 <div key={branch.id} className="mt-branch" style={highlightStyle(highlights?.[branch.id])}>
+                  {!readOnly && (
                   <button
                     className="mt-branch-menu"
                     title="Promote, delete, or highlight this variation"
@@ -175,6 +179,7 @@ export default function MoveTree({
                   >
                     ⋮
                   </button>
+                  )}
                   <InlineLine
                     start={branch}
                     startPly={realPly + basePly}
@@ -183,7 +188,7 @@ export default function MoveTree({
                     badges={badges}
                     highlights={highlights}
                     onGo={onGo}
-                    onMenu={openMenu}
+                    onMenu={openMenuIfEditable}
                   />
                 </div>
               ))}

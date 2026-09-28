@@ -6,8 +6,13 @@
 // the rest are variations, in the order they were added. The root carries no
 // move and always has id 'root'.
 
+// Ids only have to be unique within one tree — but a saved tree comes back
+// after a reload, when a plain counter would start again at n1 and hand a new
+// move the id of one already in it (notes and badges are keyed by these ids).
+// So each page load gets its own prefix.
+const run = Math.random().toString(36).slice(2, 7);
 let seq = 0;
-const nid = () => `n${(seq += 1)}`;
+const nid = () => `n${run}${(seq += 1)}`;
 
 export const newRoot = () => ({ id: 'root', san: null, children: [] });
 
@@ -215,3 +220,76 @@ export function alternativesAt(root, id) {
   const branchPoint = (parent.children ?? []).length > 1 ? parent : node;
   return (branchPoint.children ?? []).slice(1);
 }
+
+// A game's own moves as a tree with ids that come from their place (m1, m2 …)
+// rather than from this page load — so the same game read twice, or again
+// after a sync, is the same tree, and a reader keeps its place in it.
+export function trunkTree(sans = []) {
+  const root = newRoot();
+  let node = root;
+  sans.forEach((san, i) => {
+    const child = { id: `m${i + 1}`, san, children: [] };
+    node.children.push(child);
+    node = child;
+  });
+  return root;
+}
+
+// A tree made to hold `moves` as its main line from the root — played in
+// where missing, the line promoted where it's there as a variation. A saved
+// analysis whose game had its moves corrected since keeps everything it had:
+// the old line becomes a variation from the first move that changed, notes
+// and all, instead of being thrown away for no longer matching.
+export function anchorToGame(root, moves = []) {
+  let t = root ?? newRoot();
+  let at = 'root';
+  for (const san of moves) {
+    const r = addMove(t, at, san);
+    t = r.tree;
+    at = r.nodeId;
+  }
+  return moves.length ? promote(t, at) : t;
+}
+
+// The first `n` moves of the main line — the game itself, in a tree that may
+// run on past its last move.
+export const gameLineOf = (root, n) => mainLineFrom(root).slice(0, n);
+
+// Every node, root first, parents before children — without recursion, so a
+// very long line can't overflow the stack.
+export function walkNodes(root, fn) {
+  const stack = [[root, null, 0]];
+  while (stack.length) {
+    const [node, parent, depth] = stack.pop();
+    fn(node, parent, depth);
+    for (let i = node.children.length - 1; i >= 0; i -= 1) stack.push([node.children[i], node, depth + 1]);
+  }
+}
+
+// Notes and badges live on a saved tree's nodes (`note`, `badge`); while a
+// board is open they're kept beside it, by node id. These move them between
+// the two.
+export function notesOnNodes(root) {
+  const notes = {};
+  const badges = {};
+  walkNodes(root, (n) => {
+    if (typeof n.note === 'string' && n.note) notes[n.id] = n.note;
+    if (typeof n.badge === 'string' && n.badge) badges[n.id] = n.badge;
+  });
+  return { notes, badges };
+}
+
+export function withNotesOnNodes(root, notes = {}, badges = {}, skip = new Set()) {
+  const put = (n) => {
+    const out = { id: n.id, san: n.san, children: n.children.map(put) };
+    if (!skip.has(n.id)) {
+      if (notes[n.id]) out.note = notes[n.id];
+      if (badges[n.id]) out.badge = badges[n.id];
+    }
+    return out;
+  };
+  return put(root);
+}
+
+// The same tree with nothing but moves on it.
+export const bareTree = (root) => withNotesOnNodes(root, {}, {});

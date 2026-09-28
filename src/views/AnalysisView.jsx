@@ -44,7 +44,16 @@ import {
 import {
   makeTree, lineThrough, nodePath, addMove, promote, promoteOne, removeNode,
   keepMainLineOnly, hasVariations, mainLineFrom, branchRootOf, lastMainLineAncestor, alternativesAt,
+  anchorToGame, gameLineOf, withNotesOnNodes, findNode,
 } from '../lib/moveTree';
+import {
+  gameFieldsFromDoc, diffGameFields, serializeDoc, docBytes, docIsEmpty,
+  pruneAnnotations, MAX_NOTE, MAX_REVIEW_BYTES,
+} from '../lib/analysisDoc';
+import { seedFor } from '../lib/studioSeed';
+import { openReview } from '../components/ReviewReader';
+import { holdSends, releaseSends, sendOnce } from '../lib/cloud/sendHold';
+import { cardHasRoom } from '../lib/cloud/reviews';
 import {
   BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon,
   FlaskIcon, CommentIcon, TargetIcon, UploadIcon, CheckIcon,
@@ -165,8 +174,13 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   // initialLine?.tree: a game Studio previously ran "Save changes" on keeps
   // its explored variations this way — see setGameTree in store.jsx. Without
   // it, a game only ever has its flat played-moves trunk to rebuild from.
+  // A saved game's board opens from the game as the store holds it (seedFor).
+  // Studio (coachMode) on a linked student's own game edits the coach's
+  // review of it; a plain look at that game shows it as the student has it.
+  const [seed] = useState(() => (!draft && !initialLab && initialLine?.gameId && initialLine?.playerId
+    ? seedFor(state.players, initialLine, { review: Boolean(coachMode) }) : null));
   const [tree, setTree] = useState(() => (
-    draft?.tree ?? initialLab?.tree ?? treeFor(initialLine)
+    draft?.tree ?? initialLab?.tree ?? seed?.tree ?? treeFor(initialLine)
     ?? makeTree(initialLab?.moves ?? initialLine?.moves ?? [])));
   const [head, setHead] = useState(draft?.head ?? 'root'); // loaded lines open at the start
   const [orientation, setOrientation] = useState(draft?.orientation ?? 'white');
@@ -189,17 +203,20 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   // Coach's Corner: a badge and a note on the specific move currently
   // selected, keyed by its node id rather than a ply number — a tree has
   // branches, and a ply number alone can't tell two of them apart.
-  const [moveBadges, setMoveBadges] = useState(() => draft?.moveBadges ?? initialLab?.moveBadges ?? {});
-  const [moveNotes, setMoveNotes] = useState(() => draft?.moveNotes ?? initialLab?.moveNotes ?? {});
+  const [moveBadges, setMoveBadges] = useState(() => draft?.moveBadges ?? initialLab?.moveBadges ?? seed?.badges ?? {});
+  const [moveNotes, setMoveNotes] = useState(() => draft?.moveNotes ?? initialLab?.moveNotes ?? seed?.notes ?? {});
   // A colour on a whole variation, not one move — "this line was the one
   // that should've been played", marked green/blue/yellow for a top-three
   // ranking. Keyed by the branch's own root id (see branchRootOf), so
   // wherever within it the board or a click actually points, the colour
   // always resolves to the same row.
   const [variationHighlights, setVariationHighlights] = useState(
-    () => draft?.variationHighlights ?? initialLab?.variationHighlights ?? initialLine?.variationHighlights ?? {},
+    () => draft?.variationHighlights ?? initialLab?.variationHighlights ?? seed?.highlights
+      ?? initialLine?.variationHighlights ?? {},
   );
-  const [moveNoteDraft, setMoveNoteDraft] = useState('');
+  // The note being typed, with the move it belongs to — so moving the board on,
+  // or leaving it, saves it to that move and never to the next one.
+  const [noteDraft, setNoteDraft] = useState(() => ({ id: 'root', text: moveNotes.root ?? '' }));
   const [studyUrl, setStudyUrl] = useState('');
   const [studyBusy, setStudyBusy] = useState(false);
   const [studyError, setStudyError] = useState(null);
@@ -213,7 +230,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   // ---------- Board annotations (arrows + square highlights) ----------
   // Kept per position, so stepping back and forth keeps each position's marks.
   const [annotations, setAnnotations] = useState(
-    () => draft?.annotations ?? initialLab?.annotations ?? initialLine?.annotations ?? {},
+    () => draft?.annotations ?? initialLab?.annotations ?? seed?.annotations ?? initialLine?.annotations ?? {},
   );
   // The active pen — what a touch drag draws in, and a mouse drag falls back
   // to when no pen key (below) is held. Starts at, and resets to, whatever
@@ -270,7 +287,9 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   const [boardMenu, setBoardMenu] = useState(false); // the board's own settings
 
   useEffect(() => {
-    if (initialLine) {
+    // A saved game already opened from the store (seedFor) — rebuilding it
+    // here from the snapshot would give its moves new ids and lose the notes.
+    if (initialLine && !seed) {
       setBaseFen(newGameAt(startFenOf(initialLine)).fen());
       // A game Studio has already run "Save changes" on carries its explored
       // variations this way (see setGameTree); its trunk is still the same
@@ -352,9 +371,20 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
     setHead(clamped === 0 ? 'root' : lineNodes[clamped - 1].id);
   };
 
+  // Moving to another move keeps what was typed on the last one, then loads
+  // this one's note.
   useEffect(() => {
-    setMoveNoteDraft(moveNotes[head] ?? '');
+    const d = noteDraftRef.current;
+    if (d.id === head) return;
+    commitNote(d.id, d.text);
+    setNoteDraft({ id: head, text: moveNotesRef.current[head] ?? '' });
   }, [head]); // eslint-disable-line react-hooks/exhaustive-deps
+  // …and a pause in typing keeps it too: nothing typed waits on a button.
+  useEffect(() => {
+    if (noteDraft.text.trim() === (moveNotes[noteDraft.id] ?? '')) return undefined;
+    const t = setTimeout(() => commitNote(noteDraft.id, noteDraft.text), 700);
+    return () => clearTimeout(t);
+  }, [noteDraft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep the store's copy of this session current, for the initializers
   // above to pick back up if the tab gets reloaded from under us. Only for a
@@ -707,10 +737,13 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   // Save button, shouldn't be lost just because a different Save was pressed
   // instead — this folds it in wherever moveNotes is read for saving.
   const notesWithDraft = () => {
-    if (moveNoteDraft === (moveNotes[head] ?? '')) return moveNotes;
-    const next = { ...moveNotes };
-    if (moveNoteDraft.trim()) next[head] = moveNoteDraft.trim();
-    else delete next[head];
+    const d = noteDraftRef.current;
+    const notes = moveNotesRef.current;
+    const text = d.text.trim().slice(0, MAX_NOTE);
+    if (text === (notes[d.id] ?? '')) return notes;
+    const next = { ...notes };
+    if (text) next[d.id] = text;
+    else delete next[d.id];
     return next;
   };
 
@@ -750,77 +783,178 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
     return null;
   }, [lineNodes, ply, moveNotes, moveBadges]);
 
-  // Badging or noting a move while analyzing a saved game used to live only
-  // in this session's local state — gone the moment you left unless you
-  // remembered to Save to Lab, which is a different record from the game
-  // itself. This mirrors the same edit onto the game's own badges/comments,
-  // the same fields its "step through this game" viewer already reads and
-  // writes, so it's there next time you open the game, review pass or not.
-  // Only for a move actually played in the game; a branch explored here has
-  // nowhere on the game record to live.
-  const syncGameMove = (kind, value) => {
-    if (!liveGame) return;
-    const trunk = mainLineFrom(tree);
-    const ply = trunk.findIndex((n) => n.id === head);
-    if (ply < 0) return;
+  // ---------- A saved game's analysis ----------
+  // Live copies for the saves below, which run from timers and as the board
+  // closes — never from a render's stale closure.
+  const treeRef = useRef(tree);
+  treeRef.current = tree;
+  const moveNotesRef = useRef(moveNotes);
+  moveNotesRef.current = moveNotes;
+  const moveBadgesRef = useRef(moveBadges);
+  moveBadgesRef.current = moveBadges;
+  const annotationsRef = useRef(annotations);
+  annotationsRef.current = annotations;
+  const highlightsRef = useRef(variationHighlights);
+  highlightsRef.current = variationHighlights;
+  const noteDraftRef = useRef(noteDraft);
+  noteDraftRef.current = noteDraft;
+  const liveGameRef = useRef(liveGame);
+  liveGameRef.current = liveGame;
+  const playersRef = useRef(state.players);
+  playersRef.current = state.players;
+  const aliveRef = useRef(true);
+  useEffect(() => () => { aliveRef.current = false; }, []);
+
+  // Attached: this board is a saved game's, and what's written on it is kept
+  // on that game — or, for a linked student's own game, in the coach's review
+  // of it (seedFor). Loading anything else onto the board lets go (detach).
+  const [detached, setDetached] = useState(false);
+  const detachedRef = useRef(false);
+  const attached = Boolean(seed) && !detached;
+  const reviewMode = attached && seed.reviewMode;
+  // Studio on a saved game: kept as it's written, saved and sent on leaving.
+  // Plain analysis of a game keeps nothing unasked — exploring a line there
+  // mustn't file variations into the game.
+  const editing = attached && Boolean(coachMode);
+
+  // A move's place in the game itself — the first stretch of the tree's main
+  // line, which can run on past the game's last move. START for the summary
+  // at the root; null for a move off the game line.
+  const gamePlyOf = (id) => {
+    if (id === 'root') return START;
+    const i = gameLineOf(treeRef.current, seed.moves.length).findIndex((n) => n.id === id);
+    return i < 0 ? null : i;
+  };
+
+  // A note or badge on a move of the game is saved onto it at once, in the
+  // game's own fields — the ones every other screen reads. A review, and
+  // anything off the game line, goes with the rest (saveAnalysis).
+  const syncGameMove = (kind, value, id = head) => {
+    if (!editing || reviewMode || detachedRef.current) return;
+    const ply = gamePlyOf(id);
+    if (ply === null || (kind === 'badge' && ply === START)) return;
+    const { playerId, gameId } = seed;
     dispatch(kind === 'badge'
-      ? { type: 'setGameMoveBadge', playerId: initialLine.playerId, gameId: initialLine.gameId, ply, badge: value }
-      : { type: 'setGameMoveComment', playerId: initialLine.playerId, gameId: initialLine.gameId, ply, text: value });
+      ? { type: 'setGameMoveBadge', playerId, gameId, ply, badge: value }
+      : { type: 'setGameMoveComment', playerId, gameId, ply, text: value });
   };
 
-  // The reverse of plyMapToNodeIds below: trunk-only, since (as above) an
-  // off-trunk badge/note has nowhere on the flat game record to live.
-  const nodeIdsToPlyMap = (t, nodeIdMap) => {
-    const trunk = mainLineFrom(t);
-    const out = {};
-    trunk.forEach((node, i) => {
-      if (nodeIdMap[node.id] != null) out[i] = nodeIdMap[node.id];
-    });
-    return out;
+  // What was typed on move `id`, kept there.
+  const commitNote = (id, raw) => {
+    const text = String(raw ?? '').trim().slice(0, MAX_NOTE);
+    if ((moveNotesRef.current[id] ?? '') === text) return;
+    if (id !== 'root' && !findNode(treeRef.current, id)) return;
+    const next = { ...moveNotesRef.current };
+    if (text) next[id] = text;
+    else delete next[id];
+    moveNotesRef.current = next; // so a save straight after sees it
+    if (aliveRef.current) setMoveNotes(next);
+    syncGameMove('comment', text, id);
   };
 
-  // "Save changes": the one thing syncGameMove above doesn't already cover
-  // live, move by move — the arrows and square highlights drawn on the
-  // board, which (unlike a badge or a note) had nowhere on a game record to
-  // land until now. Re-sending the trunk's badges/comments here too costs
-  // nothing and means one button really does mean "everything in this
-  // session is on the game now", not just "the drawing is".
-  const [changesSaved, setChangesSaved] = useState(false);
-  const saveChangesToGame = () => {
-    if (!liveGame) return;
-    const { playerId, gameId } = initialLine;
-    dispatch({ type: 'setGameAnnotations', playerId, gameId, annotations });
-    dispatch({ type: 'setGameBadges', playerId, gameId, badges: nodeIdsToPlyMap(tree, moveBadges) });
-    // The starting position's comment (a PGN's introduction, key -1) has no
-    // move on this board to hang from, so it's kept as the game has it.
-    const intro = liveGame.comments?.[START];
-    dispatch({
-      type: 'setGameComments',
-      playerId,
-      gameId,
-      comments: { ...(intro ? { [START]: intro } : {}), ...nodeIdsToPlyMap(tree, moveNotes) },
-    });
-    // Only worth keeping the tree itself (over the flat trunk every other
-    // game feature already has) when there's actually a branch or a
-    // highlight hanging off it — otherwise it's just a second copy of the
-    // same moves, and clearing it here is what lets removing every
-    // variation and saving again actually drop it instead of leaving a
-    // stale one behind.
-    const worthKeeping = hasVariations(tree) || Object.keys(variationHighlights).length > 0;
-    dispatch({
-      type: 'setGameTree',
-      playerId,
-      gameId,
-      tree: worthKeeping ? tree : undefined,
-      variationHighlights: worthKeeping ? variationHighlights : undefined,
-    });
-    setChangesSaved(true);
+  // Everything on the board as one document (lib/analysisDoc), with the game
+  // line put back as the main line if a variation was promoted over it — a
+  // saved game is always its own moves first.
+  const buildDoc = () => {
+    const current = treeRef.current;
+    const anchored = anchorToGame(current, seed.moves);
+    const ids = (t) => mainLineFrom(t).map((n) => n.id).join(' ');
+    if (ids(anchored) !== ids(current)) {
+      treeRef.current = anchored;
+      if (aliveRef.current) setTree(anchored);
+    }
+    return {
+      v: 1,
+      moves: seed.moves,
+      tree: withNotesOnNodes(anchored, notesWithDraft(), moveBadgesRef.current),
+      annotations: pruneAnnotations(annotationsRef.current),
+      variationHighlights: highlightsRef.current ?? {},
+    };
   };
+
+  // Save it. Onto the game: only what changed since it was last saved here,
+  // so a note the student changed meanwhile on another move stands. As a
+  // review: the whole document, which is the coach's own. `publish` sends it
+  // to a linked student — Save, and leaving the board; the autosave doesn't.
+  const fieldsRef = useRef(seed?.fields ?? null);
+  const bodyRef = useRef(seed?.body ?? null);
+  const [saveState, setSaveState] = useState(null); // null | 'saved' | a message
+  const saveAnalysis = ({ publish = true } = {}) => {
+    if (!attached || detachedRef.current) return true;
+    const d = noteDraftRef.current;
+    commitNote(d.id, d.text);
+    const doc = buildDoc();
+    const { playerId, gameId } = seed;
+    if (seed.reviewMode) {
+      const body = serializeDoc(doc);
+      if (docBytes(body) > MAX_REVIEW_BYTES) {
+        if (aliveRef.current) setSaveState('This review is too big to send — take out some drawings or long notes.');
+        return false;
+      }
+      // The student's card is one document with all their games on it: a
+      // review can only grow into the room left there. Shrinking one always
+      // saves — that's also the way out of a full card.
+      const grow = docBytes(body) - docBytes(liveGameRef.current?.review?.body ?? '');
+      const card = playersRef.current.find((p) => p.id === playerId);
+      if (grow > 0 && card && !cardHasRoom(card, grow)) {
+        if (aliveRef.current) setSaveState(`${seed.studentName}’s card is full — shorten this review or another one before adding more.`);
+        return false;
+      }
+      const hadReview = Boolean(liveGameRef.current?.review);
+      if (!hadReview && docIsEmpty(doc)) return true; // nothing written yet
+      if (body === bodyRef.current && !publish) return true;
+      dispatch({ type: 'setGameReview', playerId, gameId, body, publish });
+      bodyRef.current = body;
+    } else {
+      const fields = gameFieldsFromDoc(doc);
+      const diff = diffGameFields(fieldsRef.current, fields);
+      if (diff.changes) {
+        dispatch({
+          type: 'mergeGameAnalysis', playerId, gameId, set: diff.set, del: diff.del, tree: diff.tree,
+        });
+      }
+      fieldsRef.current = fields;
+      if (publish) sendOnce(gameId);
+    }
+    if (aliveRef.current && saveState && saveState !== 'saved') setSaveState(null);
+    return true;
+  };
+  const saveRef = useRef(saveAnalysis);
+  saveRef.current = saveAnalysis;
+
+  // Kept as it's written: a pause after any change saves it (not sent yet).
   useEffect(() => {
-    if (!changesSaved) return undefined;
-    const t = setTimeout(() => setChangesSaved(false), 1600);
+    if (!editing) return undefined;
+    const t = setTimeout(() => saveRef.current({ publish: false }), 900);
     return () => clearTimeout(t);
-  }, [changesSaved]);
+  }, [editing, tree, moveNotes, moveBadges, annotations, variationHighlights]);
+
+  // While the board is open the student's copy waits, and gets it all at once
+  // on Save or on leaving — not a delivery, and a notification, per pause.
+  useEffect(() => {
+    if (!editing) return undefined;
+    const { gameId, linked } = seed;
+    if (linked) holdSends(gameId);
+    return () => {
+      if (!detachedRef.current) saveRef.current({ publish: true });
+      releaseSends(gameId);
+    };
+  }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Something else loaded onto the board: save the game's work first, then
+  // stop treating the board as that game's.
+  const detach = () => {
+    if (!seed || detachedRef.current) return;
+    if (editing) saveRef.current({ publish: true });
+    detachedRef.current = true;
+    setDetached(true);
+  };
+
+  useEffect(() => {
+    if (saveState !== 'saved') return undefined;
+    const t = setTimeout(() => setSaveState(null), 1600);
+    return () => clearTimeout(t);
+  }, [saveState]);
 
   // Chess.com-style Game Review: a dedicated, throwaway engine so it never
   // fights the live analysis engine over the search queue. Always reviews
@@ -840,12 +974,16 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
         depth: 15,
         onProgress: (done, total) => setReviewProgress({ done, total }),
       });
-      setMoveBadges((m) => ({ ...m, ...plyMapToNodeIds(tree, result.badges) }));
-      if (liveGame) {
+      // Onto the game's own badges, as before — even if the board was closed
+      // while it ran — but never onto a linked student's own game: those are
+      // theirs, and a review keeps its badges in the review.
+      if (seed && !seed.reviewMode && !detachedRef.current) {
         dispatch({
-          type: 'setGameBadges', playerId: initialLine.playerId, gameId: initialLine.gameId, badges: result.badges,
+          type: 'setGameBadges', playerId: seed.playerId, gameId: seed.gameId, badges: result.badges,
         });
       }
+      if (!aliveRef.current) return; // closed while it ran: nothing on screen to update
+      setMoveBadges((m) => ({ ...m, ...plyMapToNodeIds(tree, result.badges) }));
       setReviewResult(result);
     } finally {
       reviewEngine.quit();
@@ -1060,6 +1198,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   };
 
   const loadMoves = (sans, opts) => {
+    detach();
     const t = makeTree(sans);
     setTree(t);
     setHead('root');
@@ -1992,9 +2131,22 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
           </div>
           )}
 
-          {sidePane === 'annotate' && coachMode && (
+          {sidePane === 'annotate' && coachMode && (() => {
+            // The note box follows the board: the move on it, or — on a saved
+            // game — the whole game's summary at the start.
+            const draftText = noteDraft.id === head ? noteDraft.text : (moveNotes[head] ?? '');
+            const dirty = draftText.trim() !== (moveNotes[head] ?? '');
+            const theirNote = reviewMode ? seed.theirNotes[head] : null;
+            const who = seed?.studentName ?? 'the student';
+            return (
             <div className="annotate-pane">
-              {head === 'root' ? (
+              {reviewMode && (
+                <p className="annotate-mode">
+                  <CommentIcon size={13} /> Your review of {who}’s game. It stays yours to edit;
+                  {' '}{who} reads it in their app when you save.
+                </p>
+              )}
+              {head === 'root' && !editing ? (
                 <p className="hint">
                   Play or load a line, then click any move — here or in the move list below — to
                   badge it and write what a student should take from it.
@@ -2002,9 +2154,12 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
               ) : (
                 <>
                   <h3>
-                    Move {moveLabel(ply - 1, baseFen)}{moves[ply - 1]}
+                    {head === 'root'
+                      ? (reviewMode ? `Summary for ${who}` : 'Summary of the game')
+                      : <>Move {moveLabel(ply - 1, baseFen)}{moves[ply - 1]}</>}
                     {moveBadges[head] && <MoveBadge id={moveBadges[head]} size={17} />}
                   </h3>
+                  {head !== 'root' && (
                   <div className="badge-row">
                     {BADGES.map((b) => {
                       const on = moveBadges[head] === b.id;
@@ -2030,52 +2185,65 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
                       );
                     })}
                   </div>
+                  )}
+                  {theirNote && (
+                    <div className="their-note">
+                      <span className="their-note-who">{who}’s note</span> {parseMarks(theirNote).text || theirNote}
+                    </div>
+                  )}
                   <label className="annotate-note-label">
-                    <CommentIcon size={13} /> What should a student take from this move?
+                    <CommentIcon size={13} />
+                    {' '}{head === 'root' ? 'What should they take from this game?' : 'What should a student take from this move?'}
                   </label>
                   <textarea
                     rows={5}
                     className="annotate-textarea"
-                    placeholder="e.g. This is the critical try — White has to know ...Bxf3 leads to a forced draw."
-                    value={moveNoteDraft}
-                    onChange={(e) => setMoveNoteDraft(e.target.value)}
+                    maxLength={MAX_NOTE}
+                    placeholder={head === 'root'
+                      ? 'e.g. Good opening, then the plan went wrong after 14…c5 — the key moments are marked below.'
+                      : 'e.g. This is the critical try — White has to know ...Bxf3 leads to a forced draw.'}
+                    value={draftText}
+                    onChange={(e) => setNoteDraft({ id: head, text: e.target.value })}
+                    // Leaving the box keeps it at once, not after the pause.
+                    onBlur={() => commitNote(head, draftText)}
                   />
-                  {/* An explicit button rather than saving on blur — matching
-                      the chapter comment editor elsewhere in the app, and more
-                      reliable than blur: nothing is silently lost if the note
-                      is still focused when Save session / Save as a variation
-                      below is pressed. */}
-                  {moveNoteDraft !== (moveNotes[head] ?? '') && (
-                    <div className="annotate-note-actions">
-                      <button className="small" onClick={() => setMoveNoteDraft(moveNotes[head] ?? '')}>
-                        Discard
-                      </button>
-                      <button
-                        className="small primary"
-                        onClick={() => {
-                          const text = moveNoteDraft.trim();
-                          setMoveNotes((m) => {
-                            const next = { ...m };
-                            if (text) next[head] = text;
-                            else delete next[head];
-                            return next;
-                          });
-                          syncGameMove('comment', text);
-                        }}
-                      >
-                        Save note
-                      </button>
-                    </div>
-                  )}
+                  {/* Kept as it's typed — no separate button to forget: a
+                      pause, moving to another move, Save or leaving the board
+                      all keep it on this move. */}
+                  <div className="annotate-note-status muted-note" aria-live="polite">
+                    {dirty ? 'Saving…' : (moveNotes[head] && editing
+                      ? (reviewMode ? '✓ In your review' : '✓ Saved on this game')
+                      : '')}
+                  </div>
                 </>
               )}
               <div className="annotate-foot">
-                {liveGame && (
-                  <button className="small primary" onClick={saveChangesToGame}>
-                    <CheckIcon size={14} /> {changesSaved ? 'Saved ✓' : 'Save changes'}
+                {attached && (
+                  <button
+                    className="small primary"
+                    onClick={() => { if (saveAnalysis({ publish: true })) setSaveState('saved'); }}
+                  >
+                    <CheckIcon size={14} />
+                    {' '}{saveState === 'saved' ? 'Saved ✓' : (seed.linked ? (reviewMode ? 'Save & send review' : 'Save & send') : 'Save')}
                   </button>
                 )}
-                <button className={`small${liveGame ? '' : ' primary'}`} onClick={saveToLab}>
+                {attached && (
+                  <button
+                    className="small"
+                    title="The game as it will be read — notes in the text, badges and arrows on the board, the engine alongside"
+                    onClick={() => openReview({
+                      gameId: seed.gameId,
+                      preview: true,
+                      doc: buildDoc(),
+                      game: liveGameRef.current,
+                      by: 'You',
+                      theirNotes: seed.reviewMode ? seed.theirNotes : {},
+                    })}
+                  >
+                    <BookIcon size={14} /> {seed.studentCard ? `Preview as ${who}` : 'Read it'}
+                  </button>
+                )}
+                <button className={`small${attached ? '' : ' primary'}`} onClick={saveToLab}>
                   <FlaskIcon size={14} /> {labId ? 'Update in Lab' : 'Save session to Lab'}
                 </button>
                 <button
@@ -2086,10 +2254,13 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
                   <BookIcon size={14} /> Save as a variation…
                 </button>
               </div>
+              {saveState && saveState !== 'saved' && <p className="annotate-error">{saveState}</p>}
               <p className="hint">
-                A badge and note here belong to that exact move on this board's line
-                {liveGame ? ', and are saved straight onto this game as you go' : ''}.
-                {liveGame && ' Save changes also carries over any arrows or square highlights drawn on the board — the one thing that isn\'t already saved the moment you draw it.'}
+                {editing
+                  ? (seed.linked
+                    ? `Notes, badges, arrows, highlighted squares and variations are kept as you go, and ${who} gets them when you save — or when you leave this board.`
+                    : 'Notes, badges, arrows, highlighted squares and variations are saved on this game as you go.')
+                  : 'A badge and note here belong to that exact move on this board’s line.'}
                 {' '}Saving to the Lab keeps every badge and note across the whole tree; saving as a
                 variation carries the current line's notes and badges into a chapter, editable there
                 the same way. Standing on a move in the game, press 1, 2, or 3 (rebindable in
@@ -2099,7 +2270,8 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
                 again clears the colour and steps back out.
               </p>
             </div>
-          )}
+            );
+          })()}
           </div>
         </div>
 
@@ -2155,6 +2327,12 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
                   onPromote={(id) => setTree(promote(tree, id))}
                   onPromoteOne={(id) => setTree(promoteOne(tree, id))}
                   onDelete={(id) => {
+                    // A move of the saved game itself isn't this board's to
+                    // take out — it's the game (edit its moves from its card).
+                    if (editing && gamePlyOf(id) !== null) {
+                      window.alert('That’s a move of the game itself — edit the game’s moves from its card. Moves you’ve added here can be deleted.');
+                      return;
+                    }
                     // Standing on the move you're deleting: step back first.
                     if (nodePath(tree, id).some((n) => n.id === head)) {
                       const trail = nodePath(tree, id);
@@ -2190,8 +2368,9 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
               && positionKey(baseFen) === positionKey(newGameAt(startFenOf(initialLine)).fen());
             fens.forEach((f, i) => {
               const key = i === 0 ? START : i - 1;
+              // The summary as written on this board, or the line's own intro.
               const words = i === 0
-                ? ((sameStartAsLine && initialLine.comments?.[START]) || '')
+                ? (notesWithDraft().root || (sameStartAsLine && initialLine.comments?.[START]) || '')
                 : (comments[key] ?? '');
               const next = withMarks(words, marksOfDrawing(annotations[f]));
               if (next) comments[key] = next;

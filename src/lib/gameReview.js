@@ -35,7 +35,7 @@ function searchOnce(engine, fen, depth) {
 // A checkmated or stalemated position has no legal moves at all, so Stockfish
 // never emits a `pv` line for it — searchOnce would wait forever. Read it
 // off the board directly instead of asking the engine.
-function gameOverScore(chess) {
+export function gameOverScore(chess) {
   if (chess.isCheckmate()) {
     // The side to move just got mated — bad for them, so the sign belongs
     // to whoever is NOT to move, the side that just delivered it.

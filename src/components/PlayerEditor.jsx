@@ -8,7 +8,7 @@ import Avatar from './Avatar';
 import AvatarPicker from './AvatarPicker';
 
 const EMPTY = {
-  uscf: '', fide: '', chesscom: '', lichess: '', rating: '', accountName: '',
+  uscf: '', fide: '', chesscom: '', lichess: '', rating: '', accountName: '', school: '',
 };
 
 // Look a rating up as soon as an ID or handle is typed, then keep it. `ready`
@@ -102,7 +102,9 @@ export default function PlayerEditor({
     ...(saved.chesscom && same('chesscom', profile.chesscom.trim()) ? { chesscom: saved.chesscom } : {}),
     ...(saved.lichess && same('lichess', profile.lichess.trim()) ? { lichess: saved.lichess } : {}),
   };
-  const save = () => onSave(name.trim(), { ...profile, ratings: { ...kept, ...live } }, avatar, id);
+  const save = () => onSave(name.trim(), {
+    ...profile, school: (profile.school ?? '').trim(), ratings: { ...kept, ...live },
+  }, avatar, id);
 
   return (
     <>
@@ -149,6 +151,20 @@ export default function PlayerEditor({
                 disabled={Boolean(profile.linkedUid)}
                 title={profile.linkedUid ? 'Linked to this account' : ''}
                 onChange={set('accountName')}
+              />
+            </label>
+          )}
+          {/* Where they go to school — and play on its chess team. Shown on
+              their card and at the top of their page. */}
+          {isStudent && (
+            <label className="wide">
+              School
+              <input
+                type="text"
+                value={profile.school ?? ''}
+                maxLength={120}
+                placeholder="the school they attend and play on the chess team for"
+                onChange={set('school')}
               />
             </label>
           )}

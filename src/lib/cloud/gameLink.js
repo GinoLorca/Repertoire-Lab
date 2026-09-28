@@ -55,6 +55,22 @@ export const SHARED_MAPS = ['comments', 'badges', 'annotations'];
 export const PRIVATE = ['meta.photo', 'meta.categoryId', 'meta.notes', 'tags', 'updatedAt'];
 
 const EMPTY = '∅';
+
+// A name someone else wrote (a delivery's fromName, a link's coachName):
+// shown on the student's games and stored in their account, so short and
+// plain — a sender can't fill a section with it.
+export const cleanName = (v) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, 80) : '');
+
+// A section as Firestore measures it: UTF-8 bytes, not string length — a
+// section of accented or other-script text can be twice its length in bytes.
+// Pictures don't count; they're lifted out on the way up (see blobs.js).
+export const bytesOf = (x) => new TextEncoder().encode(JSON.stringify(x, (k, v) => (
+  typeof v === 'string' && v.startsWith('data:') ? 'data:' : v
+))).length;
+// Room left in one section document (1 MiB), with a margin.
+export const SECTION_BYTES = 900000;
+// The analysis on a game, as opposed to the game itself.
+const ANALYSIS = new Set(['comments', 'badges', 'annotations', 'tree']);
 export const CARD_BUDGET = 700000;
 
 // ---------------------------------------------------------------------------
@@ -124,6 +140,12 @@ export function setPath(g, p, value) {
   if (empty) delete out[head]; else out[head] = value;
   return out;
 }
+
+// Whether the coach's copy of a game holds its own value at this path — one
+// the coach wrote there, not what the student's account last showed. On a
+// student's own game that's work the coach did before reviews existed, which
+// never left the coach's card.
+export const coachWritten = (g, p) => ph(getPath(g, p)) !== (g?.link?.base?.[p] ?? EMPTY);
 
 // Every shared path a game has a value at. Maps contribute one path per key.
 export function pathsOf(g) {
@@ -316,7 +338,7 @@ export function applyCoachGames(state, deliveries, { studentUid, ledger, now }) 
     consumed.push(d.id);
     const C = d.fromUid;
     const result = (outcome, extra = {}) => outcomes.push({
-      deliveryId: d.id, gameId: d.gameId, outcome, fromName: d.fromName ?? '', ...extra,
+      deliveryId: d.id, gameId: d.gameId, outcome, fromName: cleanName(d.fromName), ...extra,
     });
 
     const patch = validGameId(d.gameId) && Number.isFinite(d.rev) ? parsePatch(d.patch) : null;
@@ -342,6 +364,7 @@ export function applyCoachGames(state, deliveries, { studentUid, ledger, now }) 
       const h = { ...(mine?.h ?? {}) };
       const prev = { ...(g.coachPrev ?? {}) };
       let changed = false;
+      let analysed = false; // a note, badge, drawing or variation changed
       for (const [p, value] of Object.entries(patch.set)) {
         const cur = ph(getPath(next, p));
         const to = ph(value);
@@ -360,12 +383,16 @@ export function applyCoachGames(state, deliveries, { studentUid, ledger, now }) 
           next = setPath(next, p, value);
           h[p] = to;
           changed = true;
+          if (ANALYSIS.has(split(p)[0])) analysed = true;
         }
         // Anything else is a field the student changed since the coach last
         // saw it. Theirs stands.
       }
       next = { ...next, coach: { ...(g.coach ?? {}), [C]: { rev: d.rev, h } } };
       if (Object.keys(prev).length) next.coachPrev = prev;
+      // The student hears about analysis the coach added to a game they
+      // typed in, as they do about a review (lib/cloud/reviews).
+      if (analysed) next.coachNews = { ...(g.coachNews ?? {}), [C]: { rev: d.rev, by: cleanName(d.fromName), at: now } };
       // updatedAt deliberately untouched: the student's own later edits must
       // still win a clash between the student's own devices.
       players = players.map((pl, i) => (i === at.pi
@@ -393,10 +420,13 @@ export function applyCoachGames(state, deliveries, { studentUid, ledger, now }) 
     if (typeof g.date !== 'number') g.date = now;
     g = {
       ...g,
-      addedBy: { uid: C, name: d.fromName ?? '' },
+      addedBy: { uid: C, name: cleanName(d.fromName) },
       coach: { [C]: { rev: d.rev, h } },
       updatedAt: d.rev,
     };
+    if (Object.keys(patch.set).some((p) => ANALYSIS.has(split(p)[0]) && !isEmpty(patch.set[p]))) {
+      g.coachNews = { [C]: { rev: d.rev, by: cleanName(d.fromName), at: now } };
+    }
 
     // Into their first own section with room. A student who has none gets
     // one — kind 'self' from the start, so no "what is this section?"
@@ -405,7 +435,7 @@ export function applyCoachGames(state, deliveries, { studentUid, ledger, now }) 
     if (target < 0) {
       const anySelf = players.some(isSelf);
       const section = anySelf
-        ? newSection(`coach-${C}`, `From ${d.fromName || 'your coach'}`)
+        ? newSection(`coach-${C}`, `From ${cleanName(d.fromName) || 'your coach'}`)
         : newSection(`mygames-${studentUid}`, 'My games');
       const existing = players.findIndex((pl) => pl.id === section.id);
       if (existing >= 0) target = existing;
@@ -460,8 +490,11 @@ export function undoCoachChanges(game) {
 // Coach side: folding the student's games into the card
 // ---------------------------------------------------------------------------
 
+// A coach's review of the game (game.review) counts too: the student deleting
+// their game mustn't take the coach's own work with it — the copy is kept,
+// marked gone, like one with notes of the coach's own.
 const hasPrivate = (g) => Boolean(g.meta?.photo || g.meta?.categoryId || g.meta?.notes
-  || (Array.isArray(g.tags) && g.tags.length));
+  || (Array.isArray(g.tags) && g.tags.length) || g.review?.body);
 
 // A coach game from before the link and a student game that are plainly the
 // same game: identical moves, long enough not to be a coincidence, the same
@@ -538,9 +571,11 @@ export function mergeLinkedGames(card, {
         continue;
       }
       if (sizeOf({ ...card, games: list }) + sizeOf(s) > CARD_BUDGET) { overflow.push(s); continue; }
-      const copy = sharedCopy(s);
+      const copy = withTheirReview(sharedCopy(s), s, coachUid, { origin: 'student' });
       copy.updatedAt = s.updatedAt ?? now;
-      copy.link = { uid: studentUid, origin: 'student', base: hashesOf(s), seen: true, sent: null };
+      copy.link = {
+        ...copy.link, uid: studentUid, origin: 'student', base: hashesOf(s), seen: true, sent: copy.link?.sent ?? null,
+      };
       // A game the student added since the coach last looked: the bell.
       if (primed) copy.link.unseen = now;
       list = [copy, ...list];
@@ -590,7 +625,11 @@ export function mergeLinkedGames(card, {
     for (const p of Object.keys(base)) if (base[p] === EMPTY) delete base[p];
     // Seen in their account right now, so whatever marked it gone is over —
     // and a "Send again" has done its job.
-    const nextLink = { ...link, base, seen: true };
+    // Bringing a lost review back only if the card has the room for it.
+    const reviewed = withTheirReview(next, s, coachUid, link,
+      (body) => bytesOf({ ...card, games: list }) + body.length * 3 <= SECTION_BYTES);
+    const nextLink = { ...(reviewed === next ? link : reviewed.link), base, seen: true };
+    if (reviewed !== next) next = { ...reviewed, link: c.link };
     delete nextLink.gone;
     delete nextLink.resend;
     if (lost.length) nextLink.lost = lost; else delete nextLink.lost;
@@ -663,6 +702,34 @@ export function gameSummary(game) {
   const bits = [players];
   if (m.event) bits.push(m.round ? `${m.event} R${m.round}` : m.event);
   return bits.join(' · ');
+}
+
+// What the student's account holds of this coach's review of a game
+// (lib/cloud/reviews) — delivered, read, or removed — onto the coach's copy,
+// for the card to show. And a coach's own review missing from their copy (the
+// card re-added, a device starting fresh) comes back from the student's,
+// rather than being replaced by an empty one on the next save.
+function withTheirReview(c, s, coachUid, link = c.link ?? {}, hasRoom = () => true) {
+  const theirs = s?.reviews?.[coachUid];
+  const seen = s?.reviewSeen?.[coachUid]?.rev ?? 0;
+  const refused = s?.reviewRefused?.[coachUid];
+  let state = theirs ? { rev: theirs.rev ?? 0, seen, ...(theirs.removed ? { removed: true } : {}) } : null;
+  // Their app couldn't keep the latest one (their section was full).
+  if (refused && refused.rev > (state?.rev ?? 0)) state = { ...(state ?? { rev: 0, seen }), refused: refused.rev };
+  let out = c;
+  const nextLink = { ...link };
+  if (state) nextLink.theirReview = state; else delete nextLink.theirReview;
+  if (!c.review?.body && typeof theirs?.body === 'string' && !theirs.removed && hasRoom(theirs.body)) {
+    out = { ...c, review: { v: 1, body: theirs.body, savedAt: theirs.rev ?? 0, editedAt: theirs.rev ?? 0 } };
+    nextLink.reviewSent = { rev: theirs.rev ?? 0, ph: theirs.h ?? null, savedAt: theirs.rev ?? 0 };
+    // What keeps an older app of the coach's from dropping this copy (and the
+    // review with it) if the student deletes the game — see markReviewSent.
+    if ((nextLink.origin ?? c.link?.origin) === 'student' && !nextLink.sent) {
+      nextLink.sent = { rev: 0, ph: null, h: {}, review: true };
+    }
+  }
+  if (stableStringify(nextLink) === stableStringify(link) && out === c) return c;
+  return { ...out, link: nextLink };
 }
 
 // Games on linked cards that arrived from the student since the coach last

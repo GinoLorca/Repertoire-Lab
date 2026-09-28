@@ -23,13 +23,17 @@ import {
 } from '../lib/cloud/links';
 import {
   BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon, StarIcon,
-  CameraIcon, FlaskIcon, SendIcon, UsersIcon, LinkIcon, TargetIcon,
+  CameraIcon, FlaskIcon, SendIcon, UsersIcon, LinkIcon, TargetIcon, CapIcon,
 } from '../components/Icons';
 import { useMe } from '../lib/cloud/useMe';
 import { useGameLink } from './GameLinkProvider';
 import { parseMarks, withText } from '../lib/marks';
 import PlayerDashboard from './PlayerDashboard';
 import { confirmMeta } from '../lib/uscfMatch';
+import { openReview } from './ReviewReader';
+import { reviewsOf, reviewHash } from '../lib/cloud/reviews';
+import { parseDoc, docFromGame, docIsEmpty } from '../lib/analysisDoc';
+import { seedFor } from '../lib/studioSeed';
 
 // The handles a player is known by, with whatever live ratings we last fetched
 // for them, shown compactly wherever they're useful.
@@ -49,6 +53,19 @@ function ProfileLine({ profile }) {
   ].filter(Boolean);
   if (bits.length === 0) return null;
   return <div className="profile-line">{bits.join(' · ')}</div>;
+}
+
+// Where a student goes to school — and plays on its chess team (the
+// profile's School). On their card and at the top of their page.
+function SchoolLine({ profile }) {
+  const school = String(profile?.school ?? '').trim();
+  if (!school) return null;
+  return (
+    <div className="school-line" title="School — and its chess team">
+      <CapIcon size={13} /> {school}
+      <span className="muted-note"> · chess team</span>
+    </div>
+  );
 }
 
 const eventLabel = (type) => EVENT_TYPES.find((t) => t.value === type)?.label ?? 'Over the board';
@@ -111,9 +128,70 @@ function LinkPill({ status, name, onAction }) {
   );
 }
 
+// The review button on a game's row. The student: their coach's review of
+// the game, or the coach's notes on a game they typed in (lib/cloud/reviews),
+// with a dot until read. The coach, on a student's card: a preview of what
+// the student reads, and how far it has got.
+function reviewActionFor(game, player, players) {
+  if ((player.kind ?? 'self') === 'self') {
+    const list = reviewsOf(game);
+    if (!list.length) return null;
+    const unseen = list.some((r) => (r.rev ?? 0) > (game.reviewSeen?.[r.coachUid]?.rev ?? 0));
+    return {
+      label: `${list[0].by || 'Coach'}’s review`,
+      title: 'Read the review — the notes, badges and arrows, with the engine alongside',
+      primary: unseen,
+      unseen,
+      onOpen: () => openReview({ gameId: game.id, coachUid: list[0].coachUid }),
+    };
+  }
+  if (player.kind !== 'student') return null;
+  // Worth a button: a review of the student's own game, or notes, badges,
+  // drawings or variations on a game the coach typed in. Cheap — what it
+  // looks like is only worked out when it's opened.
+  const reviewMode = game.link?.origin === 'student' && Boolean(player.profile?.linkedUid)
+    && game.link.uid === player.profile.linkedUid;
+  const has = (m) => Object.keys(m ?? {}).length > 0;
+  const worth = reviewMode
+    ? Boolean(game.review?.body)
+    : has(game.comments) || has(game.badges) || has(game.annotations) || Boolean(game.tree);
+  if (!worth) return null;
+  const link = game.link;
+  let status = null;
+  if (reviewMode && link) {
+    const sent = link.reviewSent;
+    const theirs = link.theirReview;
+    const saved = game.review.savedAt ?? 0;
+    const same = sent?.ph === reviewHash(game.review.body);
+    if (sent?.failed && same) status = 'Too big to send';
+    else if (!same) status = saved > (sent?.savedAt ?? 0) ? 'Sending…' : 'Not sent — save in Studio';
+    else if (theirs?.refused && theirs.refused >= (sent.rev ?? 0)) status = 'Their games list is full';
+    else if (theirs?.removed) status = 'Removed by them';
+    else if (sent.rev && (theirs?.seen ?? 0) >= sent.rev) status = 'Read ✓';
+    else if (sent.rev && (theirs?.rev ?? 0) >= sent.rev) status = 'Delivered';
+    else status = 'Sent';
+  }
+  return {
+    label: 'Preview',
+    title: `What ${player.name} reads: your notes, badges and arrows, with the engine alongside`,
+    status,
+    onOpen: () => {
+      // As Studio would open it (lib/studioSeed): the same review, and the
+      // student's own notes to show beside it.
+      const seed = seedFor(players, { playerId: player.id, gameId: game.id });
+      if (!seed) return;
+      const doc = seed.reviewMode ? parseDoc(seed.body) : docFromGame(game);
+      if (!doc || docIsEmpty(doc)) return;
+      openReview({
+        gameId: game.id, preview: true, doc, game, by: 'You', theirNotes: seed.theirNotes,
+      });
+    },
+  };
+}
+
 function GameRow({
   game, playerId, category, index, state, onAnalyze, onGameStudio, onView, onEdit, onSetCategory, onSetPhoto,
-  onDelete, onScan, onEditTags, onTagClick, linkStatus, partnerName, onLinkAction,
+  onDelete, onScan, onEditTags, onTagClick, linkStatus, partnerName, onLinkAction, review,
 }) {
   const m = game.meta ?? {};
   const res = resultFor(game);
@@ -265,6 +343,20 @@ function GameRow({
           </button>
         ) : (
           <>
+            {/* A coach's review: the student reads it; the coach previews
+                what the student sees, and where it has got to. */}
+            {review && (
+              <>
+                {review.status && <span className="link-pill review-status">{review.status}</span>}
+                <button
+                  className={`learn-btn${review.primary ? ' primary' : ' ghost'}${review.unseen ? ' has-dot' : ''}`}
+                  title={review.title}
+                  onClick={review.onOpen}
+                >
+                  <BookIcon size={14} /> {review.label}
+                </button>
+              </>
+            )}
             {onGameStudio && (
               <button
                 className="learn-btn ghost"
@@ -488,8 +580,10 @@ function PlayerPage({
 
       <div className="page-head">
         <Avatar avatar={player.avatar} seed={player.id} size={44} />
-        <h1>{player.name}</h1>
-        <span style={{ flex: 1 }} />
+        <div className="player-title">
+          <h1>{player.name}</h1>
+          <SchoolLine profile={player.profile} />
+        </div>
         {hasIds && (
           <button
             disabled={refreshing}
@@ -749,6 +843,7 @@ function PlayerPage({
             playerId={player.id}
             category={category}
             state={state}
+            review={reviewActionFor(game, player, state.players)}
             onEdit={() => setEditing(game)}
             onView={() => setViewingGameId(game.id)}
             onAnalyze={() => onAnalyze(lineFor(game, { subtitle: category.label }))}
@@ -867,19 +962,12 @@ function PlayerPage({
               text: own.cal.length || own.csl.length ? typed : withText(viewingGame.comments?.[ply], typed),
             });
           }}
+          // The whole game, as the card's own "Send to analysis board" sends
+          // it: without its tree, arrows and coloured variations, a Save on
+          // the board would have written the game back without them.
           onAnalyze={(g) => {
             setViewingGameId(null);
-            onAnalyze({
-              name: g.name,
-              moves: g.moves,
-              comments: g.comments,
-              badges: g.badges,
-              meta: g.meta,
-              date: g.date,
-              ownerId: player.kind === 'student' ? player.id : null,
-              gameId: g.id,
-              playerId: player.id,
-            });
+            onAnalyze(lineFor(g));
           }}
         />
       )}
@@ -1071,6 +1159,7 @@ export default function PlayerRoster({
             <Avatar avatar={player.avatar} seed={player.id} size={48} />
             <div className="scope-info">
               <h3>{player.name}</h3>
+              <SchoolLine profile={player.profile} />
               <div className="sub">
                 {player.games.length} game{player.games.length === 1 ? '' : 's'}
                 {player.games.length > 0 && (

@@ -222,6 +222,73 @@ export async function sendGamePatch({
   }
 }
 
+// A coach's review of one of the student's own games (lib/cloud/reviews):
+// the same kind as a game patch, as version 2 — which a student app from
+// before reviews neither shows nor consumes, so it waits for their update.
+// The summary is what such an app would show if it ever listed it.
+export async function sendGameReview({
+  to, from, gameId, rev, body, summary,
+}) {
+  const c = await cloud();
+  const { doc, setDoc, getDoc, serverTimestamp } = c.firestore;
+  const id = `lr_${from.uid}_${gameId}_${rev}`;
+  const ref = doc(c.db, 'deliveries', id);
+  try {
+    await setDoc(ref, {
+      kind: 'game',
+      v: 2,
+      toUid: to.uid,
+      toName: to.name ?? '',
+      fromUid: from.uid,
+      fromName: from.screenName ?? from.name ?? '',
+      fromRole: 'coach',
+      gameId,
+      rev,
+      review: body,
+      summary: `Review of your game ${summary} — update Repertoire Lab to read it.`,
+      message: '',
+      openings: [],
+      sentAt: serverTimestamp(),
+      readAt: null,
+      acceptedAt: null,
+      dismissedAt: null,
+    });
+    return id;
+  } catch (err) {
+    if (err?.code === 'permission-denied') {
+      try {
+        const snap = await getDoc(ref);
+        if (snap.exists()) return id;
+      } catch { /* fall through to the real explanation */ }
+      throw new Error('Couldn’t send — the Firebase rules published for this project are out of date. Run `npm run deploy:rules`, or paste firebase/firestore.rules into the Firebase console.');
+    }
+    // Too big, or malformed: sending it again won't change that.
+    if (err?.code === 'invalid-argument') {
+      const e = new Error('This review is too big to send.');
+      e.permanent = true;
+      throw e;
+    }
+    throw err;
+  }
+}
+
+// Older versions of a review the student hasn't picked up yet: superseded by
+// the one just sent, so at most one per game waits for them.
+export async function withdrawOlderReviews(fromUid, gameId, keepRev) {
+  const c = await cloud();
+  if (!c) return;
+  const {
+    collection, query, where, getDocs, deleteDoc,
+  } = c.firestore;
+  const snap = await getDocs(query(
+    collection(c.db, 'deliveries'),
+    where('fromUid', '==', fromUid), where('kind', '==', 'game'), where('gameId', '==', gameId),
+  ));
+  await Promise.allSettled(snap.docs
+    .filter((d) => d.data().v === 2 && d.data().rev < keepRev)
+    .map((d) => deleteDoc(d.ref)));
+}
+
 // Games not yet picked up by the student, withdrawn — the coach removed the
 // game from their card before it arrived. The sender may delete their own
 // deliveries; anything already applied is past recalling, and stays.

@@ -2,7 +2,10 @@ import { Chess } from 'chess.js';
 
 // Wrapper around the Stockfish 16 (single-threaded WASM) web worker.
 export class Engine {
-  constructor() {
+  // multiPV: how many lines to search. The analysis board shows three; an
+  // eval bar on its own needs one, which costs a phone a good deal less.
+  constructor({ multiPV = 3 } = {}) {
+    this.multiPV = multiPV;
     this.worker = new Worker('/stockfish/stockfish-nnue-16-single.js');
     this.listeners = new Set();
     // The position being searched right now, and the one queued behind it. A
@@ -27,7 +30,7 @@ export class Engine {
 
   handleMessage(line) {
     if (line === 'uciok') {
-      this.send('setoption name MultiPV value 3');
+      this.send(`setoption name MultiPV value ${this.multiPV}`);
       this.send('setoption name Use NNUE value true');
       this.send('isready');
       return;

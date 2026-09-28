@@ -25,6 +25,7 @@ import {
   mergeState, merge3, same, toBaseline, SYNCED_COLLECTIONS,
 } from './merge3';
 import { applyCoachGames, stableStringify } from './gameLink';
+import { applyCoachReviews, REVIEW_V } from './reviews';
 
 // What this device knows about its last sync, kept per account: signing out
 // no longer wipes it, so signing the same account back in resumes exactly
@@ -564,7 +565,7 @@ export async function syncNow(localState, options = {}) {
   }
 }
 
-async function syncOnce(localState, { onProgress, inbound = [] } = {}) {
+async function syncOnce(localState, { onProgress, inbound = [], coachNames = {} } = {}) {
   const c = await cloud();
   if (!c) throw new Error('Sync isn’t configured for this build.');
   const user = c.authInstance.currentUser;
@@ -713,8 +714,14 @@ async function syncOnce(localState, { onProgress, inbound = [] } = {}) {
         return snap.exists() ? d : null;
       } catch { return null; }
     }))).filter(Boolean);
-    if (live.length) {
-      const out = applyCoachGames(merged, live, {
+    // Game patches (v1) and reviews (v2, lib/cloud/reviews) — each to its
+    // own reader; a review handed to applyCoachGames would be consumed as
+    // invalid without being applied. Games first, so a game arriving in this
+    // same sync can take its review.
+    const games = live.filter((d) => d.v === 1);
+    const reviews = live.filter((d) => d.v === REVIEW_V);
+    if (games.length) {
+      const out = applyCoachGames(merged, games, {
         studentUid: uid, ledger: remoteDocs.coachLedger, now: Date.now(),
       });
       merged = out.state;
@@ -723,6 +730,12 @@ async function syncOnce(localState, { onProgress, inbound = [] } = {}) {
       if (Object.keys(out.ledgerWrites).length) {
         extraSets.push({ path: ['users', uid, 'singletons', 'coachGames'], data: { games: out.ledgerWrites } });
       }
+    }
+    if (reviews.length) {
+      const out = applyCoachReviews(merged, reviews, { now: Date.now(), names: coachNames });
+      merged = out.state;
+      consumed = [...consumed, ...out.consumed];
+      coachApplied = [...coachApplied, ...out.outcomes];
     }
   }
 

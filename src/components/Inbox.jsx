@@ -10,6 +10,8 @@ import { BellIcon, CheckIcon } from './Icons';
 import { useCloud } from '../lib/cloud/useCloud';
 import { unseenStudentGames, gameSummary } from '../lib/cloud/gameLink';
 import { openPlayerCard } from '../lib/openPlayer';
+import { unseenReviews } from '../lib/cloud/reviews';
+import { openReview } from './ReviewReader';
 
 const stamp = (t) => {
   const ms = t?.toMillis ? t.toMillis() : t;
@@ -67,7 +69,9 @@ export default function Inbox() {
   // bell. A game from anyone else does wait: it's a stranger offering to put
   // something in this account, and that's the student's call.
   const activeCoaches = new Set(links.filter((l) => l.status === 'active').map((l) => l.coachUid));
-  const shown = items.filter((d) => !(d.kind === 'game' && activeCoaches.has(d.fromUid)));
+  // A coach's review (v2) is never offered for accepting: it's applied from a
+  // linked coach, and one from anyone else is simply not shown.
+  const shown = items.filter((d) => !(d.kind === 'game' && (activeCoaches.has(d.fromUid) || d.v === 2)));
   // A game counts as taken only when the student took it here — see
   // eligibleGameDelivery: the sender can write acceptedAt themselves.
   const taken = (d) => (d.kind === 'game' ? cloud.isGameConsented(d.id) : Boolean(d.acceptedAt));
@@ -75,9 +79,12 @@ export default function Inbox() {
   // The coach's side of the bell: games linked students added since the coach
   // last opened their card.
   const studentGames = unseenStudentGames(state?.players);
+  // The student's side: a coach's review of one of their games, or new notes
+  // on a game a coach typed in for them — until they read it.
+  const reviews = unseenReviews(state?.players);
   const seen = readSeen();
   const newLinks = links.filter((l) => !seen.has(l.id));
-  const count = waiting.length + newLinks.length + studentGames.length;
+  const count = waiting.length + newLinks.length + studentGames.length + reviews.length;
 
   const accept = async (delivery) => {
     setBusy(delivery.id);
@@ -165,7 +172,35 @@ export default function Inbox() {
               </div>
             ))}
 
-            {shown.length === 0 && links.length === 0 && studentGames.length === 0 && (
+            {reviews.map((r) => (
+              <div key={`${r.gameId}:${r.coachUid}`} className="inbox-item unread">
+                <div className="inbox-head">
+                  <strong>{r.by || 'Your coach'}</strong>
+                  <span className="muted-note">
+                    {r.kind === 'own' ? 'added notes to' : 'reviewed'} your game · {new Date(r.at).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="muted-note">{r.name}</div>
+                <div className="settings-row">
+                  <button
+                    className="primary small"
+                    onClick={() => { setOpen(false); openReview({ gameId: r.gameId, coachUid: r.coachUid }); }}
+                  >
+                    Read
+                  </button>
+                  <button
+                    className="small ghost"
+                    onClick={() => dispatch({
+                      type: 'markReviewSeen', gameId: r.gameId, coachUid: r.coachUid, rev: r.rev,
+                    })}
+                  >
+                    Mark seen
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {shown.length === 0 && links.length === 0 && studentGames.length === 0 && reviews.length === 0 && (
               <p className="hint">
                 Nothing yet. When a coach sends you an opening or a new line, it lands here.
               </p>

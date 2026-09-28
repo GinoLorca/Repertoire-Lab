@@ -227,6 +227,7 @@ const GAME_EDITS = new Set([
   'setGameBadges', 'setGameComments', 'setGameAnnotations', 'setGameTree',
   'setGameFlags', 'setGameTags', 'setGamePhoto', 'moveGameToPlayer',
   'addGame', 'updateGame', 'renameGame', 'undoCoachChanges',
+  'mergeGameAnalysis', 'setGameReview',
 ]);
 
 // Games carry `updatedAt`: when anyone last changed them, on any device. It's
@@ -964,6 +965,63 @@ function reduce(state, action) {
           ? { ...g, tree: action.tree, variationHighlights: action.variationHighlights }
           : g)),
       }));
+    // A Studio save onto a game's own fields: only the entries that changed
+    // since the board opened (lib/analysisDoc diffGameFields), so a note
+    // changed elsewhere meanwhile — the student's, on a move the coach never
+    // touched — survives it. `tree` present replaces the tree and its
+    // coloured branches together (null removes them).
+    case 'mergeGameAnalysis':
+      return mapPlayer(state, action.playerId, (p) => ({
+        ...p,
+        games: p.games.map((g) => {
+          if (g.id !== action.gameId) return g;
+          const next = { ...g };
+          for (const k of ['comments', 'badges', 'annotations']) {
+            const set = action.set?.[k] ?? {};
+            const del = action.del?.[k] ?? [];
+            if (!Object.keys(set).length && !del.length) continue;
+            const m = { ...(g[k] ?? {}) };
+            for (const key of del) delete m[key];
+            Object.assign(m, set);
+            next[k] = m;
+          }
+          if (action.tree) {
+            if (action.tree.tree) next.tree = action.tree.tree; else delete next.tree;
+            if (action.tree.variationHighlights) next.variationHighlights = action.tree.variationHighlights;
+            else delete next.variationHighlights;
+          }
+          return next;
+        }),
+      }));
+    // A coach's review of a linked student's own game (lib/analysisDoc): the
+    // whole document as one string, so two devices' copies can never be
+    // merged into a mix of both. Kept as the coach types; `savedAt` moves
+    // only when they save (or leave the board), and that is what sends it to
+    // the student — see GameLinkProvider.
+    case 'setGameReview':
+      return mapPlayer(state, action.playerId, (p) => ({
+        ...p,
+        games: p.games.map((g) => {
+          if (g.id !== action.gameId) return g;
+          const prev = g.review ?? {};
+          if (prev.body === action.body && !action.publish) return g;
+          const now = Date.now();
+          const next = {
+            ...g,
+            review: {
+              v: 1, body: action.body, editedAt: now, savedAt: action.publish ? now : (prev.savedAt ?? 0),
+            },
+          };
+          // An older app of the coach's drops a student's game it has sent
+          // nothing from when the student deletes it — review and all. Marked
+          // sent from the first review on, it's kept instead (see
+          // markReviewSent).
+          if (g.link?.origin === 'student' && !g.link.sent) {
+            next.link = { ...g.link, sent: { rev: 0, ph: null, h: {}, review: true } };
+          }
+          return next;
+        }),
+      }));
     case 'setGameFlags':
       return mapPlayer(state, action.playerId, (p) => ({
         ...p,
@@ -1148,6 +1206,53 @@ function reduce(state, action) {
       }));
     // The coach has looked at the card: its new games are no longer news.
     // (Not in GAME_EDITS — seeing a game isn't editing it.)
+    // The coach's review of a linked student's own game went out
+    // (lib/cloud/reviews). On a student's own game `link.sent` is otherwise
+    // never set — and an app from before reviews drops such a game's copy
+    // when the student deletes it, unless something was sent from it; so it's
+    // marked sent too, and the coach's review is kept, marked gone.
+    case 'markReviewSent':
+      return mapPlayer(state, action.cardId, (p) => ({
+        ...p,
+        games: p.games.map((g) => {
+          if (g.id !== action.gameId || !g.link) return g;
+          const link = { ...g.link, reviewSent: action.sent };
+          if (link.origin === 'student' && !link.sent) link.sent = { rev: 0, ph: null, h: {}, review: true };
+          return { ...g, link };
+        }),
+      }));
+    // The student read a review (or a coach's changes to a game they typed in).
+    // Never goes backwards; kept on the game, so the bell clears on every
+    // device. Not a GAME_EDIT: reading changes nothing in the game.
+    case 'markReviewSeen':
+    case 'removeReview':
+      return {
+        ...state,
+        players: state.players.map((p) => {
+          if (!(p.games ?? []).some((g) => g.id === action.gameId)) return p;
+          return {
+            ...p,
+            games: p.games.map((g) => {
+              if (g.id !== action.gameId || !action.coachUid) return g;
+              const C = action.coachUid;
+              const prevSeen = g.reviewSeen?.[C]?.rev ?? 0;
+              const rev = Math.max(prevSeen, action.rev ?? g.reviews?.[C]?.rev ?? g.coachNews?.[C]?.rev ?? 0);
+              let next = g;
+              // updatedAt is the review's own number, so when two devices
+              // merge their read state the later review wins, not the later
+              // clock.
+              if (rev > prevSeen) next = { ...next, reviewSeen: { ...(g.reviewSeen ?? {}), [C]: { rev, updatedAt: rev } } };
+              // Removed by the student: a marker in its place, so a copy of
+              // it still on its way can't bring it back — a newer review can.
+              if (action.type === 'removeReview' && g.reviews?.[C]) {
+                const r = g.reviews[C];
+                next = { ...next, reviews: { ...g.reviews, [C]: { rev: r.rev, removed: true, updatedAt: (r.updatedAt ?? r.rev ?? 0) + 1 } } };
+              }
+              return next;
+            }),
+          };
+        }),
+      };
     case 'markLinkedGamesSeen':
       return mapPlayer(state, action.cardId, (p) => {
         if (!p.games.some((g) => g.link?.unseen)) return p;

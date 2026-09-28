@@ -302,7 +302,7 @@ export function StudyText({
   );
 }
 
-function NotePart({ part, study, refId }) {
+export function NotePart({ part, study, refId }) {
   if (part.kind === 'text') return <>{part.text}</>;
   if (part.kind === 'loose') {
     // No move number to place it: all that can be shown is where it lands.

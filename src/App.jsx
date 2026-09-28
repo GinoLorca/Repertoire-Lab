@@ -22,6 +22,7 @@ import CoachesView from './views/CoachesView';
 import MigratePlayersModal from './components/MigratePlayersModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import Inbox from './components/Inbox';
+import { ReviewReaderHost, openReview } from './components/ReviewReader';
 
 // What the dot on the Settings icon means.
 const SYNC_ALERT = {
@@ -290,6 +291,8 @@ function AppInner() {
     player: openPlayerNav,
     practiceScope,
     analysisLine,
+    // Back into a Studio session comes back to Studio, not a plain board.
+    coachStudio,
     scrollY: window.scrollY,
     chapterId: view === 'chapter' ? chapterNav?.chapterId : null,
   });
@@ -322,6 +325,7 @@ function AppInner() {
     setPlayerNav(prev.player ?? null);
     setPracticeScope(prev.practiceScope);
     setAnalysisLine(prev.analysisLine);
+    setCoachStudio(Boolean(prev.coachStudio));
     setView(prev.view);
     pendingScroll.current = prev.scrollY;
     // Coming back to the library, make sure the chapter you were in is visible
@@ -545,7 +549,7 @@ function AppInner() {
           aria-label="Home: your library"
           onClick={goHome}
         >
-          <img className="knight" src="/icons/logo-64.png" alt="" width="26" height="26" /> Repertoire Lab
+          <img className="knight" src="/icons/logo.svg" alt="" width="26" height="26" /> Repertoire Lab
         </button>
         <nav>
           <button
@@ -739,7 +743,11 @@ function AppInner() {
         )}
         {view === 'analysis' && (
           <AnalysisView
-            key={analysisLab?.id ?? 'board'}
+            // One board per saved game: a different game — Back to an earlier
+            // one, say — opens fresh from the store instead of inheriting this
+            // one's moves, notes and drawings.
+            key={analysisLab?.id
+              ?? (analysisLine?.gameId ? `g:${analysisLine.playerId}:${analysisLine.gameId}` : 'board')}
             initialLine={analysisLine}
             initialLab={analysisLab}
             coachMode={coachStudio}
@@ -766,14 +774,36 @@ function CoachGamesToast() {
   const who = coachApplied[0].fromName || 'Your coach';
   const added = coachApplied.filter((o) => o.outcome === 'inserted');
   const fixed = coachApplied.filter((o) => o.outcome === 'applied');
+  // A review of their own game (lib/cloud/reviews) — one per game, however
+  // many versions arrived in the same sync.
+  const reviewed = [...new Map(coachApplied
+    .filter((o) => o.outcome === 'reviewed' || o.outcome === 'review-updated')
+    .map((o) => [`${o.gameId}:${o.fromUid}`, o])).values()];
   const parts = [];
   if (added.length === 1) parts.push(`added ${added[0].name} to your Games`);
   else if (added.length > 1) parts.push(`added ${added.length} games to your Games`);
   if (fixed.length === 1) parts.push(`updated ${fixed[0].name}`);
   else if (fixed.length > 1) parts.push(`updated ${fixed.length} games`);
+  if (reviewed.length === 1) {
+    parts.push(`${reviewed[0].outcome === 'review-updated' ? 'updated the review of' : 'reviewed'} your game ${reviewed[0].name}`);
+  } else if (reviewed.length > 1) parts.push(`reviewed ${reviewed.length} of your games`);
+  // A review there was no room for: their games list (one section) is full.
+  const refused = coachApplied.filter((o) => o.outcome === 'too-big');
+  if (refused.length) {
+    parts.push(`sent a review of ${refused[0].name} that couldn’t be kept — that games list is full; move some games to another section and ask for it again`);
+  }
+  if (!parts.length) return null;
   return (
     <div className="coach-toast" role="status">
       <span>{who} {parts.join(' and ')}.</span>
+      {reviewed.length > 0 && (
+        <button
+          className="small primary"
+          onClick={() => { openReview({ gameId: reviewed[0].gameId, coachUid: reviewed[0].fromUid }); clearCoachApplied(); }}
+        >
+          Read
+        </button>
+      )}
       <button className="small ghost" onClick={clearCoachApplied}>OK</button>
     </div>
   );
@@ -842,6 +872,8 @@ export default function App() {
             screen — see GameLinkProvider. */}
         <GameLinkProvider>
           <AppInner />
+          {/* A coach's review, read over whatever screen is up. */}
+          <ReviewReaderHost />
           <CoachGamesToast />
           <StudentGamesToast />
           <UpdateBar />
