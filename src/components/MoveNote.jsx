@@ -3,9 +3,11 @@ import { CommentIcon } from './Icons';
 import MoveBadge from './MoveBadge';
 import { useStore } from '../store';
 import { parseMarks, START } from '../lib/marks';
+import { moveNumberLabel } from '../lib/startPos';
 
-// "4." for White's move, "4…" for Black's, from a 0-based move index.
-const label = (i) => `${Math.floor(i / 2) + 1}${i % 2 === 0 ? '.' : '…'}`;
+// "4." for White's move, "4…" for Black's, from a 0-based move index —
+// counted from where the line starts (a set-up position may be move 12).
+const label = (i, startFen) => moveNumberLabel(i, startFen, '…');
 
 // A numbered move — "4.e3", "9...Bf5", "5.exd4" — the clearest kind of move
 // reference, tied to an exact ply. Castling has no [a-h][1-8] of its own, so
@@ -141,7 +143,7 @@ function AnnotatedText({ text, onMoveClick }) {
 // is clicked — the caller decides what "point at this square" means for its
 // own board.
 export default function MoveNote({
-  text, san, index, stale, highlight, float, badgeId, onMoveClick,
+  text, san, index, stale, highlight, float, badgeId, onMoveClick, startFen,
 }) {
   const { state } = useStore();
   const showBadges = state.settings.showMoveListBadges !== false;
@@ -153,7 +155,7 @@ export default function MoveNote({
     <div className={`move-note${stale ? ' stale' : ''}${highlight ? ' called-out' : ''}${float ? ' floating' : ''}`}>
       <span className="mn-move">
         <CommentIcon size={13} />
-        {index != null && <strong>{label(index)}{san}</strong>}
+        {index != null && <strong>{label(index, startFen)}{san}</strong>}
         {showBadges && badgeId && <MoveBadge id={badgeId} size={14} />}
       </span>
       <div className="mn-body">

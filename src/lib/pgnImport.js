@@ -1,10 +1,12 @@
 import { splitPgnGames, movetextToLines, validateLine } from './pgn';
+import { normalizeFen, canonicalStartFen } from './startPos';
 
 // Turn pasted text or the contents of a .pgn file into variations ready to be
 // added to a chapter. Handles a full PGN with headers, several games in one
 // file, and bare movetext — nested variations become their own lines.
 //
-// Each entry is { id, name, moves, comments, badges, ok, failedToken, event }.
+// Each entry is { id, name, moves, comments, badges, ok, failedToken, event },
+// plus `startFen` for a line set up from a position.
 let seq = 0;
 const nextId = () => `imp${(seq += 1)}-${Date.now().toString(36)}`;
 
@@ -16,40 +18,75 @@ const real = (v) => (v && v.trim() !== '?' ? v.trim() : '');
 // but without stray spaces — "?" (PGN's "unknown") counts as none.
 export const eventOf = (h) => real(h.Event) || null;
 
-// A game set up from a position ([FEN "…"]) — this app's lines all start from
-// the normal starting position, so its moves can't be played as written.
-const START_POSITION = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq';
-export const fromSetUpPosition = (h) => Boolean(h.FEN?.trim())
-  && h.FEN.trim().split(/\s+/).slice(0, 3).join(' ') !== START_POSITION;
+// Where a game starts. { startFen } for one set up from a position ([FEN …]),
+// {} for the normal start (including a [FEN] of the normal start), or
+// { error } when it can't be used: a FEN that isn't a legal position, or a
+// chess variant this app doesn't play (Chess960, Crazyhouse …).
+export function setUpOf(h) {
+  const variant = String(h.Variant ?? '').trim().toLowerCase();
+  if (variant && variant !== 'standard' && variant !== 'from position') {
+    return { error: `is a ${String(h.Variant).trim()} game` };
+  }
+  if (!h.FEN?.trim()) return {};
+  if (!normalizeFen(h.FEN)) return { error: 'its set-up position (FEN) can’t be read' };
+  const startFen = canonicalStartFen(h.FEN);
+  return startFen ? { startFen } : {};
+}
 
 export function nameFor(h, gi) {
   if (real(h.White) && real(h.Black)) return `${h.White} – ${h.Black}`;
   return real(h.White) || real(h.Black) || real(h.Event) || `Game ${gi + 1}`;
 }
 
-function gameEntries(games, { mainLineOnly = false } = {}) {
+// One line typed or pasted somewhere a single line is wanted (Compare,
+// Search): its first line, read from its set-up position if it has one.
+// { startFen, line, parsed } or { error }.
+export function parsePastedLine(text) {
+  const game = /\[\w+\s+"/.test(text) ? splitPgnGames(text)[0] : null;
+  const setUp = game ? setUpOf(game.headers) : {};
+  if (setUp.error) return { error: `That game ${setUp.error}.` };
+  const { startFen } = setUp;
+  const lines = movetextToLines(game ? game.movetext : text, { startFen });
+  if (!lines.length) return { error: 'No moves found in that text.' };
+  return { startFen, line: lines[0], parsed: validateLine(lines[0].moves, startFen) };
+}
+
+export function gameEntries(games, { mainLineOnly = false } = {}) {
   const entries = [];
   games.forEach((game, gi) => {
     const h = game.headers;
     const baseName = nameFor(h, gi);
     // Listed, not added, with the reason — rather than left out without a
     // word, or played from the wrong position into a line that looks fine.
-    if (fromSetUpPosition(h)) {
+    const setUp = setUpOf(h);
+    if (setUp.error) {
       entries.push({
         id: nextId(), name: baseName, event: eventOf(h), comments: {}, badges: {},
-        ok: false, moves: [], failedToken: null, unusable: 'starts from a set-up position',
+        ok: false, moves: [], failedToken: null, unusable: setUp.error,
       });
       return;
     }
-    const lines = movetextToLines(game.movetext);
+    // Every line of a set-up game — its side lines too — starts there.
+    const { startFen } = setUp;
+    const lines = movetextToLines(game.movetext, { startFen });
+    // Nothing to play — a position with only a note, say — is listed too.
+    if (!lines.length) {
+      entries.push({
+        id: nextId(), name: baseName, event: eventOf(h), comments: {}, badges: {},
+        ok: false, moves: [], failedToken: null,
+        unusable: startFen ? 'a set-up position with no moves' : 'has no moves',
+      });
+      return;
+    }
     (mainLineOnly ? lines.slice(0, 1) : lines).forEach((line, li) => {
-      const result = validateLine(line.moves);
+      const result = validateLine(line.moves, startFen);
       entries.push({
         id: nextId(),
         name: li > 0 ? `${baseName} (alt ${li})` : baseName,
         event: eventOf(h),
         comments: line.comments,
         badges: line.badges,
+        ...(startFen ? { startFen } : {}),
         ...result,
         ...(result.moves.length === 0 ? { unusable: `can’t read its first move, “${result.failedToken}”` } : {}),
       });

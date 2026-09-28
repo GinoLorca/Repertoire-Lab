@@ -29,6 +29,9 @@ import {
 } from '../components/Icons';
 import PlaylistPicker from '../components/PlaylistPicker';
 import { topInset, bottomInset } from '../lib/safeArea';
+import {
+  startFenOf, newGameAt, replay, moveNumberLabel, isStandardStart,
+} from '../lib/startPos';
 
 // Position key: piece placement + side to move + castling + en passant.
 const fen4 = (fen) => fen.split(' ').slice(0, 4).join(' ');
@@ -45,7 +48,9 @@ export const TRAINER_PACE = {
 };
 
 // "4." for White's 4th move, "4…" for Black's — how a move is named in text.
-const plyLabel = (ply) => `${Math.floor(ply / 2) + 1}${ply % 2 === 0 ? '.' : '…'}`;
+// Counted from where the line starts: a line set up with Black to move at
+// move 12 names its first move "12…".
+const plyLabel = (ply, startFen) => moveNumberLabel(ply, startFen, '…');
 
 // Build the session queue. Item kinds:
 //   'learn'    — teach phase (moves shown) then a recall run; mistakes queue repairs
@@ -512,7 +517,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
     setWrongMove(null);
     setTimedOutPly(null);
     setFeedback(item?.kind === 'spot'
-      ? { type: 'hint', text: `The move you missed — ${plyLabel(item.spotPly)}?` }
+      ? { type: 'hint', text: `The move you missed — ${plyLabel(item.spotPly, startFenOf(item.variation))}?` }
       : null);
     setPhase(item?.kind === 'learn' ? 'teach' : 'run');
   };
@@ -551,13 +556,13 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
       .find((v) => v.id === current.variation.id) ?? current.variation;
   }, [current, state.openings]);
 
-  const game = useMemo(() => {
-    const c = new Chess();
-    // Clamped: a ply past the end of the line would throw on an undefined move
-    // and take the whole session down with it.
-    for (let i = 0; i < Math.min(ply, moves.length); i += 1) c.move(moves[i]);
-    return c;
-  }, [current, ply]); // eslint-disable-line react-hooks/exhaustive-deps
+  // From where the line starts — a set-up position for some. Clamped, and
+  // stopping at a move that can't be played: either would otherwise throw
+  // and take the whole session down with it.
+  const game = useMemo(
+    () => replay(moves.slice(0, Math.min(ply, moves.length)), startFenOf(current?.variation)).game,
+    [current, ply], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const userTurn = current ? (game.turn() === 'w') === userIsWhite : false;
 
@@ -600,9 +605,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   const reviewing = reviewPly !== null;
   const reviewFen = useMemo(() => {
     if (!reviewing) return null;
-    const c = new Chess();
-    for (let i = 0; i < reviewPly; i += 1) c.move(moves[i]);
-    return c.fen();
+    return replay(moves.slice(0, reviewPly), startFenOf(current.variation)).game.fen();
   }, [reviewing, reviewPly, current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Arm the move clock only while the board is genuinely waiting on you: not
@@ -653,6 +656,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
     moves: studyLine?.moves ?? [],
     comments: studyLine?.comments,
     badges: studyLine?.badges,
+    startFen: startFenOf(studyLine),
     // The position practice was showing — the move being looked back at, the
     // live one mid-line, or the top of a finished line. Another line read
     // from Study starts at its top.
@@ -672,7 +676,13 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
       if (opening.color !== current.opening.color) continue;
       for (const chapter of opening.chapters) {
         for (const variation of chapter.variations) {
-          const c = new Chess();
+          const c = newGameAt(startFenOf(variation));
+          // A line set up from a position is joined at that position too.
+          if (variation.startFen) {
+            const key = fen4(c.fen());
+            if (!map.has(key)) map.set(key, []);
+            map.get(key).push({ opening, chapter, variation, ply: 0 });
+          }
           for (let i = 0; i < variation.moves.length; i += 1) {
             try { c.move(variation.moves[i]); } catch { break; }
             const key = fen4(c.fen());
@@ -773,6 +783,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
         kind: current.kind,
         rep: current.rep,
         spotPly: current.spotPly,
+        startFen: current.variation.startFen ?? null,
       }]);
       setCompleted(true);
       // The complete sound and the confetti both mark finishing something, not
@@ -792,7 +803,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
       setFeedback({
         type: totalMistakes === 0 ? 'good' : 'hint',
         text: current.kind === 'spot'
-          ? `${plyLabel(current.spotPly)}${moves[current.spotPly]} — rep ${current.rep} of ${DRILL_REPS}.`
+          ? `${plyLabel(current.spotPly, startFenOf(current.variation))}${moves[current.spotPly]} — rep ${current.rep} of ${DRILL_REPS}.`
           : current.kind === 'drill'
             ? (totalMistakes === 0 ? 'Clean run — mistake practice done.' : `Full run done — ${totalMistakes} slip${totalMistakes === 1 ? '' : 's'}.`)
             : spots.length > 0
@@ -872,7 +883,13 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
       // position while the previous move is still sliding and the board snaps
       // instead of moving, which looks like a piece appearing out of nowhere.
       const quick = pace.anim + 40;
-      const t = setTimeout(() => setPly((p) => p + 1), lastOfLine ? quick : pace.reply);
+      // A line set up from a position, with the other side to move first:
+      // time to take in the position before anything moves.
+      const setUpOpening = ply === 0 && !isStandardStart(startFenOf(current.variation));
+      const t = setTimeout(
+        () => setPly((p) => p + 1),
+        lastOfLine ? quick : setUpOpening ? Math.max(pace.reply, pace.advance) : pace.reply,
+      );
       return () => clearTimeout(t);
     }
     return undefined;
@@ -1063,7 +1080,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
               {results.map((r, i) => (
                 <div key={i} className="sub">
                   {r.mistakes === 0 ? <CheckIcon size={14} className="done-tick" /> : <AlertIcon size={14} className="warn-tick" />} {r.name}
-                  {r.kind === 'spot' ? ` (spot ${plyLabel(r.spotPly)} · ${r.rep}/${DRILL_REPS})` : ''}
+                  {r.kind === 'spot' ? ` (spot ${plyLabel(r.spotPly, r.startFen)} · ${r.rep}/${DRILL_REPS})` : ''}
                   {r.kind === 'drill' ? ' (full run)' : ''} — {r.mistakes} mistake{r.mistakes === 1 ? '' : 's'}
                 </div>
               ))}
@@ -1082,7 +1099,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   const expectedSan = moves[ply];
 
   // The move just played is marked by the board itself (see Board.jsx).
-  const lastMove = reviewing ? null : lastMoveOf(Chess, moves, ply);
+  const lastMove = reviewing ? null : lastMoveOf(Chess, moves, ply, startFenOf(current.variation));
 
   // Teach preview (green, always shows the move) and recall hints (amber).
   // Two ways to reach a hint, and they escalate the same way — the piece's
@@ -1274,7 +1291,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   const kindTag = current.kind === 'spot'
     ? {
       cls: 'phase-drill',
-      text: `Spot drill ${current.rep} of ${DRILL_REPS} — move ${plyLabel(current.spotPly)}`,
+      text: `Spot drill ${current.rep} of ${DRILL_REPS} — move ${plyLabel(current.spotPly, startFenOf(current.variation))}`,
     }
     : current.kind === 'drill'
     ? {
@@ -1377,6 +1394,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
               ownerId: current.opening.ownerId ?? null,
               comments: current.variation.comments,
               badges: current.variation.badges,
+              startFen: current.variation.startFen ?? null,
             })}
           >
             <MonitorIcon size={14} /><span className="btn-label"> Send to analysis</span>
@@ -1500,7 +1518,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             <div className="review-bar" style={{ maxWidth: boardWidth }}>
               <span>
                 Reviewing move {reviewPly} of {ply}
-                {reviewPly > 0 && ` · ${Math.floor((reviewPly - 1) / 2) + 1}${(reviewPly - 1) % 2 === 0 ? '.' : '…'}${moves[reviewPly - 1]}`}
+                {reviewPly > 0 && ` · ${plyLabel(reviewPly - 1, startFenOf(current.variation))}${moves[reviewPly - 1]}`}
               </span>
               <span style={{ flex: 1 }} />
               <button className="small" onClick={() => setReviewPly((r) => Math.max(0, r - 1))}><PrevIcon size={15} /></button>
@@ -1550,7 +1568,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
                           button reading as "you failed, go back to the top". */}
                       {nextIsClosingRun ? 'Full run — the whole line'
                         : retryNext
-                          ? `Drill ${plyLabel(upcoming.spotPly)}${moves[upcoming.spotPly] ?? ''}`
+                          ? `Drill ${plyLabel(upcoming.spotPly, startFenOf(upcoming.variation))}${moves[upcoming.spotPly] ?? ''}`
                           : 'Next variation'}
                       {' '}<NextIcon size={15} />
                     </>
@@ -1655,10 +1673,12 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             const note = noteFor(current.variation.comments, moves, ply);
             const fromClock = timedOutPly != null && note?.index === timedOutPly;
             if (phase !== 'teach' && !fromClock) return null;
-            return note ? <MoveNote {...note} highlight={fromClock} onMoveClick={highlightNoteSquare} /> : null;
+            return note ? (
+              <MoveNote {...note} startFen={startFenOf(current.variation)} highlight={fromClock} onMoveClick={highlightNoteSquare} />
+            ) : null;
           })()}
           <div className={`practice-moves-played${ply === 0 ? ' empty' : ''}`}>
-            <MoveText moves={moves.slice(0, ply)} comments={current.variation.comments} />
+            <MoveText moves={moves.slice(0, ply)} comments={current.variation.comments} startFen={startFenOf(current.variation)} />
             {ply === 0 && <span style={{ color: 'var(--muted)' }}>Moves appear here as they're played.</span>}
           </div>
           <div className="practice-actions" style={{ display: 'flex', gap: 10 }}>

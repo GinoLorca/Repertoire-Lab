@@ -2,6 +2,9 @@ import { Chess } from 'chess.js';
 import React, { useEffect, useMemo, useState } from 'react';
 import Board from '../components/Board';
 import { lastMoveOf } from '../lib/legalMoves';
+import {
+  startFenOf, isWhiteMove, moveNumberOf, moveNumberLabel,
+} from '../lib/startPos';
 import { badgeAt } from '../lib/badges';
 import BoardArrows from '../components/BoardArrows';
 import { useStore } from '../store';
@@ -9,7 +12,8 @@ import { useViewportWidth } from '../components/useViewportWidth';
 import {
   diverge, siblingsOf, allVariations, fensFor, moveSquares, plyLabel,
 } from '../lib/compare';
-import { movetextToLines, validateLine } from '../lib/pgn';
+import { parsePastedLine } from '../lib/pgnImport';
+import { variationToPgn } from '../lib/pgn';
 import MoveText from '../components/MoveText';
 import {
   PrevIcon, NextIcon, SkipStartIcon, SkipEndIcon, TargetIcon, PlayIcon, PencilIcon,
@@ -19,10 +23,11 @@ const SIDE_COLOR = { a: '#3b9cff', b: '#e8b339' };
 
 // Turn pasted text into a comparable line. Accepts a bare move list or a full
 // PGN; the first line of a PGN with branches is the one used.
+// A PGN set up from a position ([FEN …]) is read, and compared, from there.
 function parsePasted(text, side, name) {
-  const lines = movetextToLines(text);
-  if (!lines.length) return { error: 'No moves found in that text.' };
-  const parsed = validateLine(lines[0].moves);
+  const read = parsePastedLine(text);
+  if (read.error) return { error: read.error };
+  const { parsed, line, startFen } = read;
   if (parsed.moves.length === 0) {
     return { error: `Couldn't read a legal line — stuck at “${parsed.failedToken}”.` };
   }
@@ -36,7 +41,8 @@ function parsePasted(text, side, name) {
         id: `paste-${side}`,
         name: name?.trim() || `Pasted line ${side.toUpperCase()}`,
         moves: parsed.moves,
-        comments: lines[0].comments ?? {},
+        comments: line.comments ?? {},
+        ...(startFen ? { startFen } : {}),
         tags: [],
       },
     },
@@ -44,7 +50,13 @@ function parsePasted(text, side, name) {
 }
 
 function PasteModal({ side, initial, onUse, onClose }) {
-  const [text, setText] = useState(initial?.pasted ? initial.variation.moves.join(' ') : '');
+  // A pasted line from a set-up position comes back with its [FEN], so it's
+  // still read from there when edited.
+  const [text, setText] = useState(() => {
+    if (!initial?.pasted) return '';
+    const v = initial.variation;
+    return v.startFen ? variationToPgn(v, { event: 'Pasted', white: v.name, black: '?' }) : v.moves.join(' ');
+  });
   const [name, setName] = useState(initial?.pasted ? initial.variation.name : '');
   const result = useMemo(() => (text.trim() ? parsePasted(text, side, name) : null), [text, side, name]);
 
@@ -80,7 +92,7 @@ function PasteModal({ side, initial, onUse, onClose }) {
         </div>
         {result?.item && (
           <div className="cmp-paste-preview">
-            <MoveText moves={result.item.variation.moves.slice(0, 24)} />
+            <MoveText moves={result.item.variation.moves.slice(0, 24)} startFen={result.item.variation.startFen} />
             {result.item.variation.moves.length > 24 && <span className="muted-note"> …</span>}
           </div>
         )}
@@ -152,11 +164,14 @@ function LinePicker({ side, choices, value, onChange, label, onPaste }) {
 
 // Notation with the shared opening greyed out, the splitting move boxed, and
 // everything after it in that side's colour.
-function SplitMoves({ moves, at, side, ply, onJump }) {
+function SplitMoves({
+  moves, at, side, ply, onJump, startFen,
+}) {
   const nodes = [];
   for (let i = 0; i < moves.length; i += 1) {
-    const isWhite = i % 2 === 0;
-    if (isWhite) nodes.push(<span key={`n${i}`} className="cmp-num">{i / 2 + 1}.</span>);
+    // Numbered from where the line starts (a set-up position may be move 12).
+    if (isWhiteMove(i, startFen)) nodes.push(<span key={`n${i}`} className="cmp-num">{moveNumberOf(i, startFen)}.</span>);
+    else if (i === 0) nodes.push(<span key={`n${i}`} className="cmp-num">{moveNumberLabel(i, startFen, '…')}</span>);
     const cls = i < at ? 'shared' : i === at ? 'split' : 'after';
     nodes.push(
       <span
@@ -173,11 +188,12 @@ function SplitMoves({ moves, at, side, ply, onJump }) {
 }
 
 function Side({ side, item, at, ply, boardWidth, onJump, onAnalyze }) {
-  const key = (item?.variation.moves ?? []).join(' ');
-  const fens = useMemo(() => fensFor(item?.variation.moves ?? []), [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const startFen = startFenOf(item?.variation);
+  const key = `${startFen}|${(item?.variation.moves ?? []).join(' ')}`;
+  const fens = useMemo(() => fensFor(item?.variation.moves ?? [], startFen), [key]); // eslint-disable-line react-hooks/exhaustive-deps
   const moves = item?.variation.moves ?? [];
   const shownPly = Math.min(ply, moves.length);
-  const split = moveSquares(moves, at);
+  const split = moveSquares(moves, at, startFen);
   // Once past the split, keep the diverging move drawn so the difference stays
   // on screen while you walk further down the line.
   const arrows = shownPly > at && split
@@ -205,7 +221,7 @@ function Side({ side, item, at, ply, boardWidth, onJump, onAnalyze }) {
           <Board
             id={`cmp-${side}`}
             position={fens[shownPly] ?? fens[fens.length - 1]}
-            lastMove={lastMoveOf(Chess, moves, Math.min(shownPly, moves.length))}
+            lastMove={lastMoveOf(Chess, moves, Math.min(shownPly, moves.length), startFen)}
             badge={badgeAt(item?.variation.badges, Math.min(shownPly, moves.length) - 1)?.id}
             arePiecesDraggable={false}
             areArrowsAllowed={false}
@@ -221,7 +237,7 @@ function Side({ side, item, at, ply, boardWidth, onJump, onAnalyze }) {
           ? <span className="muted-note">end of line · {moves.length} moves</span>
           : <span className="muted-note">{shownPly} of {moves.length} moves played</span>}
       </div>
-      <SplitMoves moves={moves} at={at} side={side} ply={shownPly} onJump={onJump} />
+      <SplitMoves moves={moves} at={at} side={side} ply={shownPly} onJump={onJump} startFen={startFen} />
     </div>
   );
 }
@@ -252,8 +268,9 @@ export default function CompareView({ onAnalyze }) {
   const maxPly = split.maxLen;
 
   // Land on the interesting moment rather than the start.
-  const aKey = (a?.variation.moves ?? []).join(' ');
-  const bKey = (b?.variation.moves ?? []).join(' ');
+  const aKey = `${startFenOf(a?.variation)}|${(a?.variation.moves ?? []).join(' ')}`;
+  const bKey = `${startFenOf(b?.variation)}|${(b?.variation.moves ?? []).join(' ')}`;
+  const aStart = startFenOf(a?.variation);
   useEffect(() => { setPly(Math.min(split.at + 1, maxPly)); }, [aKey, bKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -307,7 +324,8 @@ export default function CompareView({ onAnalyze }) {
     );
   }
 
-  const beforeSplit = ply <= split.at;
+  // Lines from different positions are never "the same" — not even at the start.
+  const beforeSplit = split.sameStart && ply <= split.at;
 
   return (
     <div className="page wide">
@@ -332,7 +350,12 @@ export default function CompareView({ onAnalyze }) {
 
       {/* The headline: where these two lines stop agreeing. */}
       <div className={`cmp-banner${beforeSplit ? ' same' : ''}`}>
-        {split.contained ? (
+        {!b ? (
+          <>
+            <TargetIcon size={17} />
+            <span>No other line shares this line’s opening moves — pick a line B to compare.</span>
+          </>
+        ) : split.contained && split.sameStart ? (
           <>
             <TargetIcon size={17} />
             <span>
@@ -343,22 +366,24 @@ export default function CompareView({ onAnalyze }) {
           <>
             <TargetIcon size={17} />
             <span>
-              {split.at === 0 ? (
+              {!split.sameStart ? (
+                <>These lines start from different positions:</>
+              ) : split.at === 0 ? (
                 <>These lines differ from the very first move:</>
               ) : (
                 <>
                   Identical for <strong>{split.at}</strong> move{split.at === 1 ? '' : 's'} — then, on move{' '}
-                  <strong>{Math.floor(split.at / 2) + 1}</strong>{' '}
-                  ({split.at % 2 === 0 ? 'White' : 'Black'} to play), they part:
+                  <strong>{moveNumberOf(split.at, aStart)}</strong>{' '}
+                  ({isWhiteMove(split.at, aStart) ? 'White' : 'Black'} to play), they part:
                 </>
               )}
             </span>
             <span className="cmp-split-move" style={{ color: SIDE_COLOR.a, borderColor: SIDE_COLOR.a }}>
-              A {plyLabel(split.at)}{split.aMove}
+              A {plyLabel(split.at, aStart)}{split.aMove}
             </span>
             <span className="cmp-vs">vs</span>
             <span className="cmp-split-move" style={{ color: SIDE_COLOR.b, borderColor: SIDE_COLOR.b }}>
-              B {plyLabel(split.at)}{split.bMove}
+              B {plyLabel(split.at, startFenOf(b?.variation))}{split.bMove}
             </span>
           </>
         )}
@@ -394,8 +419,8 @@ export default function CompareView({ onAnalyze }) {
             {ply === 0
               ? 'start'
               : ply <= split.at
-                ? `after ${plyLabel(ply - 1)}${a?.variation.moves[ply - 1] ?? ''}`
-                : `move ${Math.floor((ply - 1) / 2) + 1}`}
+                ? `after ${plyLabel(ply - 1, aStart)}${a?.variation.moves[ply - 1] ?? ''}`
+                : `move ${moveNumberOf(ply - 1, aStart)}`}
             {' · '}step {ply} of {maxPly}
           </span>
         </span>

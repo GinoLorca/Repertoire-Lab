@@ -1,5 +1,6 @@
 import { Chess } from 'chess.js';
 import { fen4 } from './repertoire';
+import { plyOffset } from './startPos';
 
 export const OFFBEAT = 'offbeat';
 
@@ -35,7 +36,14 @@ export function classifyGame(moves = [], index) {
 
   const consider = (hits, gamePly) => {
     for (const hit of hits) {
-      const score = hit.ply * 1000 + hit.variation.moves.length;
+      // Every ordinary line passes through the starting position — no sign of
+      // following any of them, so it mustn't outscore reaching a set-up one.
+      if (hit.ply === 0 && !hit.variation.startFen) continue;
+      // How deep into a game the hit is: a line set up from a position (a
+      // course's typical middlegame) counts from that position's move number,
+      // not from 0, so it doesn't outrank the opening line the game followed.
+      const depth = hit.ply + (hit.variation.startFen ? plyOffset(hit.variation.startFen) : 0);
+      const score = depth * 1000 + hit.variation.moves.length;
       if (!best || score > best.score) best = { ...hit, score, gamePly };
     }
   };
@@ -53,7 +61,9 @@ export function classifyGame(moves = [], index) {
     }
   }
 
-  if (!best || best.ply === 0) return { matched: false, contiguous: 0 };
+  // The starting position is in every opening, so reaching it proves nothing —
+  // but reaching a line's set-up position does.
+  if (!best || (best.ply === 0 && !best.variation.startFen)) return { matched: false, contiguous: 0 };
   return {
     matched: true,
     opening: best.opening,

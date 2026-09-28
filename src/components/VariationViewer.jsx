@@ -3,6 +3,7 @@ import Board from './Board';
 import { lineFens } from '../lib/pgn';
 import { Chess } from 'chess.js';
 import { lastMoveOf } from '../lib/legalMoves';
+import { startFenOf, moveNumberLabel, isStandardStart } from '../lib/startPos';
 import MoveText from './MoveText';
 import { BADGES, badgeAt } from '../lib/badges';
 import { TagChips } from './TagEditor';
@@ -15,10 +16,10 @@ import {
   TagIcon, StarIcon, CommentIcon, SkipStartIcon, SkipEndIcon, PrevIcon, NextIcon,
 } from './Icons';
 
-function moveLabel(moves, ply) {
+function moveLabel(moves, ply, startFen) {
   if (ply <= 0) return null;
   const i = ply - 1;
-  return `${Math.floor(i / 2) + 1}${i % 2 === 0 ? '.' : '…'}${moves[i]}`;
+  return `${moveNumberLabel(i, startFen, '…')}${moves[i]}`;
 }
 
 // Modal that steps through one variation on a board, with per-move comments.
@@ -33,7 +34,9 @@ export default function VariationViewer({
   // Arrows and squares drawn on the line's moves, kept with it (lib/marks.js).
   onSaveMarks, startDrawing = false,
 }) {
-  const fens = useMemo(() => lineFens(variation.moves), [variation.moves]);
+  // A line set up from a position is shown, and numbered, from there.
+  const startFen = startFenOf(variation);
+  const fens = useMemo(() => lineFens(variation.moves, startFen), [variation.moves, startFen]);
   // Open at the start so you can play the line through, not at the finish.
   const [ply, setPly] = useState(0);
   const [draft, setDraft] = useState('');
@@ -103,8 +106,8 @@ export default function VariationViewer({
         >
           <Board
             id="viewer"
-            position={fens[ply]}
-            lastMove={lastMoveOf(Chess, variation.moves, ply)}
+            position={fens[Math.min(ply, fens.length - 1)]}
+            lastMove={lastMoveOf(Chess, variation.moves, ply, startFen)}
             badge={badgeAt(variation.badges, ply - 1)?.id}
             boardOrientation={orientation}
             arePiecesDraggable={false}
@@ -215,13 +218,14 @@ export default function VariationViewer({
               badges={variation.badges}
               currentIndex={ply - 1}
               onClickMove={(i) => setPly(i + 1)}
+              startFen={startFen}
             />
           </div>
           {onSaveComment ? (
             <div className="comment-editor">
               {ply === 0 ? (
                 <>
-                  <label><CommentIcon size={14} /> Comment on the starting position</label>
+                  <label><CommentIcon size={14} /> Comment on the {isStandardStart(startFen) ? 'starting' : 'set-up'} position</label>
                   <textarea
                     rows={2}
                     value={draft}
@@ -267,7 +271,7 @@ export default function VariationViewer({
                       </div>
                     </div>
                   )}
-                  <label><CommentIcon size={14} /> Comment on {moveLabel(variation.moves, ply)}</label>
+                  <label><CommentIcon size={14} /> Comment on {moveLabel(variation.moves, ply, startFen)}</label>
                   <textarea
                     rows={2}
                     value={draft}

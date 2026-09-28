@@ -31,7 +31,7 @@ function flatten(openings) {
 }
 
 function Row({
-  kind, title, crumbs, moves, badges, onOpen, onPractice, practiceTitle, onUntag, untagTitle, fading,
+  kind, title, crumbs, moves, startFen, badges, onOpen, onPractice, practiceTitle, onUntag, untagTitle, fading,
 }) {
   return (
     <div className={`group-row group-row-${kind}${fading ? ' fading' : ''}`}>
@@ -50,7 +50,7 @@ function Row({
           {title}
         </span>
         {crumbs && <span className="group-row-crumbs">{crumbs}</span>}
-        {moves && <span className="group-row-moves"><MoveText moves={moves} /></span>}
+        {moves && <span className="group-row-moves"><MoveText moves={moves} startFen={startFen} /></span>}
       </button>
       <span className="group-row-tail">
         {badges}
@@ -73,6 +73,7 @@ function VariationRow({ row, onOpenChapter, onPractice, onUntag, untagTitle, fad
       title={variation.name}
       crumbs={`${opening.name} ▸ ${chapter.name}`}
       moves={variation.moves.slice(0, 10)}
+      startFen={variation.startFen}
       badges={(
         <>
           {variation.learned && !isDue(variation) && <CheckIcon size={14} className="done-tick" />}

@@ -34,6 +34,9 @@ import {
   parseMarks, withMarks, drawingOf, marksOfDrawing, START,
 } from '../lib/marks';
 import {
+  startFenOf, newGameAt, canonicalStartFen, isStandardStart, fen4 as positionKey,
+} from '../lib/startPos';
+import {
   makeTree, lineThrough, nodePath, addMove, promote, promoteOne, removeNode,
   keepMainLineOnly, hasVariations, mainLineFrom, branchRootOf, lastMainLineAncestor, alternativesAt,
 } from '../lib/moveTree';
@@ -63,8 +66,8 @@ function fensAlong(startFen, sans) {
 // A repertoire line's own arrows and squares ([%cal]/[%csl] in its comments),
 // as this board's per-position drawing — so they show, and can be changed,
 // when the line is analysed.
-function drawingsFromComments(sans, comments) {
-  const fens = fensAlong(START_FEN, sans);
+function drawingsFromComments(sans, comments, startFen = START_FEN) {
+  const fens = fensAlong(startFen, sans);
   const out = {};
   fens.forEach((f, i) => {
     const raw = comments?.[i === 0 ? START : i - 1];
@@ -148,7 +151,10 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
     const wanted = routeMode ?? 'engine';
     if (wanted !== mode) setMode(wanted);
   }, [routeMode]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [baseFen, setBaseFen] = useState(draft?.baseFen ?? initialLab?.baseFen ?? START_FEN);
+  // A line set up from a position is analysed from there.
+  const [baseFen, setBaseFen] = useState(
+    draft?.baseFen ?? initialLab?.baseFen ?? newGameAt(startFenOf(initialLine)).fen(),
+  );
   // The game is a tree: playing something else from an earlier move keeps what
   // came after as a variation. `head` is the move the board is sitting on.
   // initialLine?.tree: a game Studio previously ran "Save changes" on keeps
@@ -260,7 +266,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
 
   useEffect(() => {
     if (initialLine) {
-      setBaseFen(START_FEN);
+      setBaseFen(newGameAt(startFenOf(initialLine)).fen());
       // A game Studio has already run "Save changes" on carries its explored
       // variations this way (see setGameTree); its trunk is still the same
       // sequence as initialLine.moves, so the ply-keyed comments/badges below
@@ -279,7 +285,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
       // A repertoire line keeps its arrows in its comments; a game keeps the
       // ones drawn here in its own annotations.
       if (!initialLine.gameId && !initialLine.annotations) {
-        setAnnotations(drawingsFromComments(initialLine.moves ?? [], initialLine.comments));
+        setAnnotations(drawingsFromComments(initialLine.moves ?? [], initialLine.comments, startFenOf(initialLine)));
       }
     }
   }, [initialLine]);
@@ -368,8 +374,12 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
     labNote]);
 
   const game = useMemo(() => {
-    const c = new Chess(baseFen);
-    for (let i = 0; i < ply; i += 1) c.move(moves[i]);
+    const c = newGameAt(baseFen);
+    // A move that can't be played from here stops the replay instead of
+    // throwing while the board is drawn.
+    for (let i = 0; i < ply; i += 1) {
+      try { if (!c.move(moves[i])) break; } catch { break; }
+    }
     return c;
   }, [baseFen, moves, ply]);
   const fen = game.fen();
@@ -449,12 +459,16 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
     ),
     [state.openings, repertoireOwnerId],
   );
-  const fromStart = baseFen === START_FEN;
+  // The repertoire can be walked from here: the normal start, or a position a
+  // line was set up from — not just any position one of its lines passes
+  // through, which a board set up by hand would otherwise count as.
+  const fromStart = isStandardStart(baseFen)
+    || (positionIndex.get(positionKey(baseFen)) ?? []).some((h) => h.ply === 0 && h.variation.startFen);
 
   // Which of your uploaded lines does this game follow, and where did it leave book?
   const gameMatch = useMemo(
-    () => (fromStart && moves.length ? matchGameToRepertoire(moves, positionIndex) : { matched: false }),
-    [fromStart, moves, positionIndex],
+    () => (fromStart && moves.length ? matchGameToRepertoire(moves, positionIndex, baseFen) : { matched: false }),
+    [fromStart, moves, positionIndex, baseFen],
   );
 
   // Your repertoire's move(s) in the position currently on the board. Turning
@@ -1033,7 +1047,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
 
   // Used by Compare's "Analyze" buttons — hand a line straight to the engine.
   const loadLine = (variation, color) => {
-    setBaseFen(START_FEN);
+    setBaseFen(newGameAt(startFenOf(variation)).fen());
     loadMoves(variation.moves);
     if (color) setOrientation(color);
   };
@@ -1044,7 +1058,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   // export shouldn't have to lose its "??"s just for coming in this way.
   const loadEntries = (entries) => {
     if (entries.length === 1) {
-      setBaseFen(START_FEN);
+      setBaseFen(newGameAt(startFenOf(entries[0])).fen());
       loadMoves(entries[0].moves, {
         title: entries[0].name, comments: entries[0].comments, badges: entries[0].badges,
       });
@@ -1094,7 +1108,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
     const chapter = opening?.chapters.find((c) => c.id === cid);
     const variation = chapter?.variations.find((v) => v.id === vid);
     if (variation) {
-      setBaseFen(START_FEN);
+      setBaseFen(newGameAt(startFenOf(variation)).fen());
       loadMoves(variation.moves, {
         title: variation.name,
         comments: variation.comments,
@@ -1284,8 +1298,10 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
           <button onClick={() => setMode('editor')}>Board Editor</button>
         </div>
         <button
-          title="Save this game to your Games tab, or a student's profile in Coaches"
-          disabled={moves.length === 0}
+          title={isStandardStart(baseFen)
+            ? "Save this game to your Games tab, or a student's profile in Coaches"
+            : 'Games start from the normal position — save a line from a set-up position to a chapter instead'}
+          disabled={moves.length === 0 || !isStandardStart(baseFen)}
           onClick={() => setSaving(true)}
         >
           <DownloadIcon size={15} /> Save game
@@ -1377,7 +1393,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
                   key={i}
                   className="small ghost"
                   onClick={() => {
-                    setBaseFen(START_FEN);
+                    setBaseFen(newGameAt(startFenOf(g)).fen());
                     loadMoves(g.moves, { title: g.name, comments: g.comments, badges: g.badges });
                     setStudyGames(null);
                     setStudyUrl('');
@@ -1702,7 +1718,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
               renders here at all when there's nothing to say. */}
           {currentNote && (
             <div className="side-note">
-              <MoveNote key={currentNote.index} {...currentNote} onMoveClick={highlightNoteSquare} />
+              <MoveNote key={currentNote.index} {...currentNote} startFen={baseFen} onMoveClick={highlightNoteSquare} />
             </div>
           )}
 
@@ -1730,7 +1746,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
                       title="Jump to the position before this move"
                     >
                       <AlertIcon size={13} className="warn-tick" /> Left book at{' '}
-                      <strong>{moveLabel(gameMatch.deviation.atPly)}{gameMatch.deviation.played}</strong>
+                      <strong>{moveLabel(gameMatch.deviation.atPly, baseFen)}{gameMatch.deviation.played}</strong>
                       {' '}— repertoire plays{' '}
                       <strong>{gameMatch.deviation.expected.join(' or ')}</strong>
                     </div>
@@ -1895,7 +1911,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
               ) : (
                 <>
                   <h3>
-                    Move {moveLabel(ply - 1)}{moves[ply - 1]}
+                    Move {moveLabel(ply - 1, baseFen)}{moves[ply - 1]}
                     {moveBadges[head] && <MoveBadge id={moveBadges[head]} size={17} />}
                   </h3>
                   <div className="badge-row">
@@ -2063,6 +2079,7 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
       {saveLineOpen && (
         <SaveLineToChapter
           moves={moves}
+          setUp={!isStandardStart(baseFen)}
           suggestedName={labTitle.trim() || (initialLine?.name ?? '')}
           openings={state.openings}
           onClose={() => setSaveLineOpen(false)}
@@ -2071,22 +2088,28 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
             // A chapter's line keeps its arrows in its comments ([%cal]/[%csl]),
             // so what's drawn on each position here goes into the comment on
             // the move that reached it — the starting position's into the
-            // line's opening comment.
-            if (baseFen === START_FEN) {
-              const fens = fensAlong(baseFen, moves);
-              fens.forEach((f, i) => {
-                const key = i === 0 ? START : i - 1;
-                const words = i === 0 ? (initialLine?.comments?.[START] ?? '') : (comments[key] ?? '');
-                const next = withMarks(words, marksOfDrawing(annotations[f]));
-                if (next) comments[key] = next;
-                else delete comments[key];
-              });
-            }
+            // line's opening comment. A line from a position set up on this
+            // board keeps that position as its start.
+            const fens = fensAlong(baseFen, moves);
+            // The analysed line's introduction only goes with it while the
+            // board still starts where that line does.
+            const sameStartAsLine = initialLine
+              && positionKey(baseFen) === positionKey(newGameAt(startFenOf(initialLine)).fen());
+            fens.forEach((f, i) => {
+              const key = i === 0 ? START : i - 1;
+              const words = i === 0
+                ? ((sameStartAsLine && initialLine.comments?.[START]) || '')
+                : (comments[key] ?? '');
+              const next = withMarks(words, marksOfDrawing(annotations[f]));
+              if (next) comments[key] = next;
+              else delete comments[key];
+            });
+            const startFen = canonicalStartFen(baseFen);
             dispatch({
               type: 'addVariations',
               openingId,
               chapterId,
-              variations: [{ name, moves, comments, badges }],
+              variations: [{ name, moves, comments, badges, ...(startFen ? { startFen } : {}) }],
             });
             setSaveLineOpen(false);
           }}
@@ -2266,7 +2289,9 @@ function SaveToGames({
 // Put the moves on the board into a chapter as a new variation. Analysis often
 // turns up a line worth keeping, and retyping it into the Library by hand is
 // the sort of friction that means it never gets kept.
-function SaveLineToChapter({ moves, suggestedName, openings, onClose, onSave }) {
+function SaveLineToChapter({
+  moves, suggestedName, openings, onClose, onSave, setUp = false,
+}) {
   const [openingId, setOpeningId] = useState(openings[0]?.id ?? '');
   const opening = openings.find((o) => o.id === openingId);
   const [chapterId, setChapterId] = useState(opening?.chapters[0]?.id ?? '');
@@ -2293,6 +2318,7 @@ function SaveLineToChapter({ moves, suggestedName, openings, onClose, onSave }) 
         ) : (
           <>
             <p className="hint">
+              {setUp && 'From the position set up on the board · '}
               {moves.length} move{moves.length === 1 ? '' : 's'}: {moves.slice(0, 12).join(' ')}
               {moves.length > 12 ? '…' : ''}
             </p>

@@ -46,6 +46,7 @@ import {
   arrangeTop, arrangeFolder, gatherIntoFolder, topItems, stepKey,
 } from '../src/lib/chapterOrder.js';
 import { parseMarks, withText, withMarks } from '../src/lib/marks.js';
+import { canonicalStartFen, fen4 } from '../src/lib/startPos.js';
 
 // ---------------------------------------------------------------------------
 // The app's own reducer and emptyState, straight from src/store.jsx.
@@ -68,8 +69,8 @@ const { reducer, emptyState } = (() => {
     'return { reducer, emptyState };',
   ].join('\n');
   // eslint-disable-next-line no-new-func
-  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', body)(
-    DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, sendLines, makeSub, leaveFolder, withFolderMates, arrangeTop, arrangeFolder, gatherIntoFolder, parseMarks, withText, withMarks,
+  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', 'canonicalStartFen', 'fen4', body)(
+    DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, sendLines, makeSub, leaveFolder, withFolderMates, arrangeTop, arrangeFolder, gatherIntoFolder, parseMarks, withText, withMarks, canonicalStartFen, fen4,
   );
 })();
 
@@ -1122,3 +1123,34 @@ test('arrows go with lines copied to a student', () => {
   assert.equal(theirs.chapters[0].variations[0].comments[2], '[%cal Bd2d4]');
 });
 
+
+test('a line set up from a position keeps its start through sync and a copy to a student', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  // A "Typical Ideas" line: Black to move at move 12, given with padded
+  // counters and an en passant square the position can't use.
+  const fen = 'r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N2N2/PP2BPPP/R1BQ1RK1 b - - 0 12';
+  mac.do({
+    type: 'addVariations', openingId: 'o-caro', chapterId: 'c-advance',
+    variations: [{ name: 'Idea #1', moves: ['dxc4', 'Bxc4'], comments: { [-1]: 'The IQP.', 0: 'Takes.' }, startFen: fen }],
+  });
+  // …and one whose "set-up position" is just the normal start: stored as none.
+  mac.do({
+    type: 'addVariations', openingId: 'o-caro', chapterId: 'c-advance',
+    variations: [{ name: 'Plain', moves: ['e4'], startFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' }],
+  });
+  await mac.sync();
+  await ipad.sync();
+  const iphone = new Device('iphone', 'a new iPhone');
+  await iphone.sync();
+  for (const [who, dev] of [['Mac', mac], ['iPad', ipad], ['iPhone', iphone]]) {
+    const v = lineIn(dev.state, 'c-advance', 'Idea #1');
+    assert.equal(v.startFen, fen, who);
+    assert.deepEqual(v.moves, ['dxc4', 'Bxc4'], who);
+    assert.equal(v.comments[-1], 'The IQP.', who);
+    assert.equal('startFen' in lineIn(dev.state, 'c-advance', 'Plain'), false, `${who}: a normal start stores nothing`);
+  }
+  const idea = idOf(mac.state, 'c-advance', 'Idea #1');
+  mac.do({ type: 'copyOpeningsToPlayers', playerIds: ['p-parker'], variationIds: [idea] });
+  const theirs = mac.state.openings.find((o) => o.ownerId === 'p-parker' && o.name === 'Caro-Kann');
+  assert.equal(theirs.chapters[0].variations[0].startFen, fen);
+});

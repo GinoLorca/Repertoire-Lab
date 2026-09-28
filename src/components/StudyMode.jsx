@@ -12,6 +12,7 @@ import { NOTE_HIGHLIGHT_STYLE } from '../lib/legalMoves';
 import {
   fenAfter, lastMoveAfter, marksAt, noteParts, resolveNote, studySegments,
 } from '../lib/studyText';
+import { START_FEN, newGameAt, isStandardStart } from '../lib/startPos';
 
 // Study mode: a line read the way a course teaches it — the Chessable "read"
 // view. The big board is the teaching board: it shows the position at the
@@ -25,12 +26,14 @@ import {
 // its board column and the text in its side column, exactly where the
 // practice board and its panel were: opening Study doesn't move anything.
 
-const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const NONE = [];
 
 export function useStudy({
-  active, lineKey, moves, comments, badges, startPly = 0, onClose, onPrevVariation, onNextVariation,
+  active, lineKey: key, moves, comments, badges, startPly = 0, onClose, onPrevVariation, onNextVariation,
+  startFen = START_FEN,
 }) {
+  // A line set up from a position is read, numbered and played from there.
+  const lineKey = `${key}|${startFen}`;
   const [ply, setPly] = useState(startPly);
   // A line mentioned in a note, played out: { base, path, at, label, refId }.
   const [side, setSide] = useState(null);
@@ -55,16 +58,19 @@ export function useStudy({
 
   // Worked out only while Study is open — practice renders this hook on every
   // line, and reading the notes means playing out every sequence in them.
-  const segments = useMemo(() => (active ? studySegments(moves, comments) : NONE), [active, moves, comments]);
+  const segments = useMemo(
+    () => (active ? studySegments(moves, comments, startFen) : NONE),
+    [active, moves, comments, startFen],
+  );
   const notes = useMemo(() => {
     const out = {};
-    for (const s of segments) if (s.kind === 'note') out[s.i] = resolveNote(moves, noteParts(s.text));
+    for (const s of segments) if (s.kind === 'note') out[s.i] = resolveNote(moves, noteParts(s.text), startFen, s.i);
     return out;
-  }, [segments, moves]);
+  }, [segments, moves, startFen]);
 
   const shownMoves = side ? [...side.base, ...side.path.slice(0, side.at)] : moves.slice(0, ply);
-  const fen = useMemo(() => fenAfter(shownMoves) ?? START_FEN, [shownMoves.join(' ')]); // eslint-disable-line react-hooks/exhaustive-deps
-  const lastMove = useMemo(() => lastMoveAfter(shownMoves), [shownMoves.join(' ')]); // eslint-disable-line react-hooks/exhaustive-deps
+  const fen = useMemo(() => fenAfter(shownMoves, startFen) ?? newGameAt(startFen).fen(), [shownMoves.join(' '), startFen]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lastMove = useMemo(() => lastMoveAfter(shownMoves, startFen), [shownMoves.join(' '), startFen]); // eslint-disable-line react-hooks/exhaustive-deps
   const marks = side ? { arrows: [], squares: {} } : marksAt(comments, ply);
 
   const step = useCallback((d) => {
@@ -102,6 +108,7 @@ export function useStudy({
   return {
     moves,
     badges,
+    setUp: !isStandardStart(startFen),
     ply,
     side,
     segments,
@@ -254,7 +261,7 @@ export function StudyText({
               <button
                 type="button"
                 className={`study-start${study.ply === 0 && !study.side ? ' current' : ''}`}
-                title="The starting position"
+                title={study.setUp ? 'The set-up position' : 'The starting position'}
                 aria-label="The starting position"
                 onClick={() => study.goTo(0)}
               >

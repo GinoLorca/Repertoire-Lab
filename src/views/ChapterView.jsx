@@ -16,6 +16,9 @@ import Pressable from '../components/Pressable';
 import SendToSubVariation from '../components/SendToSubVariation';
 import { headOf, subVariationsOf, subLabel } from '../lib/subVariations';
 import ReorderSheet from '../components/ReorderSheet';
+import {
+  fen4, isWhiteMove, moveNumberOf, moveNumberLabel,
+} from '../lib/startPos';
 import { useIsPhone } from '../components/useViewportWidth';
 import {
   TagIcon, StarIcon, PencilIcon, ClockIcon, CheckIcon, DownloadIcon, CapIcon, PlayIcon, FolderIcon,
@@ -749,10 +752,14 @@ export default function ChapterView({
               title="Click to review on the board"
               onClick={() => { setDrawOnOpen(false); setViewingId(variation.id); }}
             >
+              {variation.startFen && (
+                <span className="from-position" title={variation.startFen}>From a set-up position · </span>
+              )}
               <MoveText
                 moves={variation.moves}
                 comments={variation.comments}
                 badges={variation.badges}
+                startFen={variation.startFen}
               />
             </div>
             <div className="row-foot">
@@ -890,11 +897,12 @@ export default function ChapterView({
           // Landing on a line from the tree opens the same preview a row
           // click does, so there's one way to read a variation, not two.
           onOpenVariation={(id) => { setBrowsing(false); setDrawOnOpen(false); setViewingId(id); }}
-          onAnalyze={(moves) => {
+          onAnalyze={(moves, startFen) => {
             setBrowsing(false);
             onAnalyze({
               name: chapter.name,
               moves,
+              startFen: startFen ?? null,
               subtitle: `${opening.name} — ${chapter.name}`,
             });
           }}
@@ -975,27 +983,43 @@ export default function ChapterView({
 // One row per line for the Reorder sheet. Every line in a chapter starts the
 // same way, so each shows its moves from where it parts from the others —
 // that's what tells two lines apart.
+//
+// Lines set up from a position only share moves with lines from that same
+// position, so the shared part is worked out per start.
 function reorderItems(variations) {
-  const shared = variations.length < 2 ? 0 : variations.reduce((n, v) => {
-    let i = 0;
-    while (i < n && v.moves[i] === variations[0].moves[i]) i += 1;
-    return i;
-  }, variations[0].moves.length);
-  const from = Math.max(0, shared - 1); // start on the last shared move, for context
+  const byStart = new Map();
+  for (const v of variations) {
+    const key = v.startFen ? fen4(v.startFen) : '';
+    if (!byStart.has(key)) byStart.set(key, []);
+    byStart.get(key).push(v);
+  }
+  const fromOf = new Map();
+  // Where each line starts, for sorting: 0 = the normal start.
+  const startRank = new Map([...byStart.keys()].filter((k) => k).map((k, i) => [k, i + 1]));
+  for (const lines of byStart.values()) {
+    const shared = lines.length < 2 ? 0 : lines.reduce((n, v) => {
+      let i = 0;
+      while (i < n && v.moves[i] === lines[0].moves[i]) i += 1;
+      return i;
+    }, lines[0].moves.length);
+    const from = Math.max(0, shared - 1); // start on the last shared move, for context
+    for (const v of lines) fromOf.set(v.id, from);
+  }
   return variations.map((v) => ({
     id: v.id,
     name: v.name,
     moves: v.moves,
-    sub: numbered(v.moves, from, 8) || '(no moves)',
+    start: v.startFen ? startRank.get(fen4(v.startFen)) : 0,
+    sub: (v.startFen ? 'From position · ' : '')
+      + (numbered(v.moves, fromOf.get(v.id), 8, v.startFen) || '(no moves)'),
   }));
 }
 
-function numbered(moves, from, count) {
+function numbered(moves, from, count, startFen) {
   const out = [];
   for (let i = from; i < Math.min(moves.length, from + count); i += 1) {
-    const n = Math.floor(i / 2) + 1;
-    if (i % 2 === 0) out.push(`${n}.${moves[i]}`);
-    else out.push(i === from ? `${n}...${moves[i]}` : moves[i]);
+    if (isWhiteMove(i, startFen)) out.push(`${moveNumberOf(i, startFen)}.${moves[i]}`);
+    else out.push(i === from ? `${moveNumberLabel(i, startFen)}${moves[i]}` : moves[i]);
   }
   if (!out.length) return '';
   return (from > 0 ? '… ' : '') + out.join(' ') + (moves.length > from + count ? ' …' : '');

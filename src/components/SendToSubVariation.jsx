@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useStore, uid } from '../store';
 import { useBackGuard } from '../lib/backGuard';
 import {
+  isWhiteMove, moveNumberOf, moveNumberLabel, sameStart,
+} from '../lib/startPos';
+import {
   branchOf, destinationsFor, familyOf, folderFor, stemOf, subLabel, suggestName,
 } from '../lib/subVariations';
 
@@ -77,8 +80,12 @@ export default function SendToSubVariation({
   };
 
   // Each line from just before where the chapter's lines part ways — the
-  // opening moves they all share would only hide the difference.
-  const from = Math.max(0, stemOf(lines).length - 1);
+  // opening moves they all share would only hide the difference. Worked out
+  // among lines from the same start (some may be set up from a position).
+  const fromOf = (v) => {
+    const peers = lines.filter((x) => sameStart(x, v));
+    return peers.length < 2 ? 0 : Math.max(0, stemOf(peers).length - 1);
+  };
   const leftBehind = lines.length - ids.length;
   // A line already in the target (a copy from before) is merged, not added.
   const landing = target
@@ -143,7 +150,7 @@ export default function SendToSubVariation({
                   <input type="checkbox" checked={picked.has(v.id)} onChange={() => toggle(v.id)} />
                   <span className="send-sub-text">
                     <span className="send-sub-name">{v.name}</span>
-                    <span className="muted-note">{movesFrom(v.moves, from)}</span>
+                    <span className="muted-note">{movesFrom(v.moves, fromOf(v), v.startFen)}</span>
                   </span>
                 </label>
               </li>
@@ -184,12 +191,11 @@ export default function SendToSubVariation({
 
 const shorten = (s) => (s.length > 32 ? `…${s.slice(-30)}` : s);
 
-function movesFrom(moves, from) {
+function movesFrom(moves, from, startFen) {
   const out = [];
   for (let i = from; i < Math.min(moves.length, from + 8); i += 1) {
-    const n = Math.floor(i / 2) + 1;
-    if (i % 2 === 0) out.push(`${n}.${moves[i]}`);
-    else out.push(i === from ? `${n}...${moves[i]}` : moves[i]);
+    if (isWhiteMove(i, startFen)) out.push(`${moveNumberOf(i, startFen)}.${moves[i]}`);
+    else out.push(i === from ? `${moveNumberLabel(i, startFen)}${moves[i]}` : moves[i]);
   }
   if (!out.length) return '';
   return (from > 0 ? '… ' : '') + out.join(' ') + (moves.length > from + 8 ? ' …' : '');

@@ -5,8 +5,9 @@ import { lineFens } from '../lib/pgn';
 import { lastMoveOf } from '../lib/legalMoves';
 import { useBackGuard } from '../lib/backGuard';
 import {
-  mergeVariations, moveNumberAt, isWhiteAt, runToNextBranch, treeMove, treeTargets,
+  mergeVariations, moveNumberAt, isWhiteAt, runToNextBranch, treeMove, treeTargets, startGroups,
 } from '../lib/repertoireTree';
+import { START_FEN, moveNumberLabel } from '../lib/startPos';
 import {
   PrevIcon, SkipStartIcon, StarIcon, CheckIcon, ClockIcon, PlayIcon, MonitorIcon,
 } from './Icons';
@@ -18,14 +19,21 @@ import { isDue, isPracticed } from '../lib/srs';
 export default function TreeBrowser({
   chapter, orientation, onClose, onOpenVariation, onAnalyze,
 }) {
-  const tree = useMemo(() => mergeVariations(chapter.variations), [chapter.variations]);
+  // A chapter whose lines start from more than one position (the normal start
+  // and a course's set-up positions) is one tree per start, picked above it.
+  const groups = useMemo(() => startGroups(chapter.variations), [chapter.variations]);
+  const [groupKey, setGroupKey] = useState(null);
+  const group = groups.find((g) => g.key === groupKey) ?? groups[0] ?? { key: 'start', startFen: null, variations: [] };
+  const startFen = group.startFen || START_FEN;
+  const setUps = groups.filter((g) => g.startFen);
+  const tree = useMemo(() => mergeVariations(group.variations), [group.variations]);
   // Nodes from the root down to where the board is standing.
   const [path, setPath] = useState([]);
   useBackGuard(true, onClose);
 
   const node = path.length ? path[path.length - 1] : tree;
   const sans = path.map((n) => n.san);
-  const fen = useMemo(() => lineFens(sans).slice(-1)[0], [sans.join(' ')]);
+  const fen = useMemo(() => lineFens(sans, startFen).slice(-1)[0], [sans.join(' '), startFen]); // eslint-disable-line react-hooks/exhaustive-deps
   const byId = useMemo(
     () => Object.fromEntries(chapter.variations.map((v) => [v.id, v])),
     [chapter.variations],
@@ -115,7 +123,7 @@ export default function TreeBrowser({
           <Board
             id="tree-browser"
             position={fen}
-            lastMove={lastMoveOf(Chess, sans, sans.length)}
+            lastMove={lastMoveOf(Chess, sans, sans.length, startFen)}
             boardOrientation={orientation}
             isDraggablePiece={({ piece }) => piece[0] === turn}
             onPieceDragBegin={(piece, square) => { setOffBook(null); setPicked(square); }}
@@ -145,14 +153,35 @@ export default function TreeBrowser({
             {onAnalyze && (
               <button
                 className="small ghost"
-                disabled={sans.length === 0}
+                // A set-up position is worth analysing before any move.
+                disabled={sans.length === 0 && !group.startFen}
                 title="Open this position on the analysis board"
-                onClick={() => onAnalyze(sans)}
+                onClick={() => onAnalyze(sans, group.startFen)}
               >
                 <MonitorIcon size={15} /> Analyze
               </button>
             )}
           </div>
+
+          {groups.length > 1 && (
+            <div className="tb-starts" role="tablist" aria-label="Where the lines start">
+              {groups.map((g) => (
+                <button
+                  key={g.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={g.key === group.key}
+                  className={`small${g.key === group.key ? ' primary' : ' ghost'}`}
+                  onClick={() => { setGroupKey(g.key); jump([]); }}
+                >
+                  {g.startFen
+                    ? `Set-up position${setUps.length > 1 ? ` ${setUps.indexOf(g) + 1}` : ''} · ${moveNumberLabel(0, g.startFen, '…')}`
+                    : 'From the start'}
+                  <span className="tb-starts-count"> · {g.variations.length}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* The moves played to get here — click any of them to stand there
               again, the way the breadcrumb of a folder works. */}
@@ -161,7 +190,7 @@ export default function TreeBrowser({
               className={`tb-crumb${path.length === 0 ? ' current' : ''}`}
               onClick={() => jump([])}
             >
-              Start
+              {group.startFen ? 'Set-up position' : 'Start'}
             </span>
             {path.map((n, i) => (
               <span
@@ -169,7 +198,9 @@ export default function TreeBrowser({
                 className={`tb-crumb${i === path.length - 1 ? ' current' : ''}`}
                 onClick={() => jump(path.slice(0, i + 1))}
               >
-                {isWhiteAt(i + 1) && <span className="mvnum">{moveNumberAt(i + 1)}.</span>}
+                {isWhiteAt(i + 1, startFen)
+                  ? <span className="mvnum">{moveNumberAt(i + 1, startFen)}.</span>
+                  : i === 0 && <span className="mvnum">{moveNumberAt(i + 1, startFen)}…</span>}
                 {n.san}
               </span>
             ))}
@@ -188,9 +219,9 @@ export default function TreeBrowser({
                   return (
                     <button key={child.key} className="tb-move" onClick={() => go(child)}>
                       <span className="tb-san">
-                        {isWhiteAt(path.length + 1)
-                          ? <span className="mvnum">{moveNumberAt(path.length + 1)}.</span>
-                          : <span className="mvnum">{moveNumberAt(path.length + 1)}…</span>}
+                        {isWhiteAt(path.length + 1, startFen)
+                          ? <span className="mvnum">{moveNumberAt(path.length + 1, startFen)}.</span>
+                          : <span className="mvnum">{moveNumberAt(path.length + 1, startFen)}…</span>}
                         {child.san}
                       </span>
                       <span className="tb-meta">

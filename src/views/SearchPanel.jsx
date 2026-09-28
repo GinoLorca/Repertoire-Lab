@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../store';
-import { movetextToLines, validateLine } from '../lib/pgn';
+import { parsePastedLine } from '../lib/pgnImport';
 import { rankVariationsByMoves, moveLabel } from '../lib/repertoire';
 import MoveText from '../components/MoveText';
 import { TagChips } from '../components/TagEditor';
@@ -120,16 +120,18 @@ export default function SearchPanel({ onClose, onOpenChapter, onAnalyze }) {
   // ---------- Move / PGN search ----------
   const moveSearch = useMemo(() => {
     if (mode !== 'moves' || !movesText.trim()) return null;
-    const lines = movetextToLines(movesText);
-    if (!lines.length) return { error: 'No moves found in that text.' };
-    const parsed = validateLine(lines[0].moves);
+    // A PGN set up from a position ([FEN …]) is searched from there.
+    const read = parsePastedLine(movesText);
+    if (read.error) return { error: read.error };
+    const { parsed, startFen } = read;
     if (parsed.moves.length === 0) {
       return { error: `Couldn't read a legal line — stuck at "${parsed.failedToken}".` };
     }
     return {
       moves: parsed.moves,
       partial: !parsed.ok ? parsed.failedToken : null,
-      results: rankVariationsByMoves(parsed.moves, state.openings).slice(0, 25),
+      startFen,
+      results: rankVariationsByMoves(parsed.moves, state.openings, startFen).slice(0, 25),
     };
   }, [mode, movesText, state.openings]);
 
@@ -244,7 +246,7 @@ export default function SearchPanel({ onClose, onOpenChapter, onAnalyze }) {
                 >
                   <div className="search-moves">
                     {variation.starred && <StarIcon size={13} filled className="star-inline" />}
-                    <MoveText moves={variation.moves.slice(0, 16)} />
+                    <MoveText moves={variation.moves.slice(0, 16)} startFen={variation.startFen} />
                     {variation.moves.length > 16 && <span className="muted-note">…</span>}
                   </div>
                   <TagChips tags={tags} max={4} />
@@ -276,7 +278,7 @@ export default function SearchPanel({ onClose, onOpenChapter, onAnalyze }) {
                 <>
                   <div className="search-parsed">
                     Searching <strong>{moveSearch.moves.length}</strong> moves:{' '}
-                    <MoveText moves={moveSearch.moves.slice(0, 20)} />
+                    <MoveText moves={moveSearch.moves.slice(0, 20)} startFen={moveSearch.startFen} />
                     {moveSearch.partial && (
                       <span className="status-busy"> · ignored from “{moveSearch.partial}”</span>
                     )}
@@ -294,7 +296,7 @@ export default function SearchPanel({ onClose, onOpenChapter, onAnalyze }) {
                       onOpen={() => open(opening.id, chapter.id)}
                     >
                       <div className="search-moves">
-                        <MoveText moves={variation.moves.slice(0, 18)} currentIndex={depth - 1} />
+                        <MoveText moves={variation.moves.slice(0, 18)} currentIndex={depth - 1} startFen={variation.startFen} />
                         {variation.moves.length > 18 && <span className="muted-note">…</span>}
                       </div>
                       <div className="status-line">

@@ -1,3 +1,5 @@
+import { sameStart, startFenOf, moveNumberLabel } from './startPos';
+
 // Sub-variations, the way the Library already shows them: a section is a
 // folder ("Classical (Mainline) Variation") and each sub-section in it is a
 // sub-variation (Tartakower, Karpov) — each a chapter of its own.
@@ -266,9 +268,12 @@ export function withFolderMates(opening, chapterId) {
 
 // ---------- Suggestions ----------
 
-// Moves every one of these lines starts with.
+// Moves every one of these lines starts with — none, unless they all start
+// from the same position: the same moves from a course's set-up position and
+// from the beginning aren't a shared start.
 export function stemOf(lines) {
   if (!lines.length) return [];
+  if (!lines.every((v) => sameStart(v, lines[0]))) return [];
   const first = lines[0].moves ?? [];
   let n = first.length;
   for (const v of lines) {
@@ -285,22 +290,26 @@ const sharedLength = (a, b) => {
   return n;
 };
 
-// "4.c4" / "3...Bf5" for the move at ply `i`.
-export function moveLabel(moves, i) {
-  const n = Math.floor(i / 2) + 1;
-  return i % 2 === 0 ? `${n}.${moves[i]}` : `${n}...${moves[i]}`;
+// "4.c4" / "3...Bf5" for the move at ply `i` — numbered from where the line
+// starts (`startFen`, lib/startPos).
+export function moveLabel(moves, i, startFen) {
+  return `${moveNumberLabel(i, startFen)}${moves[i]}`;
 }
 
 // The lines that go with this one: every line in the chapter that makes the
 // same move where the chapter's lines first part ways — all the 4.c4 lines
 // of an Exchange Variation chapter, say.
+//
+// Only lines from the same start as this one count: a line set up from a
+// position branches among the others from that position.
 export function branchOf(variations, id) {
   const me = variations.find((v) => v.id === id);
   if (!me) return { ids: [], label: null };
-  const at = stemOf(variations).length;
-  if (at >= me.moves.length || variations.length < 2) return { ids: [id], label: null };
-  const ids = variations.filter((v) => v.moves[at] === me.moves[at]).map((v) => v.id);
-  return { ids, label: moveLabel(me.moves, at) };
+  const peers = variations.filter((v) => sameStart(v, me));
+  const at = stemOf(peers).length;
+  if (at >= me.moves.length || peers.length < 2) return { ids: [id], label: null };
+  const ids = peers.filter((v) => v.moves[at] === me.moves[at]).map((v) => v.id);
+  return { ids, label: moveLabel(me.moves, at, startFenOf(me)) };
 }
 
 // A line's name without its own last detail: "…Panov Attack: 5.Nf3" and
@@ -341,9 +350,11 @@ export function suggestName(chapter, ids) {
     const rest = mine.slice(n).join(' ').replace(/^[\s:;,.–—-]+/, '').trim();
     if (rest) return rest;
   }
+  // Where the chosen lines leave the rest of the chapter's lines from the
+  // same start (a chapter can also hold lines set up from a position).
   const stem = stemOf(chosen);
-  const shared = stemOf(chapter.variations).length;
-  return stem.length > shared ? moveLabel(stem, shared) : '';
+  const shared = stemOf(chapter.variations.filter((v) => sameStart(v, chosen[0]))).length;
+  return stem.length > shared ? moveLabel(stem, shared, startFenOf(chosen[0])) : '';
 }
 
 function mostCommon(list) {
@@ -357,12 +368,21 @@ function mostCommon(list) {
 // Variation, both starting 1.e4 c6 2.d4 d5 3.exd5 cxd5.
 // Only a clear winner: two sharing the same moves is no suggestion at all.
 export function suggestParent(candidates, chapter) {
-  const mine = stemOf(chapter.variations);
+  // Judged on the chapter's lines from its commonest start — usually the
+  // normal one — against the candidate's lines from that same start.
+  const groups = [];
+  for (const v of chapter.variations) {
+    const g = groups.find((x) => sameStart(x[0], v));
+    if (g) g.push(v); else groups.push([v]);
+  }
+  const home = groups.reduce((a, b) => (b.length > a.length ? b : a), []);
+  const mine = stemOf(home);
   let best = null;
   let bestN = 0;
   let tied = false;
   for (const cand of candidates) {
-    const n = sharedLength(mine, stemOf(cand.lines));
+    const theirs = home.length ? cand.lines.filter((v) => sameStart(v, home[0])) : [];
+    const n = theirs.length ? sharedLength(mine, stemOf(theirs)) : 0;
     if (n > bestN) { best = cand.key; bestN = n; tied = false; } else if (n === bestN && n > 0) tied = true;
   }
   return tied ? null : best;

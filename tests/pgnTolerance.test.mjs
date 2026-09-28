@@ -62,7 +62,7 @@ test('signs that come before a move nobody played, and "N f3", stop the line whe
 });
 
 test('a row that can\'t be added takes no name from a line that can', () => {
-  const pgn = '[Event "Ch"]\n[White "Idea"]\n[FEN "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"]\n\n2. Nf3 *\n\n'
+  const pgn = '[Event "Ch"]\n[White "Idea"]\n[FEN "not a position"]\n\n2. Nf3 *\n\n'
     + '[Event "Ch"]\n[White "Idea"]\n\n1. e4 e5 *\n\n[Event "Ch"]\n[White "Idea"]\n\n1. d4 d5 *';
   assert.deepEqual(
     pgnTextToEntries(pgn, { includeUnusable: true }).map((e) => [e.name, e.moves.length]),
@@ -84,18 +84,24 @@ test('tag lines with stray spaces are still tags; "?" and spaces don\'t make cha
   assert.deepEqual(entries.map((e) => [e.name, e.event]), [['L1', 'Ch'], ['L2', null], ['L3', 'Ch']]);
 });
 
-test('a game the app can\'t use is listed with why, never played from the wrong position', () => {
+test('a game the app can\'t use is listed with why; a set-up game keeps its start', () => {
+  const setUpFen = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2';
   const pgn = [
-    '[Event "A"]\n[White "Set up"]\n[SetUp "1"]\n[FEN "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2"]\n\n2. Nf3 Nc6 *',
+    `[Event "A"]\n[White "Set up"]\n[SetUp "1"]\n[FEN "${setUpFen}"]\n\n2. Nf3 Nc6 *`,
     '[Event "A"]\n[White "Normal start"]\n[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]\n\n1. e4 e5 *',
     '[Event "A"]\n[White "Bad first move"]\n\n1. e5 e4 *',
+    '[Event "A"]\n[White "Bad FEN"]\n[FEN "not a position"]\n\n1. e4 *',
+    '[Event "A"]\n[White "960"]\n[Variant "Chess960"]\n[FEN "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1"]\n\n1. g3 *',
   ].join('\n\n');
   const listed = pgnTextToEntries(pgn, { includeUnusable: true });
-  assert.deepEqual(listed.map((e) => [e.name, e.moves.length, e.unusable ?? null]), [
-    ['Set up', 0, 'starts from a set-up position'],
-    ['Normal start', 2, null],
-    ['Bad first move', 0, 'can’t read its first move, “e5”'],
+  assert.deepEqual(listed.map((e) => [e.name, e.moves.length, e.startFen ?? null, e.unusable ?? null]), [
+    ['Set up', 2, setUpFen, null],
+    ['Normal start', 2, null, null],
+    ['Bad first move', 0, null, 'can’t read its first move, “e5”'],
+    ['Bad FEN', 0, null, 'its set-up position (FEN) can’t be read'],
+    ['960', 0, null, 'is a Chess960 game'],
   ]);
   // Anywhere else (Analysis), only what can be played.
-  assert.deepEqual(pgnTextToEntries(pgn).map((e) => e.name), ['Normal start']);
+  assert.deepEqual(pgnTextToEntries(pgn).map((e) => e.name), ['Set up', 'Normal start']);
 });
+

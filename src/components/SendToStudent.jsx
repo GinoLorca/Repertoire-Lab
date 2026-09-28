@@ -202,7 +202,7 @@ export default function SendToStudent({
                             state={chosen.has(v.id) ? 'all' : 'none'}
                             onChange={(on) => setMany([v.id], on)}
                             label={v.name}
-                            sub={(v.moves ?? []).slice(0, 6).join(' ')}
+                            sub={`${v.startFen ? 'From position · ' : ''}${(v.moves ?? []).slice(0, 6).join(' ')}`}
                           />
                         </div>
                       ))}

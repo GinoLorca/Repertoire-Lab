@@ -1,13 +1,17 @@
-import { Chess } from 'chess.js';
+import {
+  START_FEN, startFenOf, newGameAt, moveNumberLabel, fen4,
+} from './startPos';
 
 // How many opening moves two lines share. Compared by position rather than by
 // notation, so a different move order that reaches the same place still counts
-// as "the same so far".
-export function sharedPrefix(a = [], b = []) {
-  const ca = new Chess();
-  const cb = new Chess();
+// as "the same so far". Lines from different starts (one set up from a
+// position) share nothing.
+export function sharedPrefix(a = [], b = [], aStart = START_FEN, bStart = START_FEN) {
+  const ca = newGameAt(aStart);
+  const cb = newGameAt(bStart);
+  const key = (c) => fen4(c.fen());
+  if (key(ca) !== key(cb)) return 0;
   let n = 0;
-  const key = (c) => c.fen().split(' ').slice(0, 4).join(' ');
   while (n < a.length && n < b.length) {
     try {
       ca.move(a[n]);
@@ -24,7 +28,9 @@ export function sharedPrefix(a = [], b = []) {
 // Everything about how two lines relate: where they part company, what each
 // plays at that moment, and how much of each line is left afterwards.
 export function diverge(a, b) {
-  const at = sharedPrefix(a?.moves ?? [], b?.moves ?? []);
+  const aStart = startFenOf(a);
+  const bStart = startFenOf(b);
+  const at = sharedPrefix(a?.moves ?? [], b?.moves ?? [], aStart, bStart);
   const aMove = a?.moves?.[at] ?? null;
   const bMove = b?.moves?.[at] ?? null;
   return {
@@ -36,6 +42,8 @@ export function diverge(a, b) {
     aRest: (a?.moves ?? []).slice(at),
     bRest: (b?.moves ?? []).slice(at),
     maxLen: Math.max(a?.moves?.length ?? 0, b?.moves?.length ?? 0),
+    // Lines from two different positions don't part anywhere: they never met.
+    sameStart: fen4(newGameAt(aStart).fen()) === fen4(newGameAt(bStart).fen()),
   };
 }
 
@@ -57,7 +65,9 @@ export function siblingsOf(target, openings, limit = 40) {
   return allVariations(openings)
     .filter((it) => it.variation.id !== target.variation.id)
     .map((it) => {
-      const at = sharedPrefix(target.variation.moves, it.variation.moves);
+      const at = sharedPrefix(
+        target.variation.moves, it.variation.moves, startFenOf(target.variation), startFenOf(it.variation),
+      );
       return {
         ...it,
         at,
@@ -74,9 +84,9 @@ export function siblingsOf(target, openings, limit = 40) {
     .slice(0, limit);
 }
 
-// Positions after each move, starting from the initial position.
-export function fensFor(moves = []) {
-  const chess = new Chess();
+// Positions after each move, starting from the line's start.
+export function fensFor(moves = [], startFen = START_FEN) {
+  const chess = newGameAt(startFen);
   const out = [chess.fen()];
   for (const san of moves) {
     try { chess.move(san); } catch { break; }
@@ -86,9 +96,9 @@ export function fensFor(moves = []) {
 }
 
 // from/to squares of one move, for drawing the arrow that marks a split.
-export function moveSquares(moves, ply) {
+export function moveSquares(moves, ply, startFen = START_FEN) {
   if (ply == null || ply < 0 || ply >= moves.length) return null;
-  const chess = new Chess();
+  const chess = newGameAt(startFen);
   for (let i = 0; i < ply; i += 1) {
     try { chess.move(moves[i]); } catch { return null; }
   }
@@ -100,5 +110,5 @@ export function moveSquares(moves, ply) {
   }
 }
 
-// "4." for White's move, "4…" for Black's.
-export const plyLabel = (ply) => `${Math.floor(ply / 2) + 1}${ply % 2 === 0 ? '.' : '…'}`;
+// "4." for White's move, "4…" for Black's — from where the line starts.
+export const plyLabel = (ply, startFen = START_FEN) => moveNumberLabel(ply, startFen, '…');

@@ -9,6 +9,25 @@
 // Shape: { san, key, children, lines, ends } where `lines` is every variation
 // id that plays through this move and `ends` the ones that finish on it. The
 // root carries no move and holds every line.
+//
+// Lines set up from a position ([FEN …], lib/startPos) only share moves with
+// lines from that same position, so a chapter is split by where its lines
+// start first (startGroups) and each group is its own tree.
+
+import { fen4, isWhiteMove, moveNumberOf } from './startPos';
+
+// A chapter's lines by where they start: [{ key, startFen, variations }], the
+// ones from the normal start (startFen null) first, then each set-up position
+// in the order its first line appears.
+export function startGroups(variations = []) {
+  const groups = new Map();
+  for (const v of variations) {
+    const key = v.startFen ? fen4(v.startFen) : 'start';
+    if (!groups.has(key)) groups.set(key, { key, startFen: v.startFen || null, variations: [] });
+    groups.get(key).variations.push(v);
+  }
+  return [...groups.values()].sort((a, b) => (a.startFen ? 1 : 0) - (b.startFen ? 1 : 0));
+}
 
 export function mergeVariations(variations = []) {
   const root = {
@@ -34,9 +53,10 @@ export function mergeVariations(variations = []) {
 }
 
 // Where a node sits in the move numbering. `depth` is how many moves have been
-// played to reach it, so the root is 0 and its children are White's first.
-export const moveNumberAt = (depth) => Math.floor((depth - 1) / 2) + 1;
-export const isWhiteAt = (depth) => depth % 2 === 1;
+// played to reach it, so the root is 0 and its children are the first move
+// from the tree's start — White's first, unless it was set up otherwise.
+export const moveNumberAt = (depth, startFen) => moveNumberOf(depth - 1, startFen);
+export const isWhiteAt = (depth, startFen) => isWhiteMove(depth - 1, startFen);
 
 // The first place below `node` where the lines running through it disagree —
 // what you'd have to walk past to learn anything new. Returns the nodes in
@@ -73,7 +93,10 @@ export function treeMove(Chess, node, fen, depth, from, to) {
   if (!options.length) return null;
   const child = node.children.find((c) => options.some((m) => bare(m.san) === bare(c.san)));
   if (child) return { child };
-  const label = (san) => `${moveNumberAt(depth + 1)}${isWhiteAt(depth + 1) ? '.' : '…'}${san}`;
+  // Numbered from the position itself, wherever the tree started.
+  const parts = String(fen).trim().split(/\s+/);
+  const number = Math.max(1, parseInt(parts[5], 10) || 1);
+  const label = (san) => `${number}${parts[1] === 'b' ? '…' : '.'}${san}`;
   const san = (options.find((m) => !m.promotion || m.promotion === 'q') ?? options[0]).san;
   return { offBook: { san: label(san), theirs: node.children.map((c) => label(c.san)) } };
 }

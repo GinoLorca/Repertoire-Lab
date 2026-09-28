@@ -11,6 +11,7 @@ import {
 } from './lib/subVariations';
 import { arrangeTop, arrangeFolder, gatherIntoFolder } from './lib/chapterOrder';
 import { parseMarks, withText, withMarks } from './lib/marks';
+import { canonicalStartFen, fen4 } from './lib/startPos';
 
 const STORAGE_KEY = 'repertoire-lab-state-v1';
 
@@ -397,7 +398,9 @@ function reduce(state, action) {
           // same name and moves — isn't sent again: after the coach moves
           // lines to a sub-variation, a re-send would otherwise hand the
           // student a second copy in the new chapter.
-          const lineKey = (v) => `${v.name.trim().toLowerCase()}|${(v.moves ?? []).join(' ')}`;
+          // (Where it starts counts too: the same moves from a set-up
+          // position are a different line.)
+          const lineKey = (v) => `${v.name.trim().toLowerCase()}|${v.startFen ? fen4(v.startFen) : ''}|${(v.moves ?? []).join(' ')}`;
           const haveAnywhere = new Set(existing.chapters.flatMap((c) => c.variations.map(lineKey)));
           for (const ch of source.chapters) {
             const mine = chapters.find((c) => sameName(c.name, ch.name));
@@ -722,15 +725,20 @@ function reduce(state, action) {
         chapters: o.chapters.filter((c) => c.id !== action.chapterId),
       }));
     case 'addVariations': {
-      const fresh = action.variations.map((v) => ({
-        id: uid(),
-        name: v.name || 'Variation',
-        moves: v.moves,
-        comments: v.comments ?? {},
-        badges: v.badges ?? {},
-        learned: false,
-        srs: null,
-      }));
+      const fresh = action.variations.map((v) => {
+        // A line set up from a position keeps where it starts (lib/startPos).
+        const startFen = canonicalStartFen(v.startFen);
+        return {
+          id: uid(),
+          name: v.name || 'Variation',
+          moves: v.moves,
+          comments: v.comments ?? {},
+          badges: v.badges ?? {},
+          ...(startFen ? { startFen } : {}),
+          learned: false,
+          srs: null,
+        };
+      });
       return mapChapter(state, action.openingId, action.chapterId, (c) => ({
         ...c,
         variations: [...c.variations, ...fresh],

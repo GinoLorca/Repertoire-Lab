@@ -411,6 +411,8 @@ function AppInner() {
         // up: the board itself always knew how to display them.
         comments: line.comments ?? null,
         badges: line.badges ?? null,
+        // A line set up from a position is analysed from there.
+        startFen: line.startFen ?? null,
         // Arrows/highlights saved from a previous Studio "Save changes" —
         // see AnalysisView's annotations state.
         annotations: line.annotations ?? null,

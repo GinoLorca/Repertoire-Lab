@@ -1,6 +1,8 @@
-import { Chess } from 'chess.js';
 import { badgeIdForNag, badgeIdForGlyph, badgeSuffix, BADGE_BY_ID } from './badges';
 import { withoutArrow } from './marks';
+import {
+  START_FEN, newGameAt, replay, isWhiteMove, moveNumberOf, canonicalStartFen,
+} from './startPos';
 
 // ---------- Tokenizing movetext ----------
 
@@ -149,7 +151,7 @@ const joined = (a, b) => (a ? `${a} ${b}` : b);
 // from the position before move k was played; its own leading comment is
 // about that position, so it goes on the move before (or, at the very
 // start, on the starting position).
-function expandTree(moves, prefix, lead = null, prefixLead = null) {
+function expandTree(moves, prefix, lead = null, prefixLead = null, startFen = START_FEN) {
   const sublines = [];
   const mainLine = [...prefix];
   let startLead = prefixLead;
@@ -183,7 +185,7 @@ function expandTree(moves, prefix, lead = null, prefixLead = null) {
       // (Only worked out when there's an arrow to check — replaying the moves
       // for every branch of a big course would be slow for nothing.)
       const inherited = mainLine.length ? mainLine[mainLine.length - 1].comment : startLead;
-      const replaced = inherited?.includes('%cal') ? squaresOf(mainLine.map((x) => x.san), m.san) : null;
+      const replaced = inherited?.includes('%cal') ? squaresOf(mainLine.map((x) => x.san), m.san, startFen) : null;
       let branchLine = mainLine;
       let branchLead = startLead;
       if (replaced) {
@@ -196,7 +198,7 @@ function expandTree(moves, prefix, lead = null, prefixLead = null) {
         }
       }
       for (const v of m.variations) {
-        sublines.push(...expandTree(v.moves, [...branchLine], v.lead, branchLead));
+        sublines.push(...expandTree(v.moves, [...branchLine], v.lead, branchLead, startFen));
       }
     }
     mainLine.push({ san: m.san, comment: m.comment, badge: m.badge });
@@ -204,11 +206,12 @@ function expandTree(moves, prefix, lead = null, prefixLead = null) {
   return [{ items: mainLine, lead: startLead }, ...sublines];
 }
 
-// { from, to } of `san` played after `sans`, or null if any of it is illegal.
-function squaresOf(sans, san) {
-  const game = new Chess();
+// { from, to } of `san` played after `sans` (from `startFen`), or null if any
+// of it is illegal.
+function squaresOf(sans, san, startFen) {
+  const { game, played } = replay(sans, startFen);
+  if (played.length !== sans.length) return null;
   try {
-    for (const x of sans) if (!game.move(x)) return null;
     const mv = game.move(san);
     return mv ? { from: mv.from, to: mv.to } : null;
   } catch {
@@ -221,11 +224,13 @@ function squaresOf(sans, san) {
 // Handles comments, NAGs, annotation glyphs, move numbers, results, and
 // nested variations (each branch = its own line).
 // Comments keep their [%cal]/[%csl] arrow and square codes (lib/marks.js);
-// the starting position's comment is keyed -1.
-export function movetextToLines(movetext) {
+// the starting position's comment is keyed -1. `startFen`: a game set up from
+// a position ([FEN …]) — its moves are read from there, whatever numbers the
+// movetext gives them.
+export function movetextToLines(movetext, { startFen = START_FEN } = {}) {
   const tokens = tokenize(movetext);
   const { moves, lead } = parseSequence(tokens, 0);
-  return expandTree(moves, [], lead)
+  return expandTree(moves, [], lead, null, startFen || START_FEN)
     .filter(({ items }) => items.length > 0)
     .map(({ items, lead: start }) => ({
       moves: items.map((x) => x.san),
@@ -241,10 +246,11 @@ export function movetextToLines(movetext) {
 
 // ---------- Validation ----------
 
-// Try to apply a sequence of SAN tokens. Returns normalized SANs on success,
-// or the index of the first token that isn't a legal move.
-export function validateLine(sans) {
-  const chess = new Chess();
+// Try to apply a sequence of SAN tokens (from `startFen`, the normal start by
+// default). Returns normalized SANs on success, or the index of the first
+// token that isn't a legal move.
+export function validateLine(sans, startFen = START_FEN) {
+  const chess = newGameAt(startFen);
   const moves = [];
   for (let i = 0; i < sans.length; i += 1) {
     let mv = null;
@@ -257,12 +263,16 @@ export function validateLine(sans) {
   return { ok: true, moves };
 }
 
-// FEN after each move of a validated line (index 0 = start position).
-export function lineFens(moves) {
-  const chess = new Chess();
+// FEN after each move of a line (index 0 = its start position), as far as its
+// moves can be played — a move that can't stops it, rather than throwing
+// while a board is being drawn.
+export function lineFens(moves, startFen = START_FEN) {
+  const chess = newGameAt(startFen);
   const fens = [chess.fen()];
   for (const san of moves) {
-    chess.move(san);
+    let mv = null;
+    try { mv = chess.move(san); } catch { mv = null; }
+    if (!mv) break;
     fens.push(chess.fen());
   }
   return fens;
@@ -295,7 +305,9 @@ export function splitPgnGames(text) {
 
 // ---------- Generation ----------
 
-export function movesToMovetext(moves, comments = {}, badges = {}) {
+// Numbered from where the line starts: a line set up with Black to move at
+// move 12 reads "12...e4 13.Nd2 …".
+export function movesToMovetext(moves, comments = {}, badges = {}, startFen = START_FEN) {
   const parts = [];
   let forceNumber = false;
   // The starting position's comment (and arrows) before the first move.
@@ -309,8 +321,9 @@ export function movesToMovetext(moves, comments = {}, badges = {}) {
     const badge = BADGE_BY_ID[badges?.[i]];
     const suffix = badgeSuffix(badge);
     const sanOut = suffix ? `${san}${suffix}` : san;
-    if (i % 2 === 0) parts.push(`${i / 2 + 1}.${sanOut}`);
-    else if (forceNumber) parts.push(`${(i - 1) / 2 + 1}...${sanOut}`);
+    const n = moveNumberOf(i, startFen);
+    if (isWhiteMove(i, startFen)) parts.push(`${n}.${sanOut}`);
+    else if (forceNumber || i === 0) parts.push(`${n}...${sanOut}`);
     else parts.push(sanOut);
     forceNumber = false;
     if (suffix && badge.nag != null) parts.push(`$${badge.nag}`);
@@ -339,8 +352,12 @@ export function variationToPgn(variation, { event, white, black }) {
     ['Black', black || '?'],
     ['Result', '*'],
   ];
+  // A line set up from a position says so, the way any PGN does.
+  const startFen = canonicalStartFen(variation.startFen);
+  if (startFen) headers.push(['SetUp', '1'], ['FEN', startFen]);
   const headerText = headers.map(([k, v]) => `[${k} "${v.replace(/"/g, "'")}"]`).join('\n');
-  return `${headerText}\n\n${movesToMovetext(variation.moves, variation.comments, variation.badges)} *\n`;
+  const movetext = movesToMovetext(variation.moves, variation.comments, variation.badges, startFen ?? START_FEN);
+  return `${headerText}\n\n${movetext} *\n`;
 }
 
 export function chapterToPgn(opening, chapter) {

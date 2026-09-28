@@ -3,6 +3,7 @@ import { pgnTextToEntries } from '../lib/pgnImport';
 import { useBackGuard } from '../lib/backGuard';
 import { parseStudyUrl, fetchStudyPgn } from '../lib/lichess';
 import { countMarks } from '../lib/marks';
+import { moveNumberLabel } from '../lib/startPos';
 import PgnMarksHint from './PgnMarksHint';
 import { UploadIcon, ClipboardIcon, AlertIcon, LinkIcon } from './Icons';
 
@@ -29,6 +30,8 @@ function ImportRow({ entry: e, skip, setSkip, names, setNames }) {
         onChange={(ev) => setNames((n) => ({ ...n, [e.id]: ev.target.value }))}
       />
       <span className="import-moves">
+        {/* A line set up from a position says where it starts: "12… Nf6 …". */}
+        {e.startFen && <span className="from-position" title={e.startFen}>From position · {moveNumberLabel(0, e.startFen, '…')} </span>}
         {e.moves.slice(0, 8).join(' ')}{e.moves.length > 8 ? '…' : ''}
         <span className="muted-note"> · {e.moves.length} moves</span>
       </span>
@@ -128,6 +131,7 @@ export default function PgnImport({ chapterName, courseName, onAdd, onClose }) {
     moves: e.moves,
     comments: e.comments,
     badges: e.badges,
+    ...(e.startFen ? { startFen: e.startFen } : {}),
   });
 
   const add = () => {

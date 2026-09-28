@@ -7,7 +7,7 @@ import MoveText from '../components/MoveText';
 import ScanProgress from '../components/ScanProgress';
 import PgnMarksHint from '../components/PgnMarksHint';
 import {
-  splitLooseBlocks, nameFor, eventOf, fromSetUpPosition,
+  splitLooseBlocks, gameEntries,
 } from '../lib/pgnImport';
 import {
   CameraIcon, ClipboardIcon, FolderIcon, PencilIcon, AlertIcon, DownloadIcon,
@@ -366,33 +366,11 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
 
   // ---------- PGN file handling ----------
 
-  const pgnGamesToEntries = (games) => {
-    const entries = [];
-    games.forEach((game, gi) => {
-      const h = game.headers;
-      // Named the same way Add PGN names them — a course's line name is
-      // usually in White alone, with Black "?".
-      const baseName = nameFor(h, gi);
-      // Lines here all start from the normal starting position; a game set
-      // up from another can't be played as written.
-      if (fromSetUpPosition(h)) return;
-      const lines = movetextToLines(game.movetext);
-      lines.forEach((line, li) => {
-        const result = validateLine(line.moves);
-        if (result.moves.length === 0) return;
-        entries.push({
-          id: uid(),
-          cardId: 'pgn',
-          name: lines.length > 1 && li > 0 ? `${baseName} (alt ${li})` : baseName,
-          event: eventOf(h),
-          comments: line.comments,
-          badges: line.badges,
-          ...result,
-        });
-      });
-    });
-    return entries;
-  };
+  // Read the same way Add PGN reads them — names, chapters, and a game set up
+  // from a position ([FEN …]) keeping its start.
+  const pgnGamesToEntries = (games) => gameEntries(games)
+    .filter((e) => e.moves.length > 0)
+    .map((e) => ({ ...e, id: uid(), cardId: 'pgn' }));
 
   const loadPgnFile = async (file) => {
     const text = await file.text();
@@ -448,14 +426,25 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
     downloadText('converted.pgn', pgn);
   };
 
+  // A game record always starts from the beginning; a line set up from a
+  // position belongs in a chapter, not a game history — it's neither counted
+  // nor saved here, and it stays on the list to be added to a chapter.
+  const gamesToSave = validPending.filter((e) => !e.startFen);
+  const setUpLeft = validPending.length - gamesToSave.length;
+
   const saveToGames = () => {
     let playerId = playerSel;
     if (playerSel === '__new') {
       playerId = uid();
       dispatch({ type: 'addPlayer', id: playerId, name: newPlayerName.trim() });
     }
-    for (const entry of validPending) {
+    for (const entry of gamesToSave) {
       dispatch({ type: 'addGame', playerId, game: { name: entry.name, moves: entry.moves, comments: entry.comments } });
+    }
+    if (setUpLeft > 0) {
+      const saved = new Set(gamesToSave.map((e) => e.id));
+      setPending((p) => p.filter((e) => !saved.has(e.id)));
+      return;
     }
     setPending([]);
     setCards([]);
@@ -463,7 +452,7 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
   };
 
   const canSaveGames =
-    validPending.length > 0 &&
+    gamesToSave.length > 0 &&
     (playerSel === '__new' ? newPlayerName.trim() : playerSel);
 
   const selectedOpening = state.openings.find((o) => o.id === openingSel);
@@ -799,7 +788,8 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
                 </button>
               </div>
               <div className="variation-moves" style={{ cursor: 'default' }}>
-                <MoveText moves={entry.moves} comments={entry.comments} badges={entry.badges} />
+                {entry.startFen && <span className="from-position" title={entry.startFen}>From a set-up position · </span>}
+                <MoveText moves={entry.moves} comments={entry.comments} badges={entry.badges} startFen={entry.startFen} />
                 {!entry.ok && <span className="status-bad"> ✗ {entry.failedToken}</span>}
               </div>
               <StatusLine entry={entry} />
@@ -810,6 +800,7 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
                     title="Open this game on the analysis board — it identifies which of your openings it follows"
                     onClick={() => onAnalyze({
                       name: entry.name, moves: entry.moves, comments: entry.comments, badges: entry.badges,
+                      startFen: entry.startFen ?? null,
                     })}
                   >
                     ⇢ Analyze game
@@ -844,7 +835,7 @@ export default function ImportView({ onDone, onAnalyze, onVerify, resumePhoto, o
               )}
               <span style={{ flex: 1 }} />
               <button className="primary" disabled={!canSaveGames} onClick={saveToGames}>
-                Save {validPending.length} game{validPending.length === 1 ? '' : 's'} to history
+                Save {gamesToSave.length} game{gamesToSave.length === 1 ? '' : 's'} to history
               </button>
             </div>
           )}

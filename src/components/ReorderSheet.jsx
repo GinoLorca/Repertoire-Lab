@@ -14,7 +14,12 @@ import { useBackGuard } from '../lib/backGuard';
 
 // Moves compared move by move, so 3...Bf5 lines sit together and a shorter
 // line comes before the longer lines that continue it.
+// Lines from the normal start first, then each set-up position's lines
+// together (`start`: 0 for the normal start, 1… in the order each set-up
+// position first appears); moves are only compared between lines that share
+// a start.
 function byMoves(a, b) {
+  if ((a.start ?? 0) !== (b.start ?? 0)) return (a.start ?? 0) - (b.start ?? 0);
   const n = Math.min(a.moves.length, b.moves.length);
   for (let i = 0; i < n; i += 1) {
     if (a.moves[i] !== b.moves[i]) return a.moves[i] < b.moves[i] ? -1 : 1;

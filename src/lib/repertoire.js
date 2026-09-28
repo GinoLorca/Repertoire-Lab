@@ -1,4 +1,6 @@
-import { Chess } from 'chess.js';
+import {
+  START_FEN, startFenOf, newGameAt, moveNumberLabel,
+} from './startPos';
 
 // Position key: piece placement + side to move + castling + en passant.
 export const fen4 = (fen) => fen.split(' ').slice(0, 4).join(' ');
@@ -6,7 +8,9 @@ export const fen4 = (fen) => fen.split(' ').slice(0, 4).join(' ');
 // Index every position reached in every repertoire line.
 // Map: fen4 -> [{ opening, chapter, variation, ply }]
 // ply = number of moves played to reach the position (variation.moves[ply] is
-// the repertoire's next move from there, when it exists).
+// the repertoire's next move from there, when it exists) — counted from where
+// the line starts, so a line set up from a position is joined at that
+// position, ply 0.
 export function buildPositionIndex(openings) {
   const map = new Map();
   const add = (key, entry) => {
@@ -16,7 +20,7 @@ export function buildPositionIndex(openings) {
   for (const opening of openings) {
     for (const chapter of opening.chapters) {
       for (const variation of chapter.variations) {
-        const chess = new Chess();
+        const chess = newGameAt(startFenOf(variation));
         add(fen4(chess.fen()), { opening, chapter, variation, ply: 0 });
         for (let i = 0; i < variation.moves.length; i += 1) {
           try { chess.move(variation.moves[i]); } catch { break; }
@@ -44,9 +48,10 @@ export function bookMovesAt(index, fen) {
 }
 
 // Walk a game against the repertoire: how deep does it stay "in book",
-// which line does it match best, and where/how did it deviate?
-export function matchGameToRepertoire(moves, index) {
-  const chess = new Chess();
+// which line does it match best, and where/how did it deviate? `startFen`:
+// where the game on the board begins (a position set up in Analysis).
+export function matchGameToRepertoire(moves, index, startFen = START_FEN) {
+  const chess = newGameAt(startFen);
   let depth = 0; // number of game moves that stayed within the repertoire
   let lastHits = index.get(fen4(chess.fen())) ?? [];
   let deviation = null;
@@ -81,9 +86,9 @@ export function matchGameToRepertoire(moves, index) {
   };
 }
 
-// Positions a line passes through, as position keys (index 0 = start).
-function fenTrail(moves) {
-  const chess = new Chess();
+// Positions a line passes through, as position keys (index 0 = its start).
+function fenTrail(moves, startFen = START_FEN) {
+  const chess = newGameAt(startFen);
   const trail = [fen4(chess.fen())];
   for (const san of moves) {
     try { chess.move(san); } catch { break; }
@@ -95,14 +100,17 @@ function fenTrail(moves) {
 // Rank every variation by how far it walks in step with the given moves.
 // Compares positions rather than move text, so a different move order that
 // reaches the same position still counts as a match.
-export function rankVariationsByMoves(moves, openings) {
-  const inputTrail = fenTrail(moves);
+export function rankVariationsByMoves(moves, openings, startFen = START_FEN) {
+  const inputTrail = fenTrail(moves, startFen);
   const results = [];
 
   for (const opening of openings) {
     for (const chapter of opening.chapters) {
       for (const variation of chapter.variations) {
-        const trail = fenTrail(variation.moves);
+        const trail = fenTrail(variation.moves, startFenOf(variation));
+        // Lines only walk in step from the same start: one set up from a
+        // position isn't a match for moves played from the beginning.
+        if (trail[0] !== inputTrail[0]) continue;
         let common = 0;
         while (
           common + 1 < inputTrail.length
@@ -129,7 +137,7 @@ export function rankVariationsByMoves(moves, openings) {
   return results.sort((a, b) => b.depth - a.depth || a.variation.moves.length - b.variation.moves.length);
 }
 
-export function moveLabel(ply) {
-  // ply = 0-based index of a move in the game
-  return `${Math.floor(ply / 2) + 1}${ply % 2 === 0 ? '.' : '…'}`;
+export function moveLabel(ply, startFen = START_FEN) {
+  // ply = 0-based index of a move from `startFen` (the game's start by default)
+  return moveNumberLabel(ply, startFen, '…');
 }

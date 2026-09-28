@@ -41,7 +41,7 @@ export const LAST_MOVE_STYLE = { backgroundColor: 'rgba(245, 205, 78, 0.42)' };
 export function lastMoveOf(Chess, moves, ply, startFen) {
   if (!moves?.length || !ply) return null;
   try {
-    const board = startFen ? new Chess(startFen) : new Chess();
+    const board = startFen ? new Chess(startFen) : new Chess(); // a bad FEN throws: caught below
     for (let i = 0; i < ply - 1; i += 1) board.move(moves[i]);
     const mv = board.move(moves[ply - 1]);
     return mv ? { from: mv.from, to: mv.to } : null;
