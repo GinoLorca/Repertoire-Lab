@@ -87,6 +87,19 @@ export const PRESETS = {
     label: 'Tom & Jerry',
     fen: '8/8/8/3R4/4b3/8/8/8 w - - 0 1',
   },
+  halfwayChess: {
+    // The starting position with the knights, queens and kings taken off:
+    // rooks, bishops and pawns on their home squares. No king, so no
+    // castling rights to carry.
+    label: 'Halfway Chess',
+    fen: 'r1b2b1r/pppppppp/8/8/8/8/PPPPPPPP/R1B2B1R w - - 0 1',
+  },
+  almostChess: {
+    // The starting position with only the knights taken off. Kings and rooks
+    // are still home, so both sides keep their castling rights.
+    label: 'Almost Chess',
+    fen: 'r1bqkb1r/pppppppp/8/8/8/8/PPPPPPPP/R1BQKB1R w KQkq - 0 1',
+  },
   kingsideBoth: {
     // 1.Nf3 Nf6 2.g3 g6 3.Bg2 Bg7 4.O-O O-O
     label: 'Kingside castled (both)',

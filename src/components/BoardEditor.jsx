@@ -690,6 +690,8 @@ export default function BoardEditor({
           <div className="editor-row">
             <button className="small ghost" onClick={() => loadFresh(PRESETS.pawnRace.fen)}>Pawn race</button>
             <button className="small ghost" onClick={() => loadFresh(PRESETS.tomAndJerry.fen)}>Tom &amp; Jerry</button>
+            <button className="small ghost" onClick={() => loadFresh(PRESETS.halfwayChess.fen)}>Halfway Chess</button>
+            <button className="small ghost" onClick={() => loadFresh(PRESETS.almostChess.fen)}>Almost Chess</button>
             <button className="small ghost" onClick={() => loadFresh(PRESETS.kingsideBoth.fen)}>Kingside castled</button>
             <button className="small ghost" onClick={() => loadFresh(PRESETS.queensideBoth.fen)}>Queenside castled</button>
           </div>
