@@ -81,6 +81,12 @@ export const PRESETS = {
     label: 'Pawn race',
     fen: '8/pppppppp/8/8/8/8/PPPPPPPP/8 w - - 0 1',
   },
+  tomAndJerry: {
+    // A white rook on d5 chasing a black bishop on e4, and nothing else: the
+    // cat-and-mouse drill for how a long-range piece hunts down another.
+    label: 'Tom & Jerry',
+    fen: '8/8/8/3R4/4b3/8/8/8 w - - 0 1',
+  },
   kingsideBoth: {
     // 1.Nf3 Nf6 2.g3 g6 3.Bg2 Bg7 4.O-O O-O
     label: 'Kingside castled (both)',
