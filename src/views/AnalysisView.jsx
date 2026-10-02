@@ -279,6 +279,8 @@ export default function AnalysisView({
   const showEvalBar = state.settings.evalBar !== false;
   const showEngineLines = state.settings.engineLines !== false;
   const showEngineArrows = state.settings.engineArrows !== false;
+  // Settings → Keyboard → Presenter clicker: ↑/↓ step one move, like ←/→.
+  const clickerMode = !!state.settings.clickerMode;
   // Each candidate can be drawn or left off on its own — some people only want
   // the best move on the board.
   const arrowOn = [
@@ -451,8 +453,19 @@ export default function AnalysisView({
       switch (key) {
         case 'ArrowLeft': e.preventDefault(); setPly(ply - 1); return;
         case 'ArrowRight': e.preventDefault(); setPly(ply + 1); return;
-        case 'ArrowUp': e.preventDefault(); setPly(0); return;
-        case 'ArrowDown': e.preventDefault(); setPly(moves.length); return;
+        // A presenter clicker's back/forward buttons send ↑/↓, so with that
+        // setting on they step one move; otherwise they jump to first/last,
+        // the chess.com/Lichess convention. setPly clamps, so a held button
+        // (key-repeat fires keydown again and again) stops at either end.
+        case 'ArrowUp': e.preventDefault(); setPly(clickerMode ? ply - 1 : 0); return;
+        case 'ArrowDown': e.preventDefault(); setPly(clickerMode ? ply + 1 : moves.length); return;
+        // Other clickers send PageUp/PageDown: one move, whatever the setting.
+        // Engine mode only — Compare and the Board Editor are taller than the
+        // window and these keys should still scroll them. A numpad 9/3 with
+        // Num Lock off reports PageUp/PageDown too, but eventKey() has already
+        // turned it into its digit by its `code`, so it never lands here.
+        case 'PageUp': if (mode !== 'engine') return; e.preventDefault(); setPly(ply - 1); return;
+        case 'PageDown': if (mode !== 'engine') return; e.preventDefault(); setPly(ply + 1); return;
         case 'Home': e.preventDefault(); setPly(0); return;
         case 'End': e.preventDefault(); setPly(moves.length); return;
         case '?': setShortcutsOpen((o) => !o); return;
@@ -481,7 +494,7 @@ export default function AnalysisView({
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moves.length, ply, lineNodes, showEngineArrows, showEngineLines, showEvalBar, keyMap, head, tree,
-    variationHighlights]);
+    variationHighlights, clickerMode, mode]);
 
   // ---------- Repertoire awareness ----------
 
@@ -2434,7 +2447,12 @@ export default function AnalysisView({
             <h3>Keyboard shortcuts</h3>
             <div className="shortcut-grid">
               <React.Fragment><kbd>← →</kbd><span>Step back and forward</span></React.Fragment>
-              <React.Fragment><kbd>↑ ↓</kbd><span>Jump to the start / the end</span></React.Fragment>
+              <React.Fragment>
+                <kbd>↑ ↓</kbd>
+                <span>{clickerMode ? 'Step back and forward (presenter clicker is on)' : 'Jump to the start / the end'}</span>
+              </React.Fragment>
+              <React.Fragment><kbd>PgUp PgDn</kbd><span>Step back and forward</span></React.Fragment>
+              <React.Fragment><kbd>Home End</kbd><span>Jump to the start / the end</span></React.Fragment>
               {SHORTCUTS.map((s) => (
                 <React.Fragment key={s.id}>
                   <kbd>{formatShortcutKey(shortcutKey(state.settings, s.id))}</kbd>
@@ -2446,6 +2464,10 @@ export default function AnalysisView({
             <p className="hint">
               Right-click a move in the list to promote a variation or delete it. Change any key
               above in Settings → Keyboard.
+            </p>
+            <p className="hint">
+              Teaching with a presenter clicker? Turn on Settings → Keyboard → Presenter clicker so
+              its ↑/↓ buttons step one move. Clickers that send PageUp/PageDown step one move either way.
             </p>
             <div className="modal-actions">
               <button className="primary" onClick={() => setShortcutsOpen(false)}>Close</button>

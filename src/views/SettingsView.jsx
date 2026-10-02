@@ -141,7 +141,14 @@ function ShortcutEditor({ settings, set }) {
       </span>
       <div className="shortcut-grid" style={{ marginTop: 14 }}>
         <React.Fragment><kbd>← →</kbd><span>Step back and forward through the moves</span></React.Fragment>
-        <React.Fragment><kbd>↑ ↓</kbd><span>Analysis: start / end · Practice: previous / next line</span></React.Fragment>
+        <React.Fragment>
+          <kbd>↑ ↓</kbd>
+          <span>
+            {settings.clickerMode ? 'Analysis: step back / forward' : 'Analysis: start / end'}
+            {' · Practice: previous / next line'}
+          </span>
+        </React.Fragment>
+        <React.Fragment><kbd>PgUp PgDn</kbd><span>Analysis: step back / forward</span></React.Fragment>
         {SHORTCUTS.map((s) => (
           <React.Fragment key={s.id}>
             <button
@@ -745,6 +752,15 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
       </Section>
 
       <Section id="keyboard" tab={tab} title="Keyboard" hint="On the analysis board — click a key to rebind it">
+        {/* A Bluetooth presenter clicker is a tiny keyboard: its back/forward
+            buttons send ↑/↓ (or PageUp/PageDown), which would otherwise jump
+            to the first and last move instead of stepping through a lesson. */}
+        <Toggle
+          label="Presenter clicker: ↑/↓ step one move (instead of jumping to the first/last move)"
+          hint="PageUp / PageDown always step one move. Home / End still jump to the start / the end."
+          on={!!s.clickerMode}
+          onChange={(v) => set({ clickerMode: v })}
+        />
         <ShortcutEditor settings={s} set={set} />
       </Section>
 

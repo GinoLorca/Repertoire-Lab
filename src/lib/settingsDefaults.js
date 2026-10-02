@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS = {
   evalBar: true, // the vertical engine evaluation beside the analysis board
   engineLines: true, // Stockfish's candidate lines under the board
   engineArrows: true, // draw the engine's suggestions on the board
+  clickerMode: false, // ↑/↓ step one move on the analysis board (a presenter clicker), not jump to first/last
   arrowBest: true, // …the first choice
   arrowSecond: true, // …the second
   arrowThird: true, // …the third
