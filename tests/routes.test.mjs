@@ -34,3 +34,14 @@ test('a saved Board Editor position has an address: /analysis/editor/<position>'
   assert.deepEqual(parsePath('/analysis/editor/%3Cb%3E'), { view: 'analysis', sub: 'editor' });
   assert.deepEqual(parsePath('/analysis/engine/p7x2k9q1'), { view: 'analysis', sub: 'engine' });
 });
+
+test('a quick setup has an address: /analysis/editor/setup/<slug>', () => {
+  assert.deepEqual(parsePath('/analysis/editor/setup/tom-and-jerry'), { view: 'analysis', sub: 'editor', setup: 'tom-and-jerry' });
+  assert.equal(pathFor({ view: 'analysis', sub: 'editor', setup: 'tom-and-jerry' }), '/analysis/editor/setup/tom-and-jerry');
+  // "setup" is never read as a saved position's id, and a bad slug is dropped.
+  assert.deepEqual(parsePath('/analysis/editor/setup'), { view: 'analysis', sub: 'editor' });
+  assert.deepEqual(parsePath('/analysis/editor/setup/Bad%20Slug'), { view: 'analysis', sub: 'editor' });
+  assert.equal(pathFor({ view: 'analysis', sub: 'editor', setup: '../x' }), '/analysis/editor');
+  // A saved position wins if both are somehow set.
+  assert.equal(pathFor({ view: 'analysis', sub: 'editor', position: 'p7x2k9q1', setup: 'pawn-race' }), '/analysis/editor/p7x2k9q1');
+});

@@ -146,6 +146,7 @@ function treeFor(line) {
 
 export default function AnalysisView({
   initialLine, initialLab, coachMode, mode: routeMode, onModeChange, positionId, onPositionChange,
+  setupSlug, onSetupChange,
 }) {
   const { state, dispatch } = useStore();
   // Nothing explicit was asked for — a blank "Analysis" open or a Coaches
@@ -1347,9 +1348,17 @@ export default function AnalysisView({
   }, [layoutEl]);
   // The evaluation bar and its gap, beside the board in the same column.
   const EVAL_W = showEvalBar ? 26 : 0;
+  // On a Mac or an iPad the Engine board is a tenth bigger than the rules
+  // below alone allow (see boardWidth). A phone keeps its board as it was —
+  // it's the width of the screen already.
+  const BOARD_GROW = viewportWidth > 600 ? 1.1 : 1;
   // The side columns at their widest, with the gaps (see .analysis-layout).
-  const SIDES_W = layoutClass === 'three-col' ? (tight ? 310 + 210 + 2 * 14 : 340 + 260 + 2 * 22)
-    : layoutClass === 'two-col' ? 400 + 22 : 0;
+  // On an iPad the middle column gives up a little of that for the bigger
+  // board — still well above its CSS minimum (268px, and 320px two-column).
+  const growing = BOARD_GROW > 1;
+  const SIDES_W = layoutClass === 'three-col'
+    ? (tight ? (growing ? 296 : 310) + 210 + 2 * 14 : 340 + 260 + 2 * 22)
+    : layoutClass === 'two-col' ? (growing ? 348 : 400) + 22 : 0;
   // Only while Engine's layout is on screen: the Board Editor sizes from this
   // too, and a width measured under another layout (before the iPad turned)
   // would leave its board stuck small.
@@ -1423,8 +1432,19 @@ export default function AnalysisView({
   // The window-width term only binds on a phone: 48 leaves room for the eval
   // bar beside the board and a margin either side, where 26 had the pair
   // running edge to edge.
-  const boardWidth = Math.floor(
+  // The size these rules gave the board before it was grown — still what the
+  // Board Editor scales its own board from, so that one stays as it was.
+  const baseBoardWidth = Math.floor(
     Math.max(280, Math.min(BOARD_MAX, boardRoom || 520, heightCap, viewportWidth - 48)) / 8,
+  ) * 8;
+  // The tenth bigger: the height the board may take, and its ceiling, both
+  // grow by 10%, and the page itself is a little wider (.analysis-page) so on
+  // a big screen the extra comes out of empty margin rather than the cards
+  // beside it. The step controls under the board sit that much lower.
+  const boardWidth = BOARD_GROW === 1 ? baseBoardWidth : Math.floor(
+    Math.max(280, Math.min(
+      BOARD_MAX * BOARD_GROW, boardRoom || 520, heightCap * BOARD_GROW, viewportWidth - 48,
+    )) / 8,
   ) * 8;
   // The editor gets a much bigger board than Engine mode — it can afford it:
   // setting a position up by hand is the one job here that's all board, and
@@ -1456,7 +1476,7 @@ export default function AnalysisView({
   const EDITOR_BOARD_EASE = 0.88;
   const editorBoardWidth = Math.floor(
     Math.max(280, Math.min(
-      boardWidth * EDITOR_BOARD_SCALE * EDITOR_BOARD_EASE,
+      baseBoardWidth * EDITOR_BOARD_SCALE * EDITOR_BOARD_EASE,
       editorHeightCap * EDITOR_BOARD_EASE,
       editorWidthCap,
     )) / 8,
@@ -1499,6 +1519,8 @@ export default function AnalysisView({
           boardWidth={editorBoardWidth}
           positionId={positionId}
           onPositionChange={onPositionChange}
+          setupSlug={setupSlug}
+          onSetupChange={onSetupChange}
           onSendToAnalysis={({
             baseFen: f, moves: m, marks, marksFen,
           }) => {
@@ -1520,7 +1542,7 @@ export default function AnalysisView({
   }
 
   return (
-    <div className={`page wide${tight ? ' tight-page' : ''}`}>
+    <div className={`page wide analysis-page${tight ? ' tight-page' : ''}`}>
       <div className="page-head analysis-head">
         <h1>Analysis</h1>
         <div className="mode-tabs">

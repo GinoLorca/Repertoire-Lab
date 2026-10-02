@@ -50,8 +50,13 @@ export const validCardId = (id) => /^[A-Za-z0-9_-]{3,64}$/.test(String(id ?? '')
 // /analysis/editor/<position>. Its id is the same on all of your devices, so
 // the link a coach copies at home opens the same set-up — pieces, arrows and
 // highlighted squares — on the iPad in the lesson.
+// A quick setup is /analysis/editor/setup/<slug> — the word "setup" keeps it
+// apart from a saved position's id. Any word-shaped slug is accepted here;
+// the editor itself ignores one it doesn't know.
+export const validSetupSlug = (slug) => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(String(slug ?? '')) && String(slug).length <= 60;
+
 export function pathFor({
-  view, sub, chapterNav, player, position,
+  view, sub, chapterNav, player, position, setup,
 } = {}) {
   if (view === 'chapter' && chapterNav?.openingId && chapterNav?.chapterId) {
     return `/chapter/${chapterNav.openingId}/${chapterNav.chapterId}`;
@@ -64,12 +69,15 @@ export function pathFor({
   if (view === 'analysis' && sub === 'editor' && position && validCardId(position)) {
     return `/${base}/editor/${position}`;
   }
+  if (view === 'analysis' && sub === 'editor' && setup && validSetupSlug(setup)) {
+    return `/${base}/editor/setup/${setup}`;
+  }
   if (sub && SUB_VIEWS[view]?.includes(sub)) return `/${base}/${sub}`;
   return `/${base}`;
 }
 
 export function parsePath(pathname = '/') {
-  const [head, a, b] = String(pathname).replace(/^\/+|\/+$/g, '').split('/');
+  const [head, a, b, c] = String(pathname).replace(/^\/+|\/+$/g, '').split('/');
   if (!head) return { view: 'library' };
   if (head === 'chapter') {
     return a && b ? { view: 'chapter', chapterNav: { openingId: a, chapterId: b } } : { view: 'library' };
@@ -80,6 +88,9 @@ export function parsePath(pathname = '/') {
     return { view, sub: null, player: { id: a, tab: b === 'games' ? 'games' : null } };
   }
   const sub = SUB_VIEWS[view]?.includes(a) ? a : null;
+  if (view === 'analysis' && sub === 'editor' && b === 'setup') {
+    return validSetupSlug(c) ? { view, sub, setup: c } : { view, sub };
+  }
   if (view === 'analysis' && sub === 'editor' && validCardId(b)) return { view, sub, position: b };
   return { view, sub };
 }

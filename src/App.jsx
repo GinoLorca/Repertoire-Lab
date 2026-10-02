@@ -49,6 +49,8 @@ function AppInner() {
   // so a coach's link opens the editor on that set-up. The editor reports
   // the one it's standing on, so a position picked there is copyable too.
   const [positionNav, setPositionNav] = useState(route.position ?? null);
+  // The same for a quick setup (/analysis/editor/setup/pawn-race).
+  const [setupNav, setSetupNav] = useState(route.setup ?? null);
   // One person's page open in Games or Coaches Corner ({ view, id, tab }), so
   // it has an address too — PlayerRoster reports it and follows it. It
   // carries its view: a card belongs to one roster, and must not follow you
@@ -240,6 +242,7 @@ function AppInner() {
       const target = parsePath(here);
       setSub(target.sub ?? null);
       setPositionNav(target.position ?? null);
+      setSetupNav(target.setup ?? null);
       setChapterNav(target.chapterNav ?? null);
       setPlayerNav(withView(target.player, target.view));
       setView(target.view);
@@ -259,13 +262,13 @@ function AppInner() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const path = pathFor({
-      view, sub, position: positionNav, chapterNav, player: openPlayerNav,
+      view, sub, position: positionNav, setup: setupNav, chapterNav, player: openPlayerNav,
     });
     const here = window.location.pathname;
     if (here === path) return;
     if (here === '/' && path === '/library') return;
     try { window.history.replaceState(window.history.state, '', path); } catch { /* history unavailable */ }
-  }, [view, sub, positionNav, chapterNav?.openingId, chapterNav?.chapterId, playerNav?.view, playerNav?.id, playerNav?.tab]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [view, sub, positionNav, setupNav, chapterNav?.openingId, chapterNav?.chapterId, playerNav?.view, playerNav?.id, playerNav?.tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ⌘K / Ctrl-K, or "/" when not already typing, opens search from anywhere.
   useEffect(() => {
@@ -292,6 +295,7 @@ function AppInner() {
     view,
     sub,
     position: positionNav,
+    setup: setupNav,
     chapterNav,
     // (Named `player` so pathFor reads it straight off a snapshot.)
     player: openPlayerNav,
@@ -328,6 +332,7 @@ function AppInner() {
     if (!prev) { setView('library'); return; }
     setSub(prev.sub ?? null);
     setPositionNav(prev.position ?? null);
+    setSetupNav(prev.setup ?? null);
     setChapterNav(prev.chapterNav);
     setPlayerNav(prev.player ?? null);
     setPracticeScope(prev.practiceScope);
@@ -520,6 +525,7 @@ function AppInner() {
       if (v === 'practice') setPracticeScope(undefined);
       setSub(subTab);
       setPositionNav(null); // the tab opens the section fresh, not the last saved position
+      setSetupNav(null);
       setView(v);
     });
   };
@@ -763,6 +769,8 @@ function AppInner() {
             onModeChange={setSub}
             positionId={positionNav}
             onPositionChange={setPositionNav}
+            setupSlug={setupNav}
+            onSetupChange={setSetupNav}
           />
         )}
       </ErrorBoundary>

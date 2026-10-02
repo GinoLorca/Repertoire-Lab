@@ -7,7 +7,7 @@ import { useStore, uid } from '../store';
 import Board from './Board';
 import BoardArrows from './BoardArrows';
 import {
-  START_MAP, fenToBoardMap, fenMeta, boardMapToFen, PRESETS,
+  START_MAP, fenToBoardMap, fenMeta, boardMapToFen, PRESETS, PRESET_SLUGS, SLUG_OF_PRESET,
 } from '../lib/boardEditor';
 import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
 import { boardColors } from '../lib/theme';
@@ -83,8 +83,12 @@ const EDITOR_DND_PROPS = {
 // in the store — which may be a moment after a cold start, while sync is
 // still bringing the list in. `onPositionChange` reports which saved position
 // the board is standing on, so the address keeps up and can be copied.
+// `setupSlug` / `onSetupChange` do the same for a quick setup
+// (/analysis/editor/setup/pawn-race), so a lesson plan can link straight to
+// one. The address keeps naming the setup while you move pieces on it, the
+// way it keeps naming a saved position — it's where you started from.
 export default function BoardEditor({
-  onSendToAnalysis, boardWidth, positionId = null, onPositionChange,
+  onSendToAnalysis, boardWidth, positionId = null, onPositionChange, setupSlug = null, onSetupChange,
 }) {
   const { state, dispatch } = useStore();
   const [map, setMap] = useState(START_MAP);
@@ -113,6 +117,8 @@ export default function BoardEditor({
   const [saveOpen, setSaveOpen] = useState(false);
   const [posName, setPosName] = useState('');
   const [selectedPosId, setSelectedPosId] = useState(positionId ?? '');
+  // The quick setup the board was last set to, by its address slug.
+  const [activeSetup, setActiveSetup] = useState(null);
   const [oppositeSide, setOppositeSide] = useState('wK'); // which colour goes kingside, for the opposite-castling preset
   const [linkCopied, setLinkCopied] = useState(false);
   // Which folder Save files into ('' for none), and the "+ New folder" box.
@@ -221,7 +227,16 @@ export default function BoardEditor({
   // A preset, a pasted FEN, Clear or Starting position: the board is no
   // longer the saved position it may have been showing, so the address and
   // the Update button stop pointing at it.
-  const loadFresh = (f) => { setSelectedPosId(''); loadFen(f); };
+  const loadFresh = (f) => { setSelectedPosId(''); setActiveSetup(null); loadFen(f); };
+  // A quick setup, by its preset key — and its address with it.
+  const loadPreset = (key) => {
+    const preset = PRESETS[key];
+    if (!preset) return;
+    loadFresh(preset.fen);
+    setActiveSetup(SLUG_OF_PRESET[key] ?? null);
+    if (key === 'oppositeWKbQ') setOppositeSide('wK');
+    if (key === 'oppositeWQbK') setOppositeSide('wQ');
+  };
 
   // A raw, non-move edit: apply it, then treat the result as a fresh
   // starting point — whatever was recorded before it no longer leads
@@ -295,6 +310,7 @@ export default function BoardEditor({
     setRecordedMoves([]);
     setMarks(EMPTY_MARKS);
     setSelectedPosId('');
+    setActiveSetup(null);
   };
   const resetBoard = () => {
     const allCastle = { K: true, Q: true, k: true, q: true };
@@ -307,6 +323,7 @@ export default function BoardEditor({
     setRecordedMoves([]);
     setMarks(EMPTY_MARKS);
     setSelectedPosId('');
+    setActiveSetup(null);
   };
 
   const applyFenInput = () => {
@@ -441,6 +458,7 @@ export default function BoardEditor({
 
   const loadSaved = (id) => {
     setSelectedPosId(id);
+    setActiveSetup(null);
     const p = savedPositions.find((sp) => sp.id === id);
     if (p) loadFen(p.fen, marksOf(p));
   };
@@ -464,6 +482,16 @@ export default function BoardEditor({
     loadFen(p.fen, marksOf(p));
   }, [positionId, savedPositions]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { onPositionChange?.(selectedPosId || null); }, [selectedPosId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The address asked for a quick setup: set it up. A saved position named
+  // in the same address wins (it can't happen from a link this app makes).
+  const appliedSetup = useRef(null);
+  useEffect(() => {
+    if (!setupSlug || positionId || appliedSetup.current === setupSlug) return;
+    appliedSetup.current = setupSlug;
+    if (PRESET_SLUGS[setupSlug]) loadPreset(PRESET_SLUGS[setupSlug]);
+  }, [setupSlug, positionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { onSetupChange?.(activeSetup); }, [activeSetup]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const copyLink = async () => {
     if (!selectedPos) return;
@@ -688,12 +716,12 @@ export default function BoardEditor({
         <div className="editor-presets">
           <span className="editor-label">Quick setups</span>
           <div className="editor-row">
-            <button className="small ghost" onClick={() => loadFresh(PRESETS.pawnRace.fen)}>Pawn race</button>
-            <button className="small ghost" onClick={() => loadFresh(PRESETS.tomAndJerry.fen)}>Tom &amp; Jerry</button>
-            <button className="small ghost" onClick={() => loadFresh(PRESETS.halfwayChess.fen)}>Halfway Chess</button>
-            <button className="small ghost" onClick={() => loadFresh(PRESETS.almostChess.fen)}>Almost Chess</button>
-            <button className="small ghost" onClick={() => loadFresh(PRESETS.kingsideBoth.fen)}>Kingside castled</button>
-            <button className="small ghost" onClick={() => loadFresh(PRESETS.queensideBoth.fen)}>Queenside castled</button>
+            <button className={`small ghost${activeSetup === SLUG_OF_PRESET.pawnRace ? ' active' : ''}`} onClick={() => loadPreset('pawnRace')}>Pawn race</button>
+            <button className={`small ghost${activeSetup === SLUG_OF_PRESET.tomAndJerry ? ' active' : ''}`} onClick={() => loadPreset('tomAndJerry')}>Tom &amp; Jerry</button>
+            <button className={`small ghost${activeSetup === SLUG_OF_PRESET.halfwayChess ? ' active' : ''}`} onClick={() => loadPreset('halfwayChess')}>Halfway Chess</button>
+            <button className={`small ghost${activeSetup === SLUG_OF_PRESET.almostChess ? ' active' : ''}`} onClick={() => loadPreset('almostChess')}>Almost Chess</button>
+            <button className={`small ghost${activeSetup === SLUG_OF_PRESET.kingsideBoth ? ' active' : ''}`} onClick={() => loadPreset('kingsideBoth')}>Kingside castled</button>
+            <button className={`small ghost${activeSetup === SLUG_OF_PRESET.queensideBoth ? ' active' : ''}`} onClick={() => loadPreset('queensideBoth')}>Queenside castled</button>
           </div>
           <div className="editor-row">
             <span className="muted-note">Opposite castling —</span>
@@ -703,7 +731,7 @@ export default function BoardEditor({
             </select>
             <button
               className="small ghost"
-              onClick={() => loadFresh(oppositeSide === 'wK' ? PRESETS.oppositeWKbQ.fen : PRESETS.oppositeWQbK.fen)}
+              onClick={() => loadPreset(oppositeSide === 'wK' ? 'oppositeWKbQ' : 'oppositeWQbK')}
             >
               Load
             </button>

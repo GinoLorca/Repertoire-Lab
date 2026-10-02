@@ -121,3 +121,18 @@ export const PRESETS = {
     fen: 'rnbq1rk1/ppppppbp/5np1/8/3P1B2/2N5/PPPQPPPP/2KR1BNR b - - 5 5',
   },
 };
+
+// Each quick setup's address: /analysis/editor/setup/<slug>. Words a person
+// can read in a lesson plan, and fixed — a link shared today has to open the
+// same set-up next year, so a slug is never renamed, only added.
+export const PRESET_SLUGS = {
+  'pawn-race': 'pawnRace',
+  'tom-and-jerry': 'tomAndJerry',
+  'halfway-chess': 'halfwayChess',
+  'almost-chess': 'almostChess',
+  'kingside-castled': 'kingsideBoth',
+  'queenside-castled': 'queensideBoth',
+  'white-kingside-black-queenside': 'oppositeWKbQ',
+  'white-queenside-black-kingside': 'oppositeWQbK',
+};
+export const SLUG_OF_PRESET = Object.fromEntries(Object.entries(PRESET_SLUGS).map(([slug, key]) => [key, slug]));
