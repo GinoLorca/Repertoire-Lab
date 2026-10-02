@@ -45,6 +45,10 @@ function AppInner() {
   // Settings tab. Lifted up here only so it can be part of the address; each
   // view still owns its own switching.
   const [sub, setSub] = useState(route.sub ?? null);
+  // A saved Board Editor position the address names (/analysis/editor/<id>),
+  // so a coach's link opens the editor on that set-up. The editor reports
+  // the one it's standing on, so a position picked there is copyable too.
+  const [positionNav, setPositionNav] = useState(route.position ?? null);
   // One person's page open in Games or Coaches Corner ({ view, id, tab }), so
   // it has an address too — PlayerRoster reports it and follows it. It
   // carries its view: a card belongs to one roster, and must not follow you
@@ -235,6 +239,7 @@ function AppInner() {
       // screen matches what the address says, which is the part that matters.
       const target = parsePath(here);
       setSub(target.sub ?? null);
+      setPositionNav(target.position ?? null);
       setChapterNav(target.chapterNav ?? null);
       setPlayerNav(withView(target.player, target.view));
       setView(target.view);
@@ -254,13 +259,13 @@ function AppInner() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const path = pathFor({
-      view, sub, chapterNav, player: openPlayerNav,
+      view, sub, position: positionNav, chapterNav, player: openPlayerNav,
     });
     const here = window.location.pathname;
     if (here === path) return;
     if (here === '/' && path === '/library') return;
     try { window.history.replaceState(window.history.state, '', path); } catch { /* history unavailable */ }
-  }, [view, sub, chapterNav?.openingId, chapterNav?.chapterId, playerNav?.view, playerNav?.id, playerNav?.tab]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [view, sub, positionNav, chapterNav?.openingId, chapterNav?.chapterId, playerNav?.view, playerNav?.id, playerNav?.tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ⌘K / Ctrl-K, or "/" when not already typing, opens search from anywhere.
   useEffect(() => {
@@ -286,6 +291,7 @@ function AppInner() {
   const snapshot = () => ({
     view,
     sub,
+    position: positionNav,
     chapterNav,
     // (Named `player` so pathFor reads it straight off a snapshot.)
     player: openPlayerNav,
@@ -321,6 +327,7 @@ function AppInner() {
     }
     if (!prev) { setView('library'); return; }
     setSub(prev.sub ?? null);
+    setPositionNav(prev.position ?? null);
     setChapterNav(prev.chapterNav);
     setPlayerNav(prev.player ?? null);
     setPracticeScope(prev.practiceScope);
@@ -512,6 +519,7 @@ function AppInner() {
     go(() => {
       if (v === 'practice') setPracticeScope(undefined);
       setSub(subTab);
+      setPositionNav(null); // the tab opens the section fresh, not the last saved position
       setView(v);
     });
   };
@@ -753,6 +761,8 @@ function AppInner() {
             coachMode={coachStudio}
             mode={sub}
             onModeChange={setSub}
+            positionId={positionNav}
+            onPositionChange={setPositionNav}
           />
         )}
       </ErrorBoundary>

@@ -4,15 +4,31 @@ import { ChessboardDnDProvider, SparePiece } from 'react-chessboard';
 import { TouchBackend } from 'react-dnd-touch-backend';
 import { useStore, uid } from '../store';
 import Board from './Board';
+import BoardArrows from './BoardArrows';
 import {
   START_MAP, fenToBoardMap, fenMeta, boardMapToFen, PRESETS,
 } from '../lib/boardEditor';
 import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
 import { boardColors } from '../lib/theme';
-import { shortcutMap } from '../lib/shortcuts';
-import { MonitorIcon, ShuffleIcon } from './Icons';
+import { shortcutMap, PENS, defaultPen } from '../lib/shortcuts';
+import { pathFor } from '../lib/routes';
+import { copyText } from '../lib/clipboard';
+import {
+  MonitorIcon, ShuffleIcon, TargetIcon, PencilIcon, LinkIcon,
+} from './Icons';
 
 const PALETTE = ['K', 'Q', 'R', 'B', 'N', 'P'];
+
+// Arrows and highlighted squares drawn on the board being set up — the same
+// shape Analysis keeps per position, so they go across to it as they are.
+const EMPTY_MARKS = { arrows: [], squares: {} };
+const marksOf = (p) => ({ arrows: p?.arrows ?? [], squares: p?.squares ?? {} });
+const hasAnyMarks = (m) => m.arrows.length > 0 || Object.keys(m.squares).length > 0;
+const sameMarks = (a, b) => JSON.stringify(a.arrows) === JSON.stringify(b.arrows)
+  && JSON.stringify(a.squares) === JSON.stringify(b.squares);
+
+const squareFromPoint = (x, y) => document.elementFromPoint(x, y)
+  ?.closest?.('[data-square]')?.getAttribute('data-square') ?? null;
 
 // Unlike Board.jsx's shared dndProviderProps (HTML5Backend on a mouse,
 // TouchBackend only where touch is actually detected), the editor always
@@ -56,7 +72,14 @@ const EDITOR_DND_PROPS = {
 // becomes the new starting point and whatever was recorded before it stops
 // counting as "played" (a teleport has no notation to hand off along with
 // it).
-export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
+// `positionId` is a saved position asked for by the address
+// (/analysis/editor/<id>): it's set up here, marks and all, as soon as it's
+// in the store — which may be a moment after a cold start, while sync is
+// still bringing the list in. `onPositionChange` reports which saved position
+// the board is standing on, so the address keeps up and can be copied.
+export default function BoardEditor({
+  onSendToAnalysis, boardWidth, positionId = null, onPositionChange,
+}) {
   const { state, dispatch } = useStore();
   const [map, setMap] = useState(START_MAP);
   const [sideToMove, setSideToMove] = useState('w');
@@ -83,8 +106,21 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
   const [fenError, setFenError] = useState(null);
   const [saveOpen, setSaveOpen] = useState(false);
   const [posName, setPosName] = useState('');
-  const [selectedPosId, setSelectedPosId] = useState('');
+  const [selectedPosId, setSelectedPosId] = useState(positionId ?? '');
   const [oppositeSide, setOppositeSide] = useState('wK'); // which colour goes kingside, for the opposite-castling preset
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // What the board is for right now. In Squares mode a right-click or a
+  // long-press names the square (the help you want while setting up from a
+  // diagram); in Draw mode the same gestures draw instead — the two couldn't
+  // share the board, so the switch beside it picks one. Pieces don't drag in
+  // Draw mode: there the board is a canvas, as in Analysis.
+  const [boardMode, setBoardMode] = useState('squares'); // 'squares' | 'draw'
+  const [marks, setMarks] = useState(EMPTY_MARKS);
+  const [drawColor, setDrawColor] = useState(() => defaultPen(state.settings).value);
+  const [drawFrom, setDrawFrom] = useState(null); // the square a draw-drag started on
+  const drawing = boardMode === 'draw';
+  const hasMarks = hasAnyMarks(marks);
 
   // The editor has its own board and its own orientation — separate from the
   // engine board's — so the global flip shortcut in AnalysisView's keydown
@@ -156,7 +192,9 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
     [map, sideToMove, castling, halfmove, fullmove],
   );
 
-  const loadFen = (f) => {
+  // A whole new position: the pieces, and whatever was drawn on it (nothing,
+  // for a preset or a pasted FEN — the marks belonged to the old set-up).
+  const loadFen = (f, nextMarks = EMPTY_MARKS) => {
     setMap(fenToBoardMap(f));
     const meta = fenMeta(f);
     setSideToMove(meta.sideToMove);
@@ -165,7 +203,13 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
     setFullmove(meta.fullmove);
     setBaseSnapshot(f);
     setRecordedMoves([]);
+    setMarks(nextMarks);
+    setDrawFrom(null);
   };
+  // A preset, a pasted FEN, Clear or Starting position: the board is no
+  // longer the saved position it may have been showing, so the address and
+  // the Update button stop pointing at it.
+  const loadFresh = (f) => { setSelectedPosId(''); loadFen(f); };
 
   // A raw, non-move edit: apply it, then treat the result as a fresh
   // starting point — whatever was recorded before it no longer leads
@@ -237,6 +281,8 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
     setFullmove(1);
     setBaseSnapshot(boardMapToFen(empty, sideToMove, noCastle, 0, 1));
     setRecordedMoves([]);
+    setMarks(EMPTY_MARKS);
+    setSelectedPosId('');
   };
   const resetBoard = () => {
     const allCastle = { K: true, Q: true, k: true, q: true };
@@ -247,36 +293,124 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
     setFullmove(1);
     setBaseSnapshot(boardMapToFen(START_MAP, 'w', allCastle, 0, 1));
     setRecordedMoves([]);
+    setMarks(EMPTY_MARKS);
+    setSelectedPosId('');
   };
 
   const applyFenInput = () => {
     try {
-      loadFen(fenInput.trim());
+      loadFresh(fenInput.trim());
       setFenError(null);
     } catch {
       setFenError('Could not read that FEN.');
     }
   };
 
+  // ---------- Drawing ----------
+  // Press a square and drag to another for an arrow; release on the same
+  // square to highlight it. The same again takes it away; another colour on
+  // the same squares recolours it. Pointer-driven rather than click-driven,
+  // because a drag never fires a click — and on touch the pointer's target
+  // stays where the finger went down, so the square under it at release has
+  // to be found by position.
+  const isDrawButton = (e) => e.pointerType !== 'mouse' || e.button === 0 || e.button === 2;
+  const onDrawPointerDown = (e) => {
+    if (!e.isPrimary || !isDrawButton(e)) return;
+    const square = squareFromPoint(e.clientX, e.clientY);
+    if (!square) return;
+    e.preventDefault();
+    setDrawFrom(square);
+  };
+  const onDrawPointerUp = (e) => {
+    if (!drawFrom || !e.isPrimary || !isDrawButton(e)) return;
+    const square = squareFromPoint(e.clientX, e.clientY);
+    if (square) {
+      if (square === drawFrom) toggleSquare(square);
+      else addArrow(drawFrom, square);
+    }
+    setDrawFrom(null);
+  };
+  const addArrow = (from, to) => setMarks((m) => ({
+    ...m,
+    arrows: m.arrows.some((a) => a[0] === from && a[1] === to && a[2] === drawColor)
+      ? m.arrows.filter((a) => !(a[0] === from && a[1] === to))
+      : [...m.arrows.filter((a) => !(a[0] === from && a[1] === to)), [from, to, drawColor]],
+  }));
+  const toggleSquare = (square) => setMarks((m) => {
+    const squares = { ...m.squares };
+    if (squares[square] === drawColor) delete squares[square];
+    else squares[square] = drawColor;
+    return { ...m, squares };
+  });
+  const clearMarks = () => { setMarks(EMPTY_MARKS); setDrawFrom(null); };
+
+  const squareStyles = useMemo(() => {
+    const styles = {};
+    for (const [sq, color] of Object.entries(marks.squares)) {
+      styles[sq] = { background: `${color}66`, boxShadow: `inset 0 0 0 3px ${color}` };
+    }
+    if (drawFrom) styles[drawFrom] = { background: `${drawColor}88` };
+    return styles;
+  }, [marks.squares, drawFrom, drawColor]);
+
+  // ---------- Saved positions ----------
+  const savedPositions = state.savedPositions ?? [];
+  const selectedPos = savedPositions.find((sp) => sp.id === selectedPosId) ?? null;
+  // The board has moved on from the saved copy — pieces or marks — so there's
+  // something for Update to write back.
+  const savedDirty = !!selectedPos
+    && (selectedPos.fen !== fen || !sameMarks(marksOf(selectedPos), marks));
+
   const savePosition = () => {
     if (!posName.trim()) return;
     const id = uid();
-    dispatch({ type: 'savePosition', id, name: posName.trim(), fen });
+    dispatch({
+      type: 'savePosition', id, name: posName.trim(), fen, arrows: marks.arrows, squares: marks.squares,
+    });
     setPosName('');
     setSaveOpen(false);
     setSelectedPosId(id); // land straight on the one just saved in the dropdown
   };
 
+  const updateSaved = () => {
+    if (!selectedPos) return;
+    dispatch({
+      type: 'updatePosition', id: selectedPos.id, fen, arrows: marks.arrows, squares: marks.squares,
+    });
+  };
+
   const loadSaved = (id) => {
     setSelectedPosId(id);
-    const p = (state.savedPositions ?? []).find((sp) => sp.id === id);
-    if (p) loadFen(p.fen);
+    const p = savedPositions.find((sp) => sp.id === id);
+    if (p) loadFen(p.fen, marksOf(p));
   };
 
   const deleteSaved = () => {
     if (!selectedPosId) return;
     dispatch({ type: 'deletePosition', id: selectedPosId });
     setSelectedPosId('');
+  };
+
+  // The address asked for a saved position: set it up once it's here. A
+  // different id arriving later (Back, or a second link) sets that one up.
+  const appliedPosId = useRef(null);
+  useEffect(() => {
+    if (!positionId || appliedPosId.current === positionId) return;
+    const p = savedPositions.find((sp) => sp.id === positionId);
+    if (!p) return; // not in the store yet — sync may still be bringing it
+    appliedPosId.current = positionId;
+    setSelectedPosId(positionId);
+    loadFen(p.fen, marksOf(p));
+  }, [positionId, savedPositions]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { onPositionChange?.(selectedPosId || null); }, [selectedPosId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const copyLink = async () => {
+    if (!selectedPos) return;
+    const url = `${window.location.origin}${pathFor({ view: 'analysis', sub: 'editor', position: selectedPos.id })}`;
+    const ok = await copyText(url);
+    if (!ok) { window.prompt('Copy this link:', url); return; }
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 1600);
   };
 
   return (
@@ -287,42 +421,97 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
     // provider is what lets a drag start in the tray and end on a square.
     <ChessboardDnDProvider {...EDITOR_DND_PROPS}>
     <div className="board-editor">
+      <div className="board-editor-stage">
+        {/* The switch between what a press on the board means. Beside the
+            board rather than in the panel, so it's in reach of the hand
+            that's about to draw. */}
+        <div className="editor-modes" role="group" aria-label="Board mode">
+          <button
+            type="button"
+            className={`editor-mode${!drawing ? ' active' : ''}`}
+            aria-pressed={!drawing}
+            title="Squares: right-click or hold a square to see its name"
+            onClick={() => { setBoardMode('squares'); setDrawFrom(null); }}
+          >
+            <TargetIcon size={18} />
+            <span>Squares</span>
+          </button>
+          <button
+            type="button"
+            className={`editor-mode${drawing ? ' active' : ''}`}
+            aria-pressed={drawing}
+            title="Draw: drag from one square to another for an arrow, or tap a square to highlight it"
+            onClick={() => setBoardMode('draw')}
+          >
+            <PencilIcon size={18} />
+            <span>Draw</span>
+          </button>
+          {drawing && (
+            <div className="editor-pens" role="group" aria-label="Pen colour">
+              {PENS.map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  className={`pen${drawColor === p.value ? ' active' : ''}`}
+                  style={{ background: p.value }}
+                  title={p.name}
+                  aria-label={`${p.name} pen`}
+                  onClick={() => setDrawColor(p.value)}
+                />
+              ))}
+            </div>
+          )}
+          {hasMarks && (
+            <button
+              type="button"
+              className="editor-mode editor-clear"
+              title="Clear every arrow and highlight"
+              onClick={clearMarks}
+            >
+              <span aria-hidden="true">✕</span>
+              <span>Clear</span>
+            </button>
+          )}
+        </div>
       <div
-        className="board-editor-board"
-        style={{ width: boardWidth }}
-        // Touch has no right button, so a press that stays still for half a
-        // second names the square instead. Any movement cancels it — that's a
-        // piece being dragged, not a question about the square.
-        onPointerDown={onPressStart}
-        onPointerMove={onPressMove}
-        onPointerUp={endPress}
-        onPointerCancel={endPress}
-        onPointerLeave={endPress}
+        className={`board-editor-board${drawing ? ' drawing' : ''}`}
+        // In Draw mode the finger is a pen: the page mustn't scroll under it.
+        style={{ width: boardWidth, touchAction: drawing ? 'none' : undefined }}
+        // Squares mode — touch has no right button, so a press that stays
+        // still for half a second names the square instead. Any movement
+        // cancels it — that's a piece being dragged, not a question about the
+        // square. Draw mode — the press is the start of an arrow.
+        onPointerDown={drawing ? onDrawPointerDown : onPressStart}
+        onPointerMove={drawing ? undefined : onPressMove}
+        onPointerUp={drawing ? onDrawPointerUp : endPress}
+        onPointerCancel={drawing ? () => setDrawFrom(null) : endPress}
+        onPointerLeave={drawing ? () => setDrawFrom(null) : endPress}
         // The right-click half. react-chessboard has an onSquareRightClick of
         // its own, but it only fires when its mousedown has re-rendered before
         // the mouseup arrives — press and release inside one frame and the
         // callback is silently skipped. contextmenu fires either way, and the
         // square under the pointer is a hit-test away, so this owes the
         // library nothing. It already preventDefaults on the square itself;
-        // the event still bubbles here.
+        // the event still bubbles here. In Draw mode the right button draws
+        // (see onDrawPointerDown), so the menu is simply kept away.
         onContextMenu={(e) => {
-          const square = document.elementFromPoint(e.clientX, e.clientY)
-            ?.closest?.('[data-square]')?.getAttribute('data-square');
+          const square = squareFromPoint(e.clientX, e.clientY);
           if (!square) return;
           e.preventDefault();
-          flashSquare(square);
+          if (!drawing) flashSquare(square);
         }}
       >
         <Board
           id="board-editor"
           position={map}
           boardOrientation={orientation}
-          onSquareClick={onSquareClick}
+          onSquareClick={drawing ? undefined : onSquareClick}
           onPieceDrop={onPieceDrop}
           onPieceDropOffBoard={onPieceDropOffBoard}
           onSparePieceDrop={onSparePieceDrop}
           dropOffBoardAction="trash"
-          arePiecesDraggable
+          arePiecesDraggable={!drawing}
+          customSquareStyles={squareStyles}
           // No such thing as a promotion here — a pawn dragged to the back
           // rank just sits there as a pawn until you swap it by hand.
           onPromotionCheck={() => false}
@@ -332,12 +521,15 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
           // sliding between them, animating a piece across the board that
           // was never actually there. Instant placement sidesteps that.
           animationDuration={0}
-          // Setting a position up isn't analysis — no arrows to draw here, and
-          // the overlay's pointer handling would only get in the way of
-          // dragging pieces off the board.
+          // This board runs its own pen (the Draw mode beside it) — Board's
+          // right-drag arrows would fight the square-name gesture, and its
+          // overlay's pointer handling would get in the way of dragging
+          // pieces off the board.
           ownArrows={false}
           boardWidth={boardWidth}
         />
+        <BoardArrows arrows={marks.arrows} boardWidth={boardWidth} orientation={orientation} />
+      </div>
       </div>
 
       <div className="board-editor-panel">
@@ -402,9 +594,9 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
         <div className="editor-presets">
           <span className="editor-label">Quick setups</span>
           <div className="editor-row">
-            <button className="small ghost" onClick={() => loadFen(PRESETS.pawnRace.fen)}>Pawn race</button>
-            <button className="small ghost" onClick={() => loadFen(PRESETS.kingsideBoth.fen)}>Kingside castled</button>
-            <button className="small ghost" onClick={() => loadFen(PRESETS.queensideBoth.fen)}>Queenside castled</button>
+            <button className="small ghost" onClick={() => loadFresh(PRESETS.pawnRace.fen)}>Pawn race</button>
+            <button className="small ghost" onClick={() => loadFresh(PRESETS.kingsideBoth.fen)}>Kingside castled</button>
+            <button className="small ghost" onClick={() => loadFresh(PRESETS.queensideBoth.fen)}>Queenside castled</button>
           </div>
           <div className="editor-row">
             <span className="muted-note">Opposite castling —</span>
@@ -414,7 +606,7 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
             </select>
             <button
               className="small ghost"
-              onClick={() => loadFen(oppositeSide === 'wK' ? PRESETS.oppositeWKbQ.fen : PRESETS.oppositeWQbK.fen)}
+              onClick={() => loadFresh(oppositeSide === 'wK' ? PRESETS.oppositeWKbQ.fen : PRESETS.oppositeWQbK.fen)}
             >
               Load
             </button>
@@ -443,7 +635,11 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
           <span style={{ flex: 1 }} />
           <button
             className="small primary"
-            onClick={() => onSendToAnalysis({ baseFen: baseSnapshot, moves: recordedMoves })}
+            // The marks belong to the board as it stands — after any recorded
+            // moves — so they travel with that position's FEN, not the base.
+            onClick={() => onSendToAnalysis({
+              baseFen: baseSnapshot, moves: recordedMoves, marks, marksFen: fen,
+            })}
           >
             <MonitorIcon size={14} /> Send to analysis
           </button>
@@ -461,13 +657,31 @@ export default function BoardEditor({ onSendToAnalysis, boardWidth }) {
           </div>
         )}
 
-        {(state.savedPositions ?? []).length > 0 && (
-          <div className="editor-row">
+        {savedPositions.length > 0 && (
+          <div className="editor-row editor-saved-row">
             <span className="editor-label">Saved positions</span>
             <select value={selectedPosId} onChange={(e) => loadSaved(e.target.value)}>
               <option value="" disabled>Choose a saved position…</option>
-              {state.savedPositions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {savedPositions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
+            {selectedPos && (
+              <button
+                className={`small ghost${linkCopied ? ' primary' : ''}`}
+                title="Copy a link that opens the editor on this position, arrows and all"
+                onClick={copyLink}
+              >
+                <LinkIcon size={13} /> {linkCopied ? 'Copied' : 'Copy link'}
+              </button>
+            )}
+            {savedDirty && (
+              <button
+                className="small primary"
+                title="Save the board as it is now — pieces, arrows and highlights — to this saved position"
+                onClick={updateSaved}
+              >
+                Update
+              </button>
+            )}
             <button
               className="small ghost danger"
               disabled={!selectedPosId}

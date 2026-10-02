@@ -144,7 +144,9 @@ function treeFor(line) {
   return trunk.length === moves.length && trunk.every((m, i) => m === moves[i]) ? line.tree : null;
 }
 
-export default function AnalysisView({ initialLine, initialLab, coachMode, mode: routeMode, onModeChange }) {
+export default function AnalysisView({
+  initialLine, initialLab, coachMode, mode: routeMode, onModeChange, positionId, onPositionChange,
+}) {
   const { state, dispatch } = useStore();
   // Nothing explicit was asked for — a blank "Analysis" open or a Coaches
   // Corner Studio session — so whatever was still on the board last time
@@ -1439,7 +1441,11 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
   const editorHeightCap = Math.max(360, winH - systemChrome - 80);
   // Measured where possible; the window is the fallback for the first paint
   // (.page.wide is capped at 1360 and carries 24px of padding either side).
-  const editorWidthCap = editorAvail || Math.min(1360, viewportWidth) - 48;
+  // Less the mode switch that stands to the left of the board (its 52px
+  // and the gap); on a phone that switch sits above the board instead.
+  const EDITOR_MODES_WIDTH = 62;
+  const editorWidthCap = (editorAvail || Math.min(1360, viewportWidth) - 48)
+    - (viewportWidth > 600 ? EDITOR_MODES_WIDTH : 0);
   // Then eased back an eighth. Taking every pixel of height meant a board that
   // ran past the bottom of the window by the height of the heading above it,
   // so the last rank was always a scroll away; at 88% it lands inside the
@@ -1491,10 +1497,22 @@ export default function AnalysisView({ initialLine, initialLab, coachMode, mode:
           // any given screen, Mac or iPad, instead of letting the editor grow
           // unopposed on a wide one.
           boardWidth={editorBoardWidth}
-          onSendToAnalysis={({ baseFen: f, moves: m }) => {
+          positionId={positionId}
+          onPositionChange={onPositionChange}
+          onSendToAnalysis={({
+            baseFen: f, moves: m, marks, marksFen,
+          }) => {
             setMode('engine');
             setBaseFen(f);
             loadMoves(m ?? []);
+            // Whatever was drawn on the position comes with it. loadMoves
+            // starts the annotations clean; this lands after it in the same
+            // batch. Keyed by the FEN as chess.js writes it, which is how
+            // this view looks marks up — the editor's own spelling of the
+            // same position can differ in the castling and en passant fields.
+            if (marks && (marks.arrows?.length || Object.keys(marks.squares ?? {}).length)) {
+              setAnnotations({ [newGameAt(marksFen ?? f).fen()]: { arrows: marks.arrows ?? [], squares: marks.squares ?? {} } });
+            }
           }}
         />
       </div>

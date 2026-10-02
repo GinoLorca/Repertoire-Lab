@@ -24,3 +24,13 @@ test('one person\'s page has an address: /coaches/<card>, /games/<card>, /…/ga
   assert.equal(pathFor({ view: 'coaches', player: { id: '../x' } }), '/coaches');
   assert.equal(pathFor({ view: 'coaches' }), '/coaches');
 });
+
+test('a saved Board Editor position has an address: /analysis/editor/<position>', () => {
+  assert.deepEqual(parsePath('/analysis/editor/p7x2k9q1'), { view: 'analysis', sub: 'editor', position: 'p7x2k9q1' });
+  assert.equal(pathFor({ view: 'analysis', sub: 'editor', position: 'p7x2k9q1' }), '/analysis/editor/p7x2k9q1');
+  // Only the editor takes one, and only an id-shaped one.
+  assert.equal(pathFor({ view: 'analysis', sub: 'engine', position: 'p7x2k9q1' }), '/analysis/engine');
+  assert.equal(pathFor({ view: 'analysis', sub: 'editor', position: '../x' }), '/analysis/editor');
+  assert.deepEqual(parsePath('/analysis/editor/%3Cb%3E'), { view: 'analysis', sub: 'editor' });
+  assert.deepEqual(parsePath('/analysis/engine/p7x2k9q1'), { view: 'analysis', sub: 'engine' });
+});

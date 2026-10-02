@@ -2366,7 +2366,21 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 
 .board-editor { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
-.board-editor-board { flex-shrink: 0; }
+/* The board with its mode switch standing to its left. */
+.board-editor-stage { display: flex; gap: 10px; align-items: flex-start; flex-shrink: 0; }
+.board-editor-board { flex-shrink: 0; position: relative; }
+.board-editor-board.drawing { cursor: crosshair; }
+.editor-modes { display: flex; flex-direction: column; gap: 6px; width: 52px; flex-shrink: 0; }
+.editor-mode {
+  width: 52px; height: 52px; padding: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  font-size: 10.5px; font-weight: 600; line-height: 1;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--muted);
+}
+.editor-mode.active { border-color: var(--accent); background: var(--accent-dim); color: #fff; }
+.editor-clear { color: var(--red); }
+.editor-pens { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 5px 0; }
+.editor-pens .pen { width: 24px; height: 24px; }
 .board-editor-panel {
   flex: 1; min-width: 300px; max-width: 480px;
   display: flex; flex-direction: column; gap: 12px;
@@ -3638,6 +3652,12 @@ input[type="date"] {
   .breadcrumb { margin-bottom: 10px; font-size: 13px; gap: 6px; white-space: nowrap; }
   .breadcrumb .crumb-current { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .btn-label { display: none; }
+  /* Board Editor: the mode switch becomes a row above the board, which keeps
+     the full width of the screen for itself. */
+  .board-editor-stage { flex-direction: column; align-items: stretch; gap: 8px; }
+  .editor-modes { flex-direction: row; width: auto; align-items: center; }
+  .editor-mode { width: 60px; height: 44px; flex-direction: row; gap: 5px; font-size: 11.5px; }
+  .editor-pens { flex-direction: row; padding: 0 4px; }
   .practice-layout { gap: 12px; justify-content: center; }
   /* Centred, never hugging the left edge with the slack all on the right. */
   .practice-board { margin: 0 auto; max-width: 100%; }

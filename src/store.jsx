@@ -1329,13 +1329,40 @@ function reduce(state, action) {
     // is explicitly saved to the Lab or abandoned with Reset.
     case 'setAnalysisDraft':
       return { ...state, analysisDraft: action.draft };
+    // A saved position keeps the arrows and highlighted squares drawn on it
+    // in the Board Editor, in the same form Analysis draws in ([[from, to,
+    // colour]] and { square: colour }) so they go straight across. Positions
+    // saved before there was anything to draw simply have none.
     case 'savePosition':
       return {
         ...state,
         savedPositions: [
-          { id: action.id ?? uid(), name: action.name, fen: action.fen, createdAt: new Date().toISOString() },
+          {
+            id: action.id ?? uid(),
+            name: action.name,
+            fen: action.fen,
+            arrows: action.arrows ?? [],
+            squares: action.squares ?? {},
+            createdAt: new Date().toISOString(),
+          },
           ...(state.savedPositions ?? []),
         ],
+      };
+    // The same position with the board as it is now — the marks drawn since
+    // it was loaded, or the pieces moved. updatedAt is what lets sync tell a
+    // fresh edit from a stale copy on another device.
+    case 'updatePosition':
+      return {
+        ...state,
+        savedPositions: (state.savedPositions ?? []).map((p) => (p.id === action.id
+          ? {
+            ...p,
+            ...(action.fen ? { fen: action.fen } : {}),
+            arrows: action.arrows ?? [],
+            squares: action.squares ?? {},
+            updatedAt: Date.now(),
+          }
+          : p)),
       };
     case 'deletePosition':
       return { ...state, savedPositions: (state.savedPositions ?? []).filter((p) => p.id !== action.id) };

@@ -46,8 +46,12 @@ export const validCardId = (id) => /^[A-Za-z0-9_-]{3,64}$/.test(String(id ?? '')
 // A chapter is addressed by the two ids it actually needs. They're stable for
 // a given repertoire — they survive Backup/Restore — so a chapter link works
 // across your own devices, though not on someone else's data.
+// A position saved in the Board Editor has an address of its own:
+// /analysis/editor/<position>. Its id is the same on all of your devices, so
+// the link a coach copies at home opens the same set-up — pieces, arrows and
+// highlighted squares — on the iPad in the lesson.
 export function pathFor({
-  view, sub, chapterNav, player,
+  view, sub, chapterNav, player, position,
 } = {}) {
   if (view === 'chapter' && chapterNav?.openingId && chapterNav?.chapterId) {
     return `/chapter/${chapterNav.openingId}/${chapterNav.chapterId}`;
@@ -56,6 +60,9 @@ export function pathFor({
   if (!base) return '/';
   if (PLAYER_VIEWS.has(view) && player?.id && validCardId(player.id)) {
     return `/${base}/${player.id}${player.tab === 'games' ? '/games' : ''}`;
+  }
+  if (view === 'analysis' && sub === 'editor' && position && validCardId(position)) {
+    return `/${base}/editor/${position}`;
   }
   if (sub && SUB_VIEWS[view]?.includes(sub)) return `/${base}/${sub}`;
   return `/${base}`;
@@ -72,7 +79,9 @@ export function parsePath(pathname = '/') {
   if (PLAYER_VIEWS.has(view) && validCardId(a)) {
     return { view, sub: null, player: { id: a, tab: b === 'games' ? 'games' : null } };
   }
-  return { view, sub: SUB_VIEWS[view]?.includes(a) ? a : null };
+  const sub = SUB_VIEWS[view]?.includes(a) ? a : null;
+  if (view === 'analysis' && sub === 'editor' && validCardId(b)) return { view, sub, position: b };
+  return { view, sub };
 }
 
 // The tab strip's own labels, for the "copy a link to here" button.
