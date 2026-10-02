@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Chess } from 'chess.js';
 import { ChessboardDnDProvider, SparePiece } from 'react-chessboard';
 import { TouchBackend } from 'react-dnd-touch-backend';
@@ -14,7 +15,12 @@ import { shortcutMap, PENS, defaultPen } from '../lib/shortcuts';
 import { pathFor } from '../lib/routes';
 import { copyText } from '../lib/clipboard';
 import {
-  MonitorIcon, ShuffleIcon, TargetIcon, PencilIcon, LinkIcon,
+  folderOf, folderNames, groupPositions, canMove,
+} from '../lib/savedPositions';
+import { useBackGuard } from '../lib/backGuard';
+import MoreMenu from './MoreMenu';
+import {
+  MonitorIcon, ShuffleIcon, TargetIcon, PencilIcon, LinkIcon, FolderIcon,
 } from './Icons';
 
 const PALETTE = ['K', 'Q', 'R', 'B', 'N', 'P'];
@@ -109,6 +115,12 @@ export default function BoardEditor({
   const [selectedPosId, setSelectedPosId] = useState(positionId ?? '');
   const [oppositeSide, setOppositeSide] = useState('wK'); // which colour goes kingside, for the opposite-castling preset
   const [linkCopied, setLinkCopied] = useState(false);
+  // Which folder Save files into ('' for none), and the "+ New folder" box.
+  const [saveFolder, setSaveFolder] = useState('');
+  const [newFolder, setNewFolder] = useState(null); // null, or the name being typed
+  const lastFolder = useRef(''); // the folder last saved into, offered first next time
+  const [folderPickOpen, setFolderPickOpen] = useState(false);
+  useBackGuard(folderPickOpen, () => setFolderPickOpen(false));
 
   // What the board is for right now. In Squares mode a right-click or a
   // long-press names the square (the help you want while setting up from a
@@ -361,15 +373,63 @@ export default function BoardEditor({
   const savedDirty = !!selectedPos
     && (selectedPos.fen !== fen || !sameMarks(marksOf(selectedPos), marks));
 
+  const folders = folderNames(savedPositions);
+  const groups = groupPositions(savedPositions);
+
+  // Opening the Save box offers the folder you're working in: the open
+  // position's, or else the one last saved into.
+  const openSave = () => {
+    if (!saveOpen) {
+      setSaveFolder(selectedPos ? folderOf(selectedPos) : lastFolder.current);
+      setNewFolder(null);
+    }
+    setSaveOpen((o) => !o);
+  };
+
   const savePosition = () => {
     if (!posName.trim()) return;
     const id = uid();
+    const folder = (newFolder ?? '').trim() || saveFolder;
     dispatch({
-      type: 'savePosition', id, name: posName.trim(), fen, arrows: marks.arrows, squares: marks.squares,
+      type: 'savePosition',
+      id,
+      name: posName.trim(),
+      fen,
+      arrows: marks.arrows,
+      squares: marks.squares,
+      folder,
     });
+    lastFolder.current = folder;
     setPosName('');
+    setNewFolder(null);
     setSaveOpen(false);
     setSelectedPosId(id); // land straight on the one just saved in the dropdown
+  };
+
+  // ---------- The ⋯ menu on the open position ----------
+  const renameSaved = () => {
+    if (!selectedPos) return;
+    const name = window.prompt('Rename this position', selectedPos.name);
+    if (name && name.trim()) dispatch({ type: 'renamePosition', id: selectedPos.id, name });
+  };
+  const fileInto = (folder) => {
+    setFolderPickOpen(false);
+    if (!selectedPos) return;
+    dispatch({ type: 'setPositionFolder', id: selectedPos.id, folder });
+    if (folder) lastFolder.current = folder;
+  };
+  const fileIntoNew = () => {
+    const name = window.prompt('New folder name');
+    if (name && name.trim()) fileInto(name.trim());
+  };
+  const renameFolderOfSaved = () => {
+    const from = folderOf(selectedPos);
+    if (!from) return;
+    const to = window.prompt(`Rename the folder “${from}”`, from);
+    if (to && to.trim() && to.trim() !== from) {
+      dispatch({ type: 'renamePositionFolder', from, to });
+      if (lastFolder.current === from) lastFolder.current = to.trim();
+    }
   };
 
   const updateSaved = () => {
@@ -386,8 +446,9 @@ export default function BoardEditor({
   };
 
   const deleteSaved = () => {
-    if (!selectedPosId) return;
-    dispatch({ type: 'deletePosition', id: selectedPosId });
+    if (!selectedPos) return;
+    if (!window.confirm(`Delete “${selectedPos.name}”? Links to it will stop working.`)) return;
+    dispatch({ type: 'deletePosition', id: selectedPos.id });
     setSelectedPosId('');
   };
 
@@ -410,8 +471,41 @@ export default function BoardEditor({
     const ok = await copyText(url);
     if (!ok) { window.prompt('Copy this link:', url); return; }
     setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 1600);
+    setTimeout(() => setLinkCopied(false), 1800);
   };
+
+  const savedMenu = selectedPos ? [
+    { label: 'Rename', icon: <PencilIcon size={16} />, onClick: renameSaved },
+    {
+      label: 'Move to folder',
+      icon: <FolderIcon size={16} />,
+      hint: folderOf(selectedPos) || 'No folder',
+      onClick: () => setFolderPickOpen(true),
+    },
+    {
+      label: 'Move up',
+      icon: <span aria-hidden="true">↑</span>,
+      disabled: !canMove(savedPositions, selectedPos.id, -1),
+      onClick: () => dispatch({ type: 'movePosition', id: selectedPos.id, dir: -1 }),
+    },
+    {
+      label: 'Move down',
+      icon: <span aria-hidden="true">↓</span>,
+      disabled: !canMove(savedPositions, selectedPos.id, 1),
+      onClick: () => dispatch({ type: 'movePosition', id: selectedPos.id, dir: 1 }),
+    },
+    folderOf(selectedPos) && {
+      label: `Rename folder “${folderOf(selectedPos)}”`,
+      icon: <PencilIcon size={16} />,
+      onClick: renameFolderOfSaved,
+    },
+    { sep: true },
+    { label: 'Copy link', icon: <LinkIcon size={16} />, onClick: copyLink },
+    { sep: true },
+    {
+      label: 'Delete position', icon: <span aria-hidden="true">✕</span>, danger: true, onClick: deleteSaved,
+    },
+  ] : [];
 
   return (
     // One shared drag-and-drop context for the board AND the spare-piece
@@ -626,7 +720,7 @@ export default function BoardEditor({
         {fenError && <span className="muted-note editor-fen-error">{fenError}</span>}
 
         <div className="editor-row">
-          <button className="small" onClick={() => setSaveOpen((o) => !o)}>Save position…</button>
+          <button className="small" onClick={openSave}>Save position…</button>
           {recordedMoves.length > 0 && (
             <span className="muted-note" title="Dragged as legal moves since the last setup action — these go to Analysis as a real, steppable line">
               {recordedMoves.length} move{recordedMoves.length === 1 ? '' : 's'} recorded
@@ -645,34 +739,78 @@ export default function BoardEditor({
           </button>
         </div>
         {saveOpen && (
-          <div className="editor-row">
-            <input
-              type="text"
-              placeholder="e.g. Rook endgame — 4 vs 3 same side"
-              value={posName}
-              onChange={(e) => setPosName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') savePosition(); }}
-            />
-            <button className="small primary" disabled={!posName.trim()} onClick={savePosition}>Save</button>
+          <div className="editor-save">
+            <div className="editor-row">
+              <input
+                type="text"
+                placeholder="e.g. Rook endgame — 4 vs 3 same side"
+                value={posName}
+                onChange={(e) => setPosName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') savePosition(); }}
+              />
+              <button className="small primary" disabled={!posName.trim()} onClick={savePosition}>Save</button>
+            </div>
+            <div className="editor-folder-chips" role="radiogroup" aria-label="Folder">
+              <span className="editor-label">Folder</span>
+              {folders.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  role="radio"
+                  aria-checked={newFolder === null && saveFolder === f}
+                  className={`folder-chip${newFolder === null && saveFolder === f ? ' on' : ''}`}
+                  onClick={() => { setSaveFolder(f); setNewFolder(null); }}
+                >
+                  {f}
+                </button>
+              ))}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={newFolder === null && !saveFolder}
+                className={`folder-chip${newFolder === null && !saveFolder ? ' on' : ''}`}
+                onClick={() => { setSaveFolder(''); setNewFolder(null); }}
+              >
+                No folder
+              </button>
+              {newFolder === null ? (
+                <button type="button" className="folder-chip new" onClick={() => setNewFolder('')}>
+                  + New folder
+                </button>
+              ) : (
+                <input
+                  type="text"
+                  className="folder-chip-input"
+                  placeholder="New folder name"
+                  autoFocus
+                  value={newFolder}
+                  onChange={(e) => setNewFolder(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') savePosition();
+                    if (e.key === 'Escape') setNewFolder(null);
+                  }}
+                />
+              )}
+            </div>
           </div>
         )}
 
         {savedPositions.length > 0 && (
           <div className="editor-row editor-saved-row">
             <span className="editor-label">Saved positions</span>
+            {/* Folders are headings inside the dropdown — still one tap to
+                any position, on a phone's own picker as much as a Mac's. With
+                no folders yet it's the plain list it always was. */}
             <select value={selectedPosId} onChange={(e) => loadSaved(e.target.value)}>
               <option value="" disabled>Choose a saved position…</option>
-              {savedPositions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {folders.length === 0
+                ? savedPositions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)
+                : groups.map((g) => (
+                  <optgroup key={g.folder || '(unfiled)'} label={g.folder || 'No folder'}>
+                    {g.items.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </optgroup>
+                ))}
             </select>
-            {selectedPos && (
-              <button
-                className={`small ghost${linkCopied ? ' primary' : ''}`}
-                title="Copy a link that opens the editor on this position, arrows and all"
-                onClick={copyLink}
-              >
-                <LinkIcon size={13} /> {linkCopied ? 'Copied' : 'Copy link'}
-              </button>
-            )}
             {savedDirty && (
               <button
                 className="small primary"
@@ -682,14 +820,11 @@ export default function BoardEditor({
                 Update
               </button>
             )}
-            <button
-              className="small ghost danger"
-              disabled={!selectedPosId}
-              title="Delete this saved position"
-              onClick={deleteSaved}
-            >
-              ✕
-            </button>
+            {/* Everything else about the open position lives behind this —
+                rename, folders, order, its link, delete — so the editor's own
+                row stays the dropdown and nothing more. */}
+            {selectedPos && <MoreMenu items={savedMenu} title={selectedPos.name} label="Saved position actions" />}
+            {linkCopied && <span className="muted-note editor-copied" aria-live="polite">Link copied</span>}
           </div>
         )}
       </div>
@@ -701,6 +836,36 @@ export default function BoardEditor({
       <div className="square-flash" key={squareName.at} aria-live="polite">
         <span>{squareName.square}</span>
       </div>
+    )}
+    {/* Move to folder: the same bottom sheet as the ⋯ menu it comes from. */}
+    {folderPickOpen && selectedPos && createPortal(
+      <div className="sheet-scrim" onClick={() => setFolderPickOpen(false)}>
+        <div className="sheet" role="menu" onClick={(e) => e.stopPropagation()}>
+          <div className="sheet-grip" aria-hidden="true" />
+          <div className="sheet-title">Move “{selectedPos.name}” to…</div>
+          <div className="sheet-rows">
+            {folders.map((f) => (
+              <button key={f} type="button" role="menuitem" className="sheet-row" onClick={() => fileInto(f)}>
+                <span className="sheet-icon"><FolderIcon size={16} /></span>
+                <span className="sheet-label">{f}</span>
+                {folderOf(selectedPos) === f && <span className="sheet-check" aria-label="current">✓</span>}
+              </button>
+            ))}
+            <button type="button" role="menuitem" className="sheet-row" onClick={() => fileInto('')}>
+              <span className="sheet-icon" />
+              <span className="sheet-label">No folder</span>
+              {!folderOf(selectedPos) && <span className="sheet-check" aria-label="current">✓</span>}
+            </button>
+            <div className="sheet-sep" role="separator" />
+            <button type="button" role="menuitem" className="sheet-row" onClick={fileIntoNew}>
+              <span className="sheet-icon">+</span>
+              <span className="sheet-label">New folder…</span>
+            </button>
+          </div>
+          <button type="button" className="sheet-cancel" onClick={() => setFolderPickOpen(false)}>Cancel</button>
+        </div>
+      </div>,
+      document.body,
     )}
     </ChessboardDnDProvider>
   );

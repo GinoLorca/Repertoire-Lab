@@ -12,6 +12,9 @@ import {
 import { arrangeTop, arrangeFolder, gatherIntoFolder } from './lib/chapterOrder';
 import { parseMarks, withText, withMarks } from './lib/marks';
 import { canonicalStartFen, fen4 } from './lib/startPos';
+import {
+  addPosition, renamePosition, setFolder, movePosition, renameFolder,
+} from './lib/savedPositions';
 
 const STORAGE_KEY = 'repertoire-lab-state-v1';
 
@@ -1333,21 +1336,29 @@ function reduce(state, action) {
     // in the Board Editor, in the same form Analysis draws in ([[from, to,
     // colour]] and { square: colour }) so they go straight across. Positions
     // saved before there was anything to draw simply have none.
+    // Filed in `folder` ('' for none) and added at the bottom of it — see
+    // lib/savedPositions.js for how folders and order work.
     case 'savePosition':
       return {
         ...state,
-        savedPositions: [
-          {
-            id: action.id ?? uid(),
-            name: action.name,
-            fen: action.fen,
-            arrows: action.arrows ?? [],
-            squares: action.squares ?? {},
-            createdAt: new Date().toISOString(),
-          },
-          ...(state.savedPositions ?? []),
-        ],
+        savedPositions: addPosition(state.savedPositions, {
+          id: action.id ?? uid(),
+          name: action.name,
+          fen: action.fen,
+          arrows: action.arrows ?? [],
+          squares: action.squares ?? {},
+          ...(action.folder ? { folder: action.folder } : {}),
+          createdAt: new Date().toISOString(),
+        }),
       };
+    case 'renamePosition':
+      return { ...state, savedPositions: renamePosition(state.savedPositions, action.id, action.name) };
+    case 'setPositionFolder':
+      return { ...state, savedPositions: setFolder(state.savedPositions, action.id, action.folder) };
+    case 'movePosition':
+      return { ...state, savedPositions: movePosition(state.savedPositions, action.id, action.dir) };
+    case 'renamePositionFolder':
+      return { ...state, savedPositions: renameFolder(state.savedPositions, action.from, action.to) };
     // The same position with the board as it is now — the marks drawn since
     // it was loaded, or the pieces moved. updatedAt is what lets sync tell a
     // fresh edit from a stale copy on another device.

@@ -2401,6 +2401,20 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .editor-fen-row { display: flex; gap: 8px; }
 .editor-fen-row input { flex: 1; min-width: 0; font-family: monospace; font-size: 12.5px; }
 .editor-fen-error { color: var(--red); }
+/* Save: the name, then which folder it goes in. */
+.editor-save { display: flex; flex-direction: column; gap: 8px; }
+.editor-save input[type="text"] { flex: 1; min-width: 0; }
+.editor-folder-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.folder-chip {
+  border: 1px solid var(--border); background: var(--card); color: var(--text);
+  border-radius: 20px; padding: 4px 11px; font-size: 13px; min-height: 30px;
+}
+.folder-chip.on { background: var(--accent-dim); border-color: var(--accent); color: #fff; font-weight: 600; }
+.folder-chip.new { border-style: dashed; color: var(--muted); background: transparent; }
+.folder-chip-input { border-radius: 20px; padding: 4px 11px; font-size: 13px; width: 170px; }
+.editor-saved-row select { flex: 1 1 180px; min-width: 0; }
+.editor-copied { color: var(--green); }
+.sheet-check { margin-left: auto; color: var(--accent); font-weight: 700; padding-left: 10px; }
 
 .cmp-pickers { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .cmp-picker {
