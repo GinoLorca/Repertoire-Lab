@@ -22,6 +22,9 @@ const VIEW_PATHS = [
   ['analysis', 'analysis'],
   ['coaches', 'coaches'],
   ['settings', 'settings'],
+  // Not a tab — reached from Settings → The board, to check a smart board's
+  // touch before a lesson relies on it.
+  ['touchtest', 'touch-test'],
 ];
 
 const PATH_TO_VIEW = Object.fromEntries(VIEW_PATHS.map(([view, path]) => [path, view]));
@@ -106,4 +109,5 @@ export const SECTION_LABEL = {
   coaches: 'Coaches Corner',
   settings: 'Settings',
   chapter: 'this chapter',
+  touchtest: 'the touch test',
 };

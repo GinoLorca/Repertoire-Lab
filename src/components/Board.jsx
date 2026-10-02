@@ -8,6 +8,7 @@ import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/piec
 import { boardBadgeStyle } from '../lib/badges';
 import { boardColors } from '../lib/theme';
 import BoardArrows, { cell } from './BoardArrows';
+import { TelestratorLayer } from './Telestrator';
 
 export const DEFAULT_SQUARE_LIGHT = '#c6d3e1';
 export const DEFAULT_SQUARE_DARK = '#4a6a8f';
@@ -71,7 +72,7 @@ const NOTATION_STYLE = {
 // change to our renderer could reach it. It's off from here on, so arrows come
 // from one place.
 export default function Board({
-  position, customSquareStyles, lastMove, badge, ownArrows = true, marks = null, ...rest
+  position, customSquareStyles, lastMove, badge, ownArrows = true, marks = null, telestrator = true, ...rest
 }) {
   const { state } = useStore();
   const markCheck = state.settings.checkHighlight !== false;
@@ -142,20 +143,35 @@ export default function Board({
     />
   );
 
+  const sized = typeof rest.boardWidth === 'number';
+  const orientation = rest.boardOrientation === 'black' ? 'black' : 'white';
+
   // Nothing to draw on: a board with no width of its own (the piece editor,
   // the theme preview in Settings) can't host a correctly sized overlay, and
   // wouldn't want arrows anyway.
-  if (!ownArrows || typeof rest.boardWidth !== 'number') return board;
-
-  return (
+  const drawn = (!ownArrows || !sized) ? board : (
     <DrawableBoard
       boardWidth={rest.boardWidth}
-      orientation={rest.boardOrientation === 'black' ? 'black' : 'white'}
+      orientation={orientation}
       position={position}
       marks={marks}
     >
       {board}
     </DrawableBoard>
+  );
+  if (!sized || !telestrator) return drawn;
+
+  // The telestrator's ink (components/Telestrator.jsx) sits over every sized
+  // board; it's invisible and lets everything through until it's switched on.
+  return (
+    <div className="tele-host" style={{ position: 'relative', width: rest.boardWidth, height: rest.boardWidth }}>
+      {drawn}
+      <TelestratorLayer
+        boardWidth={rest.boardWidth}
+        orientation={orientation}
+        positionKey={typeof position === 'string' ? position : JSON.stringify(position ?? '')}
+      />
+    </div>
   );
 }
 

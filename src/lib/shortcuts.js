@@ -41,6 +41,8 @@ export const SHORTCUTS = [
   // doubly-nested line to find the actual game again is exactly the
   // tedium this exists to skip.
   { id: 'backToMainLine', label: 'Jump back to the actual game, out of any variation', default: '9' },
+  // Works on every board, not just this one — see components/Telestrator.jsx.
+  { id: 'toggleTelestrator', label: 'Telestrator — draw on any board with a finger, on / off', default: 't' },
 ];
 
 // A numpad digit's own `code` never changes, but the `key` it reports does:

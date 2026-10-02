@@ -4429,3 +4429,79 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .player-title { flex: 1; min-width: 200px; }
 .player-title h1 { margin: 0; }
 .player-title .school-line { font-size: 14px; margin-top: 3px; }
+
+/* ---------- Telestrator (components/Telestrator.jsx) ----------
+   Ink over any board, for teaching on a smart board. Above every overlay
+   (the line viewer, the review reader) so it can be reached over them. The
+   pen sits in the bottom-right corner, clear of the boards, which keep to the
+   left or the middle; the toolbar covers the menu bar while it's up, which
+   isn't wanted while drawing, rather than the bottom of a board. */
+.tele-layer {
+  position: absolute; inset: 0; z-index: 40;
+  touch-action: none; cursor: crosshair;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.tele-item { position: absolute; left: 0; top: 0; pointer-events: none; }
+.tele-item svg { pointer-events: none; }
+.tele-square { position: absolute; }
+@keyframes tele-fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
+
+.tele-fab {
+  position: fixed; z-index: 120;
+  right: calc(16px + var(--safe-right)); bottom: calc(16px + var(--safe-bottom));
+  width: 46px; height: 46px; padding: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--panel); color: var(--muted); border: 1px solid var(--border);
+  box-shadow: 0 4px 14px var(--shadow); opacity: 0.6;
+}
+.tele-fab:hover { opacity: 1; }
+.tele-fab.active { opacity: 1; background: var(--accent-dim); border-color: var(--accent); color: #fff; }
+
+.tele-bar {
+  position: fixed; z-index: 120; left: 50%; transform: translateX(-50%);
+  top: calc(6px + var(--safe-top) + var(--status-gap));
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: 0 8px 26px var(--shadow);
+  max-width: calc(100vw - 16px - var(--safe-left) - var(--safe-right));
+}
+.tele-pens { display: flex; gap: 8px; padding-right: 4px; }
+.tele-pen {
+  width: 34px; height: 34px; padding: 0; border-radius: 50%;
+  border: 3px solid transparent; box-shadow: 0 0 0 1px var(--border);
+}
+.tele-pen.active { border-color: var(--text); }
+.tele-btn { min-height: 40px; padding: 6px 14px; font-weight: 600; }
+.tele-btn.done { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
+
+/* A phone has no smart board behind it: the pen stays out of the way there
+   unless it's already on (T still switches it). */
+@media (max-width: 600px) {
+  .tele-fab:not(.active) { display: none; }
+  .tele-bar { gap: 6px; padding: 6px 8px; }
+  .tele-pen { width: 30px; height: 30px; }
+  .tele-btn { padding: 6px 10px; }
+}
+
+/* ---------- Touch test (views/TouchTestView.jsx) ---------- */
+.touch-stats {
+  display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 4px 0 12px;
+  font-size: 14px; color: var(--muted);
+}
+.touch-stats strong { color: var(--text); }
+.touch-pad {
+  position: relative; width: 100%; height: min(60vh, 560px);
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  touch-action: none; overflow: hidden; cursor: crosshair;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.touch-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.touch-dot {
+  position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+  border: 2px solid var(--muted); pointer-events: none;
+}
+.touch-dot::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 4px; height: 4px;
+  margin: -2px 0 0 -2px; border-radius: 50%; background: var(--text);
+}
+.touch-legend { margin-top: 10px; }

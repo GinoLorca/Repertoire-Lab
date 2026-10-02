@@ -23,6 +23,8 @@ import MigratePlayersModal from './components/MigratePlayersModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import Inbox from './components/Inbox';
 import { ReviewReaderHost, openReview } from './components/ReviewReader';
+import { TelestratorProvider } from './components/Telestrator';
+import TouchTestView from './views/TouchTestView';
 
 // What the dot on the Settings icon means.
 const SYNC_ALERT = {
@@ -113,7 +115,7 @@ function AppInner() {
     // A drag that starts on a board is a chess move, and one inside a popup
     // is that popup's business — neither should ever reload the app.
     const blocked = (target) => !!target?.closest?.(
-      '[data-boardid], .board-stack, .board-frame, .book-board, .viewer-board, .drag-grip, input, textarea, select',
+      '[data-boardid], .board-stack, .board-frame, .book-board, .viewer-board, .drag-grip, .tele-host, .tele-bar, .tele-fab, .touch-pad, input, textarea, select',
     ) || !!document.querySelector('.modal-overlay, .viewer-overlay, .menu-scrim')
       // A chapter card being dragged down the page isn't a pull to refresh.
       || document.body.classList.contains('card-dragging');
@@ -746,6 +748,7 @@ function AppInner() {
           />
         )}
         {view === 'settings' && <SettingsView tab={sub} onTabChange={setSub} />}
+        {view === 'touchtest' && <TouchTestView />}
         <MigratePlayersModal />
 
         {searchOpen && (
@@ -889,12 +892,15 @@ export default function App() {
         {/* Games shared with linked students, sent and mirrored from any
             screen — see GameLinkProvider. */}
         <GameLinkProvider>
-          <AppInner />
-          {/* A coach's review, read over whatever screen is up. */}
-          <ReviewReaderHost />
-          <CoachGamesToast />
-          <StudentGamesToast />
-          <UpdateBar />
+          {/* Draw on any board from anywhere — see TelestratorProvider. */}
+          <TelestratorProvider>
+            <AppInner />
+            {/* A coach's review, read over whatever screen is up. */}
+            <ReviewReaderHost />
+            <CoachGamesToast />
+            <StudentGamesToast />
+            <UpdateBar />
+          </TelestratorProvider>
         </GameLinkProvider>
       </CloudProvider>
     </StoreProvider>

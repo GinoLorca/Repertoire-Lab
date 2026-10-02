@@ -45,3 +45,8 @@ test('a quick setup has an address: /analysis/editor/setup/<slug>', () => {
   // A saved position wins if both are somehow set.
   assert.equal(pathFor({ view: 'analysis', sub: 'editor', position: 'p7x2k9q1', setup: 'pawn-race' }), '/analysis/editor/p7x2k9q1');
 });
+
+test('the touch test page has an address', () => {
+  assert.deepEqual(parsePath('/touch-test'), { view: 'touchtest', sub: null });
+  assert.equal(pathFor({ view: 'touchtest' }), '/touch-test');
+});

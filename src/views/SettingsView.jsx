@@ -633,6 +633,37 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
           on={s.checkHighlight !== false}
           onChange={(v) => set({ checkHighlight: v })}
         />
+
+        {/* The telestrator — the pen in the corner of the screen whenever a
+            board is up (components/Telestrator.jsx). */}
+        <div className="settings-row" style={{ marginTop: 18 }}><span><strong>Telestrator</strong></span></div>
+        <p className="hint">
+          Tap the pen in the bottom-right corner (or press T) and draw on any board with a finger — made
+          for teaching from an iPad on a smart board. A straight line from one square to another
+          becomes an arrow, a tap or a small loop marks a square, and anything else stays as ink.
+          Two fingers tapped together clear it. The ink isn't saved.
+        </p>
+        <div className="settings-row">
+          <span>Ink fades by itself after</span>
+          <select
+            value={Number(s.telestratorFade) || 0}
+            onChange={(e) => set({ telestratorFade: Number(e.target.value) })}
+          >
+            <option value={0}>Never — stays until cleared</option>
+            <option value={3}>3 seconds</option>
+            <option value={5}>5 seconds</option>
+            <option value={10}>10 seconds</option>
+          </select>
+        </div>
+        <div className="settings-row">
+          <button
+            className="small"
+            onClick={() => window.dispatchEvent(new CustomEvent('repertoire-open-screen', { detail: 'touchtest' }))}
+          >
+            Test a smart board's touch…
+          </button>
+          <span className="muted-note">Check the board passes your finger through before a lesson relies on it.</span>
+        </div>
       </Section>
 
       <Section id="trainer" tab={tab} title="Move trainer" hint="Learn and Practice">
