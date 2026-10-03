@@ -13,7 +13,7 @@ import { arrangeTop, arrangeFolder, gatherIntoFolder } from './lib/chapterOrder'
 import { parseMarks, withText, withMarks } from './lib/marks';
 import { canonicalStartFen, fen4 } from './lib/startPos';
 import {
-  addPosition, renamePosition, setFolder, movePosition, renameFolder,
+  addPosition, renamePosition, setFolder, movePosition, renameFolder, renameFolderInOrder,
 } from './lib/savedPositions';
 
 const STORAGE_KEY = 'repertoire-lab-state-v1';
@@ -1357,8 +1357,16 @@ function reduce(state, action) {
       return { ...state, savedPositions: setFolder(state.savedPositions, action.id, action.folder) };
     case 'movePosition':
       return { ...state, savedPositions: movePosition(state.savedPositions, action.id, action.dir) };
+    // …and it keeps its place among the folders as they've been arranged.
     case 'renamePositionFolder':
-      return { ...state, savedPositions: renameFolder(state.savedPositions, action.from, action.to) };
+      return {
+        ...state,
+        savedPositions: renameFolder(state.savedPositions, action.from, action.to),
+        settings: {
+          ...state.settings,
+          positionFolderOrder: renameFolderInOrder(state.settings?.positionFolderOrder ?? [], action.from, action.to),
+        },
+      };
     // The same position with the board as it is now — the marks drawn since
     // it was loaded, or the pieces moved. updatedAt is what lets sync tell a
     // fresh edit from a stale copy on another device.

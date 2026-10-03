@@ -6,20 +6,28 @@
 // gone. The list's own order is the order within each folder; the folders
 // themselves read alphabetically, with the unfiled ones last. Positions keep
 // their ids through all of it, so a link already copied keeps working.
+//
+// The folders read alphabetically until they're arranged by hand: then
+// `order` (settings.positionFolderOrder, which syncs) lists them as arranged,
+// and any folder it doesn't name yet — made since — follows, A–Z.
 
 export const folderOf = (p) => (typeof p?.folder === 'string' ? p.folder.trim() : '');
 
 const byName = (a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' });
 
-// Every folder in use, alphabetically.
-export function folderNames(list) {
-  return [...new Set((list ?? []).map(folderOf).filter(Boolean))].sort(byName);
+// Every folder in use: as arranged, then any others alphabetically.
+export function folderNames(list, order = []) {
+  const inUse = [...new Set((list ?? []).map(folderOf).filter(Boolean))].sort(byName);
+  const used = new Set(inUse);
+  const arranged = [...new Set((order ?? []).filter((f) => used.has(f)))];
+  const placed = new Set(arranged);
+  return [...arranged, ...inUse.filter((f) => !placed.has(f))];
 }
 
-// The list as the dropdown shows it: [{ folder, items }], folders A–Z and the
-// unfiled group ('') last. Empty groups are left out.
-export function groupPositions(list) {
-  const groups = folderNames(list).map((folder) => ({ folder, items: [] }));
+// The list as the dropdown shows it: [{ folder, items }], folders in their
+// order (above) and the unfiled group ('') last. Empty groups are left out.
+export function groupPositions(list, order = []) {
+  const groups = folderNames(list, order).map((folder) => ({ folder, items: [] }));
   const at = new Map(groups.map((g) => [g.folder, g]));
   const unfiled = { folder: '', items: [] };
   for (const p of list ?? []) (at.get(folderOf(p)) ?? unfiled).items.push(p);
@@ -86,4 +94,14 @@ export function renameFolder(list, from, to, now = Date.now()) {
   const dst = String(to ?? '').trim();
   if (!src || !dst || src === dst) return list;
   return (list ?? []).map((p) => (folderOf(p) === src ? { ...p, folder: dst, updatedAt: now } : p));
+}
+
+// A folder renamed keeps its place in the arranged order. Renamed onto one
+// that's already there, the two are one folder, in that one's place.
+export function renameFolderInOrder(order, from, to) {
+  const src = String(from ?? '').trim();
+  const dst = String(to ?? '').trim();
+  if (!Array.isArray(order) || !src || !dst || src === dst) return order;
+  if (order.includes(dst)) return order.filter((f) => f !== src);
+  return order.map((f) => (f === src ? dst : f));
 }

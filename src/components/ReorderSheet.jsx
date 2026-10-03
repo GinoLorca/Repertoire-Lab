@@ -31,7 +31,12 @@ const byName = (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true
 const EDGE = 56; // px from the list's edge where holding a line scrolls it
 const MAX_SPEED = 900; // px a second, held right at the edge
 
-export default function ReorderSheet({ title, items, onDone, onClose }) {
+// `noun` names what's being moved in the hint ("line", "folder"), and
+// `sortByMoves` hides that sort where the rows have no moves to compare —
+// the Board Editor's folders of saved positions.
+export default function ReorderSheet({
+  title, items, onDone, onClose, noun = 'line', sortByMoves = true,
+}) {
   const byId = useMemo(() => new Map(items.map((it) => [it.id, it])), [items]);
   const original = useMemo(() => items.map((it) => it.id), [items]);
   const [picked, setOrder] = useState(original);
@@ -130,8 +135,8 @@ export default function ReorderSheet({ title, items, onDone, onClose }) {
           <h3 style={{ margin: 0, flex: 1 }}>Reorder — {title}</h3>
         </div>
         <div className="settings-row reorder-tools">
-          <span className="muted-note" style={{ flex: 1 }}>Drag ≡ to move a line.</span>
-          <button className="small" onClick={() => sortBy(byMoves)}>Sort by moves</button>
+          <span className="muted-note" style={{ flex: 1 }}>Drag ≡ to move a {noun}.</span>
+          {sortByMoves && <button className="small" onClick={() => sortBy(byMoves)}>Sort by moves</button>}
           <button className="small" onClick={() => sortBy(byName)}>Sort by name</button>
           <button className="small ghost" disabled={!changed} onClick={() => setOrder(original)}>Undo all</button>
         </div>

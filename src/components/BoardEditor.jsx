@@ -19,6 +19,7 @@ import {
 } from '../lib/savedPositions';
 import { useBackGuard } from '../lib/backGuard';
 import MoreMenu from './MoreMenu';
+import ReorderSheet from './ReorderSheet';
 import {
   MonitorIcon, ShuffleIcon, TargetIcon, PencilIcon, LinkIcon, FolderIcon,
 } from './Icons';
@@ -390,8 +391,10 @@ export default function BoardEditor({
   const savedDirty = !!selectedPos
     && (selectedPos.fen !== fen || !sameMarks(marksOf(selectedPos), marks));
 
-  const folders = folderNames(savedPositions);
-  const groups = groupPositions(savedPositions);
+  const folderOrder = state.settings.positionFolderOrder ?? [];
+  const folders = folderNames(savedPositions, folderOrder);
+  const groups = groupPositions(savedPositions, folderOrder);
+  const [arrangingFolders, setArrangingFolders] = useState(false);
 
   // Opening the Save box offers the folder you're working in: the open
   // position's, or else the one last saved into.
@@ -526,6 +529,11 @@ export default function BoardEditor({
       label: `Rename folder “${folderOf(selectedPos)}”`,
       icon: <PencilIcon size={16} />,
       onClick: renameFolderOfSaved,
+    },
+    folders.length >= 2 && {
+      label: 'Arrange folders…',
+      icon: <span aria-hidden="true">≡</span>,
+      onClick: () => setArrangingFolders(true),
     },
     { sep: true },
     { label: 'Copy link', icon: <LinkIcon size={16} />, onClick: copyLink },
@@ -867,6 +875,24 @@ export default function BoardEditor({
       <div className="square-flash" key={squareName.at} aria-live="polite">
         <span>{squareName.square}</span>
       </div>
+    )}
+    {/* The folders' order in the dropdown, dragged into place — the same
+        sheet a chapter's lines are rearranged in. */}
+    {arrangingFolders && (
+      <ReorderSheet
+        title="Saved position folders"
+        noun="folder"
+        sortByMoves={false}
+        items={folders.map((f) => {
+          const n = savedPositions.filter((p) => folderOf(p) === f).length;
+          return { id: f, name: f, sub: `${n} position${n === 1 ? '' : 's'}` };
+        })}
+        onClose={() => setArrangingFolders(false)}
+        onDone={(ids) => {
+          dispatch({ type: 'setSettings', settings: { positionFolderOrder: ids } });
+          setArrangingFolders(false);
+        }}
+      />
     )}
     {/* Move to folder: the same bottom sheet as the ⋯ menu it comes from. */}
     {folderPickOpen && selectedPos && createPortal(

@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   folderNames, groupPositions, addPosition, renamePosition, setFolder,
-  canMove, movePosition, renameFolder,
+  canMove, movePosition, renameFolder, renameFolderInOrder,
 } from '../src/lib/savedPositions.js';
 
 const P = (id, folder) => ({ id, name: id.toUpperCase(), fen: '8/8/8/8/8/8/8/8 w - - 0 1', ...(folder ? { folder } : {}) });
@@ -57,4 +57,26 @@ test('renaming a folder renames it on everything inside, and can merge two', () 
   assert.equal(shape(renameFolder(list, 'R', 'Rook endgames')), 'Pawns:b Rook endgames:ac');
   assert.equal(shape(renameFolder(list, 'R', 'Pawns')), 'Pawns:abc');
   assert.equal(renameFolder(list, 'R', ' '), list);
+});
+
+test('folders follow the arranged order; ones it does not name follow A–Z', () => {
+  const list = [P('a', 'Tactics'), P('b', 'Basic Checkmates'), P('c', 'Endgames'), P('d'), P('e', 'Opening')];
+  assert.deepEqual(folderNames(list), ['Basic Checkmates', 'Endgames', 'Opening', 'Tactics'], 'never arranged: A–Z');
+  assert.deepEqual(
+    folderNames(list, ['Opening', 'Tactics', 'Basic Checkmates', 'Endgames']),
+    ['Opening', 'Tactics', 'Basic Checkmates', 'Endgames'],
+  );
+  // A folder made since joins after the arranged ones; a folder that's gone is skipped.
+  assert.deepEqual(folderNames(list, ['Tactics', 'Gone']), ['Tactics', 'Basic Checkmates', 'Endgames', 'Opening']);
+  assert.equal(
+    groupPositions(list, ['Opening', 'Tactics']).map((g) => g.folder || '-').join(),
+    'Opening,Tactics,Basic Checkmates,Endgames,-',
+    'no folder stays last',
+  );
+});
+
+test('a renamed folder keeps its place in the order', () => {
+  assert.deepEqual(renameFolderInOrder(['A', 'B', 'C'], 'B', 'Bee'), ['A', 'Bee', 'C']);
+  assert.deepEqual(renameFolderInOrder(['A', 'B', 'C'], 'B', 'C'), ['A', 'C'], 'merged into C, in C\'s place');
+  assert.deepEqual(renameFolderInOrder([], 'B', 'Bee'), []);
 });
