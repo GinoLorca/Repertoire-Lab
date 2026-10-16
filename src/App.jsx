@@ -213,7 +213,7 @@ function AppInner() {
     if (themeSettings?.theme !== 'auto') return undefined;
     const t = setInterval(paint, 60000);
     return () => clearInterval(t);
-  }, [themeSettings?.theme, themeSettings?.lightFrom, themeSettings?.darkFrom, themeSettings?.skin, themeSettings?.skinWallpaper]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [themeSettings?.theme, themeSettings?.lightFrom, themeSettings?.darkFrom, themeSettings?.skin, themeSettings?.skinWallpaper, themeSettings?.skinArtOff]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     applyBackground(themeSettings);

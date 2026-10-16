@@ -13,6 +13,10 @@ import {
   eventKey,
 } from '../lib/shortcuts';
 
+// Themes that have both a picture and a pattern underneath it. Bauhaus and
+// Game Boy's picture is the whole wallpaper, so there's nothing to switch to.
+const SKINS_WITH_PATTERN = new Set(['felt', 'hustler', 'outerspace', 'drivethru', 'rose', 'chessbook', 'uptown']);
+
 function Toggle({ label, hint, on, onChange }) {
   return (
     <label className={`setting-toggle${on ? ' on' : ''}`}>
@@ -509,12 +513,18 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
         {currentSkin !== 'custom' && (
           <Toggle
             label="Theme wallpaper"
-            hint={'The page background that came with the theme — Tournament Felt\u2019s baize, '
-              + 'Hustler\u2019s stone floor, Outer Space\u2019s stars, Drive-Thru\u2019s tray liner, '
-              + 'Ros\u00e9\u2019s satin, Chess Book\u2019s paper, Uptown Express\u2019s station wall, and the artwork Bauhaus and '
-              + 'Game Boy ship with. Your own background picture, if you set one, wins over it either way.'}
+            hint={'The page background that came with the theme: its own artwork, or its pattern '
+              + 'underneath. Your own background picture, if you set one, wins over it either way.'}
             on={s.skinWallpaper !== false}
             onChange={(v) => set({ skinWallpaper: v })}
+          />
+        )}
+        {currentSkin !== 'custom' && s.skinWallpaper !== false && SKINS_WITH_PATTERN.has(currentSkin) && (
+          <Toggle
+            label="Theme artwork"
+            hint={`The picture made for ${SKINS[currentSkin].name}. Off shows the theme\u2019s pattern instead.`}
+            on={!s.skinArtOff?.[currentSkin]}
+            onChange={(v) => set({ skinArtOff: { ...(s.skinArtOff ?? {}), [currentSkin]: !v } })}
           />
         )}
         <p className="hint">

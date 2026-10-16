@@ -37,6 +37,9 @@ export function applySkin(settings, theme) {
   // The wallpaper is part of the theme but not everyone wants a picture
   // behind their repertoire — off leaves the palette and drops the floor.
   root.classList.toggle('no-skin-wall', settings?.skinWallpaper === false);
+  // Every theme ships artwork; one switched to its pattern (per theme, in
+  // skinArtOff) shows the pattern underneath instead.
+  root.classList.toggle('skin-pattern', !!(skin && settings?.skinArtOff?.[skin.id]));
   if (!skin) {
     root.removeAttribute('data-skin');
     for (const token of SKIN_TOKENS) root.style.removeProperty(token);
