@@ -1898,6 +1898,47 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
    concerned, so they get a veil of their own — the same job --custom-bg-veil
    does for an uploaded picture. */
 
+/* Every wallpaper is painted on a fixed layer behind the page (body::before),
+   the way a custom picture is painted, and not with background-attachment:
+   fixed. iPad Safari repaints a fixed body background on every frame while
+   the page moves; Chess Arcade's boards lagged badly on iPad until its
+   wallpapers moved onto a layer like this one. The texture is drawn once and
+   the page scrolls over it.
+
+   The page colour moves to the root because index.html gives <html> its own
+   background, so body's never reaches the canvas — and an opaque body would
+   paint over a layer at z-index -1. */
+:root[data-skin="felt"]:not(.has-custom-bg):not(.no-skin-wall),
+:root[data-skin="hustler"]:not(.has-custom-bg):not(.no-skin-wall),
+:root[data-skin="outerspace"]:not(.has-custom-bg):not(.no-skin-wall),
+:root[data-skin="bauhaus"]:not(.has-custom-bg):not(.no-skin-wall),
+:root[data-skin="gameboy"]:not(.has-custom-bg):not(.no-skin-wall),
+:root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall),
+:root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall),
+:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) { background: var(--bg); }
+:root[data-skin="felt"]:not(.has-custom-bg):not(.no-skin-wall) body,
+:root[data-skin="hustler"]:not(.has-custom-bg):not(.no-skin-wall) body,
+:root[data-skin="outerspace"]:not(.has-custom-bg):not(.no-skin-wall) body,
+:root[data-skin="bauhaus"]:not(.has-custom-bg):not(.no-skin-wall) body,
+:root[data-skin="gameboy"]:not(.has-custom-bg):not(.no-skin-wall) body,
+:root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall) body,
+:root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall) body,
+:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) body { background: transparent; }
+:root[data-skin="felt"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
+:root[data-skin="hustler"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
+:root[data-skin="outerspace"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
+:root[data-skin="bauhaus"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
+:root[data-skin="gameboy"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
+:root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
+:root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
+:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
 /* --- Tournament Felt: a woven baize table, not a tinted page. The crosshatch
        is the thread grain, the three offset speckle grids the fiber nap
        catching light unevenly. --- */
@@ -1911,7 +1952,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   --felt-fleck: rgba(255, 255, 255, 0.06);
   --felt-nap: rgba(9, 20, 13, 0.12);
 }
-:root[data-skin="felt"]:not(.has-custom-bg):not(.no-skin-wall) body {
+:root[data-skin="felt"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
   background-image:
     repeating-linear-gradient(45deg, var(--felt-weave) 0 2px, transparent 2px 5px),
     repeating-linear-gradient(-45deg, var(--felt-weave) 0 2px, transparent 2px 5px),
@@ -1919,7 +1960,6 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
     radial-gradient(circle at 66% 70%, var(--felt-nap) 0 0.6px, transparent 1.3px),
     radial-gradient(circle at 42% 85%, var(--felt-fleck) 0 1px, transparent 1.6px);
   background-size: auto, auto, 8px 8px, 13px 13px, 17px 17px;
-  background-attachment: fixed;
 }
 
 /* --- Hustler: a quarried stone floor, laid in identically-veined slabs — the
@@ -1939,7 +1979,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   --grit-a: rgba(28, 30, 32, 0.055);
   --grit-b: rgba(255, 255, 255, 0.5);
 }
-:root[data-skin="hustler"]:not(.has-custom-bg):not(.no-skin-wall) body {
+:root[data-skin="hustler"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='700'%3E%3Cfilter id='pv'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.006 0.018' numOctaves='4' seed='11' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='90'/%3E%3C/filter%3E%3Cg filter='url(%23pv)' fill='none'%3E%3Cline x1='-100' y1='120' x2='1000' y2='420' stroke='%23302c26' stroke-width='2.4' opacity='.16'/%3E%3Cline x1='-100' y1='480' x2='1000' y2='90' stroke='%23302c26' stroke-width='1.6' opacity='.12'/%3E%3Cline x1='150' y1='-80' x2='620' y2='780' stroke='%23302c26' stroke-width='1.4' opacity='.13'/%3E%3Cline x1='500' y1='-80' x2='950' y2='780' stroke='%23ffffff' stroke-width='1.8' opacity='.28'/%3E%3Cline x1='-100' y1='650' x2='800' y2='200' stroke='%23ffffff' stroke-width='1.2' opacity='.22'/%3E%3Cline x1='-60' y1='-40' x2='340' y2='380' stroke='%23302c26' stroke-width='1' opacity='.10'/%3E%3Cline x1='560' y1='560' x2='980' y2='740' stroke='%23ffffff' stroke-width='1' opacity='.16'/%3E%3C/g%3E%3C/svg%3E"),
     linear-gradient(45deg, var(--stone-vein) 25%, transparent 25%, transparent 75%, var(--stone-vein) 75%),
@@ -1957,7 +1997,6 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
     auto, auto, auto,
     9px 9px, 14px 14px, 19px 19px;
   background-repeat: repeat, repeat, repeat, no-repeat, no-repeat, no-repeat, repeat, repeat, repeat;
-  background-attachment: fixed;
 }
 
 /* --- Outer Space: a deep-space wash — stars at two sizes, hand-placed so no
@@ -1975,7 +2014,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   --nebula-a: rgba(255, 90, 54, 0.1);
   --nebula-b: rgba(79, 214, 196, 0.08);
 }
-:root[data-skin="outerspace"]:not(.has-custom-bg):not(.no-skin-wall) body {
+:root[data-skin="outerspace"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
   background-image:
     radial-gradient(ellipse 480px 320px at 18% 20%, var(--nebula-a), transparent 70%),
     radial-gradient(ellipse 420px 300px at 82% 70%, var(--nebula-b), transparent 72%),
@@ -1995,7 +2034,6 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
     radial-gradient(circle at 95% 94%, var(--star-bright) 0 1px, transparent 1.6px);
   background-size: auto;
   background-repeat: no-repeat;
-  background-attachment: fixed;
 }
 
 /* --- Bauhaus: flat by definition, so no texture — it ships a picture
@@ -2011,41 +2049,17 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 :root[data-skin="gameboy"] { --skin-scrim: rgba(14, 17, 10, 0.66); }
 :root[data-skin="gameboy"][data-theme="light"] { --skin-scrim: rgba(201, 205, 182, 0.6); }
 
-:root[data-skin="bauhaus"]:not(.has-custom-bg):not(.no-skin-wall) body,
-:root[data-skin="gameboy"]:not(.has-custom-bg):not(.no-skin-wall) body {
+:root[data-skin="bauhaus"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
+:root[data-skin="gameboy"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
-  background-attachment: fixed;
 }
-:root[data-skin="bauhaus"]:not(.has-custom-bg):not(.no-skin-wall) body {
+:root[data-skin="bauhaus"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
   background-image: linear-gradient(var(--skin-scrim), var(--skin-scrim)), url("/themes/bauhaus.svg");
 }
-:root[data-skin="gameboy"]:not(.has-custom-bg):not(.no-skin-wall) body {
+:root[data-skin="gameboy"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
   background-image: linear-gradient(var(--skin-scrim), var(--skin-scrim)), url("/themes/gameboy.jpg");
-}
-
-/* --- Drive-Thru, Rose and Chess Book paint their wallpaper on a fixed layer
-       behind the page (body::before), the way a custom picture is painted,
-       and not with background-attachment: fixed. iPad Safari repaints a
-       fixed body background on every frame while the page moves; Chess
-       Arcade's boards lagged badly on iPad until its wallpapers moved onto
-       a layer like this one. The texture is drawn once and the page scrolls
-       over it. --- */
-:root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall),
-:root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall),
-:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) { background: var(--bg); }
-:root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall) body,
-:root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall) body,
-:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) body { background: transparent; }
-:root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
-:root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
-:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
 }
 
 /* --- Drive-Thru: a paper tray liner printed with fries, a burger, a soda cup
