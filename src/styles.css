@@ -2144,56 +2144,26 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   background-image: linear-gradient(var(--skin-scrim), var(--skin-scrim)), url("/themes/gameboy.jpg");
 }
 
-/* --- Default artwork: every theme ships a picture drawn for it (flat poster
-       SVGs in public/themes, no lettering), laid under a veil of the theme's
+/* --- Default artwork: Drive-Thru and Rose ship a picture drawn for them
+       (SVGs in public/themes, no lettering), laid under a veil of the theme's
        own page colour. It sits above the theme's pattern; switching the
        theme to its pattern (.skin-pattern) or choosing a picture of your own
        uncovers or replaces it. --- */
-:root[data-skin="felt"] { --art-scrim: rgba(20, 42, 27, 0.74); }
-:root[data-skin="felt"][data-theme="light"] { --art-scrim: rgba(220, 210, 180, 0.72); }
-:root[data-skin="hustler"] { --art-scrim: rgba(25, 27, 29, 0.74); }
-:root[data-skin="hustler"][data-theme="light"] { --art-scrim: rgba(201, 198, 189, 0.72); }
-:root[data-skin="outerspace"] { --art-scrim: rgba(11, 14, 20, 0.74); }
-:root[data-skin="outerspace"][data-theme="light"] { --art-scrim: rgba(22, 27, 38, 0.72); }
 :root[data-skin="drivethru"] { --art-scrim: rgba(20, 14, 12, 0.74); }
 :root[data-skin="drivethru"][data-theme="light"] { --art-scrim: rgba(255, 244, 222, 0.72); }
 :root[data-skin="rose"] { --art-scrim: rgba(30, 15, 23, 0.74); }
 :root[data-skin="rose"][data-theme="light"] { --art-scrim: rgba(251, 238, 241, 0.72); }
-:root[data-skin="chessbook"] { --art-scrim: rgba(27, 24, 20, 0.74); }
-:root[data-skin="chessbook"][data-theme="light"] { --art-scrim: rgba(236, 228, 212, 0.72); }
-:root[data-skin="uptown"] { --art-scrim: rgba(12, 13, 15, 0.74); }
-:root[data-skin="uptown"][data-theme="light"] { --art-scrim: rgba(232, 230, 224, 0.72); }
-:root[data-skin="felt"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before,
-:root[data-skin="hustler"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before,
-:root[data-skin="outerspace"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before,
 :root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before,
-:root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before,
-:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before,
-:root[data-skin="uptown"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before {
+:root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before {
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
-}
-:root[data-skin="felt"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before {
-  background-image: linear-gradient(var(--art-scrim), var(--art-scrim)), url("/themes/felt.svg");
-}
-:root[data-skin="hustler"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before {
-  background-image: linear-gradient(var(--art-scrim), var(--art-scrim)), url("/themes/hustler.svg");
-}
-:root[data-skin="outerspace"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before {
-  background-image: linear-gradient(var(--art-scrim), var(--art-scrim)), url("/themes/outerspace.svg");
 }
 :root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before {
   background-image: linear-gradient(var(--art-scrim), var(--art-scrim)), url("/themes/drivethru.svg");
 }
 :root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before {
   background-image: linear-gradient(var(--art-scrim), var(--art-scrim)), url("/themes/rose.svg");
-}
-:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before {
-  background-image: linear-gradient(var(--art-scrim), var(--art-scrim)), url("/themes/chessbook.svg");
-}
-:root[data-skin="uptown"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before {
-  background-image: linear-gradient(var(--art-scrim), var(--art-scrim)), url("/themes/uptown.svg");
 }
 
 /* --- Drive-Thru: a paper tray liner printed with fries, a burger, a soda cup

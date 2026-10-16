@@ -15,7 +15,7 @@ import {
 
 // Themes that have both a picture and a pattern underneath it. Bauhaus and
 // Game Boy's picture is the whole wallpaper, so there's nothing to switch to.
-const SKINS_WITH_PATTERN = new Set(['felt', 'hustler', 'outerspace', 'drivethru', 'rose', 'chessbook', 'uptown']);
+const SKINS_WITH_PATTERN = new Set(['drivethru', 'rose']);
 
 function Toggle({ label, hint, on, onChange }) {
   return (
