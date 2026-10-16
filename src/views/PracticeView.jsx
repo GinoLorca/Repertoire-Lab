@@ -28,6 +28,7 @@ import {
   PlayIcon, CapIcon, FolderIcon, MonitorIcon,
 } from '../components/Icons';
 import PlaylistPicker from '../components/PlaylistPicker';
+import GiveToStudent, { GiveToStudentButton } from '../components/GiveToStudent';
 import { topInset, bottomInset } from '../lib/safeArea';
 import {
   startFenOf, newGameAt, replay, moveNumberLabel, isStandardStart,
@@ -432,6 +433,9 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   const [pickedSquare, setPickedSquare] = useState(null);
   const [pendingPromotion, setPendingPromotion] = useState(null); // {from, to, color} awaiting a piece choice
   const [tagOpen, setTagOpen] = useState(false);
+  // "Give to student" on the line being practised (components/GiveToStudent).
+  const [giving, setGiving] = useState(false);
+  const hasStudents = state.players.some((p) => p.kind === 'student');
   // Timed moves: when the clock expires the move plays itself. `deadline` is
   // null whenever the board isn't actually waiting on you.
   const [deadline, setDeadline] = useState(null);
@@ -1401,7 +1405,19 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             <MonitorIcon size={14} /><span className="btn-label"> Send to analysis</span>
           </button>
         )}
+        {/* Your own lines only: a student's repertoire isn't yours to hand on. */}
+        {!current.opening.ownerId && hasStudents && (
+          <GiveToStudentButton onClick={() => setGiving(true)} />
+        )}
       </div>
+      {giving && (
+        <GiveToStudent
+          openingId={current.opening.id}
+          chapterId={current.chapter.id}
+          variationId={current.variation.id}
+          onClose={() => setGiving(false)}
+        />
+      )}
       <div className={`practice-layout${listOpen ? ' with-list' : ''}`} ref={setLayoutEl}>
         {showList && (
           <VariationList

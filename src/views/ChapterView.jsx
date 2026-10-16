@@ -16,13 +16,14 @@ import Pressable from '../components/Pressable';
 import SendToSubVariation from '../components/SendToSubVariation';
 import { headOf, subVariationsOf, subLabel } from '../lib/subVariations';
 import ReorderSheet from '../components/ReorderSheet';
+import GiveToStudent, { GiveToStudentButton } from '../components/GiveToStudent';
 import {
   fen4, isWhiteMove, moveNumberOf, moveNumberLabel,
 } from '../lib/startPos';
 import { useIsPhone } from '../components/useViewportWidth';
 import {
   TagIcon, StarIcon, PencilIcon, ClockIcon, CheckIcon, DownloadIcon, CapIcon, PlayIcon, FolderIcon,
-  UploadIcon, CheckboxIcon, VideoIcon, LinkIcon,
+  UploadIcon, CheckboxIcon, VideoIcon, LinkIcon, UsersIcon,
 } from '../components/Icons';
 
 export default function ChapterView({
@@ -32,6 +33,10 @@ export default function ChapterView({
   const isPhone = useIsPhone();
   const opening = state.openings.find((o) => o.id === openingId);
   const chapter = opening?.chapters.find((c) => c.id === chapterId);
+  // "Give to a student" on a line — your own repertoire only, and only once
+  // there's a student to give it to (components/GiveToStudent).
+  const [givingId, setGivingId] = useState(null);
+  const canGive = !opening?.ownerId && state.players.some((p) => p.kind === 'student');
   const [viewingId, setViewingId] = useState(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState('');
@@ -142,6 +147,12 @@ export default function ChapterView({
         hint: 'a chapter of its own, filed with this one — like Tartakower under Classical',
         icon: '⤵',
         onClick: () => setSending({ anchorId: variation.id }),
+      },
+      canGive && {
+        label: 'Give to a student…',
+        hint: 'into their repertoire, in the same opening and chapter',
+        icon: <UsersIcon size={16} />,
+        onClick: () => setGivingId(variation.id),
       },
       showVideo && chapter.video && { sep: true },
       showVideo && chapter.video && !linked && {
@@ -713,6 +724,7 @@ export default function ChapterView({
                   ▼
                 </button>
               </span>
+              {canGive && <GiveToStudentButton label={false} onClick={() => setGivingId(variation.id)} />}
               <button
                 className={`small ghost tag-btn${variation.tags?.length ? ' on' : ''}`}
                 title={variation.tags?.length
@@ -808,6 +820,15 @@ export default function ChapterView({
             leavePicking();
             setSentNote(note);
           }}
+        />
+      )}
+
+      {givingId && (
+        <GiveToStudent
+          openingId={openingId}
+          chapterId={chapterId}
+          variationId={givingId}
+          onClose={() => setGivingId(null)}
         />
       )}
 

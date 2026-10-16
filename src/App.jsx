@@ -569,6 +569,15 @@ function AppInner() {
     window.addEventListener('repertoire-open-screen', on);
     return () => window.removeEventListener('repertoire-open-screen', on);
   }, []);
+  // A student's repertoire in the Library, asked for from anywhere — "Open
+  // Parker's repertoire" after giving them a line (components/GiveToStudent).
+  const openLibraryRef = useRef(null);
+  useEffect(() => {
+    const on = (e) => openLibraryRef.current?.(e.detail);
+    window.addEventListener('repertoire-open-library', on);
+    return () => window.removeEventListener('repertoire-open-library', on);
+  }, []);
+  openLibraryRef.current = openLibraryFor;
   const navTo = (v, subTab = null) => {
     if (v === view && (!subTab || subTab === sub)) return;
     go(() => {

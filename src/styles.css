@@ -4872,3 +4872,20 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
   .reviews-progress-row { flex-direction: column; align-items: stretch; gap: 8px; }
   .rp-actions button { flex: 1; min-height: 40px; }
 }
+
+/* Give a line to a student (components/GiveToStudent.jsx). */
+.give-where { margin: -2px 0 10px; padding: 0 12px; }
+.give-row { align-items: center; }
+.give-row:disabled { opacity: 0.6; }
+.give-has {
+  margin-left: auto; font-size: 12px; font-weight: 700; color: var(--green);
+  border: 1px solid var(--green); border-radius: 20px; padding: 2px 9px;
+}
+.give-app { display: flex; align-items: center; gap: 8px; padding: 6px 4px 10px; font-size: 14px; color: var(--muted); }
+.give-empty { padding: 10px 4px; }
+.give-done { padding: 6px 6px 4px; }
+.give-done p { margin: 0 0 8px; }
+.give-done-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; color: var(--text); }
+.give-done-head svg, .give-sent svg { color: var(--green); }
+.give-sent { display: flex; align-items: center; gap: 6px; color: var(--green); font-size: 14px; }
+.give-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 12px; }
