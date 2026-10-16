@@ -15,13 +15,16 @@ import { shortcutMap, PENS, defaultPen } from '../lib/shortcuts';
 import { pathFor } from '../lib/routes';
 import { copyText } from '../lib/clipboard';
 import {
-  folderOf, folderNames, groupPositions, canMove,
+  folderOf, folderNames, groupPositions, canMove, ownerOf, positionsFor, folderOrderFor, withFolderOrder,
 } from '../lib/savedPositions';
 import { useBackGuard } from '../lib/backGuard';
+import { useMe } from '../lib/cloud/useMe';
+import { sendLessonToStudent, canSendLesson, sendProblem } from '../lib/cloud/share';
 import MoreMenu from './MoreMenu';
 import ReorderSheet from './ReorderSheet';
+import RecycleSheet from './RecycleSheet';
 import {
-  MonitorIcon, ShuffleIcon, TargetIcon, PencilIcon, LinkIcon, FolderIcon,
+  MonitorIcon, ShuffleIcon, TargetIcon, PencilIcon, LinkIcon, FolderIcon, RecycleIcon, SendIcon,
 } from './Icons';
 
 const PALETTE = ['K', 'Q', 'R', 'B', 'N', 'P'];
@@ -88,8 +91,13 @@ const EDITOR_DND_PROPS = {
 // (/analysis/editor/setup/pawn-race), so a lesson plan can link straight to
 // one. The address keeps naming the setup while you move pieces on it, the
 // way it keeps naming a saved position — it's where you started from.
+// `initialScope` is whose saved positions are open — a student's card id, to
+// teach from their lessons ("Lessons" on their page in Coaches Corner), or
+// null for your own — and `onScopeChange` reports it, so switching to Engine
+// and back comes back to the same student.
 export default function BoardEditor({
   onSendToAnalysis, boardWidth, positionId = null, onPositionChange, setupSlug = null, onSetupChange,
+  initialScope = null, onScopeChange,
 }) {
   const { state, dispatch } = useStore();
   const [map, setMap] = useState(START_MAP);
@@ -128,6 +136,15 @@ export default function BoardEditor({
   const lastFolder = useRef(''); // the folder last saved into, offered first next time
   const [folderPickOpen, setFolderPickOpen] = useState(false);
   useBackGuard(folderPickOpen, () => setFolderPickOpen(false));
+  // Recycle: the positions being copied into a lesson (one, or a whole
+  // lesson's), and afterwards the note saying where they went.
+  const [recycling, setRecycling] = useState(null); // { sources, what }
+  const [recycled, setRecycled] = useState(null); // { text, firstId, send?, retry? }
+  const recycledRef = useRef(null); // the note on screen, read by a send still on its way
+  const recycledTimer = useRef(null);
+  useEffect(() => () => clearTimeout(recycledTimer.current), []);
+  // Who's signed in — needed only to send a lesson on to a student's app.
+  const me = useMe();
 
   // What the board is for right now. In Squares mode a right-click or a
   // long-press names the square (the help you want while setting up from a
@@ -384,17 +401,63 @@ export default function BoardEditor({
   }, [marks.squares, drawFrom, drawColor]);
 
   // ---------- Saved positions ----------
-  const savedPositions = state.savedPositions ?? [];
+  // Whose are open: 'me' (your own) or a Coaches Corner student's card id —
+  // the Library's "My repertoire / Student…" switch, for positions. The
+  // dropdown, the folders (a student's are their lessons), Save and every
+  // folder action work on that one owner's positions and nobody else's.
+  const students = useMemo(() => (state.players ?? []).filter((p) => p.kind === 'student'), [state.players]);
+  const [scope, setScope] = useState(initialScope || 'me');
+  useEffect(() => { if (initialScope) setScope(initialScope); }, [initialScope]);
+  // A student deleted meanwhile (or on another device) is nobody to show:
+  // back to your own.
+  const scopeStudent = scope === 'me' ? null : students.find((s) => s.id === scope) ?? null;
+  const owner = scopeStudent?.id ?? null;
+  useEffect(() => { onScopeChange?.(owner); }, [owner]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const allPositions = state.savedPositions ?? [];
+  // A deleted student's lessons stay in the list, as their openings do, but
+  // they're nobody's here: not yours, and with no student left to pick, not
+  // anyone's. So they can't turn up in your own dropdown.
+  const savedPositions = useMemo(() => positionsFor(allPositions, owner), [allPositions, owner]);
   const selectedPos = savedPositions.find((sp) => sp.id === selectedPosId) ?? null;
   // The board has moved on from the saved copy — pieces or marks — so there's
   // something for Update to write back.
   const savedDirty = !!selectedPos
     && (selectedPos.fen !== fen || !sameMarks(marksOf(selectedPos), marks));
 
-  const folderOrder = state.settings.positionFolderOrder ?? [];
+  const folderOrder = folderOrderFor(state.settings, owner);
   const folders = folderNames(savedPositions, folderOrder);
   const groups = groupPositions(savedPositions, folderOrder);
   const [arrangingFolders, setArrangingFolders] = useState(false);
+  // A student's folders are their lessons, and say so.
+  const folderWord = owner ? 'lesson' : 'folder';
+
+  // Someone else's positions: the board stays as it is, but it's no longer
+  // the saved position it was showing, and Save starts with no folder picked.
+  const changeScope = (next) => {
+    if (next === scope) return;
+    setScope(next);
+    setSelectedPosId('');
+    setSaveFolder('');
+    setNewFolder(null);
+    lastFolder.current = '';
+  };
+  // Straight to one position, whoever's it is — a link, or Open on the note
+  // after recycling. The list switches to its owner as it opens.
+  const openPosition = (p) => {
+    const whose = ownerOf(p);
+    if (whose && !students.some((s) => s.id === whose)) return false; // a deleted student's
+    if ((whose ?? 'me') !== scope) {
+      setScope(whose ?? 'me');
+      setSaveFolder('');
+      setNewFolder(null);
+      lastFolder.current = '';
+    }
+    setSelectedPosId(p.id);
+    setActiveSetup(null);
+    loadFen(p.fen, marksOf(p));
+    return true;
+  };
 
   // Opening the Save box offers the folder you're working in: the open
   // position's, or else the one last saved into.
@@ -418,6 +481,7 @@ export default function BoardEditor({
       arrows: marks.arrows,
       squares: marks.squares,
       folder,
+      ownerId: owner, // into whoever's positions are open
     });
     lastFolder.current = folder;
     setPosName('');
@@ -439,17 +503,102 @@ export default function BoardEditor({
     if (folder) lastFolder.current = folder;
   };
   const fileIntoNew = () => {
-    const name = window.prompt('New folder name');
+    const name = window.prompt(`New ${folderWord} name`);
     if (name && name.trim()) fileInto(name.trim());
   };
   const renameFolderOfSaved = () => {
     const from = folderOf(selectedPos);
     if (!from) return;
-    const to = window.prompt(`Rename the folder “${from}”`, from);
+    const to = window.prompt(`Rename the ${folderWord} “${from}”`, from);
     if (to && to.trim() && to.trim() !== from) {
-      dispatch({ type: 'renamePositionFolder', from, to });
+      dispatch({
+        type: 'renamePositionFolder', from, to, ownerId: owner,
+      });
       if (lastFolder.current === from) lastFolder.current = to.trim();
     }
+  };
+
+  // ---------- Recycle ----------
+  const lessonOfSaved = () => savedPositions.filter((p) => folderOf(p) === folderOf(selectedPos));
+  // The note can always be closed. The copies are made the moment you choose
+  // a lesson, and a send still on its way carries on without the note.
+  const closeRecycled = () => {
+    clearTimeout(recycledTimer.current);
+    recycledRef.current = null;
+    setRecycled(null);
+  };
+  const showRecycled = (note, { linger = true } = {}) => {
+    clearTimeout(recycledTimer.current);
+    recycledRef.current = note;
+    setRecycled(note);
+    if (linger) recycledTimer.current = setTimeout(closeRecycled, 8000);
+  };
+  // Sends positions on to a student's own app, as one lesson, saying how it
+  // goes in the note. Copies already there are updated rather than added
+  // again: they keep their ids — which is also why trying again is safe.
+  // `say` is the note at each stage. Offline, or slow enough to look it,
+  // Firestore holds the send until the device is online and sends it then;
+  // the note says so and goes, rather than saying "Sending…" for ever.
+  const sendToApp = async (student, folder, positions, firstId, say) => {
+    const send = {}; // this send, so a later one's note isn't answered by it
+    const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+    showRecycled({ text: offline ? say.queued : say.sending, firstId, send }, { linger: offline });
+    if (!offline) {
+      recycledTimer.current = setTimeout(() => {
+        if (recycledRef.current?.send === send) showRecycled({ text: say.queued, firstId, send });
+      }, 10000);
+    }
+    try {
+      await sendLessonToStudent({
+        student, from: me, lesson: folder, positions,
+      });
+      // Closed meanwhile, or another note since: nothing more to say.
+      if (recycledRef.current?.send === send) showRecycled({ text: say.sent, firstId });
+    } catch (err) {
+      // It didn't go, and that's worth saying whatever is on screen now.
+      showRecycled({
+        text: say.failed(sendProblem(err)),
+        firstId,
+        retry: () => sendToApp(student, folder, positions, firstId, say),
+      }, { linger: false });
+    }
+  };
+  const afterRecycle = ({
+    whose, folder, copies, student, send,
+  }) => {
+    setRecycling(null);
+    const what = copies.length === 1 ? 'Recycled' : `Recycled ${copies.length} positions`;
+    const done = `${what} to ${whose} · ${folder}.`;
+    const firstId = copies[0]?.id ?? null;
+    if (!send || !student) { showRecycled({ text: done, firstId }); return; }
+    sendToApp(student, folder, copies, firstId, {
+      sending: `${done} Sending to ${student.name}'s Repertoire Lab…`,
+      queued: `${done} It goes to ${student.name}'s Repertoire Lab as soon as this device is online.`,
+      sent: `${done} Sent to ${student.name}'s Repertoire Lab too.`,
+      failed: (why) => `${done} It didn't reach ${student.name}'s app: ${why}`,
+    });
+  };
+  // A student's whole lesson, as it is now, to their own app — after editing
+  // a position in it, say. Ones they already have are updated, not doubled.
+  const canSendLessons = Boolean(scopeStudent && me?.uid && canSendLesson(scopeStudent));
+  const sendLessonOfSaved = () => {
+    const folder = folderOf(selectedPos);
+    const positions = lessonOfSaved();
+    if (!folder || !positions.length) return;
+    const n = positions.length;
+    if (!window.confirm(`Send all ${n} position${n === 1 ? '' : 's'} in “${folder}” to ${scopeStudent.name}'s Repertoire Lab? Ones they already have are updated, not added twice.`)) return;
+    const who = scopeStudent.name;
+    sendToApp(scopeStudent, folder, positions, null, {
+      sending: `Sending “${folder}” to ${who}'s Repertoire Lab…`,
+      queued: `“${folder}” goes to ${who}'s Repertoire Lab as soon as this device is online.`,
+      sent: `Sent “${folder}” to ${who}'s Repertoire Lab.`,
+      failed: (why) => `“${folder}” didn't reach ${who}'s app: ${why}`,
+    });
+  };
+  const openRecycled = () => {
+    const p = allPositions.find((sp) => sp.id === recycled?.firstId);
+    if (p) openPosition(p);
+    closeRecycled();
   };
 
   const updateSaved = () => {
@@ -460,10 +609,8 @@ export default function BoardEditor({
   };
 
   const loadSaved = (id) => {
-    setSelectedPosId(id);
-    setActiveSetup(null);
     const p = savedPositions.find((sp) => sp.id === id);
-    if (p) loadFen(p.fen, marksOf(p));
+    if (p) openPosition(p);
   };
 
   const deleteSaved = () => {
@@ -475,15 +622,16 @@ export default function BoardEditor({
 
   // The address asked for a saved position: set it up once it's here. A
   // different id arriving later (Back, or a second link) sets that one up.
+  // A student's position opens with their lessons; one filed for a student
+  // who has since been deleted opens nothing, like a deleted position.
   const appliedPosId = useRef(null);
   useEffect(() => {
     if (!positionId || appliedPosId.current === positionId) return;
-    const p = savedPositions.find((sp) => sp.id === positionId);
+    const p = allPositions.find((sp) => sp.id === positionId);
     if (!p) return; // not in the store yet — sync may still be bringing it
+    if (!openPosition(p)) return;
     appliedPosId.current = positionId;
-    setSelectedPosId(positionId);
-    loadFen(p.fen, marksOf(p));
-  }, [positionId, savedPositions]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [positionId, allPositions, students]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { onPositionChange?.(selectedPosId || null); }, [selectedPosId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The address asked for a quick setup: set it up. A saved position named
@@ -508,10 +656,16 @@ export default function BoardEditor({
   const savedMenu = selectedPos ? [
     { label: 'Rename', icon: <PencilIcon size={16} />, onClick: renameSaved },
     {
-      label: 'Move to folder',
+      label: `Move to ${folderWord}`,
       icon: <FolderIcon size={16} />,
-      hint: folderOf(selectedPos) || 'No folder',
+      hint: folderOf(selectedPos) || `No ${folderWord}`,
       onClick: () => setFolderPickOpen(true),
+    },
+    {
+      label: 'Recycle…',
+      icon: <RecycleIcon size={16} />,
+      hint: 'A copy in another lesson — yours or a student’s',
+      onClick: () => setRecycling({ sources: [selectedPos], what: `“${selectedPos.name}”` }),
     },
     {
       label: 'Move up',
@@ -525,13 +679,29 @@ export default function BoardEditor({
       disabled: !canMove(savedPositions, selectedPos.id, 1),
       onClick: () => dispatch({ type: 'movePosition', id: selectedPos.id, dir: 1 }),
     },
+    folderOf(selectedPos) && { sep: true },
     folderOf(selectedPos) && {
-      label: `Rename folder “${folderOf(selectedPos)}”`,
+      label: `Rename ${folderWord} “${folderOf(selectedPos)}”`,
       icon: <PencilIcon size={16} />,
       onClick: renameFolderOfSaved,
     },
+    folderOf(selectedPos) && {
+      label: `Recycle lesson “${folderOf(selectedPos)}”…`,
+      icon: <RecycleIcon size={16} />,
+      hint: (() => {
+        const n = lessonOfSaved().length;
+        return n === 1 ? 'The one position in it' : `All ${n} positions in it, in order`;
+      })(),
+      onClick: () => setRecycling({ sources: lessonOfSaved(), what: `the lesson “${folderOf(selectedPos)}”` }),
+    },
+    folderOf(selectedPos) && canSendLessons && {
+      label: `Send “${folderOf(selectedPos)}” to ${scopeStudent.name}'s app`,
+      icon: <SendIcon size={16} />,
+      hint: 'Ones already there are updated',
+      onClick: sendLessonOfSaved,
+    },
     folders.length >= 2 && {
-      label: 'Arrange folders…',
+      label: `Arrange ${folderWord}s…`,
       icon: <span aria-hidden="true">≡</span>,
       onClick: () => setArrangingFolders(true),
     },
@@ -789,8 +959,8 @@ export default function BoardEditor({
               />
               <button className="small primary" disabled={!posName.trim()} onClick={savePosition}>Save</button>
             </div>
-            <div className="editor-folder-chips" role="radiogroup" aria-label="Folder">
-              <span className="editor-label">Folder</span>
+            <div className="editor-folder-chips" role="radiogroup" aria-label={owner ? 'Lesson' : 'Folder'}>
+              <span className="editor-label">{owner ? `${scopeStudent.name}'s lesson` : 'Folder'}</span>
               {folders.map((f) => (
                 <button
                   key={f}
@@ -810,17 +980,17 @@ export default function BoardEditor({
                 className={`folder-chip${newFolder === null && !saveFolder ? ' on' : ''}`}
                 onClick={() => { setSaveFolder(''); setNewFolder(null); }}
               >
-                No folder
+                No {folderWord}
               </button>
               {newFolder === null ? (
                 <button type="button" className="folder-chip new" onClick={() => setNewFolder('')}>
-                  + New folder
+                  + New {folderWord}
                 </button>
               ) : (
                 <input
                   type="text"
                   className="folder-chip-input"
-                  placeholder="New folder name"
+                  placeholder={`New ${folderWord} name`}
                   autoFocus
                   value={newFolder}
                   onChange={(e) => setNewFolder(e.target.value)}
@@ -834,9 +1004,35 @@ export default function BoardEditor({
           </div>
         )}
 
+        {/* Whose saved positions are open: yours, or one student's lessons —
+            the Library's switch, here. Only once there's a student to switch
+            to; without one the editor is exactly as it always was. */}
+        {students.length > 0 && (
+          <div className="tabs editor-scope" role="group" aria-label="Whose saved positions">
+            <button type="button" className={owner ? '' : 'active'} aria-pressed={!owner} onClick={() => changeScope('me')}>
+              My positions
+            </button>
+            <select
+              className={owner ? 'active' : ''}
+              value={owner ?? ''}
+              title="A student's lessons — positions filed for them, to teach from or send to their app"
+              aria-label="A student's lessons"
+              onChange={(e) => changeScope(e.target.value)}
+            >
+              <option value="" disabled>Student's lessons…</option>
+              {students.map((st) => <option key={st.id} value={st.id}>{st.name}</option>)}
+            </select>
+          </div>
+        )}
+        {owner && savedPositions.length === 0 && (
+          <p className="muted-note editor-scope-empty">
+            Nothing in {scopeStudent.name}'s lessons yet. Save a position while their lessons are open and
+            it's filed for them — or open one of yours and choose Recycle… from its ⋯ menu.
+          </p>
+        )}
         {savedPositions.length > 0 && (
           <div className="editor-row editor-saved-row">
-            <span className="editor-label">Saved positions</span>
+            <span className="editor-label">{owner ? `${scopeStudent.name}'s lessons` : 'Saved positions'}</span>
             {/* Folders are headings inside the dropdown — still one tap to
                 any position, on a phone's own picker as much as a Mac's. With
                 no folders yet it's the plain list it always was. */}
@@ -845,7 +1041,7 @@ export default function BoardEditor({
               {folders.length === 0
                 ? savedPositions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)
                 : groups.map((g) => (
-                  <optgroup key={g.folder || '(unfiled)'} label={g.folder || 'No folder'}>
+                  <optgroup key={g.folder || '(unfiled)'} label={g.folder || `No ${folderWord}`}>
                     {g.items.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </optgroup>
                 ))}
@@ -860,8 +1056,8 @@ export default function BoardEditor({
               </button>
             )}
             {/* Everything else about the open position lives behind this —
-                rename, folders, order, its link, delete — so the editor's own
-                row stays the dropdown and nothing more. */}
+                rename, folders, Recycle, order, its link, delete — so the
+                editor's own row stays the dropdown and nothing more. */}
             {selectedPos && <MoreMenu items={savedMenu} title={selectedPos.name} label="Saved position actions" />}
             {linkCopied && <span className="muted-note editor-copied" aria-live="polite">Link copied</span>}
           </div>
@@ -880,8 +1076,8 @@ export default function BoardEditor({
         sheet a chapter's lines are rearranged in. */}
     {arrangingFolders && (
       <ReorderSheet
-        title="Saved position folders"
-        noun="folder"
+        title={owner ? `${scopeStudent.name}'s lessons` : 'Saved position folders'}
+        noun={folderWord}
         sortByMoves={false}
         items={folders.map((f) => {
           const n = savedPositions.filter((p) => folderOf(p) === f).length;
@@ -889,7 +1085,9 @@ export default function BoardEditor({
         })}
         onClose={() => setArrangingFolders(false)}
         onDone={(ids) => {
-          dispatch({ type: 'setSettings', settings: { positionFolderOrder: ids } });
+          // Only this owner's order: a student's lessons are arranged apart
+          // from your own folders, and from every other student's.
+          dispatch({ type: 'setSettings', settings: withFolderOrder(state.settings, owner, ids) });
           setArrangingFolders(false);
         }}
       />
@@ -910,17 +1108,44 @@ export default function BoardEditor({
             ))}
             <button type="button" role="menuitem" className="sheet-row" onClick={() => fileInto('')}>
               <span className="sheet-icon" />
-              <span className="sheet-label">No folder</span>
+              <span className="sheet-label">No {folderWord}</span>
               {!folderOf(selectedPos) && <span className="sheet-check" aria-label="current">✓</span>}
             </button>
             <div className="sheet-sep" role="separator" />
             <button type="button" role="menuitem" className="sheet-row" onClick={fileIntoNew}>
               <span className="sheet-icon">+</span>
-              <span className="sheet-label">New folder…</span>
+              <span className="sheet-label">New {folderWord}…</span>
             </button>
           </div>
           <button type="button" className="sheet-cancel" onClick={() => setFolderPickOpen(false)}>Cancel</button>
         </div>
+      </div>,
+      document.body,
+    )}
+    {/* Recycle: a copy of the open position — or its whole lesson — into
+        one of your own folders or a student's lesson. */}
+    {recycling && (
+      <RecycleSheet
+        sources={recycling.sources}
+        what={recycling.what}
+        students={students}
+        me={me}
+        onClose={() => setRecycling(null)}
+        onDone={afterRecycle}
+      />
+    )}
+    {/* Where it went — with a way straight there — and, when it was sent on
+        to a student's app, how that went, with Try again if it didn't. */}
+    {recycled && createPortal(
+      <div className="coach-toast recycle-toast" role="status">
+        <span>{recycled.text}</span>
+        {recycled.retry && (
+          <button type="button" className="small primary" onClick={recycled.retry}>Try again</button>
+        )}
+        {recycled.firstId && (
+          <button type="button" className={`small${recycled.retry ? '' : ' primary'}`} onClick={openRecycled}>Open</button>
+        )}
+        <button type="button" className="small ghost" onClick={closeRecycled}>OK</button>
       </div>,
       document.body,
     )}

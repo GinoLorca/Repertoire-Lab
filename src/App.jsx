@@ -80,6 +80,14 @@ function AppInner() {
   const [libraryScope, setLibraryScope] = useState(null);
   // Same idea, for Collections — see openCollectionsFor below.
   const [collectionsScope, setCollectionsScope] = useState(null);
+  // Whose saved positions the Board Editor has open: a student's card id
+  // (their lessons — see openLessonsFor below) or null for your own. Kept up
+  // here because the editor itself is rebuilt each time Analysis switches
+  // to it, and a coach teaching from Wavy's lessons who checks a line in
+  // Engine should come back to Wavy's lessons. That switch is all it's
+  // kept for: any other way into Analysis starts on your own positions, and
+  // Back returns to whoever's were open at that step.
+  const [editorScope, setEditorScope] = useState(null);
   // A saved Lab session being reopened on the analysis board.
   const [analysisLab, setAnalysisLab] = useState(null);
   // Opened via Coaches Corner's Studio button: a blank board with the
@@ -305,6 +313,7 @@ function AppInner() {
     analysisLine,
     // Back into a Studio session comes back to Studio, not a plain board.
     coachStudio,
+    editorScope,
     scrollY: window.scrollY,
     chapterId: view === 'chapter' ? chapterNav?.chapterId : null,
   });
@@ -340,6 +349,7 @@ function AppInner() {
     setPracticeScope(prev.practiceScope);
     setAnalysisLine(prev.analysisLine);
     setCoachStudio(Boolean(prev.coachStudio));
+    setEditorScope(prev.editorScope ?? null);
     setView(prev.view);
     pendingScroll.current = prev.scrollY;
     // Coming back to the library, make sure the chapter you were in is visible
@@ -437,6 +447,7 @@ function AppInner() {
       // in place instead of just displaying a snapshot of them.
       setAnalysisLab(null);
       setCoachStudio(studio);
+      setEditorScope(null);
       setAnalysisLine({
         name: line.name,
         moves: line.moves,
@@ -483,6 +494,7 @@ function AppInner() {
       setAnalysisLine(null);
       setAnalysisLab(entry);
       setCoachStudio(!!entry.coach);
+      setEditorScope(null);
       setView('analysis');
     });
   };
@@ -492,6 +504,7 @@ function AppInner() {
       setAnalysisLine(null);
       setAnalysisLab(null);
       setCoachStudio(true);
+      setEditorScope(null);
       setView('analysis');
     });
   };
@@ -513,6 +526,20 @@ function AppInner() {
     go(() => setView('groups'));
   };
 
+  // "Lessons" on a student's page: the Board Editor, on their lessons.
+  const openLessonsFor = (studentId) => {
+    go(() => {
+      setAnalysisLine(null);
+      setAnalysisLab(null);
+      setCoachStudio(false);
+      setEditorScope(studentId);
+      setSub('editor');
+      setPositionNav(null);
+      setSetupNav(null);
+      setView('analysis');
+    });
+  };
+
   // Asked for by the bell (lib/openPlayer.js): go to the screen, and the
   // roster there opens the card.
   const navToRef = useRef(null);
@@ -528,6 +555,7 @@ function AppInner() {
       setSub(subTab);
       setPositionNav(null); // the tab opens the section fresh, not the last saved position
       setSetupNav(null);
+      setEditorScope(null); // …and on your own positions
       setView(v);
     });
   };
@@ -744,6 +772,7 @@ function AppInner() {
             onPlayerChange={(p) => setPlayerNav(withView(p, view))}
             onOpenLibrary={openLibraryFor}
             onOpenCollections={openCollectionsFor}
+            onOpenLessons={openLessonsFor}
             onOpenStudio={openStudio}
           />
         )}
@@ -774,6 +803,8 @@ function AppInner() {
             onPositionChange={setPositionNav}
             setupSlug={setupNav}
             onSetupChange={setSetupNav}
+            editorScope={editorScope}
+            onEditorScopeChange={setEditorScope}
           />
         )}
       </ErrorBoundary>

@@ -14,6 +14,7 @@ import { parseMarks, withText, withMarks } from './lib/marks';
 import { canonicalStartFen, fen4 } from './lib/startPos';
 import {
   addPosition, renamePosition, setFolder, movePosition, renameFolder, renameFolderInOrder,
+  recyclePositions, folderOrderFor, withFolderOrder,
 } from './lib/savedPositions';
 
 const STORAGE_KEY = 'repertoire-lab-state-v1';
@@ -54,6 +55,8 @@ export function emptyState() {
     analysisDraft: null,
     // Board Editor positions saved for reuse — an endgame set up for a class,
     // a recurring structure, whatever's worth not rebuilding by hand again.
+    // One filed for a student carries their card id as ownerId, and its
+    // folder is one of that student's lessons (lib/savedPositions.js).
     savedPositions: [],
     settings: { ...DEFAULT_SETTINGS },
   };
@@ -1101,8 +1104,20 @@ function reduce(state, action) {
       // Openings this student owned aren't deleted with them — they'd just be
       // silently unreachable otherwise. They stay in state.openings, orphaned
       // (ownerId pointing at a gone player), until reassigned or removed by
-      // hand from the Library.
-      return { ...state, players: state.players.filter((p) => p.id !== action.playerId) };
+      // hand from the Library. Their lessons in the Board Editor (saved
+      // positions with their ownerId) are kept the same way unless the coach
+      // says to delete them too (`dropPositions` — asked when there are
+      // any): kept, they're still in state.savedPositions but nobody's on
+      // screen — not in the coach's own list, and with no student left to
+      // pick, not in anyone's — and still taking up room in the one document
+      // every saved position syncs in (listsBytes in lib/savedPositions.js).
+      return {
+        ...state,
+        players: state.players.filter((p) => p.id !== action.playerId),
+        ...(action.dropPositions ? {
+          savedPositions: (state.savedPositions ?? []).filter((p) => p.ownerId !== action.playerId),
+        } : {}),
+      };
     case 'addGame': {
       const game = {
         id: uid(),
@@ -1348,6 +1363,8 @@ function reduce(state, action) {
           arrows: action.arrows ?? [],
           squares: action.squares ?? {},
           ...(action.folder ? { folder: action.folder } : {}),
+          // Saved while a student's lessons are open in the editor: theirs.
+          ...(action.ownerId ? { ownerId: action.ownerId } : {}),
           createdAt: new Date().toISOString(),
         }),
       };
@@ -1358,14 +1375,34 @@ function reduce(state, action) {
     case 'movePosition':
       return { ...state, savedPositions: movePosition(state.savedPositions, action.id, action.dir) };
     // …and it keeps its place among the folders as they've been arranged.
-    case 'renamePositionFolder':
+    // `ownerId` is whose folder it is — the coach's own (null) or a
+    // student's lesson — and nobody else's folder of the same name changes.
+    case 'renamePositionFolder': {
+      const owner = action.ownerId ?? null;
+      const before = folderOrderFor(state.settings, owner);
       return {
         ...state,
-        savedPositions: renameFolder(state.savedPositions, action.from, action.to),
-        settings: {
-          ...state.settings,
-          positionFolderOrder: renameFolderInOrder(state.settings?.positionFolderOrder ?? [], action.from, action.to),
-        },
+        savedPositions: renameFolder(state.savedPositions, action.from, action.to, Date.now(), owner),
+        // Never arranged: A–Z, with nothing to keep a place in.
+        settings: before.length
+          ? {
+            ...state.settings,
+            ...withFolderOrder(state.settings, owner, renameFolderInOrder(before, action.from, action.to)),
+          }
+          : state.settings,
+      };
+    }
+    // Recycle: copies of saved positions, filed at the bottom of one lesson —
+    // the coach's own (ownerId null) or a student's. `items` is
+    // [{ srcId, id }], the new ids chosen by the caller so it can send the
+    // very same copies on to the student's app; `now` likewise, so the copies
+    // made here and the ones sent match. The originals don't change.
+    case 'recyclePositions':
+      return {
+        ...state,
+        savedPositions: recyclePositions(state.savedPositions, action.items, {
+          ownerId: action.ownerId ?? null, folder: action.folder, now: action.now ?? Date.now(),
+        }),
       };
     // The same position with the board as it is now — the marks drawn since
     // it was loaded, or the pieces moved. updatedAt is what lets sync tell a

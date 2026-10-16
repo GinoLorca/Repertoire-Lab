@@ -2630,6 +2630,23 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .editor-saved-row select { flex: 1 1 180px; min-width: 0; }
 .editor-copied { color: var(--green); }
 .sheet-check { margin-left: auto; color: var(--accent); font-weight: 700; padding-left: 10px; }
+/* Whose saved positions are open — yours, or a student's lessons. */
+.editor-scope { margin-bottom: 0; flex-wrap: wrap; }
+.editor-scope select { flex: 0 1 220px; min-width: 0; }
+.editor-scope-empty { margin: 0; }
+/* Recycle: the new lesson's name, the "also send" box and the notes. */
+.recycle-new { display: flex; gap: 8px; align-items: center; padding: 4px 12px 8px; flex: 0 0 auto; }
+.recycle-new input { flex: 1; min-width: 0; font-size: 16px; }
+.recycle-send {
+  display: flex; align-items: center; gap: 10px; flex: 0 0 auto;
+  padding: 4px 12px 10px; margin-bottom: 4px; font-size: 15px; color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+.recycle-send input { width: 18px; height: 18px; flex: 0 0 auto; }
+.recycle-note { margin: 0; padding: 2px 12px 10px; font-size: 14px; color: var(--muted); flex: 0 0 auto; }
+.recycle-note.recycle-full { color: var(--text); padding-top: 10px; }
+.recycle-back { color: var(--muted); }
+.recycle-toast span { min-width: 0; overflow-wrap: anywhere; }
 
 .cmp-pickers { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .cmp-picker {

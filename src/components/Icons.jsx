@@ -286,3 +286,13 @@ export const SendIcon = (p) => (
     <path d="M22 2 15 22l-4-9-9-4Z" />
   </Icon>
 );
+
+// Recycle: a position set up once, used again — two arrows chasing round.
+export const RecycleIcon = (p) => (
+  <Icon {...p}>
+    <path d="M19.5 10.5A7.5 7.5 0 0 0 6.2 7" />
+    <path d="M5.5 3.5V7.5h4" />
+    <path d="M4.5 13.5A7.5 7.5 0 0 0 17.8 17" />
+    <path d="M18.5 20.5v-4h-4" />
+  </Icon>
+);

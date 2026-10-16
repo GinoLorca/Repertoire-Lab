@@ -194,3 +194,21 @@ test('order: with no baseline, the careful path takes the account\'s order', () 
   assert.equal(ord(null, 'abc', 'cab', 'remote'), 'cab');
   assert.equal(ord(null, 'abcd', 'cab', 'remote'), 'cabd');
 });
+
+// --- saved positions filed for students ------------------------------------------
+import { recyclePosition, renameFolder, positionsFor } from '../src/lib/savedPositions.js';
+
+test('a position recycled into Wavy\'s Lesson 1 here, the coach\'s own Lesson 1 renamed there: both land', () => {
+  const pos = (id, folder, ownerId) => ({
+    id, name: id, fen: '8/8/8/8/8/8/8/8 w - - 0 1', folder, ...(ownerId ? { ownerId } : {}),
+  });
+  const before = [pos('a', 'Lesson 1'), pos('w1', 'Lesson 1', 'card-wavy')];
+  const base = toBaseline({ ...state([]), savedPositions: before });
+  const here = { ...state([]), savedPositions: recyclePosition(before, 'a', { ownerId: 'card-wavy', folder: 'Lesson 1', id: 'cp' }) };
+  const there = { ...state([]), savedPositions: renameFolder(before, 'Lesson 1', 'Openings', 5) };
+  const m = mergeState(base, here, there);
+  const where = (owner) => positionsFor(m.savedPositions, owner).map((p) => `${p.id}@${p.folder}`).join(' ');
+  assert.equal(where(null), 'a@Openings', 'the coach\'s folder took the new name');
+  assert.equal(where('card-wavy'), 'w1@Lesson 1 cp@Lesson 1', 'Wavy\'s lesson kept its own, copy and all');
+  assert.equal(m.savedPositions.find((p) => p.id === 'cp').recycledFrom, 'a');
+});

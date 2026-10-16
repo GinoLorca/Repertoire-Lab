@@ -4,6 +4,7 @@ import { cloudConfigured } from '../lib/cloud/config';
 import { watchAuth } from '../lib/cloud/auth';
 import {
   watchInbox, acceptDelivery, dismissDelivery, markRead, applyDelivery,
+  isLesson, isAnyLesson, lessonTaken, lessonPositions, lessonName, lessonPlan, takenByLessonApp,
 } from '../lib/cloud/share';
 import { watchStudentLinks, endLink } from '../lib/cloud/links';
 import { BellIcon, CheckIcon } from './Icons';
@@ -32,6 +33,30 @@ const markSeen = (ids) => {
     ids.forEach((id) => seen.add(id));
     localStorage.setItem(SEEN_KEY, JSON.stringify([...seen]));
   } catch { /* private browsing, storage full — not worth failing over */ }
+};
+
+const plural = (n, noun) => `${n} ${noun}${n === 1 ? '' : 's'}`;
+
+// What a lesson says in the bell. Its own summary is written for an app from
+// before lessons ("…reload to update"), which this one isn't. Until it's
+// taken, it says what taking it would do: new positions, changes to ones the
+// coach sent before, and any it leaves out because a position of yours
+// already has that id (lessonPlan in share.js).
+const lessonLine = (d, savedPositions, taken) => {
+  const name = `“${lessonName(d.lesson)}”`;
+  const n = lessonPositions(d).length;
+  if (taken) return `${name} · ${plural(n, 'position')} for your Board Editor`;
+  const { add, update, skipped } = lessonPlan(savedPositions, d);
+  const parts = [];
+  if (add.length) parts.push(`${plural(add.length, update.length ? 'new position' : 'position')} for your Board Editor`);
+  if (update.length) {
+    parts.push(`changes to ${add.length ? update.length : plural(update.length, 'position')} you already have`);
+  }
+  if (skipped.length) {
+    const one = skipped.length === 1;
+    parts.push(`${skipped.length} left out, as ${one ? 'it' : 'they'} would replace ${one ? 'a position' : 'positions'} of yours`);
+  }
+  return [name, ...parts].join(' · ');
 };
 
 // The bell, and what's behind it. Anything a coach has sent, or a new coach
@@ -73,8 +98,18 @@ export default function Inbox() {
   // linked coach, and one from anyone else is simply not shown.
   const shown = items.filter((d) => !(d.kind === 'game' && (activeCoaches.has(d.fromUid) || d.v === 2)));
   // A game counts as taken only when the student took it here — see
-  // eligibleGameDelivery: the sender can write acceptedAt themselves.
-  const taken = (d) => (d.kind === 'game' ? cloud.isGameConsented(d.id) : Boolean(d.acceptedAt));
+  // eligibleGameDelivery: the sender can write acceptedAt themselves. A lesson
+  // counts once an app that knows lessons took it, or once there's nothing in
+  // it left to take (lessonTaken): an app from before lessons stamps
+  // acceptedAt on one while keeping none of it, and after updating, that
+  // student should find it still waiting. A lesson from a newer app than this
+  // one waits until this one updates.
+  const taken = (d) => {
+    if (d.kind === 'game') return cloud.isGameConsented(d.id);
+    if (isLesson(d)) return lessonTaken(d, state?.savedPositions);
+    if (isAnyLesson(d)) return takenByLessonApp(d);
+    return Boolean(d.acceptedAt);
+  };
   const waiting = shown.filter((d) => !taken(d) && !d.dismissedAt);
   // The coach's side of the bell: games linked students added since the coach
   // last opened their card.
@@ -96,9 +131,10 @@ export default function Inbox() {
         return;
       }
       // Merged with the same rules as everything else: the student's own
-      // progress on lines they already had is never rolled back.
+      // progress on lines they already had is never rolled back. A lesson's
+      // positions go into the Board Editor, filed under its name.
       dispatch({ type: 'hydrate', state: applyDelivery(state, delivery) });
-      await acceptDelivery(delivery.id);
+      await acceptDelivery(delivery.id, { lesson: isLesson(delivery) });
     } finally {
       setBusy(null);
     }
@@ -202,39 +238,57 @@ export default function Inbox() {
 
             {shown.length === 0 && links.length === 0 && studentGames.length === 0 && reviews.length === 0 && (
               <p className="hint">
-                Nothing yet. When a coach sends you an opening or a new line, it lands here.
+                Nothing yet. When a coach sends you an opening, a new line or a lesson, it lands here.
               </p>
             )}
-            {shown.map((d) => (
-              <div key={d.id} className={`inbox-item${taken(d) ? ' done' : ''}`}>
-                <div className="inbox-head">
-                  <strong>{d.fromName || 'A coach'}</strong>
-                  <span className="muted-note">{stamp(d.sentAt)}</span>
+            {shown.map((d) => {
+              const done = taken(d);
+              // A lesson from a newer app: its own summary says to update,
+              // and there's nothing here to press but Not now.
+              const newer = isAnyLesson(d) && !isLesson(d);
+              let line = d.summary;
+              if (isLesson(d)) line = lessonLine(d, state?.savedPositions, done);
+              // Only changes to positions they already have: say Update, not Add.
+              const updateOnly = isLesson(d) && !done && lessonPlan(state?.savedPositions, d).add.length === 0;
+              return (
+                <div key={d.id} className={`inbox-item${done ? ' done' : ''}`}>
+                  <div className="inbox-head">
+                    <strong>{d.fromName || 'A coach'}</strong>
+                    <span className="muted-note">{stamp(d.sentAt)}</span>
+                  </div>
+                  <div className="muted-note">{line}</div>
+                  {d.message && <p className="inbox-message">“{d.message}”</p>}
+                  <div className="settings-row">
+                    {done ? (
+                      <span className="practiced-pill">
+                        {d.kind === 'game' && 'Adding to your Games…'}
+                        {isAnyLesson(d) && `In your Board Editor — Saved positions, “${lessonName(d.lesson)}”`}
+                        {d.kind !== 'game' && !isAnyLesson(d) && 'Added to your repertoire'}
+                      </span>
+                    ) : (
+                      <>
+                        {!newer && (
+                          <button
+                            className="primary"
+                            disabled={busy === d.id}
+                            onClick={() => accept(d)}
+                          >
+                            {busy === d.id ? 'Adding…' : (() => {
+                              if (d.kind === 'game') return 'Add to my Games';
+                              if (updateOnly) return 'Update my positions';
+                              return isLesson(d) ? 'Add to my positions' : 'Add to my repertoire';
+                            })()}
+                          </button>
+                        )}
+                        <button className="small ghost" onClick={() => dismissDelivery(d.id)}>
+                          Not now
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="muted-note">{d.summary}</div>
-                {d.message && <p className="inbox-message">“{d.message}”</p>}
-                <div className="settings-row">
-                  {taken(d) ? (
-                    <span className="practiced-pill">
-                      {d.kind === 'game' ? 'Adding to your Games…' : 'Added to your repertoire'}
-                    </span>
-                  ) : (
-                    <>
-                      <button
-                        className="primary"
-                        disabled={busy === d.id}
-                        onClick={() => accept(d)}
-                      >
-                        {busy === d.id ? 'Adding…' : (d.kind === 'game' ? 'Add to my Games' : 'Add to my repertoire')}
-                      </button>
-                      <button className="small ghost" onClick={() => dismissDelivery(d.id)}>
-                        Not now
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
             <div className="modal-actions">
               <button onClick={() => setOpen(false)}>Close</button>
             </div>

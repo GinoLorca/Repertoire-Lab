@@ -6,7 +6,8 @@ import PlayerRoster from '../components/PlayerRoster';
 // Library's "Students" tab, it comes up automatically whenever you analyze
 // one of their games.
 export default function CoachesView({
-  onAnalyze, onGameStudio, onScan, onOpenLibrary, onOpenCollections, onOpenStudio, routePlayer, onPlayerChange,
+  onAnalyze, onGameStudio, onScan, onOpenLibrary, onOpenCollections, onOpenLessons, onOpenStudio, routePlayer,
+  onPlayerChange,
 }) {
   return (
     <PlayerRoster
@@ -23,6 +24,7 @@ export default function CoachesView({
       onScan={onScan}
       onOpenLibrary={onOpenLibrary}
       onOpenCollections={onOpenCollections}
+      onOpenLessons={onOpenLessons}
       onOpenStudio={onOpenStudio}
       routePlayer={routePlayer}
       onPlayerChange={onPlayerChange}

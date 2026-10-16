@@ -96,8 +96,8 @@ export default function DataSection() {
         <span><strong>Everything on this device</strong></span>
       </div>
       <p className="hint">
-        Every opening including your students’, progress, artwork, player profiles, games and
-        settings — one file.
+        Every opening including your students’, progress, artwork, player profiles, games, Lab
+        sessions, Board Editor positions (your students’ lessons too) and settings — one file.
       </p>
       <div className="settings-row">
         <button onClick={() => save(fullBackup(state))}>
@@ -115,7 +115,8 @@ export default function DataSection() {
             <span><strong>One student’s study pack</strong></span>
           </div>
           <p className="hint">
-            Just that student’s openings, with your own settings and other students left out.
+            Just that student’s openings and Board Editor lessons, with your own settings and other
+            students left out.
             Superseded by <strong>Send</strong> in Coaches Corner, which needs no file at all —
             keep this for a student who isn’t signed in.
           </p>
@@ -128,8 +129,8 @@ export default function DataSection() {
               onClick={() => {
                 const student = students.find((s) => s.id === studentId);
                 const pack = studyPack(state, student);
-                if (pack.openings.length === 0) {
-                  setError(`${student.name} has no openings yet.`);
+                if (pack.openings.length === 0 && pack.savedPositions.length === 0) {
+                  setError(`${student.name} has no openings or lessons yet.`);
                   return;
                 }
                 save(pack);

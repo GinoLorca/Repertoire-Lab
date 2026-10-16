@@ -23,8 +23,9 @@ import {
 } from '../lib/cloud/links';
 import {
   BookIcon, PencilIcon, PlayIcon, TagIcon, SearchIcon, FolderIcon, AlertIcon, ClockIcon, StarIcon,
-  CameraIcon, FlaskIcon, SendIcon, UsersIcon, LinkIcon, TargetIcon, CapIcon,
+  CameraIcon, FlaskIcon, SendIcon, UsersIcon, LinkIcon, TargetIcon, CapIcon, RecycleIcon,
 } from '../components/Icons';
+import { positionsFor, folderNames } from '../lib/savedPositions';
 import { useMe } from '../lib/cloud/useMe';
 import { useGameLink } from './GameLinkProvider';
 import { parseMarks, withText } from '../lib/marks';
@@ -384,7 +385,7 @@ function GameRow({
 
 function PlayerPage({
   player, rosterTitle, onBack, onAnalyze, onGameStudio, onScan, onEditProfile, onOpenLibrary, onOpenCollections,
-  initialTab = null, onTabChange,
+  onOpenLessons, initialTab = null, onTabChange,
 }) {
   const { state, dispatch } = useStore();
   const [viewingGameId, setViewingGameId] = useState(null);
@@ -733,6 +734,29 @@ function PlayerPage({
           </div>
         )}
 
+        {/* Board Editor positions filed for them — their lessons, made by
+            saving with their lessons open there or by Recycle. */}
+        {player.kind === 'student' && onOpenLessons && (() => {
+          const theirs = positionsFor(state.savedPositions, player.id);
+          const lessons = folderNames(theirs).length;
+          return (
+            <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)' }}>
+              <div className="scope-info">
+                <h3><RecycleIcon size={15} /> Lessons</h3>
+                <div className="sub">
+                  {theirs.length === 0
+                    ? 'No positions in their lessons yet'
+                    : `${lessons} lesson${lessons === 1 ? '' : 's'} · ${theirs.length} position${theirs.length === 1 ? '' : 's'}`}
+                  {' · '}recycle any Board Editor position into one, and teach straight from it
+                </div>
+              </div>
+              <button className="small" onClick={() => onOpenLessons(player.id)}>
+                Open in Board Editor
+              </button>
+            </div>
+          );
+        })()}
+
         {player.kind === 'student' && me && (
           <div className="scope-card" style={{ cursor: 'default', background: 'var(--card)' }}>
             <div className="scope-info">
@@ -989,7 +1013,7 @@ function takePendingOpen(kind) {
 
 export default function PlayerRoster({
   kind, title, subtitle, addLabel, emptyLabel, onAnalyze, onGameStudio, onScan, onOpenLibrary, onOpenCollections,
-  onOpenStudio, routePlayer = null, onPlayerChange,
+  onOpenLessons, onOpenStudio, routePlayer = null, onPlayerChange,
 }) {
   const { state, dispatch } = useStore();
   // Opened straight from the bell ("Parker added a game → Open"), or from a
@@ -1087,6 +1111,7 @@ export default function PlayerRoster({
           onEditProfile={() => setEditingPlayer(openPlayer)}
           onOpenLibrary={onOpenLibrary}
           onOpenCollections={onOpenCollections}
+          onOpenLessons={onOpenLessons}
         />
         {editingPlayer && (
           <PlayerEditor
@@ -1183,9 +1208,17 @@ export default function PlayerRoster({
               title="Delete section and its games"
               onClick={(e) => {
                 e.stopPropagation();
-                if (window.confirm(`Delete "${player.name}" and its ${player.games.length} games?`)) {
-                  dispatch({ type: 'deletePlayer', playerId: player.id });
-                }
+                if (!window.confirm(`Delete "${player.name}" and its ${player.games.length} games?`)) return;
+                // Their Board Editor lessons are asked about on their own:
+                // mostly copies (Recycle leaves the originals in your own
+                // positions), but some may have been saved straight into a
+                // lesson. Kept, they stay in your synced data, out of sight.
+                const lessons = positionsFor(state.savedPositions, player.id).length;
+                const dropPositions = lessons > 0 && window.confirm(
+                  `Delete the ${lessons} position${lessons === 1 ? '' : 's'} in ${player.name}'s lessons as well?\n\n`
+                  + 'OK deletes them. Cancel keeps them in your account, where nothing shows them.',
+                );
+                dispatch({ type: 'deletePlayer', playerId: player.id, dropPositions });
               }}
             >
               ✕

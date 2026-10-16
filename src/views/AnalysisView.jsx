@@ -146,7 +146,7 @@ function treeFor(line) {
 
 export default function AnalysisView({
   initialLine, initialLab, coachMode, mode: routeMode, onModeChange, positionId, onPositionChange,
-  setupSlug, onSetupChange,
+  setupSlug, onSetupChange, editorScope = null, onEditorScopeChange,
 }) {
   const { state, dispatch } = useStore();
   // Nothing explicit was asked for — a blank "Analysis" open or a Coaches
@@ -1534,6 +1534,9 @@ export default function AnalysisView({
           onPositionChange={onPositionChange}
           setupSlug={setupSlug}
           onSetupChange={onSetupChange}
+          // Whose saved positions are open — yours, or a student's lessons.
+          initialScope={editorScope}
+          onScopeChange={onEditorScopeChange}
           onSendToAnalysis={({
             baseFen: f, moves: m, marks, marksFen,
           }) => {

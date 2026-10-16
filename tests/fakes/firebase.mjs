@@ -31,6 +31,7 @@ const deepMerge = (a, b) => {
   return out;
 };
 const tick = () => new Promise((r) => setTimeout(r, 1));
+let autoIds = 0;
 const write = (path, data, opts) => server.set(path, opts?.merge ? deepMerge(server.get(path), clone(data)) : clone(data));
 
 export function hold(dev, beforeCommit) { holds.set(dev, beforeCommit); }
@@ -57,6 +58,15 @@ const firestore = {
   getDocFromServer: async (r) => { await tick(); serverRead(); return snapOf(r.path); },
   getDoc: async (r) => snapOf(r.path),
   setDoc: async (r, data, opts) => { write(r.path, data, opts); },
+  // Deliveries: a new document under an id of the database's choosing, and
+  // the recipient's marks on it (each field given replaces that field).
+  addDoc: async (r, data) => {
+    autoIds += 1;
+    const id = `auto${autoIds}`;
+    write(`${r.path}/${id}`, data);
+    return { id };
+  },
+  updateDoc: async (r, data) => { server.set(r.path, { ...(server.get(r.path) ?? {}), ...clone(data) }); },
   deleteDoc: async (r) => { server.delete(r.path); },
   serverTimestamp: () => Date.now(),
   runTransaction: async (_db, fn) => {

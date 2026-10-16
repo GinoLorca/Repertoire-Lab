@@ -159,7 +159,10 @@ export function mergeBackup(state, incoming, { structure = 'local' } = {}) {
 const stampToday = () => new Date().toISOString().slice(0, 10);
 
 // Everything: openings with progress and artwork, player profiles and their
-// games, categories and settings.
+// games, categories, Lab sessions, the Board Editor's saved positions (your
+// students' lessons among them) and settings. Lab sessions and saved
+// positions joined the file late: an older file without them still restores,
+// with none of either in it.
 export function fullBackup(state) {
   return {
     name: `repertoire-lab-backup-${stampToday()}.json`,
@@ -171,21 +174,30 @@ export function fullBackup(state) {
       players: state.players ?? [],
       categories: state.categories ?? [],
       playlists: state.playlists ?? [],
+      labEntries: state.labEntries ?? [],
+      savedPositions: state.savedPositions ?? [],
       settings: state.settings,
     }),
   };
 }
 
-// One student's openings as a file they can restore into their own copy.
+// One student's openings as a file they can restore into their own copy —
+// and the positions in their Board Editor lessons, filed in those lessons.
 //
-// ownerId is stripped on the way out: on the coach's device these openings
-// belong to a student, but in the student's own app they're simply theirs.
+// ownerId is stripped on the way out: on the coach's device these belong to a
+// student, but in the student's own app they're simply theirs. Which of the
+// coach's positions a lesson's copy was made from (recycledFrom) means
+// nothing there either, so it stays behind too.
 export function studyPack(state, student) {
   const theirs = (state.openings ?? [])
     .filter((o) => (o.ownerId ?? null) === student.id)
     .map((o) => ({ ...o, ownerId: null }));
+  const lessons = (state.savedPositions ?? [])
+    .filter((p) => p.ownerId === student.id)
+    .map(({ ownerId: _owner, recycledFrom: _from, ...p }) => p);
   return {
     openings: theirs,
+    savedPositions: lessons,
     name: `${student.name.replace(/[^\w.-]+/g, '-').toLowerCase()}-study-pack-${stampToday()}.json`,
     text: JSON.stringify({
       app: 'repertoire-lab',
@@ -194,6 +206,7 @@ export function studyPack(state, student) {
       preparedFor: student.name,
       savedAt: new Date().toISOString(),
       openings: theirs,
+      savedPositions: lessons,
       players: [],
       categories: [],
       playlists: [],

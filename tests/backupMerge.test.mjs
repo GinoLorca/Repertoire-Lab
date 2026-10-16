@@ -2,7 +2,7 @@
 // sub-variation on one side: each line ends up once, with its progress.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeBackup } from '../src/lib/backup.js';
+import { mergeBackup, fullBackup, studyPack } from '../src/lib/backup.js';
 
 const line = (id, extra = {}) => ({ id, name: id, moves: ['e4', 'c6'], ...extra });
 const where = (state) => Object.fromEntries(state.openings[0].chapters.map((c) => [c.id, c.variations.map((v) => v.id).join(' ')]));
@@ -56,3 +56,40 @@ test('"arranged by hand" travels only with its order: a coach\'s arranged openin
   assert.equal(mergeBackup(arranged(), plain()).openings[0].freeChapterOrder, true, 'and not lost either');
 });
 
+
+test('a restore keeps whose a saved position is, and what it was recycled from', () => {
+  const copy = {
+    id: 'cp', name: 'Lucena', fen: '8/8/8/8/8/8/8/8 w - - 0 1', folder: 'Lesson 4', ownerId: 'card-wavy', recycledFrom: 'luc',
+  };
+  const merged = mergeBackup({ openings: [], savedPositions: [] }, { openings: [], savedPositions: [copy] });
+  assert.deepEqual(merged.savedPositions, [copy]);
+});
+
+test('Back up everything keeps the Board Editor\'s positions — a student\'s lessons too — and Lab sessions', () => {
+  const copy = {
+    id: 'cp', name: 'Lucena', fen: '8/8/8/8/8/8/8/8 w - - 0 1', folder: 'Lesson 4', ownerId: 'card-wavy', recycledFrom: 'luc',
+  };
+  const lab = { id: 'lab1', name: 'Rook ending', baseFen: '8/8/8/8/8/8/8/8 w - - 0 1', moves: [] };
+  const file = JSON.parse(fullBackup({
+    openings: [], players: [], savedPositions: [copy], labEntries: [lab], settings: {},
+  }).text);
+  assert.deepEqual(file.savedPositions, [copy]);
+  assert.deepEqual(file.labEntries, [lab]);
+  // Replace everything from it brings them back, as Merge does.
+  assert.deepEqual(mergeBackup({ openings: [], savedPositions: [] }, file).savedPositions, [copy]);
+});
+
+test('a study pack carries that student\'s lessons as their own, and nobody else\'s', () => {
+  const pos = (id, ownerId, folder) => ({
+    id, name: id, fen: '8/8/8/8/8/8/8/8 w - - 0 1', folder, ...(ownerId ? { ownerId, recycledFrom: 'src' } : {}),
+  });
+  const state = {
+    openings: [],
+    savedPositions: [pos('mine', null, 'Mine'), pos('w1', 'card-wavy', 'Lesson 4'), pos('b1', 'card-bo', 'Lesson 1')],
+  };
+  const pack = studyPack(state, { id: 'card-wavy', name: 'Wavy' });
+  assert.deepEqual(pack.savedPositions, [{
+    id: 'w1', name: 'w1', fen: '8/8/8/8/8/8/8/8 w - - 0 1', folder: 'Lesson 4',
+  }]);
+  assert.deepEqual(JSON.parse(pack.text).savedPositions, pack.savedPositions);
+});
