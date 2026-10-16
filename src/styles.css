@@ -1721,20 +1721,45 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   color: #fff;
 }
 
-/* After dark, Drive-Thru, Rose and Chess Book use a light accent (mustard,
-   rose pink, terracotta), and white text on it is unreadable. Their accent
+/* After dark, Drive-Thru, Rose, Chess Book and Uptown Express use a light
+   accent (mustard, rose pink, terracotta, lit teal), and white text on it is unreadable. Their accent
    fills take the page's own dark ground as text instead. Hover is left out:
    it moves to --accent-dim, where white text is right. */
-:root[data-skin="drivethru"][data-theme="dark"] :is(button.primary:not(:hover), .learn-btn .badge, .vl-item.active),
-:root[data-skin="rose"][data-theme="dark"] :is(button.primary:not(:hover), .learn-btn .badge, .vl-item.active),
-:root[data-skin="chessbook"][data-theme="dark"] :is(button.primary:not(:hover), .learn-btn .badge, .vl-item.active) {
+:root[data-skin="drivethru"][data-theme="dark"] :is(button.primary:not(:hover), .learn-btn .badge, .vl-item.active, .avatar-pick-badge, .mt-move.current, .link-pill.new),
+:root[data-skin="rose"][data-theme="dark"] :is(button.primary:not(:hover), .learn-btn .badge, .vl-item.active, .avatar-pick-badge, .mt-move.current, .link-pill.new),
+:root[data-skin="chessbook"][data-theme="dark"] :is(button.primary:not(:hover), .learn-btn .badge, .vl-item.active, .avatar-pick-badge, .mt-move.current, .link-pill.new),
+:root[data-skin="uptown"][data-theme="dark"] :is(button.primary:not(:hover), .learn-btn .badge, .vl-item.active, .avatar-pick-badge, .mt-move.current, .link-pill.new) {
   color: var(--bg);
 }
 :root[data-skin="drivethru"][data-theme="dark"] .vl-item.active .vl-dot,
 :root[data-skin="rose"][data-theme="dark"] .vl-item.active .vl-dot,
-:root[data-skin="chessbook"][data-theme="dark"] .vl-item.active .vl-dot {
+:root[data-skin="chessbook"][data-theme="dark"] .vl-item.active .vl-dot,
+:root[data-skin="uptown"][data-theme="dark"] .vl-item.active .vl-dot {
   border-color: var(--bg);
   color: var(--bg);
+}
+
+/* --- Uptown Express: Helvetica Neue (system on Apple), sign corners, a black station-sign topbar. --- */
+:root[data-skin="uptown"] body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+:root[data-skin="uptown"] .topbar .logo,
+:root[data-skin="uptown"] .page-head h1,
+:root[data-skin="uptown"] .settings-head h2 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700; letter-spacing: -0.01em; }
+:root[data-skin="uptown"] { --radius: 6px; }
+:root[data-skin="uptown"] button,
+:root[data-skin="uptown"] input,
+:root[data-skin="uptown"] select,
+:root[data-skin="uptown"] textarea { border-radius: 4px; }
+:root[data-skin="uptown"] button.primary,
+:root[data-skin="uptown"] button.primary:hover {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 100% 1.5px; background-position: 0 3px; background-repeat: no-repeat;
+}
+:root[data-skin="uptown"] .topbar {
+  --panel: #141517; --card: #24272c; --card-hover: #2a2d33; --border: #2e3238;
+  --text: #f4f4f0; --muted: #b4b9c0; --accent: #ffb52e; --accent-dim: #2b6a80;
+  background-color: #141517; color: var(--text); border-bottom-color: #2e3238;
+  background-image: linear-gradient(90deg, #b933ad 0 20%, #0039a6 0 40%, #00933c 0 60%, #fccc0a 0 80%, #ee352e 0);
+  background-size: 100% 4px; background-position: 0 100%; background-repeat: no-repeat;
 }
 
 /* ---------- Theme board textures and piece treatments (Chess Arcade) ---------- */
@@ -1898,6 +1923,42 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   color: #5e574c !important;
 }
 
+/* --- Uptown Express: a station wall. White running-bond tile, faience-teal
+       dark squares, a black sign frame with a white key line. Every officer
+       rides its line: a coloured tab under the base (pawns are the locals),
+       and on the black army the same colour in the detail lines. --- */
+:root[data-skin="uptown"] {
+  --ux-sq-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' preserveAspectRatio='none'%3E%3Cpath d='M0 1.6H48M0 13.1H48M0 25.1H48M0 37.1H48' stroke='%23fff' stroke-opacity='.5' stroke-width='.8'/%3E%3Cpath d='M0 .5H48M0 12H48M0 24H48M0 36H48M.5 0V12M24 0V12M12 12V24M36 12V24M.5 24V36M24 24V36M12 36V48M36 36V48' fill='none' stroke='%23141517' stroke-opacity='.1'/%3E%3C/svg%3E");
+  --ux-sq-tile-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' preserveAspectRatio='none'%3E%3Cpath d='M0 .5H48M0 12H48M0 24H48M0 36H48M.5 0V12M24 0V12M12 12V24M36 12V24M.5 24V36M24 24V36M12 36V48M36 36V48' fill='none' stroke='%230B2A33' stroke-opacity='.2'/%3E%3C/svg%3E");
+  --legal-dot: #141517; --legal-dot-edge: #f4f4f0; --legal-ring: rgba(20, 21, 23, 0.82);
+  --last-move-edge: inset 0 4px 0 #fccc0a, inset 0 5.5px 0 #141517;
+  --check-glow: radial-gradient(circle at center, rgba(255, 107, 94, 0.75) 0 30%, rgba(255, 107, 94, 0.42) 56%, transparent 76%);
+  --check-ring: inset 0 0 0 1px #141517, inset 0 0 0 4px #ee352e, inset 0 0 0 5px #141517;
+}
+:root[data-skin="uptown"] [data-square-color="white"] { background-image: var(--ux-sq-tile); background-size: 100% 100%; --last-move-wash: rgba(252, 204, 10, 0.35); }
+:root[data-skin="uptown"] [data-square-color="black"] { background-image: var(--ux-sq-tile-dark); background-size: 100% 100%; --last-move-wash: rgba(252, 204, 10, 0.18); }
+:root[data-skin="uptown"] [data-boardid] { box-shadow: 0 0 0 1px #f4f4f0, 0 0 0 5px #141517; }   /* ≤5px: .board-column gap is 4px */
+:root[data-skin="uptown"] [data-square] > div > div[style*="position: absolute"] {
+  color: #141517 !important; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+:root[data-skin="uptown"] [data-piece] svg { filter: drop-shadow(0 1.2px 0 rgba(0, 0, 0, 0.3)); }
+:root[data-skin="uptown"] [data-piece^="b"] svg { filter: drop-shadow(0 0 0.8px rgba(244, 244, 240, 0.92)) drop-shadow(0 1.2px 0 rgba(0, 0, 0, 0.3)); }
+:root[data-skin="uptown"] [data-piece="bK"] { --ux-pl: #ff6b5e; }
+:root[data-skin="uptown"] [data-piece="bQ"] { --ux-pl: #e58bdd; }
+:root[data-skin="uptown"] [data-piece="bR"] { --ux-pl: #7fa6ff; }
+:root[data-skin="uptown"] [data-piece="bB"] { --ux-pl: #fccc0a; }
+:root[data-skin="uptown"] [data-piece="bN"] { --ux-pl: #8fd16a; }
+:root[data-skin="uptown"] [data-piece$="K"] { --ux-tab: #ee352e; }
+:root[data-skin="uptown"] [data-piece$="Q"] { --ux-tab: #b933ad; }
+:root[data-skin="uptown"] [data-piece$="R"] { --ux-tab: #0062cf; }
+:root[data-skin="uptown"] [data-piece$="B"] { --ux-tab: #fccc0a; }
+:root[data-skin="uptown"] [data-piece$="N"] { --ux-tab: #6cbe45; }
+:root[data-skin="uptown"] [data-square] [data-piece] { position: relative; }
+:root[data-skin="uptown"] [data-square] [data-piece]:not([data-piece$="P"])::after {
+  content: ''; position: absolute; left: 33%; right: 33%; bottom: 3%; height: 5%; min-height: 2px;
+  border-radius: 2px; background: var(--ux-tab); box-shadow: 0 0 0 1px rgba(20, 21, 23, 0.9); pointer-events: none;
+}
+
 /* ---------- Theme wallpapers (Chess Arcade) ---------- */
 
 /* Each skin brought its own page surface across with its palette — a theme is
@@ -1933,7 +1994,8 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 :root[data-skin="gameboy"]:not(.has-custom-bg):not(.no-skin-wall),
 :root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall),
 :root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall),
-:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) { background: var(--bg); }
+:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall),
+:root[data-skin="uptown"]:not(.has-custom-bg):not(.no-skin-wall) { background: var(--bg); }
 :root[data-skin="felt"]:not(.has-custom-bg):not(.no-skin-wall) body,
 :root[data-skin="hustler"]:not(.has-custom-bg):not(.no-skin-wall) body,
 :root[data-skin="outerspace"]:not(.has-custom-bg):not(.no-skin-wall) body,
@@ -1941,7 +2003,8 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 :root[data-skin="gameboy"]:not(.has-custom-bg):not(.no-skin-wall) body,
 :root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall) body,
 :root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall) body,
-:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) body { background: transparent; }
+:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) body,
+:root[data-skin="uptown"]:not(.has-custom-bg):not(.no-skin-wall) body { background: transparent; }
 :root[data-skin="felt"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
 :root[data-skin="hustler"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
 :root[data-skin="outerspace"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
@@ -1949,7 +2012,8 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 :root[data-skin="gameboy"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
 :root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
 :root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
-:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
+:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
+:root[data-skin="uptown"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
   content: '';
   position: fixed;
   inset: 0;
@@ -2123,6 +2187,14 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 :root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
   background-image: var(--paper-grain);
   background-size: 220px 220px;
+}
+
+/* --- Uptown Express: station wall tile under an invented line map, with
+       no names and no real geography. Lit stops after dark. --- */
+:root[data-skin="uptown"] { --ux-map: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cpath d='M0 0H20L320 300V320H300L0 20ZM0 300V320H20ZM300 0H320V20Z' fill='%231B2530' opacity='.7'/%3E%3Crect x='196' y='20' width='56' height='34' rx='3' fill='%2326282B' opacity='.6'/%3E%3Cg opacity='.18'%3E%3Cg fill='none' stroke-width='7' stroke-linejoin='round'%3E%3Cpath d='M0 64H96L160 128H224L288 64H320' stroke='%23EE352E'/%3E%3Cpath d='M0 232H64L128 168H192L256 232H320' stroke='%2300933C'/%3E%3Cpath d='M112 0V96L176 160V224L112 288V320' stroke='%230039A6'/%3E%3Cpath d='M272 0V80L240 112V256L272 288V320' stroke='%23FCCC0A'/%3E%3Cpath d='M0 320L320 0' stroke='%23B933AD'/%3E%3C/g%3E%3Cg fill='%23F4F4EF'%3E%3Ccircle cx='96' cy='64' r='4.5'/%3E%3Ccircle cx='224' cy='128' r='4.5'/%3E%3Ccircle cx='128' cy='168' r='4.5'/%3E%3Ccircle cx='112' cy='288' r='4.5'/%3E%3C/g%3E%3Cg fill='%230C0D0F' stroke='%23F4F4EF' stroke-width='2.5'%3E%3Ccircle cx='176' cy='168' r='7'/%3E%3Ccircle cx='240' cy='192' r='7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); --ux-wall: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='24'%3E%3Cpath d='M0 .5H48M0 12.5H48M.5 0V12M24.5 0V12M12.5 12V24M36.5 12V24' fill='none' stroke='%23fff' stroke-opacity='.045'/%3E%3C/svg%3E"); }
+:root[data-skin="uptown"][data-theme="light"] { --ux-map: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cpath d='M0 0H20L320 300V320H300L0 20ZM0 300V320H20ZM300 0H320V20Z' fill='%23E6DCC4' opacity='.55'/%3E%3Crect x='196' y='20' width='56' height='34' rx='3' fill='%23D3D4CF' opacity='.5'/%3E%3Cg opacity='.16'%3E%3Cg fill='none' stroke-width='7' stroke-linejoin='round'%3E%3Cpath d='M0 64H96L160 128H224L288 64H320' stroke='%23EE352E'/%3E%3Cpath d='M0 232H64L128 168H192L256 232H320' stroke='%2300933C'/%3E%3Cpath d='M112 0V96L176 160V224L112 288V320' stroke='%230039A6'/%3E%3Cpath d='M272 0V80L240 112V256L272 288V320' stroke='%23FCCC0A'/%3E%3Cpath d='M0 320L320 0' stroke='%23B933AD'/%3E%3C/g%3E%3Cg fill='%233A3D42'%3E%3Ccircle cx='96' cy='64' r='4.5'/%3E%3Ccircle cx='224' cy='128' r='4.5'/%3E%3Ccircle cx='128' cy='168' r='4.5'/%3E%3Ccircle cx='112' cy='288' r='4.5'/%3E%3C/g%3E%3Cg fill='%23FFFFFF' stroke='%233A3D42' stroke-width='2.5'%3E%3Ccircle cx='176' cy='168' r='7'/%3E%3Ccircle cx='240' cy='192' r='7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); --ux-wall: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='24'%3E%3Cpath d='M0 1.5H48M0 13.5H48' stroke='%23fff' stroke-opacity='.6'/%3E%3Cpath d='M0 .5H48M0 12.5H48M.5 0V12M24.5 0V12M12.5 12V24M36.5 12V24' fill='none' stroke='%23141517' stroke-opacity='.07'/%3E%3C/svg%3E"); }
+:root[data-skin="uptown"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
+  background-image: var(--ux-map), var(--ux-wall); background-size: 320px 320px, 48px 24px;
 }
 
 /* The Board Editor's square name — right-click, or long-press on a touch

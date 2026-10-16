@@ -35,11 +35,18 @@ export default function LegalDots({ game, square, boardWidth, orientation }) {
             cy={cy}
             r={size * 0.42}
             fill="none"
-            stroke="rgba(20, 23, 29, 0.32)"
             strokeWidth={size * 0.11}
+            style={{ stroke: 'var(--legal-ring, rgba(20, 23, 29, 0.32))' }}
           />
         ) : (
-          <circle key={mv.to} cx={cx} cy={cy} r={size * 0.16} fill="rgba(20, 23, 29, 0.34)" />
+          <circle
+            key={mv.to}
+            cx={cx}
+            cy={cy}
+            r={size * 0.16}
+            strokeWidth={size * 0.05}
+            style={{ fill: 'var(--legal-dot, rgba(20, 23, 29, 0.34))', stroke: 'var(--legal-dot-edge, none)' }}
+          />
         );
       })}
     </svg>

@@ -194,7 +194,7 @@ export const SKIN_SOUNDS = {
     move: '/sounds/themes/hustler/move.mp3',
     capture: '/sounds/themes/hustler/capture.mp3',
   },
-  // Drive-Thru, Rose and Chess Book were made with full sets, synthesized
+  // Drive-Thru, Rose, Chess Book and Uptown Express were made with full sets, synthesized
   // for these themes rather than recorded. Their win fanfare marks a finished
   // line here, the nearest thing this app has to winning. Correct and wrong
   // stay silent, as they do for every other theme.
@@ -227,6 +227,16 @@ export const SKIN_SOUNDS = {
     promote: '/sounds/themes/chessbook/promote.mp3',
     sessionStart: '/sounds/themes/chessbook/matchStart.mp3',
     complete: '/sounds/themes/chessbook/win.mp3',
+  },
+  uptown: {
+    move: '/sounds/themes/uptown/move.mp3',
+    capture: '/sounds/themes/uptown/capture.mp3',
+    castle: '/sounds/themes/uptown/castle.mp3',
+    check: '/sounds/themes/uptown/check.mp3',
+    checkmate: '/sounds/themes/uptown/checkmate.mp3',
+    promote: '/sounds/themes/uptown/promote.mp3',
+    sessionStart: '/sounds/themes/uptown/matchStart.mp3',
+    complete: '/sounds/themes/uptown/win.mp3',
   },
 };
 

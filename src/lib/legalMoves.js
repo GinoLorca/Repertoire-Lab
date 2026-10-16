@@ -34,7 +34,9 @@ export function checkedKingSquare(game) {
 // even when it's declared first and they come after — so this square would
 // render the plain yellow wash with the badge's glyph silently erased. A
 // longhand can't do that; only the specific property it names is ever touched.
-export const LAST_MOVE_STYLE = { backgroundColor: 'rgba(245, 205, 78, 0.42)' };
+// Themes can restyle these through CSS custom properties; the fallbacks are
+// the look every theme had before.
+export const LAST_MOVE_STYLE = { backgroundColor: 'var(--last-move-wash, rgba(245, 205, 78, 0.42))', boxShadow: 'var(--last-move-edge, none)' };
 
 // The from/to of the move that produced the position at `ply` in a line of SAN
 // moves, for boards that want to mark it. `ply` counts moves played.
@@ -63,7 +65,8 @@ export const NOTE_HIGHLIGHT_STYLE = {
 
 // A red glow under the king in check, in the style chess.com uses.
 export const CHECK_STYLE = {
-  background: 'radial-gradient(circle at center, rgba(226, 74, 74, 0.95) 12%, rgba(226, 74, 74, 0.55) 46%, transparent 72%)',
+  background: 'var(--check-glow, radial-gradient(circle at center, rgba(226, 74, 74, 0.95) 12%, rgba(226, 74, 74, 0.55) 46%, transparent 72%))',
+  boxShadow: 'var(--check-ring, none)',
 };
 
 // Square styles marking every legal destination for the piece on `square` —

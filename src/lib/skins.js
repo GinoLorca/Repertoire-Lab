@@ -402,10 +402,37 @@ export const SKINS = {
       pieceDark: '#1c1a17',
     },
   },
+
+  // Uptown Express: a subway station, built for Chess Arcade in October 2026
+  // and brought straight over. Its light accent after dark (lit teal) gets the
+  // same dark-text fix as the other three, in styles.css.
+  uptown: {
+    id: 'uptown',
+    name: 'Uptown Express',
+    blurb: 'White station tile, black signs in Helvetica, and a line colour for every piece.',
+    light: {
+      '--bg': '#e8e6e0', '--panel': '#fcfcfa', '--card': '#f4f3ef', '--card-hover': '#eceae3',
+      '--border': '#d6d4cd', '--text': '#121314', '--muted': '#4a4e55',
+      '--accent': '#1e5a6d', '--accent-dim': '#141517',
+      '--green': '#006e36', '--red': '#b5122b', '--amber': '#8a4f00', '--track': '#d6d4cd',
+      boardLight: '#eceae3', boardDark: '#5094aa',
+      // var() is safe here: paint() writes inks into inline style, and nothing does colour maths on
+      // them (react-chessboard appends 'aa' to boardLight/boardDark, so those stay plain hex).
+      pieceLight: 'var(--ux-pl, #ffffff)', pieceDark: '#161719',
+    },
+    dark: {
+      '--bg': '#0c0d0f', '--panel': '#17191c', '--card': '#202328', '--card-hover': '#2a2d33',
+      '--border': '#2e3238', '--text': '#f2f1ec', '--muted': '#aeb3ba',
+      '--accent': '#7fc4d6', '--accent-dim': '#2b6a80',
+      '--green': '#4ade8f', '--red': '#ff6b6b', '--amber': '#ffb52e', '--track': '#2e3238',
+      boardLight: '#d8d6ce', boardDark: '#5094aa',
+      pieceLight: 'var(--ux-pl, #fafaf6)', pieceDark: '#131416',
+    },
+  },
 };
 
 // The order they're offered in — Chess Arcade's own, with Custom last.
-export const SKIN_ORDER = ['felt', 'hustler', 'bauhaus', 'gameboy', 'outerspace', 'drivethru', 'rose', 'chessbook'];
+export const SKIN_ORDER = ['felt', 'hustler', 'bauhaus', 'gameboy', 'outerspace', 'drivethru', 'rose', 'chessbook', 'uptown'];
 
 export const CUSTOM_SKIN = {
   id: 'custom',
