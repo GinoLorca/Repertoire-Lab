@@ -194,6 +194,40 @@ export const SKIN_SOUNDS = {
     move: '/sounds/themes/hustler/move.mp3',
     capture: '/sounds/themes/hustler/capture.mp3',
   },
+  // Drive-Thru, Rose and Chess Book were made with full sets, synthesized
+  // for these themes rather than recorded. Their win fanfare marks a finished
+  // line here, the nearest thing this app has to winning. Correct and wrong
+  // stay silent, as they do for every other theme.
+  drivethru: {
+    move: '/sounds/themes/drivethru/move.mp3',
+    capture: '/sounds/themes/drivethru/capture.mp3',
+    castle: '/sounds/themes/drivethru/castle.mp3',
+    check: '/sounds/themes/drivethru/check.mp3',
+    checkmate: '/sounds/themes/drivethru/checkmate.mp3',
+    promote: '/sounds/themes/drivethru/promote.mp3',
+    sessionStart: '/sounds/themes/drivethru/matchStart.mp3',
+    complete: '/sounds/themes/drivethru/win.mp3',
+  },
+  rose: {
+    move: '/sounds/themes/rose/move.mp3',
+    capture: '/sounds/themes/rose/capture.mp3',
+    castle: '/sounds/themes/rose/castle.mp3',
+    check: '/sounds/themes/rose/check.mp3',
+    checkmate: '/sounds/themes/rose/checkmate.mp3',
+    promote: '/sounds/themes/rose/promote.mp3',
+    sessionStart: '/sounds/themes/rose/matchStart.mp3',
+    complete: '/sounds/themes/rose/win.mp3',
+  },
+  chessbook: {
+    move: '/sounds/themes/chessbook/move.mp3',
+    capture: '/sounds/themes/chessbook/capture.mp3',
+    castle: '/sounds/themes/chessbook/castle.mp3',
+    check: '/sounds/themes/chessbook/check.mp3',
+    checkmate: '/sounds/themes/chessbook/checkmate.mp3',
+    promote: '/sounds/themes/chessbook/promote.mp3',
+    sessionStart: '/sounds/themes/chessbook/matchStart.mp3',
+    complete: '/sounds/themes/chessbook/win.mp3',
+  },
 };
 
 let soundSkin = null;

@@ -510,7 +510,8 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
           <Toggle
             label="Theme wallpaper"
             hint={'The page background that came with the theme — Tournament Felt\u2019s baize, '
-              + 'Hustler\u2019s stone floor, Outer Space\u2019s stars, and the artwork Bauhaus and '
+              + 'Hustler\u2019s stone floor, Outer Space\u2019s stars, Drive-Thru\u2019s tray liner, '
+              + 'Ros\u00e9\u2019s satin, Chess Book\u2019s paper, and the artwork Bauhaus and '
               + 'Game Boy ship with. Your own background picture, if you set one, wins over it either way.'}
             on={s.skinWallpaper !== false}
             onChange={(v) => set({ skinWallpaper: v })}

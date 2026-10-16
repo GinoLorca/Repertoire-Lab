@@ -255,10 +255,157 @@ export const SKINS = {
       pieceDark: '#101219',
     },
   },
+
+  // The three below were made for Chess Arcade in October 2026 and arrived
+  // here the same week, so each app offers the same set of themes.
+  //
+  // Drive-Thru's pieces are its loudest idea: a golden army against a grape
+  // one. This app's piece art strokes the white pieces in the dark ink, so
+  // here the gold pieces wear a grape outline. In Chess Arcade they have a
+  // brown one. Same pair of colours, one less ink. The cream "sticker" rim
+  // that keeps grape readable on the red squares is in styles.css.
+  //
+  // Its dark accent is mustard, and white text on mustard is unreadable, so
+  // styles.css sets dark text on the few accent fills. Rose and Chess Book
+  // after dark have the same problem and get the same fix.
+  drivethru: {
+    id: 'drivethru',
+    name: 'Drive-Thru',
+    blurb: 'Ketchup-red tiles, mustard and grape: a fifties burger counter, with a late shift after dark.',
+    light: {
+      '--bg': '#fff4de',
+      '--panel': '#ffffff',
+      '--card': '#fff3d1',
+      '--card-hover': '#ffe9b5',
+      '--border': '#ecd396',
+      '--text': '#2a1810',
+      '--muted': '#6b4a35',
+      '--accent': '#c8221a',
+      '--accent-dim': '#a51b14',
+      '--green': '#237a33',
+      '--red': '#b81d14',
+      '--amber': '#9a6000',
+      '--track': '#f3e3bd',
+      boardLight: '#fff6e3',
+      boardDark: '#d7261e',
+      pieceLight: '#ffc72c',
+      pieceDark: '#5b2c8e',
+    },
+    dark: {
+      '--bg': '#140e0c',
+      '--panel': '#22170f',
+      '--card': '#2c1e15',
+      '--card-hover': '#37271c',
+      '--border': '#3e2a1f',
+      '--text': '#fff4e0',
+      '--muted': '#c9a98f',
+      '--accent': '#ffc72c',
+      '--accent-dim': '#b01e16',
+      '--green': '#5fd17a',
+      '--red': '#ff5a47',
+      '--amber': '#ffa94d',
+      '--track': '#0e0907',
+      boardLight: '#f3e2c0',
+      boardDark: '#b01e16',
+      pieceLight: '#ffc72c',
+      pieceDark: '#5b2c8e',
+    },
+  },
+
+  rose: {
+    id: 'rose',
+    name: 'Rosé',
+    blurb: 'Blush satin, raspberry and pearl in Bodoni italics. Velvet plum after dark.',
+    light: {
+      '--bg': '#fbeef1',
+      '--panel': '#fffcfd',
+      '--card': '#fbe3ea',
+      '--card-hover': '#f7d6e0',
+      '--border': '#e9c6d1',
+      '--text': '#3a1a2a',
+      '--muted': '#7d5867',
+      '--accent': '#a3245e',
+      '--accent-dim': '#8a1d4f',
+      '--green': '#1b6e51',
+      '--red': '#b5352a',
+      '--amber': '#a85a14',
+      '--track': '#f3dbe3',
+      boardLight: '#fbe6eb',
+      boardDark: '#d58ca2',
+      pieceLight: '#fff8f3',
+      pieceDark: '#5a1e3d',
+    },
+    dark: {
+      '--bg': '#1e0f17',
+      '--panel': '#2a1622',
+      '--card': '#341c2b',
+      '--card-hover': '#3f2334',
+      '--border': '#4a2a3d',
+      '--text': '#f8e6ec',
+      '--muted': '#c7a1b0',
+      '--accent': '#f48fb1',
+      '--accent-dim': '#a3245e',
+      '--green': '#5ed1a8',
+      '--red': '#ff6b6b',
+      '--amber': '#ffae5c',
+      '--track': '#170b11',
+      boardLight: '#e8c3cd',
+      boardDark: '#a9576f',
+      pieceLight: '#fff8f3',
+      pieceDark: '#4a1230',
+    },
+  },
+
+  // A printed chess book. Its dark squares are hatched paper, as in a
+  // diagram, not a colour. styles.css paints them, so boardDark here is only
+  // the tone the small previews use.
+  chessbook: {
+    id: 'chessbook',
+    name: 'Chess Book',
+    blurb: 'Paper, ink and hatched diagrams, set in Garamond. Calm for long study.',
+    light: {
+      '--bg': '#ece4d4',
+      '--panel': '#f8f4ea',
+      '--card': '#efe8d9',
+      '--card-hover': '#e6dcc8',
+      '--border': '#d8cdb6',
+      '--text': '#1c1a17',
+      '--muted': '#5e574c',
+      '--accent': '#7a2e1f',
+      '--accent-dim': '#6b2819',
+      '--green': '#2f6b3f',
+      '--red': '#9e2b1f',
+      '--amber': '#8a5010',
+      '--track': '#e0d6c2',
+      boardLight: '#f6f1e5',
+      boardDark: '#c9bda4',
+      pieceLight: '#fbf8f1',
+      pieceDark: '#1c1a17',
+    },
+    dark: {
+      '--bg': '#1b1814',
+      '--panel': '#24201a',
+      '--card': '#2c2720',
+      '--card-hover': '#363027',
+      '--border': '#3a342a',
+      '--text': '#e9e1cf',
+      '--muted': '#a89e8a',
+      '--accent': '#d98c6e',
+      '--accent-dim': '#8a3a28',
+      '--green': '#7dbf8a',
+      '--red': '#e2735e',
+      '--amber': '#e0a35e',
+      '--track': '#14120f',
+      boardLight: '#e3dac6',
+      boardDark: '#b9ad94',
+      pieceLight: '#fbf8f1',
+      pieceDark: '#1c1a17',
+    },
+  },
 };
 
 // The order they're offered in — Chess Arcade's own, with Custom last.
-export const SKIN_ORDER = ['felt', 'hustler', 'bauhaus', 'gameboy', 'outerspace'];
+export const SKIN_ORDER = ['felt', 'hustler', 'bauhaus', 'gameboy', 'outerspace', 'drivethru', 'rose', 'chessbook'];
 
 export const CUSTOM_SKIN = {
   id: 'custom',

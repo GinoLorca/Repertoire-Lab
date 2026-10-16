@@ -1640,6 +1640,85 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 :root[data-skin="hustler"] select,
 :root[data-skin="hustler"] textarea { border-radius: 4px; }
 
+/* --- Drive-Thru: Lilita One, round and heavy like a fifties diner sign, on
+       the chrome that shouts. Soft, chunky corners, and the main button as a
+       pill. --- */
+:root[data-skin="drivethru"] .topbar .logo,
+:root[data-skin="drivethru"] .page-head h1,
+:root[data-skin="drivethru"] .settings-head h2 {
+  font-family: 'Lilita One', 'Arial Rounded MT Bold', system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+:root[data-skin="drivethru"] { --radius: 16px; }
+:root[data-skin="drivethru"] button,
+:root[data-skin="drivethru"] input,
+:root[data-skin="drivethru"] select,
+:root[data-skin="drivethru"] textarea { border-radius: 12px; }
+:root[data-skin="drivethru"] button.primary { border-radius: 999px; }
+
+/* --- Rose: Bodoni Moda italics for the display type, the fashion-magazine
+       face. Rounded but not bubbly. --- */
+:root[data-skin="rose"] .topbar .logo,
+:root[data-skin="rose"] .page-head h1,
+:root[data-skin="rose"] .settings-head h2 {
+  font-family: 'Bodoni Moda', 'Bodoni 72', Didot, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+:root[data-skin="rose"] { --radius: 14px; }
+:root[data-skin="rose"] button,
+:root[data-skin="rose"] input,
+:root[data-skin="rose"] select,
+:root[data-skin="rose"] textarea { border-radius: 10px; }
+:root[data-skin="rose"] button.primary { border-radius: 999px; }
+
+/* --- Chess Book: set in EB Garamond throughout, a book face, one size up
+       because Garamond's small x-height reads a size smaller than the system
+       sans. Nearly square corners, like a printed page. --- */
+:root[data-skin="chessbook"] body {
+  font-family: 'EB Garamond', Garamond, Baskerville, Georgia, serif;
+  font-size: 16px;
+}
+:root[data-skin="chessbook"] .topbar .logo,
+:root[data-skin="chessbook"] .page-head h1,
+:root[data-skin="chessbook"] .settings-head h2 {
+  font-family: 'EB Garamond', Garamond, Baskerville, Georgia, serif;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+:root[data-skin="chessbook"] { --radius: 4px; }
+:root[data-skin="chessbook"] button,
+:root[data-skin="chessbook"] input,
+:root[data-skin="chessbook"] select,
+:root[data-skin="chessbook"] textarea { border-radius: 3px; }
+
+/* Every theme's main button used to hover to the Custom palette's blue. The
+   hover is the theme's own deeper accent instead, which every theme picks to
+   carry white text. */
+:root[data-skin] button.primary:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
+  color: #fff;
+}
+
+/* After dark, Drive-Thru, Rose and Chess Book use a light accent (mustard,
+   rose pink, terracotta), and white text on it is unreadable. Their accent
+   fills take the page's own dark ground as text instead. Hover is left out:
+   it moves to --accent-dim, where white text is right. */
+:root[data-skin="drivethru"][data-theme="dark"] :is(button.primary:not(:hover), .learn-btn .badge, .vl-item.active),
+:root[data-skin="rose"][data-theme="dark"] :is(button.primary:not(:hover), .learn-btn .badge, .vl-item.active),
+:root[data-skin="chessbook"][data-theme="dark"] :is(button.primary:not(:hover), .learn-btn .badge, .vl-item.active) {
+  color: var(--bg);
+}
+:root[data-skin="drivethru"][data-theme="dark"] .vl-item.active .vl-dot,
+:root[data-skin="rose"][data-theme="dark"] .vl-item.active .vl-dot,
+:root[data-skin="chessbook"][data-theme="dark"] .vl-item.active .vl-dot {
+  border-color: var(--bg);
+  color: var(--bg);
+}
+
 /* ---------- Theme board textures and piece treatments (Chess Arcade) ---------- */
 
 /* The other half of what makes these themes themselves: the board surface and
@@ -1751,6 +1830,54 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   filter: grayscale(0.92) contrast(1.12) brightness(1.03) saturate(0.85)
     drop-shadow(0 0 0.8px rgba(0, 0, 0, 0.75))
     drop-shadow(0 0 1.6px rgba(0, 0, 0, 0.4));
+}
+
+/* --- Drive-Thru: a fifties counter's red-and-white tile floor in a golden
+       frame. Golden pieces against grape ones, cut out like stickers from a
+       kids' meal toy: a thin cream rim all round and a crisp offset shadow
+       underneath. The rim is also what lifts the grape army off the red
+       tiles. Same shapes as every other theme. --- */
+:root[data-skin="drivethru"] { --dt-frame: #e0a800; }
+:root[data-skin="drivethru"][data-theme="light"] { --dt-frame: #ffc72c; }
+:root[data-skin="drivethru"] [data-boardid] {
+  box-shadow: 0 0 0 4px var(--dt-frame), 0 0 0 5px rgba(58, 20, 8, 0.35);
+}
+:root[data-skin="drivethru"] [data-piece] svg {
+  filter: drop-shadow(0 0 1.3px rgba(255, 250, 240, 0.95)) drop-shadow(0 2px 0 rgba(90, 20, 8, 0.38));
+}
+
+/* --- Rose: pearl against plum on blush and dusty-rose squares, with a soft
+       raspberry shadow under each piece and a fine mauve rule round the
+       board. --- */
+:root[data-skin="rose"] { --rose-rule: #12080d; }
+:root[data-skin="rose"][data-theme="light"] { --rose-rule: #9c5a6e; }
+:root[data-skin="rose"] [data-boardid] { box-shadow: 0 0 0 2px var(--rose-rule); }
+:root[data-skin="rose"] [data-piece] svg { filter: drop-shadow(0 1px 1.5px rgba(120, 20, 60, 0.4)); }
+
+/* --- Chess Book: the diagram in a printed book. Dark squares aren't a
+       colour, they're paper hatched with fine diagonal ink lines, and the
+       board is ruled in ink. The square colour comes inline from the board,
+       so the paper tone has to be !important to take over. Pieces are flat
+       ink with no shadow, which also makes this the cheapest board to draw.
+       After dark the board stays a lit page. --- */
+:root[data-skin="chessbook"] {
+  --cb-paper: #e3dac6;
+  --cb-rule: #0f0d0a;
+  --cb-hatch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M-1 1L1-1M0 6L6 0M5 7L7 5' stroke='%231c1a17' stroke-width='.85' opacity='.78'/%3E%3C/svg%3E");
+}
+:root[data-skin="chessbook"][data-theme="light"] { --cb-paper: #f6f1e5; --cb-rule: #1c1a17; }
+:root[data-skin="chessbook"] [data-square-color="black"] {
+  background-color: var(--cb-paper) !important;
+  background-image: var(--cb-hatch);
+  background-size: 6px 6px;
+}
+:root[data-skin="chessbook"] [data-boardid] { box-shadow: 0 0 0 1.5px var(--cb-rule); }
+/* The board letters each coordinate in the other square's colour, which on
+   this board means paper on hatched paper. Set them in the page's soft ink
+   instead, as a book prints them. They're the only absolutely placed text
+   in a square; the colour is inline, hence !important. */
+:root[data-skin="chessbook"] [data-square] > div > div[style*="position: absolute"] {
+  color: #5e574c !important;
 }
 
 /* ---------- Theme wallpapers (Chess Arcade) ---------- */
@@ -1896,6 +2023,74 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 :root[data-skin="gameboy"]:not(.has-custom-bg):not(.no-skin-wall) body {
   background-image: linear-gradient(var(--skin-scrim), var(--skin-scrim)), url("/themes/gameboy.jpg");
+}
+
+/* --- Drive-Thru, Rose and Chess Book paint their wallpaper on a fixed layer
+       behind the page (body::before), the way a custom picture is painted,
+       and not with background-attachment: fixed. iPad Safari repaints a
+       fixed body background on every frame while the page moves; Chess
+       Arcade's boards lagged badly on iPad until its wallpapers moved onto
+       a layer like this one. The texture is drawn once and the page scrolls
+       over it. --- */
+:root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall),
+:root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall),
+:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) { background: var(--bg); }
+:root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall) body,
+:root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall) body,
+:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) body { background: transparent; }
+:root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
+:root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall) body::before,
+:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* --- Drive-Thru: a paper tray liner printed with fries, a burger, a soda cup
+       and a sparkle, in ketchup and mustard. Late at night the doodles are
+       outlines, like neon. --- */
+:root[data-skin="drivethru"] {
+  --tray-liner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke-width='2' stroke-linejoin='round' opacity='.2'%3E%3Cg stroke='%23ffc72c'%3E%3Cpath d='M28 50V24M37 50V20M46 50V22M55 50V26'/%3E%3Cpath d='M104 40a22 15 0 0 1 44 0Z'/%3E%3Crect x='104' y='51' width='44' height='8' rx='4'/%3E%3Cpath d='M128 102L134 84'/%3E%3Cpath d='M40 124l3 8 8 3-8 3-3 8-3-8-8-3 8-3z'/%3E%3C/g%3E%3Cg stroke='%23ff5a47'%3E%3Cpath d='M20 46H64L58 84H26Z'/%3E%3Crect x='102' y='42' width='48' height='7' rx='3.5'/%3E%3Cpath d='M110 108H140L135 150H115Z'/%3E%3Crect x='108' y='102' width='34' height='6' rx='3'/%3E%3Ccircle cx='160' cy='22' r='3'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+:root[data-skin="drivethru"][data-theme="light"] {
+  --tray-liner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg opacity='.17'%3E%3Cg fill='%23ffc72c'%3E%3Crect x='25' y='22' width='6' height='30' rx='2' transform='rotate(-8 28 37)'/%3E%3Crect x='34' y='18' width='6' height='32' rx='2'/%3E%3Crect x='43' y='20' width='6' height='30' rx='2' transform='rotate(6 46 35)'/%3E%3Crect x='52' y='24' width='6' height='27' rx='2' transform='rotate(12 55 37)'/%3E%3C/g%3E%3Cpath d='M20 46H64L58 84H26Z' fill='%23d62b1f'/%3E%3Cpath d='M104 40a22 15 0 0 1 44 0Z' fill='%23ffc72c'/%3E%3Crect x='102' y='42' width='48' height='7' rx='3.5' fill='%23d62b1f'/%3E%3Crect x='104' y='51' width='44' height='8' rx='4' fill='%23ffc72c'/%3E%3Cpath d='M110 108H140L135 150H115Z' fill='%23d62b1f'/%3E%3Crect x='108' y='102' width='34' height='6' rx='3' fill='%23d62b1f'/%3E%3Cpath d='M128 102L134 84' stroke='%23ffc72c' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M40 124l3 8 8 3-8 3-3 8-3-8-8-3 8-3z' fill='%23ffc72c'/%3E%3Ccircle cx='160' cy='22' r='3' fill='%23d62b1f'/%3E%3Ccircle cx='82' cy='160' r='3' fill='%23ffc72c'/%3E%3C/g%3E%3C/svg%3E");
+}
+:root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
+  background-image: var(--tray-liner);
+  background-size: 180px 180px;
+}
+
+/* --- Rose: blush satin, two soft blooms of colour and the long diagonal
+       sheen of fabric catching light. --- */
+:root[data-skin="rose"] {
+  --rose-bloom-a: rgba(244, 143, 177, 0.1);
+  --rose-bloom-b: rgba(201, 140, 255, 0.07);
+  --satin: rgba(255, 182, 207, 0.035);
+}
+:root[data-skin="rose"][data-theme="light"] {
+  --rose-bloom-a: rgba(255, 196, 214, 0.55);
+  --rose-bloom-b: rgba(255, 214, 196, 0.45);
+  --satin: rgba(255, 255, 255, 0.28);
+}
+:root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
+  background-image:
+    radial-gradient(ellipse 60% 45% at 14% 8%, var(--rose-bloom-a), transparent 70%),
+    radial-gradient(ellipse 55% 40% at 86% 88%, var(--rose-bloom-b), transparent 72%),
+    repeating-linear-gradient(115deg, transparent 0 52px, var(--satin) 52px 78px, transparent 78px 150px);
+}
+
+/* --- Chess Book: the grain of uncoated book paper (an SVG noise filter). --- */
+:root[data-skin="chessbook"] {
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .85 0 0 0 0 .75 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+:root[data-skin="chessbook"][data-theme="light"] {
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .29 0 0 0 0 .19 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall) body::before {
+  background-image: var(--paper-grain);
+  background-size: 220px 220px;
 }
 
 /* The Board Editor's square name — right-click, or long-press on a touch
