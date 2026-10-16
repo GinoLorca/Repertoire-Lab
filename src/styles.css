@@ -4843,3 +4843,8 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
   margin: -2px 0 0 -2px; border-radius: 50%; background: var(--text);
 }
 .touch-legend { margin-top: 10px; }
+
+/* A "?" beside a set of tools, opening how they work (Analysis → Annotate). */
+.help-btn { padding: 4px 7px; color: var(--muted); }
+.help-btn:hover { color: var(--text); }
+.annotate-help p { margin: 0 0 10px; line-height: 1.5; }

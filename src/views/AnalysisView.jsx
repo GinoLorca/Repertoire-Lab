@@ -56,7 +56,7 @@ import { holdSends, releaseSends, sendOnce } from '../lib/cloud/sendHold';
 import { cardHasRoom } from '../lib/cloud/reviews';
 import {
   BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon,
-  FlaskIcon, CommentIcon, TargetIcon, UploadIcon, CheckIcon,
+  FlaskIcon, CommentIcon, TargetIcon, UploadIcon, CheckIcon, HelpIcon,
 } from '../components/Icons';
 import {
   PENS, SHORTCUTS, defaultPen, shortcutKey, shortcutMap, isComboKey, comboMatchesEvent, formatShortcutKey,
@@ -438,6 +438,9 @@ export default function AnalysisView({
   // below are rebindable from Settings → Keyboard; lib/shortcuts.js holds the
   // defaults and current bindings.
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  // Annotate's "how saving works here" — behind a ? beside its buttons, so
+  // the panel itself stays the tools and not a paragraph about them.
+  const [annotateHelpOpen, setAnnotateHelpOpen] = useState(false);
   const keyMap = useMemo(() => shortcutMap(state.settings), [state.settings.shortcuts]);
   useEffect(() => {
     const onKey = (e) => {
@@ -469,7 +472,7 @@ export default function AnalysisView({
         case 'Home': e.preventDefault(); setPly(0); return;
         case 'End': e.preventDefault(); setPly(moves.length); return;
         case '?': setShortcutsOpen((o) => !o); return;
-        case 'Escape': setShortcutsOpen(false); return;
+        case 'Escape': setShortcutsOpen(false); setAnnotateHelpOpen(false); return;
         default: break;
       }
       // Pen keys aren't here — they're held during a drag (see currentPenColor
@@ -2309,22 +2312,50 @@ export default function AnalysisView({
                 >
                   <BookIcon size={14} /> Save as a variation…
                 </button>
+                <button
+                  type="button"
+                  className="small ghost help-btn"
+                  title="How saving and these buttons work"
+                  aria-label="How saving and these buttons work"
+                  onClick={() => setAnnotateHelpOpen(true)}
+                >
+                  <HelpIcon size={17} />
+                </button>
               </div>
               {saveState && saveState !== 'saved' && <p className="annotate-error">{saveState}</p>}
-              <p className="hint">
-                {editing
-                  ? (seed.linked
-                    ? `Notes, badges, arrows, highlighted squares and variations are kept as you go, and ${who} gets them when you save — or when you leave this board.`
-                    : 'Notes, badges, arrows, highlighted squares and variations are saved on this game as you go.')
-                  : 'A badge and note here belong to that exact move on this board’s line.'}
-                {' '}Saving to the Lab keeps every badge and note across the whole tree; saving as a
-                variation carries the current line's notes and badges into a chapter, editable there
-                the same way. Standing on a move in the game, press 1, 2, or 3 (rebindable in
-                Settings → Keyboard, numpad works too) to jump into the top, second, or third
-                alternative tried at that point — marking it green, blue, or yellow. → walks the rest
-                of that line, 9 jumps back to the game from however deep you are, and the same number
-                again clears the colour and steps back out.
-              </p>
+              {annotateHelpOpen && (
+                <div className="modal-overlay" onClick={() => setAnnotateHelpOpen(false)}>
+                  <div className="modal annotate-help" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+                    <h3>How saving works here</h3>
+                    <p>
+                      {editing
+                        ? (seed.linked
+                          ? `Notes, badges, arrows, highlighted squares and variations are kept as you go, and ${who} gets them when you save — or when you leave this board.`
+                          : 'Notes, badges, arrows, highlighted squares and variations are saved on this game as you go. Send the game to Studio again to carry on where you left off.')
+                        : 'A badge and note here belong to that exact move on this board’s line.'}
+                    </p>
+                    <p>
+                      <strong>Save to the Lab</strong> keeps a separate copy in Collections → Lab, with every
+                      badge and note across the whole tree. It isn’t connected to the game: what you add to
+                      the copy later stays in the Lab.
+                    </p>
+                    <p>
+                      <strong>Save as a variation</strong> carries the current line’s notes and badges into a
+                      chapter, editable there the same way.
+                    </p>
+                    <p>
+                      <strong>Alternatives:</strong> standing on a move in the game, press 1, 2 or 3
+                      (rebindable in Settings → Keyboard, numpad works too) to jump into the top, second or
+                      third alternative tried at that point — marking it green, blue or yellow. → walks the
+                      rest of that line, 9 jumps back to the game from however deep you are, and the same
+                      number again clears the colour and steps back out.
+                    </p>
+                    <div className="modal-actions">
+                      <button className="primary" onClick={() => setAnnotateHelpOpen(false)}>Got it</button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             );
           })()}

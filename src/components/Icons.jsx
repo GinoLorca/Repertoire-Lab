@@ -296,3 +296,12 @@ export const RecycleIcon = (p) => (
     <path d="M18.5 20.5v-4h-4" />
   </Icon>
 );
+
+// A question mark in a circle: "how does this work?" beside a tool.
+export const HelpIcon = (p) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6" />
+    <circle cx="12" cy="17" r="0.9" fill="currentColor" stroke="none" />
+  </Icon>
+);
