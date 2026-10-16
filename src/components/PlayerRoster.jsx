@@ -671,6 +671,11 @@ function PlayerPage({
             const game = player.games.find((g) => g.id === gameId);
             if (game?.moves?.length) onAnalyze(lineFor(game, { subtitle: categoryOf(game, index, state)?.label }));
           }}
+          // …and its "Send to studio".
+          onStudioGame={onGameStudio && ((gameId) => {
+            const game = player.games.find((g) => g.id === gameId);
+            if (game?.moves?.length) onGameStudio(lineFor(game, { subtitle: categoryOf(game, index, state)?.label }));
+          })}
           onEditProfile={onEditProfile}
           // A fresh look-up brings the card's own rating line up to date.
           onRatings={(uscf) => dispatch({

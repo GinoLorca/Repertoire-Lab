@@ -18,7 +18,7 @@ import { tidyName } from '../lib/uscf';
 import { categoryOf, resultFor } from '../lib/games';
 import { ratingAge } from '../lib/ratings';
 import {
-  AlertIcon, CheckIcon, ClockIcon, PlayIcon, TargetIcon, PencilIcon, MonitorIcon,
+  AlertIcon, CheckIcon, ClockIcon, PlayIcon, TargetIcon, PencilIcon, MonitorIcon, FlaskIcon,
 } from './Icons';
 
 // A player's US Chess dashboard — the rated history their card's USCF ID
@@ -106,7 +106,7 @@ function useUscf(id) {
 }
 
 export default function PlayerDashboard({
-  player, index, onOpenGame, onAnalyzeGame, onAddGame, onEditProfile, onRatings,
+  player, index, onOpenGame, onAnalyzeGame, onStudioGame, onAddGame, onEditProfile, onRatings,
 }) {
   const id = String(player.profile?.uscf ?? '').replace(/\D/g, '');
   if (!id) {
@@ -132,6 +132,7 @@ export default function PlayerDashboard({
       index={index}
       onOpenGame={onOpenGame}
       onAnalyzeGame={onAnalyzeGame}
+      onStudioGame={onStudioGame}
       onAddGame={onAddGame}
       onRatings={onRatings}
     />
@@ -139,7 +140,7 @@ export default function PlayerDashboard({
 }
 
 function Dashboard({
-  id, player, index, onOpenGame, onAnalyzeGame, onAddGame, onRatings,
+  id, player, index, onOpenGame, onAnalyzeGame, onStudioGame, onAddGame, onRatings,
 }) {
   const { state, dispatch } = useStore();
   const {
@@ -433,6 +434,7 @@ function Dashboard({
               onScout={scout}
               onOpenGame={onOpenGame}
               onAnalyzeGame={onAnalyzeGame}
+              onStudioGame={onStudioGame}
               onAddGame={(sec, round) => onAddGame(sec, round, asPlayed(sec))}
               onConfirm={confirm}
               onRefuse={refuse}
@@ -599,7 +601,7 @@ function Highlight({ title, games, empty }) {
 }
 
 function EventRow({
-  section, standing: st, match, gameById, spare, open, onToggle, onOpenGame, onAnalyzeGame, onAddGame,
+  section, standing: st, match, gameById, spare, open, onToggle, onOpenGame, onAnalyzeGame, onStudioGame, onAddGame,
   onConfirm, onRefuse, onUnlink, loading, failed, onRetry, onScout,
 }) {
   const sys = mainSystem(section);
@@ -681,6 +683,7 @@ function EventRow({
                       spare={spare}
                       onOpenGame={onOpenGame}
                       onAnalyzeGame={onAnalyzeGame}
+                      onStudioGame={onStudioGame}
                       onAddGame={onAddGame}
                       onScout={onScout}
                       onConfirm={onConfirm}
@@ -699,7 +702,8 @@ function EventRow({
 }
 
 function RoundRow({
-  section, round: r, myPre, m, gameById, spare, onOpenGame, onAnalyzeGame, onAddGame, onConfirm, onRefuse, onUnlink, onScout,
+  section, round: r, myPre, m, gameById, spare, onOpenGame, onAnalyzeGame, onStudioGame, onAddGame, onConfirm, onRefuse, onUnlink,
+  onScout,
 }) {
   const key = roundKey(section.key, r.round);
   const played = PLAYED.has(r.result);
@@ -737,6 +741,18 @@ function RoundRow({
                 title="Send this game to the analysis board — the engine, the explorer and your repertoire"
               >
                 <MonitorIcon size={12} /> Send to analysis
+              </button>
+            )}
+            {/* The Games tab's "Send to studio": every annotation tool, and
+                Save changes writes the review onto this game — so it's there
+                whenever the game is opened or sent to analysis again. */}
+            {onStudioGame && game.moves?.length > 0 && (
+              <button
+                className="small"
+                onClick={() => onStudioGame(game.id)}
+                title="Review this game in Studio — badges, notes, arrows and variations, saved onto the game"
+              >
+                <FlaskIcon size={12} /> Send to studio
               </button>
             )}
             {m.conflict
