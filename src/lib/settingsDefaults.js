@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS = {
   evalBar: true, // the vertical engine evaluation beside the analysis board
   engineLines: true, // Stockfish's candidate lines under the board
   engineArrows: true, // draw the engine's suggestions on the board
+  reviewsInProgress: {}, // games being reviewed in Studio, not yet marked done (lib/reviewsInProgress.js)
   positionFolderOrder: [], // the Board Editor's saved-position folders as arranged; [] = A–Z
   // (A student's lessons are arranged in positionFolderOrders, { cardId: [...] }.
   // It has no default on purpose: absent reads as A–Z, and a new default here

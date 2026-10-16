@@ -35,6 +35,7 @@ import { openReview } from './ReviewReader';
 import { reviewsOf, reviewHash } from '../lib/cloud/reviews';
 import { parseDoc, docFromGame, docIsEmpty } from '../lib/analysisDoc';
 import { seedFor } from '../lib/studioSeed';
+import ReviewsInProgress from './ReviewsInProgress';
 
 // The handles a player is known by, with whatever live ratings we last fetched
 // for them, shown compactly wherever they're useful.
@@ -1018,7 +1019,7 @@ function takePendingOpen(kind) {
 
 export default function PlayerRoster({
   kind, title, subtitle, addLabel, emptyLabel, onAnalyze, onGameStudio, onScan, onOpenLibrary, onOpenCollections,
-  onOpenLessons, onOpenStudio, routePlayer = null, onPlayerChange,
+  onOpenLessons, onOpenStudio, onContinueReview, routePlayer = null, onPlayerChange,
 }) {
   const { state, dispatch } = useStore();
   // Opened straight from the bell ("Parker added a game → Open"), or from a
@@ -1171,6 +1172,9 @@ export default function PlayerRoster({
         </button>
       </div>
       <p className="roster-subtitle">{subtitle}</p>
+
+      {/* Games being reviewed in Studio — students' and your own. */}
+      {kind === 'student' && onContinueReview && <ReviewsInProgress onContinue={onContinueReview} />}
 
       {players.length === 0 && (
         <div className="empty-note">{emptyLabel}</div>

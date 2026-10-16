@@ -16,6 +16,7 @@ import {
   addPosition, renamePosition, setFolder, movePosition, renameFolder, renameFolderInOrder,
   recyclePositions, folderOrderFor, withFolderOrder,
 } from './lib/savedPositions';
+import { startReview, touchReview, endReview } from './lib/reviewsInProgress';
 
 const STORAGE_KEY = 'repertoire-lab-state-v1';
 
@@ -1340,6 +1341,20 @@ function reduce(state, action) {
       };
     case 'setSettings':
       return { ...state, settings: { ...state.settings, ...action.settings } };
+    // Coaches Corner's "Reviews in progress" (lib/reviewsInProgress.js). Each
+    // returns the state untouched when nothing changes, so Studio can say
+    // "started" on every save without a write or a sync to show for it.
+    case 'reviewStarted':
+    case 'reviewLeft':
+    case 'reviewDone': {
+      const cur = state.settings?.reviewsInProgress ?? {};
+      const next = action.type === 'reviewStarted'
+        ? startReview(cur, action.playerId, action.gameId)
+        : action.type === 'reviewLeft'
+          ? touchReview(cur, action.playerId, action.gameId, action.path)
+          : endReview(cur, action.playerId, action.gameId);
+      return next === cur ? state : { ...state, settings: { ...state.settings, reviewsInProgress: next } };
+    }
     // Whatever's on the Analysis board right now, unsaved — so a backgrounded
     // tab that iOS reloads from scratch (a real risk on a phone or iPad,
     // switching apps mid-session) comes back exactly where it was instead of

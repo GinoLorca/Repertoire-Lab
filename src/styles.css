@@ -4848,3 +4848,27 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .help-btn { padding: 4px 7px; color: var(--muted); }
 .help-btn:hover { color: var(--text); }
 .annotate-help p { margin: 0 0 10px; line-height: 1.5; }
+
+/* Coaches Corner → Reviews in progress (components/ReviewsInProgress.jsx). */
+.reviews-progress {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; margin: 0 0 16px;
+}
+.reviews-progress-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: var(--accent); }
+.reviews-progress-head h3 { margin: 0; font-size: 16px; color: var(--text); }
+.reviews-progress ul { list-style: none; margin: 0; padding: 0; }
+.reviews-progress-row {
+  display: flex; align-items: center; gap: 12px; padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+.reviews-progress-row:first-child { border-top: none; }
+.rp-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rp-who { font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.4px; }
+.rp-game { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-meta { font-size: 13px; }
+.rp-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.review-done-note { color: var(--green); }
+@media (max-width: 600px) {
+  .reviews-progress-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  .rp-actions button { flex: 1; min-height: 40px; }
+}

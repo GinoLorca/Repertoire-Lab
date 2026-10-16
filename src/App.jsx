@@ -478,6 +478,9 @@ function AppInner() {
         // from `moves` instead.
         tree: line.tree ?? null,
         variationHighlights: line.variationHighlights ?? null,
+        // A review continued from Coaches Corner opens on the move it was
+        // left on (lib/reviewsInProgress.js).
+        resumePath: line.resumePath ?? null,
       });
       setView('analysis');
     });
@@ -486,6 +489,24 @@ function AppInner() {
   // Same line, opened straight into Studio's Annotate tab — "Send to
   // studio" on a saved game, next to the ordinary "Send to analysis board".
   const analyzeInStudio = (line) => analyze(line, { studio: true });
+
+  // "Continue" on a review in progress: the game back in Studio, at the move
+  // it was left on.
+  const continueReview = ({ player, game, entry }) => analyzeInStudio({
+    name: game.name,
+    moves: game.moves,
+    comments: game.comments,
+    badges: game.badges,
+    annotations: game.annotations,
+    tree: game.tree,
+    variationHighlights: game.variationHighlights,
+    meta: game.meta,
+    date: game.date,
+    ownerId: player.kind === 'student' ? player.id : null,
+    gameId: game.id,
+    playerId: player.id,
+    resumePath: entry.path,
+  });
 
   // Reopen a saved Lab session: its own moves, marks and notes, and no
   // repertoire line underneath it.
@@ -774,6 +795,7 @@ function AppInner() {
             onOpenCollections={openCollectionsFor}
             onOpenLessons={openLessonsFor}
             onOpenStudio={openStudio}
+            onContinueReview={continueReview}
           />
         )}
         {view === 'settings' && <SettingsView tab={sub} onTabChange={setSub} />}

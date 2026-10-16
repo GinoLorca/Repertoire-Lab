@@ -51,6 +51,7 @@ import {
   pruneAnnotations, MAX_NOTE, MAX_REVIEW_BYTES,
 } from '../lib/analysisDoc';
 import { seedFor } from '../lib/studioSeed';
+import { reviewKey, pathTo, nodeAtPath } from '../lib/reviewsInProgress';
 import { openReview } from '../components/ReviewReader';
 import { holdSends, releaseSends, sendOnce } from '../lib/cloud/sendHold';
 import { cardHasRoom } from '../lib/cloud/reviews';
@@ -185,7 +186,10 @@ export default function AnalysisView({
   const [tree, setTree] = useState(() => (
     draft?.tree ?? initialLab?.tree ?? seed?.tree ?? treeFor(initialLine)
     ?? makeTree(initialLab?.moves ?? initialLine?.moves ?? [])));
-  const [head, setHead] = useState(draft?.head ?? 'root'); // loaded lines open at the start
+  // Loaded lines open at the start — except a review being continued from
+  // Coaches Corner's "Reviews in progress", which opens where it was left.
+  const [head, setHead] = useState(() => draft?.head ?? (seed && initialLine?.resumePath?.length
+    ? nodeAtPath(seed.tree, initialLine.resumePath) : 'root'));
   const [orientation, setOrientation] = useState(draft?.orientation ?? 'white');
   // The engine runs from the moment the board opens unless you've turned that
   // off — arrows and the eval bar are Stockfish's, so nothing to draw until it
@@ -924,6 +928,8 @@ export default function AnalysisView({
       if (body === bodyRef.current && !publish) return true;
       dispatch({ type: 'setGameReview', playerId, gameId, body, publish });
       bodyRef.current = body;
+      // Something's written: it's a review in progress (a no-op once it is).
+      if (!docIsEmpty(doc)) dispatch({ type: 'reviewStarted', playerId, gameId });
     } else {
       const fields = gameFieldsFromDoc(doc);
       const diff = diffGameFields(fieldsRef.current, fields);
@@ -931,6 +937,7 @@ export default function AnalysisView({
         dispatch({
           type: 'mergeGameAnalysis', playerId, gameId, set: diff.set, del: diff.del, tree: diff.tree,
         });
+        if (!docIsEmpty(doc)) dispatch({ type: 'reviewStarted', playerId, gameId });
       }
       fieldsRef.current = fields;
       if (publish) sendOnce(gameId);
@@ -948,6 +955,17 @@ export default function AnalysisView({
     return () => clearTimeout(t);
   }, [editing, tree, moveNotes, moveBadges, annotations, variationHighlights]);
 
+  // Where the board was left, for "Continue" in Reviews in progress — only
+  // kept for a game already on that list.
+  const headRef = useRef(head);
+  headRef.current = head;
+  const leftAt = () => {
+    if (!seed) return;
+    dispatch({
+      type: 'reviewLeft', playerId: seed.playerId, gameId: seed.gameId, path: pathTo(treeRef.current, headRef.current),
+    });
+  };
+
   // While the board is open the student's copy waits, and gets it all at once
   // on Save or on leaving — not a delivery, and a notification, per pause.
   useEffect(() => {
@@ -955,16 +973,32 @@ export default function AnalysisView({
     const { gameId, linked } = seed;
     if (linked) holdSends(gameId);
     return () => {
-      if (!detachedRef.current) saveRef.current({ publish: true });
+      if (!detachedRef.current) {
+        saveRef.current({ publish: true });
+        leftAt();
+      }
       releaseSends(gameId);
     };
   }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Done with this review: saved first, so the pause-save just behind it has
+  // nothing left to write and can't put it straight back on the list.
+  const inProgress = Boolean(seed && state.settings.reviewsInProgress?.[reviewKey(seed.playerId, seed.gameId)]);
+  const markReviewDone = () => {
+    if (!seed || !saveAnalysis({ publish: false })) return;
+    dispatch({ type: 'reviewDone', playerId: seed.playerId, gameId: seed.gameId });
+    setReviewNote('Marked done — it’s off Reviews in progress. Everything you wrote stays on the game.');
+  };
+  const [reviewNote, setReviewNote] = useState(null);
 
   // Something else loaded onto the board: save the game's work first, then
   // stop treating the board as that game's.
   const detach = () => {
     if (!seed || detachedRef.current) return;
-    if (editing) saveRef.current({ publish: true });
+    if (editing) {
+      saveRef.current({ publish: true });
+      leftAt();
+    }
     detachedRef.current = true;
     setDetached(true);
   };
@@ -2286,6 +2320,15 @@ export default function AnalysisView({
                     {' '}{saveState === 'saved' ? 'Saved ✓' : (seed.linked ? (reviewMode ? 'Save & send review' : 'Save & send') : 'Save')}
                   </button>
                 )}
+                {editing && inProgress && (
+                  <button
+                    className="small"
+                    title="Take this game off Coaches Corner's Reviews in progress — everything you've written stays on it"
+                    onClick={markReviewDone}
+                  >
+                    <CheckIcon size={14} /> Mark review done
+                  </button>
+                )}
                 {attached && (
                   <button
                     className="small"
@@ -2323,6 +2366,7 @@ export default function AnalysisView({
                 </button>
               </div>
               {saveState && saveState !== 'saved' && <p className="annotate-error">{saveState}</p>}
+              {reviewNote && !inProgress && <p className="hint review-done-note">{reviewNote}</p>}
               {annotateHelpOpen && (
                 <div className="modal-overlay" onClick={() => setAnnotateHelpOpen(false)}>
                   <div className="modal annotate-help" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>

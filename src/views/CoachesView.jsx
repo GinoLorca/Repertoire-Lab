@@ -7,7 +7,7 @@ import PlayerRoster from '../components/PlayerRoster';
 // one of their games.
 export default function CoachesView({
   onAnalyze, onGameStudio, onScan, onOpenLibrary, onOpenCollections, onOpenLessons, onOpenStudio, routePlayer,
-  onPlayerChange,
+  onPlayerChange, onContinueReview,
 }) {
   return (
     <PlayerRoster
@@ -26,6 +26,7 @@ export default function CoachesView({
       onOpenCollections={onOpenCollections}
       onOpenLessons={onOpenLessons}
       onOpenStudio={onOpenStudio}
+      onContinueReview={onContinueReview}
       routePlayer={routePlayer}
       onPlayerChange={onPlayerChange}
     />
