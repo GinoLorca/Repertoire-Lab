@@ -1570,6 +1570,24 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   font-family: 'Jost'; font-style: normal; font-weight: 700; font-display: swap;
   src: url('/fonts/jost-700.woff2') format('woff2');
 }
+/* Drive-Thru, Rose and Chess Book's faces. Bodoni Moda and EB Garamond
+   come as variable fonts, so one file covers each weight range. */
+@font-face {
+  font-family: 'Lilita One'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('/fonts/lilita-one-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Bodoni Moda'; font-style: italic; font-weight: 500 600; font-display: swap;
+  src: url('/fonts/bodoni-moda-italic-500-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'EB Garamond'; font-style: normal; font-weight: 400 600; font-display: swap;
+  src: url('/fonts/eb-garamond-400-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'EB Garamond'; font-style: italic; font-weight: 400; font-display: swap;
+  src: url('/fonts/eb-garamond-italic-400.woff2') format('woff2');
+}
 
 /* --- Bauhaus: Jost throughout, the closest available face to the geometric
        sans the school itself drew. Hard black rules, square corners, and a
