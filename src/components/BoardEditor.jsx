@@ -26,6 +26,7 @@ import RecycleSheet from './RecycleSheet';
 import {
   MonitorIcon, ShuffleIcon, TargetIcon, PencilIcon, LinkIcon, FolderIcon, RecycleIcon, SendIcon,
 } from './Icons';
+import { loadSession, saveSessionPart, takeBootResume } from '../lib/session';
 
 const PALETTE = ['K', 'Q', 'R', 'B', 'N', 'P'];
 
@@ -100,34 +101,38 @@ export default function BoardEditor({
   initialScope = null, onScopeChange,
 }) {
   const { state, dispatch } = useStore();
-  const [map, setMap] = useState(START_MAP);
-  const [sideToMove, setSideToMove] = useState('w');
-  const [castling, setCastling] = useState({ K: true, Q: true, k: true, q: true });
+  // The set-up on the board when iOS closed the app (or it updated) — pieces,
+  // drawings, the moves played on it — back as it was, when the app reopens
+  // on the editor (lib/session.js). Kept below as it changes.
+  const [kept] = useState(() => (takeBootResume('editor') ? loadSession().editor ?? null : null));
+  const [map, setMap] = useState(kept?.map ?? START_MAP);
+  const [sideToMove, setSideToMove] = useState(kept?.sideToMove ?? 'w');
+  const [castling, setCastling] = useState(kept?.castling ?? { K: true, Q: true, k: true, q: true });
   // Which move a preset or a pasted FEN actually starts on — carried through
   // to Analysis so its move list numbers from here, not from move 1 as if
   // this were a brand new game.
-  const [halfmove, setHalfmove] = useState(0);
-  const [fullmove, setFullmove] = useState(1);
+  const [halfmove, setHalfmove] = useState(kept?.halfmove ?? 0);
+  const [fullmove, setFullmove] = useState(kept?.fullmove ?? 1);
   // Where the current run of recorded legal moves began, and the SAN list
   // played since — reset to "right here, nothing played yet" by any setup
   // action (a preset, Clear/Starting position, a hand-placed piece) and
   // extended by every legal drag. What actually goes to Analysis.
   const [baseSnapshot, setBaseSnapshot] = useState(
-    () => boardMapToFen(START_MAP, 'w', { K: true, Q: true, k: true, q: true }, 0, 1),
+    () => kept?.baseSnapshot ?? boardMapToFen(START_MAP, 'w', { K: true, Q: true, k: true, q: true }, 0, 1),
   );
-  const [recordedMoves, setRecordedMoves] = useState([]);
+  const [recordedMoves, setRecordedMoves] = useState(kept?.recordedMoves ?? []);
   // A piece code like 'wK', or 'erase', or null — nothing pre-held by
   // default, so a stray tap on the board (easy to land while trying to drag)
   // can't silently overwrite whatever's there with a leftover tray selection.
   const [held, setHeld] = useState(null);
-  const [orientation, setOrientation] = useState('white');
+  const [orientation, setOrientation] = useState(kept?.orientation ?? 'white');
   const [fenInput, setFenInput] = useState('');
   const [fenError, setFenError] = useState(null);
   const [saveOpen, setSaveOpen] = useState(false);
   const [posName, setPosName] = useState('');
-  const [selectedPosId, setSelectedPosId] = useState(positionId ?? '');
+  const [selectedPosId, setSelectedPosId] = useState(kept?.selectedPosId ?? positionId ?? '');
   // The quick setup the board was last set to, by its address slug.
-  const [activeSetup, setActiveSetup] = useState(null);
+  const [activeSetup, setActiveSetup] = useState(kept?.activeSetup ?? null);
   const [oppositeSide, setOppositeSide] = useState('wK'); // which colour goes kingside, for the opposite-castling preset
   const [linkCopied, setLinkCopied] = useState(false);
   // Which folder Save files into ('' for none), and the "+ New folder" box.
@@ -151,8 +156,15 @@ export default function BoardEditor({
   // diagram); in Draw mode the same gestures draw instead — the two couldn't
   // share the board, so the switch beside it picks one. Pieces don't drag in
   // Draw mode: there the board is a canvas, as in Analysis.
-  const [boardMode, setBoardMode] = useState('squares'); // 'squares' | 'draw'
-  const [marks, setMarks] = useState(EMPTY_MARKS);
+  const [boardMode, setBoardMode] = useState(kept?.boardMode ?? 'squares'); // 'squares' | 'draw'
+  const [marks, setMarks] = useState(kept?.marks ?? EMPTY_MARKS);
+  useEffect(() => {
+    saveSessionPart('editor', {
+      map, sideToMove, castling, halfmove, fullmove, baseSnapshot, recordedMoves, orientation, selectedPosId,
+      activeSetup, boardMode, marks,
+    });
+  }, [map, sideToMove, castling, halfmove, fullmove, baseSnapshot, recordedMoves, orientation, selectedPosId,
+    activeSetup, boardMode, marks]);
   const [drawColor, setDrawColor] = useState(() => defaultPen(state.settings).value);
   const [drawFrom, setDrawFrom] = useState(null); // the square a draw-drag started on
   const drawing = boardMode === 'draw';
@@ -624,7 +636,8 @@ export default function BoardEditor({
   // different id arriving later (Back, or a second link) sets that one up.
   // A student's position opens with their lessons; one filed for a student
   // who has since been deleted opens nothing, like a deleted position.
-  const appliedPosId = useRef(null);
+  // A set-up brought back as it was already is the position the address names.
+  const appliedPosId = useRef(kept ? positionId : null);
   useEffect(() => {
     if (!positionId || appliedPosId.current === positionId) return;
     const p = allPositions.find((sp) => sp.id === positionId);
@@ -636,7 +649,7 @@ export default function BoardEditor({
 
   // The address asked for a quick setup: set it up. A saved position named
   // in the same address wins (it can't happen from a link this app makes).
-  const appliedSetup = useRef(null);
+  const appliedSetup = useRef(kept ? setupSlug : null);
   useEffect(() => {
     if (!setupSlug || positionId || appliedSetup.current === setupSlug) return;
     appliedSetup.current = setupSlug;

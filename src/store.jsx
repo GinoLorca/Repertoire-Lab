@@ -54,6 +54,10 @@ export function emptyState() {
     labEntries: [],
     // The Analysis board's unsaved, in-progress session — see 'setAnalysisDraft'.
     analysisDraft: null,
+    // Any other analysis board's work (a game, a line, a Lab entry), under
+    // what it's the board of — see AnalysisView and lib/session.js. This
+    // device's own, like analysisDraft: never synced.
+    analysisSessionDraft: null,
     // Board Editor positions saved for reuse — an endgame set up for a class,
     // a recurring structure, whatever's worth not rebuilding by hand again.
     // One filed for a student carries their card id as ownerId, and its
@@ -1362,6 +1366,8 @@ function reduce(state, action) {
     // is explicitly saved to the Lab or abandoned with Reset.
     case 'setAnalysisDraft':
       return { ...state, analysisDraft: action.draft };
+    case 'setAnalysisSessionDraft':
+      return { ...state, analysisSessionDraft: action.draft };
     // A saved position keeps the arrows and highlighted squares drawn on it
     // in the Board Editor, in the same form Analysis draws in ([[from, to,
     // colour]] and { square: colour }) so they go straight across. Positions

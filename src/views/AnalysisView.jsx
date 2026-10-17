@@ -52,6 +52,7 @@ import {
 } from '../lib/analysisDoc';
 import { seedFor } from '../lib/studioSeed';
 import { reviewKey, pathTo, nodeAtPath } from '../lib/reviewsInProgress';
+import { analysisSourceKey } from '../lib/session';
 import { openReview } from '../components/ReviewReader';
 import { holdSends, releaseSends, sendOnce } from '../lib/cloud/sendHold';
 import { cardHasRoom } from '../lib/cloud/reviews';
@@ -106,26 +107,6 @@ const EMPTY_MARKS = { arrows: [], squares: {} };
 // and only a genuine navigation gets a fresh one.
 const RESUME_FLAG = '__rlAnalysisDraftResumed';
 
-// iOS silently reloading a backgrounded/discarded tab and a person
-// deliberately hitting refresh both land here as a brand-new JS context —
-// RESUME_FLAG alone can't tell them apart. The Navigation Timing entry can:
-// an explicit reload (pull-to-refresh, the browser's reload button,
-// location.reload()) is reported as type 'reload'; the OS quietly re-fetching
-// a tab it discarded under memory pressure comes back as an ordinary
-// 'navigate', the same as opening the app fresh. Only the former should
-// throw the draft away.
-function wasExplicitReload() {
-  try {
-    const [nav] = performance.getEntriesByType('navigation');
-    if (nav) return nav.type === 'reload';
-    // performance.navigation is deprecated, but it's the only reload signal
-    // old iOS Safari has, and that's exactly the browser this has to work in.
-    return performance.navigation?.type === 1;
-  } catch {
-    return false;
-  }
-}
-
 // Best move, second, third — three hues rather than three blues, so a glance at
 // the board tells you which arrow is which line. Read on light and dark squares.
 const ARROW_COLORS = [
@@ -155,9 +136,30 @@ export default function AnalysisView({
   // wins. This is what survives a backgrounded tab: iOS can and does reload
   // an inactive tab or home-screen app from scratch under memory pressure,
   // which would otherwise wipe every move just played with nothing saved.
-  const draft = (!initialLine && !initialLab && !window[RESUME_FLAG] && !wasExplicitReload())
+  // A reload (pull-to-refresh, a new build) keeps it too: none of those is
+  // you closing the app (lib/session.js). Reset is how a board starts over.
+  const blankDraft = (!initialLine && !initialLab && !window[RESUME_FLAG])
     ? (state.analysisDraft ?? null) : null;
   window[RESUME_FLAG] = true;
+  // Any other board — a game from a student's card, a repertoire line, a Lab
+  // entry — keeps its work too, in analysisSessionDraft, under what it's the
+  // board of: open that same thing again (or come back to it after iOS
+  // closed the app) and it's as you left it. In Studio on a game the notes,
+  // badges and drawings are already saved on the game as you go, so only
+  // where you were comes back — unless the board had been switched to
+  // something else, which then comes back whole and not attached to the game.
+  const sourceKey = analysisSourceKey(initialLine, initialLab, coachMode);
+  const [resumed] = useState(() => {
+    const d = state.analysisSessionDraft;
+    return sourceKey && d?.source === sourceKey ? d : null;
+  });
+  const studioGame = Boolean(coachMode && initialLine?.gameId && initialLine?.playerId);
+  // Detached: the board was a saved game's and has since been switched to
+  // something else (see detach below). Up here because the saved session
+  // records it.
+  const [detached, setDetached] = useState(Boolean(resumed?.detached));
+  const detachedRef = useRef(Boolean(resumed?.detached));
+  const draft = blankDraft ?? (resumed && (!studioGame || resumed.detached) ? resumed : null);
   // Seeded from the URL (/analysis/editor opens the editor) and reported back
   // as it changes, so the address keeps up. Still local state: this view
   // switches modes in a dozen places and none of them should have to know
@@ -181,16 +183,21 @@ export default function AnalysisView({
   // A saved game's board opens from the game as the store holds it (seedFor).
   // Studio (coachMode) on a linked student's own game edits the coach's
   // review of it; a plain look at that game shows it as the student has it.
-  const [seed] = useState(() => (!draft && !initialLab && initialLine?.gameId && initialLine?.playerId
+  const [seed] = useState(() => (!blankDraft && !resumed?.detached && !initialLab
+    && initialLine?.gameId && initialLine?.playerId
     ? seedFor(state.players, initialLine, { review: Boolean(coachMode) }) : null));
   const [tree, setTree] = useState(() => (
     draft?.tree ?? initialLab?.tree ?? seed?.tree ?? treeFor(initialLine)
     ?? makeTree(initialLab?.moves ?? initialLine?.moves ?? [])));
   // Loaded lines open at the start — except a review being continued from
   // Coaches Corner's "Reviews in progress", which opens where it was left.
-  const [head, setHead] = useState(() => draft?.head ?? (seed && initialLine?.resumePath?.length
-    ? nodeAtPath(seed.tree, initialLine.resumePath) : 'root'));
-  const [orientation, setOrientation] = useState(draft?.orientation ?? 'white');
+  const [head, setHead] = useState(() => {
+    if (draft?.head && findNode(draft.tree ?? tree, draft.head)) return draft.head;
+    if (seed && resumed?.headPath?.length) return nodeAtPath(seed.tree, resumed.headPath);
+    if (seed && initialLine?.resumePath?.length) return nodeAtPath(seed.tree, initialLine.resumePath);
+    return 'root';
+  });
+  const [orientation, setOrientation] = useState(draft?.orientation ?? resumed?.orientation ?? 'white');
   // The engine runs from the moment the board opens unless you've turned that
   // off — arrows and the eval bar are Stockfish's, so nothing to draw until it
   // is thinking.
@@ -268,7 +275,7 @@ export default function AnalysisView({
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewProgress, setReviewProgress] = useState(null); // {done, total}
   const [reviewResult, setReviewResult] = useState(null); // {accuracy: {white, black}}
-  const [sidePane, setSidePane] = useState(coachMode ? 'annotate' : 'engine'); // engine | explorer | annotate
+  const [sidePane, setSidePane] = useState(resumed?.sidePane ?? (coachMode ? 'annotate' : 'engine')); // engine | explorer | annotate
 
   // The saved game this board is showing, if any — initialLine is a snapshot
   // from the moment "Analyze" was pressed, but notes/themes edited here need
@@ -295,7 +302,11 @@ export default function AnalysisView({
   const soundOn = state.settings.soundEnabled !== false;
   const [boardMenu, setBoardMenu] = useState(false); // the board's own settings
 
+  // A board picking up its own saved work skips the first load of its line:
+  // that would put the line back over what was on the board.
+  const skipLineLoad = useRef(Boolean(draft && initialLine));
   useEffect(() => {
+    if (skipLineLoad.current) { skipLineLoad.current = false; return; }
     // A saved game already opened from the store (seedFor) — rebuilding it
     // here from the snapshot would give its moves new ids and lose the notes.
     if (initialLine && !seed) {
@@ -401,7 +412,30 @@ export default function AnalysisView({
   // Lab entry has its own source of truth and shouldn't overwrite the draft
   // some other blank board is mid-way through.
   useEffect(() => {
-    if (initialLine || initialLab) return;
+    // Any other board: its work under what it's the board of (see `resumed`).
+    if (sourceKey) {
+      dispatch({
+        type: 'setAnalysisSessionDraft',
+        draft: {
+          source: sourceKey,
+          detached,
+          baseFen,
+          tree,
+          head,
+          headPath: pathTo(tree, head),
+          orientation,
+          sidePane,
+          moveNotes,
+          moveBadges,
+          variationHighlights,
+          annotations,
+          labId,
+          labTitle,
+          labNote,
+        },
+      });
+      return;
+    }
     const empty = moves.length === 0
       && Object.keys(moveNotes).length === 0
       && Object.keys(moveBadges).length === 0
@@ -415,7 +449,7 @@ export default function AnalysisView({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseFen, tree, head, orientation, moveNotes, moveBadges, variationHighlights, annotations, labId, labTitle,
-    labNote]);
+    labNote, sidePane, detached]);
 
   const game = useMemo(() => {
     const c = newGameAt(baseFen);
@@ -831,8 +865,6 @@ export default function AnalysisView({
   // Attached: this board is a saved game's, and what's written on it is kept
   // on that game — or, for a linked student's own game, in the coach's review
   // of it (seedFor). Loading anything else onto the board lets go (detach).
-  const [detached, setDetached] = useState(false);
-  const detachedRef = useRef(false);
   const attached = Boolean(seed) && !detached;
   const reviewMode = attached && seed.reviewMode;
   // Studio on a saved game: kept as it's written, saved and sent on leaving.
@@ -990,6 +1022,25 @@ export default function AnalysisView({
     setReviewNote('Marked done — it’s off Reviews in progress. Everything you wrote stays on the game.');
   };
   const [reviewNote, setReviewNote] = useState(null);
+
+  // The app going to the background — a call, another app, the screen
+  // locking — is the moment iOS may close it: save Studio's work now rather
+  // than after the usual pause, and note where the board was for Reviews in
+  // progress.
+  useEffect(() => {
+    if (!editing) return undefined;
+    const onVisibility = () => {
+      if (!document.hidden || detachedRef.current) return;
+      saveRef.current({ publish: false });
+      leftAt();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', onVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', onVisibility);
+    };
+  }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Something else loaded onto the board: save the game's work first, then
   // stop treating the board as that game's.

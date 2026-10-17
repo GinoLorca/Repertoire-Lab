@@ -25,6 +25,9 @@ import Inbox from './components/Inbox';
 import { ReviewReaderHost, openReview } from './components/ReviewReader';
 import { TelestratorProvider } from './components/Telestrator';
 import TouchTestView from './views/TouchTestView';
+import {
+  loadSession, saveSessionPart, shouldRestore, markBootResume,
+} from './lib/session';
 
 // What the dot on the Settings icon means.
 const SYNC_ALERT = {
@@ -38,9 +41,32 @@ function AppInner() {
   // Where the URL says we are. Read once, at mount: after that the address bar
   // follows the app (see the sync effect below) rather than driving it, except
   // on back/forward, which restores state from our own stack anyway.
-  const [route] = useState(() => parsePath(
-    typeof window === 'undefined' ? '/' : window.location.pathname,
-  ));
+  // Where you were when the app last went away (lib/session.js): reopened at
+  // launch — after iOS closed it in the background, an update reloaded it, or
+  // a pull-to-refresh — unless the app was opened on a link to somewhere
+  // else. The logo is the way back to a fresh start.
+  const [boot] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const saved = loadSession().nav;
+    if (!saved || !shouldRestore(saved.path, window.location.pathname)) return null;
+    // A screen that can't stand on its own without what led to it: a scan
+    // being checked has no draft to show any more, so it's Import again.
+    if (saved.view === 'verify') return { ...saved, view: 'import' };
+    if (saved.view === 'chapter' && !saved.chapterNav) return { ...saved, view: 'library' };
+    if (saved.view === 'practice') markBootResume('practice');
+    if (saved.view === 'analysis' && saved.sub === 'editor') markBootResume('editor');
+    return saved;
+  });
+  const [route] = useState(() => (boot
+    ? {
+      view: boot.view,
+      sub: boot.sub ?? null,
+      chapterNav: boot.chapterNav ?? null,
+      player: boot.player ?? null,
+      position: boot.position ?? null,
+      setup: boot.setup ?? null,
+    }
+    : parsePath(typeof window === 'undefined' ? '/' : window.location.pathname)));
   const [view, setView] = useState(route.view);
   const [chapterNav, setChapterNav] = useState(route.chapterNav ?? null);
   // The sub-mode inside a section — Analysis's engine/compare/editor, the
@@ -66,8 +92,10 @@ function AppInner() {
   useEffect(() => {
     if (playerNav && playerNav.view !== view) setPlayerNav(null);
   }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [practiceScope, setPracticeScope] = useState(undefined);
-  const [analysisLine, setAnalysisLine] = useState(null);
+  const [practiceScope, setPracticeScope] = useState(
+    () => (boot?.view === 'practice' && boot.practiceScope != null ? boot.practiceScope : undefined),
+  );
+  const [analysisLine, setAnalysisLine] = useState(() => boot?.analysisLine ?? null);
   const [verifyDraft, setVerifyDraft] = useState(null);
   // A photo archived earlier from "Scan this photo" on a game with no moves
   // yet — carried to Import so it can be fed straight into the OCR pipeline.
@@ -77,9 +105,9 @@ function AppInner() {
   const [searchOpen, setSearchOpen] = useState(false);
   // Seeds the Library's own "My repertoire / Students" tab once, when you
   // arrive from a student's Coaches profile — see openLibraryFor below.
-  const [libraryScope, setLibraryScope] = useState(null);
+  const [libraryScope, setLibraryScope] = useState(() => boot?.libraryScope ?? null);
   // Same idea, for Collections — see openCollectionsFor below.
-  const [collectionsScope, setCollectionsScope] = useState(null);
+  const [collectionsScope, setCollectionsScope] = useState(() => boot?.collectionsScope ?? null);
   // Whose saved positions the Board Editor has open: a student's card id
   // (their lessons — see openLessonsFor below) or null for your own. Kept up
   // here because the editor itself is rebuilt each time Analysis switches
@@ -87,12 +115,14 @@ function AppInner() {
   // Engine should come back to Wavy's lessons. That switch is all it's
   // kept for: any other way into Analysis starts on your own positions, and
   // Back returns to whoever's were open at that step.
-  const [editorScope, setEditorScope] = useState(null);
+  const [editorScope, setEditorScope] = useState(() => boot?.editorScope ?? null);
   // A saved Lab session being reopened on the analysis board.
-  const [analysisLab, setAnalysisLab] = useState(null);
+  const [analysisLab, setAnalysisLab] = useState(
+    () => (boot?.analysisLabId ? (state.labEntries ?? []).find((e) => e.id === boot.analysisLabId) ?? null : null),
+  );
   // Opened via Coaches Corner's Studio button: a blank board with the
   // annotate rail and Lichess/repertoire import switched on.
-  const [coachStudio, setCoachStudio] = useState(false);
+  const [coachStudio, setCoachStudio] = useState(() => Boolean(boot?.coachStudio));
   // "Copied" for a second after the link button is used.
   const [linkCopied, setLinkCopied] = useState(false);
 
@@ -280,6 +310,45 @@ function AppInner() {
     try { window.history.replaceState(window.history.state, '', path); } catch { /* history unavailable */ }
   }, [view, sub, positionNav, setupNav, chapterNav?.openingId, chapterNav?.chapterId, playerNav?.view, playerNav?.id, playerNav?.tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Where you are, kept on this device as it changes and the moment the app
+  // goes to the background (with how far down the page you'd scrolled) — the
+  // other half of `boot` above.
+  const navSnapshot = () => ({
+    path: pathFor({
+      view, sub, position: positionNav, setup: setupNav, chapterNav, player: openPlayerNav,
+    }),
+    view,
+    sub,
+    chapterNav,
+    player: openPlayerNav,
+    position: positionNav,
+    setup: setupNav,
+    practiceScope: practiceScope ?? null,
+    analysisLine,
+    analysisLabId: analysisLab?.id ?? null,
+    coachStudio,
+    libraryScope,
+    collectionsScope,
+    editorScope,
+    scrollY: typeof window === 'undefined' ? 0 : window.scrollY,
+  });
+  const navSnapshotRef = useRef(navSnapshot);
+  navSnapshotRef.current = navSnapshot;
+  useEffect(() => {
+    saveSessionPart('nav', navSnapshot());
+  }, [view, sub, positionNav, setupNav, chapterNav, playerNav, practiceScope, analysisLine, analysisLab, coachStudio, // eslint-disable-line react-hooks/exhaustive-deps
+    libraryScope, collectionsScope, editorScope]);
+  useEffect(() => {
+    const keep = () => saveSessionPart('nav', navSnapshotRef.current());
+    const onVisibility = () => { if (document.hidden) keep(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', keep);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', keep);
+    };
+  }, []);
+
   // ⌘K / Ctrl-K, or "/" when not already typing, opens search from anywhere.
   useEffect(() => {
     const onKey = (e) => {
@@ -299,7 +368,8 @@ function AppInner() {
   // A real back stack: every navigation records where you were, including how
   // far down the page you had scrolled, so Back returns you to that exact spot.
   const history = useRef([]);
-  const pendingScroll = useRef(null);
+  // Reopened where you were: down the page where you were, too.
+  const pendingScroll = useRef(boot?.scrollY ?? null);
 
   const snapshot = () => ({
     view,

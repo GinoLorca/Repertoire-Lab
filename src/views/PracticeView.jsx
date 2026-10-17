@@ -29,6 +29,27 @@ import {
 } from '../components/Icons';
 import PlaylistPicker from '../components/PlaylistPicker';
 import GiveToStudent, { GiveToStudentButton } from '../components/GiveToStudent';
+import { loadSession, saveSessionPart, takeBootResume } from '../lib/session';
+
+// A session as it's kept on this device (lib/session.js): each queued item by
+// its ids, so it can be rebuilt from the repertoire as it stands.
+const keepItem = ({
+  opening, chapter, variation, ...rest
+}) => ({
+  o: opening.id, c: chapter.id, v: variation.id, ...rest,
+});
+function rebuildItems(state, kept) {
+  return (kept ?? []).map(({
+    o, c, v, ...rest
+  }) => {
+    const opening = state.openings.find((x) => x.id === o);
+    const chapter = opening?.chapters.find((x) => x.id === c);
+    const variation = chapter?.variations.find((x) => x.id === v);
+    return opening && chapter && variation ? {
+      ...rest, opening, chapter, variation,
+    } : null;
+  });
+}
 import { topInset, bottomInset } from '../lib/safeArea';
 import {
   startFenOf, newGameAt, replay, moveNumberLabel, isStandardStart,
@@ -533,6 +554,23 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
     // or its keys and back guard would outlive the session.
     if (scope === undefined || scope === false) setBookOpen(false);
     if (scope !== undefined && scope !== false) {
+      // The app reopened on this session after iOS closed it (or it updated):
+      // the same queue, on the line you were on, with what you'd finished
+      // still counted. The line itself starts again from its first move.
+      const kept = takeBootResume('practice') ? loadSession().practice : null;
+      if (kept && kept.scope === JSON.stringify(scope)) {
+        const rebuilt = rebuildItems(state, kept.items);
+        const at = rebuilt.slice(0, kept.qi ?? 0).filter(Boolean).length;
+        const items = rebuilt.filter(Boolean);
+        if (items.length) {
+          const qiNow = Math.min(at, items.length);
+          setQueue(items);
+          setQi(qiNow);
+          setResults(Array.isArray(kept.results) ? kept.results : []);
+          resetPerItem(items[qiNow]);
+          return;
+        }
+      }
       const items = collectItems(state, scope);
       setQueue(items);
       setQi(0);
@@ -541,6 +579,16 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope]);
+
+  // Kept on this device as it goes, for the above; a session left behind
+  // (Exit, the Chapters breadcrumb) is let go.
+  useEffect(() => {
+    if (scope === undefined || scope === false) { saveSessionPart('practice', null); return; }
+    if (!queue) return;
+    saveSessionPart('practice', {
+      scope: JSON.stringify(scope), items: queue.map(keepItem), qi, results,
+    });
+  }, [scope, queue, qi, results]);
 
   const current = queue?.[qi];
   const moves = current?.variation.moves ?? [];
