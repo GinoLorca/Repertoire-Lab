@@ -228,15 +228,20 @@ export const SKIN_SOUNDS = {
     sessionStart: '/sounds/themes/chessbook/matchStart.mp3',
     complete: '/sounds/themes/chessbook/win.mp3',
   },
+  // Uptown's turnstile (checkmate), "stand clear of the closing doors"
+  // (session start), closing doors (castle) and beep (promotion) are the
+  // user's own station recordings. Its departure chime plays for a capture
+  // and for a finished line, the way Chess Arcade plays it for a solved
+  // puzzle.
   uptown: {
     move: '/sounds/themes/uptown/move.mp3',
-    capture: '/sounds/themes/uptown/capture.mp3',
+    capture: '/sounds/themes/uptown/departure.mp3',
     castle: '/sounds/themes/uptown/castle.mp3',
     check: '/sounds/themes/uptown/check.mp3',
     checkmate: '/sounds/themes/uptown/checkmate.mp3',
     promote: '/sounds/themes/uptown/promote.mp3',
-    sessionStart: '/sounds/themes/uptown/matchStart.mp3',
-    complete: '/sounds/themes/uptown/win.mp3',
+    sessionStart: '/sounds/themes/uptown/standclear.mp3',
+    complete: '/sounds/themes/uptown/departure.mp3',
   },
 };
 
