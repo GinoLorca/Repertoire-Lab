@@ -9,6 +9,9 @@ import { boardBadgeStyle } from '../lib/badges';
 import { boardColors } from '../lib/theme';
 import BoardArrows, { cell } from './BoardArrows';
 import { TelestratorLayer } from './Telestrator';
+import {
+  PENS, comboMatchesEvent, defaultPen, isComboKey, shortcutKey,
+} from '../lib/shortcuts';
 
 export const DEFAULT_SQUARE_LIGHT = '#c6d3e1';
 export const DEFAULT_SQUARE_DARK = '#4a6a8f';
@@ -39,9 +42,41 @@ const dndProps = isTouchCapable
   }
   : {};
 
-// The pen for arrows drawn straight onto a board with a right-drag. Matches
-// BoardArrows' own default and the amber pen in Analysis.
-const RIGHT_DRAG_PEN = '#e8b339';
+// The pen keys held right now (lib/shortcuts — the analysis board's keys,
+// Settings → Shortcuts), watched once for every board on the page: hold one
+// while right-dragging and the arrow, or the highlight, is in that colour.
+const heldKeys = new Set();
+let watchingKeys = false;
+function watchPenKeys() {
+  if (watchingKeys || typeof window === 'undefined') return;
+  watchingKeys = true;
+  const typing = (e) => ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName);
+  // An autofill's keydown can come with no key at all.
+  const name = (e) => String(e.key ?? '').toLowerCase();
+  window.addEventListener('keydown', (e) => { if (!typing(e)) heldKeys.add(name(e)); });
+  window.addEventListener('keyup', (e) => heldKeys.delete(name(e)));
+  // A key let go in another app would otherwise stay "held".
+  window.addEventListener('blur', () => heldKeys.clear());
+}
+
+// The colour of the pen whose key is held as `e` happens — a letter held
+// down, or a modifier chord read off the event itself — or null for none.
+function heldPen(settings, e) {
+  for (const pen of PENS) {
+    const key = shortcutKey(settings, pen.shortcutId);
+    if (!key) continue;
+    if (isComboKey(key) ? (e && comboMatchesEvent(key, e)) : heldKeys.has(key)) return pen.value;
+  }
+  return null;
+}
+
+// A highlighted square, the way the analysis board draws one: a wash of the
+// pen's colour with a ring of it round the edge. A longhand colour, not the
+// `background` shorthand, so a badge's glyph on the same square survives.
+const highlightStyle = (base, color) => {
+  const { background: _shorthand, ...rest } = base ?? {};
+  return { ...rest, backgroundColor: `${color}66`, boxShadow: `inset 0 0 0 3px ${color}` };
+};
 
 const squareAtPoint = (x, y) => document.elementFromPoint(x, y)
   ?.closest?.('[data-square]')?.getAttribute('data-square') ?? null;
@@ -75,6 +110,10 @@ export default function Board({
   position, customSquareStyles, lastMove, badge, ownArrows = true, marks = null, telestrator = true, ...rest
 }) {
   const { state } = useStore();
+  // Highlights right-clicked onto this board (see DrawableBoard): square →
+  // colour. Kept here so they go into the squares' own styles, under the
+  // pieces, like everything else drawn on a square.
+  const [drawnSquares, setDrawnSquares] = useState({});
   const markCheck = state.settings.checkHighlight !== false;
   const markLast = state.settings.lastMoveHighlight !== false;
   const markBadge = state.settings.showBoardBadges !== false;
@@ -125,8 +164,13 @@ export default function Board({
       // Anything the caller put on that square stays on top of the glow.
       if (square) out = { ...out, [square]: { ...CHECK_STYLE, ...(out?.[square] ?? {}) } };
     }
+
+    // Drawn just now, so on top.
+    for (const [sq, color] of Object.entries(drawnSquares)) {
+      out = { ...out, [sq]: highlightStyle(out?.[sq], color) };
+    }
     return out;
-  }, [markCheck, markLast, markBadge, lastMove?.from, lastMove?.to, badge, position, customSquareStyles]);
+  }, [markCheck, markLast, markBadge, lastMove?.from, lastMove?.to, badge, position, customSquareStyles, drawnSquares]);
 
   const board = (
     <Chessboard
@@ -155,6 +199,9 @@ export default function Board({
       orientation={orientation}
       position={position}
       marks={marks}
+      settings={state.settings}
+      squares={drawnSquares}
+      setSquares={setDrawnSquares}
     >
       {board}
     </DrawableBoard>
@@ -175,38 +222,50 @@ export default function Board({
   );
 }
 
-// Right-drag to draw an arrow, right-drag the same pair again to take it away,
-// left-click anywhere to clear the lot — the gesture everyone already knows
-// from lichess and chess.com. Kept here rather than in each view so Practice,
-// Learn and the line viewer get it too; Analysis opts out, having its own pen
-// with colours and saved marks.
+// Right-drag to draw an arrow, right-drag the same pair again to take it away;
+// right-click one square to highlight it; left-click the board to clear the
+// lot — the gestures everyone already knows from lichess and chess.com. In
+// the pen you've set as the default (Settings), or whichever pen's key is
+// held: the analysis board's keys, so a red arrow and a green one, or squares
+// in two colours, sit side by side. Kept here rather than in each view so
+// Practice, Learn and the line viewer get it too; Analysis opts out, having
+// its own pen with saved marks.
 //
 // `marks` turns it into a place to draw ones that are kept — a line's arrows,
 // saved on its moves: { arrows (the saved ones, drawn), pen (colour of the
-// one being drawn), onArrow(from, to), onSquare(sq), tapToDraw }. Then a
-// right-drag gives onArrow, a right-click on one square onSquare, and with
-// `tapToDraw` (a touch screen has no right button) a tap on one square and
-// then another is an arrow, the same square twice a highlight.
+// one being drawn), onArrow(from, to, held), onSquare(sq, held), tapToDraw }
+// — `held` the colour of a pen key held, or null. Then a right-drag gives
+// onArrow, a right-click on one square onSquare, and with `tapToDraw` (a
+// touch screen has no right button) a tap on one square and then another is
+// an arrow, the same square twice a highlight.
 function DrawableBoard({
-  boardWidth, orientation, position, marks, children,
+  boardWidth, orientation, position, marks, settings, squares, setSquares, children,
 }) {
   const [arrows, setArrows] = useState([]);
-  const [pending, setPending] = useState(null); // { from, to } while dragging
+  const [pending, setPending] = useState(null); // { from, to, color } while dragging
   const [tapFrom, setTapFrom] = useState(null); // tap-to-draw: the first square
   // A finger down in tap-to-draw: { id, sq, x, y }. It counts as a tap when it
   // lifts where it landed — a scroll or a pinch that starts on the board
   // draws nothing.
   const tapRef = useRef(null);
   const editing = Boolean(marks?.onArrow);
+  useEffect(watchPenKeys, []);
+  const restPen = editing ? (marks.pen ?? defaultPen(settings).value) : defaultPen(settings).value;
+  const penNow = (e) => heldPen(settings, e) ?? restPen;
 
-  // A new position means the arrows were about the old one.
-  useEffect(() => { setArrows([]); setPending(null); setTapFrom(null); }, [position]);
+  // A new position means the drawing was about the old one.
+  useEffect(() => {
+    setArrows((l) => (l.length ? [] : l));
+    setSquares((all) => (Object.keys(all).length ? {} : all));
+    setPending(null);
+    setTapFrom(null);
+  }, [position]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!marks?.tapToDraw) setTapFrom(null); }, [marks?.tapToDraw]);
 
   const onPointerDown = (e) => {
     if (e.button === 2) {
       const from = squareAtPoint(e.clientX, e.clientY);
-      if (from) { e.preventDefault(); setPending({ from, to: from }); }
+      if (from) { e.preventDefault(); setPending({ from, to: from, color: penNow(e) }); }
     } else if (e.button === 0 && editing && marks.tapToDraw) {
       // A second finger makes it a pinch, not a tap.
       if (!e.isPrimary) { tapRef.current = null; return; }
@@ -214,8 +273,9 @@ function DrawableBoard({
       if (!sq) return;
       e.preventDefault();
       tapRef.current = { id: e.pointerId, sq, x: e.clientX, y: e.clientY };
-    } else if (e.button === 0 && arrows.length) {
+    } else if (e.button === 0 && (arrows.length || Object.keys(squares).length)) {
       setArrows([]);
+      setSquares({});
     }
   };
 
@@ -224,7 +284,8 @@ function DrawableBoard({
     if (t && t.id === e.pointerId && Math.hypot(e.clientX - t.x, e.clientY - t.y) > 10) tapRef.current = null;
     if (!pending) return;
     const to = squareAtPoint(e.clientX, e.clientY);
-    if (to && to !== pending.to) setPending((p) => ({ ...p, to }));
+    const color = penNow(e);
+    if ((to && to !== pending.to) || color !== pending.color) setPending((p) => ({ ...p, to: to ?? p.to, color }));
   };
 
   const onPointerUp = (e) => {
@@ -234,8 +295,8 @@ function DrawableBoard({
       && squareAtPoint(e.clientX, e.clientY) === t.sq) {
       if (!tapFrom) { setTapFrom(t.sq); return; }
       setTapFrom(null);
-      if (t.sq === tapFrom) marks.onSquare(t.sq);
-      else marks.onArrow(tapFrom, t.sq);
+      if (t.sq === tapFrom) marks.onSquare(t.sq, heldPen(settings, e));
+      else marks.onArrow(tapFrom, t.sq, heldPen(settings, e));
       return;
     }
     if (!pending) return;
@@ -243,20 +304,33 @@ function DrawableBoard({
     const { from } = pending;
     setPending(null);
     if (editing) {
-      if (to && to !== from) marks.onArrow(from, to);
-      else if (from) marks.onSquare(from);
+      if (to && to !== from) marks.onArrow(from, to, heldPen(settings, e));
+      else if (from) marks.onSquare(from, heldPen(settings, e));
       return;
     }
-    if (!to || to === from) return;
-    setArrows((list) => (list.some(([f, t]) => f === from && t === to)
-      ? list.filter(([f, t]) => !(f === from && t === to))
-      : [...list, [from, to, RIGHT_DRAG_PEN]]));
+    if (!from || !to) return;
+    const color = penNow(e);
+    // The same mark in the same colour takes it off; in another colour,
+    // recolours it — the others stay.
+    if (to === from) {
+      setSquares((all) => {
+        const next = { ...all };
+        if (next[from] === color) delete next[from];
+        else next[from] = color;
+        return next;
+      });
+      return;
+    }
+    setArrows((list) => {
+      const others = list.filter(([f, tt]) => !(f === from && tt === to));
+      return list.some(([f, tt, c]) => f === from && tt === to && c === color) ? others : [...others, [from, to, color]];
+    });
   };
 
-  const pen = marks?.pen ?? RIGHT_DRAG_PEN;
   const live = pending && pending.to !== pending.from
-    ? [[pending.from, pending.to, pen]]
+    ? [[pending.from, pending.to, pending.color]]
     : [];
+  const pen = restPen;
   const size = boardWidth / 8;
   const tapCell = tapFrom ? cell(tapFrom, orientation) : null;
 

@@ -1498,12 +1498,22 @@ export function StoreProvider({ children }) {
     if (state?.settings) setVolume(state.settings.volume ?? 1);
   }, [state?.settings?.volume]);
 
+  // Asked for by saveNow (below): the next change is written straight away.
+  const urgent = useRef(false);
   useEffect(() => {
     if (!loaded || !state) return;
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      set(STORAGE_KEY, state).catch((err) => console.error('Failed to save state:', err));
-    }, 400);
+    saveTimer.current = null;
+    const write = () => set(STORAGE_KEY, state).catch((err) => console.error('Failed to save state:', err));
+    // With the page hidden iOS can suspend it at any moment, and a timer may
+    // never run: what's dispatched as it goes to the background — Studio
+    // saving its last edits, say — is written now.
+    if (urgent.current || document.hidden) {
+      urgent.current = false;
+      write();
+      return;
+    }
+    saveTimer.current = setTimeout(() => { saveTimer.current = null; write(); }, 400);
   }, [state, loaded]);
 
   // The 400ms debounce above is fine while the app stays open, but iOS can
@@ -1518,10 +1528,21 @@ export function StoreProvider({ children }) {
   // when it was registered.
   const stateRef = useRef(state);
   stateRef.current = state;
+  // For a Save button, called just after its dispatch: what's waiting on
+  // the pause above is written now, and so is the change the dispatch makes
+  // — not left for a timer that a tab switch or a closed app might stop.
+  const saveNow = useRef(() => {
+    urgent.current = true;
+    if (saveTimer.current == null) return;
+    clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    set(STORAGE_KEY, stateRef.current).catch((err) => console.error('Failed to save state:', err));
+  }).current;
   useEffect(() => {
     if (!loaded) return undefined;
     const flush = () => {
       clearTimeout(saveTimer.current);
+      saveTimer.current = null;
       set(STORAGE_KEY, stateRef.current).catch((err) => console.error('Failed to save state:', err));
     };
     const onVisibility = () => { if (document.hidden) flush(); };
@@ -1537,7 +1558,7 @@ export function StoreProvider({ children }) {
     return <div className="loading-screen">Loading…</div>;
   }
   return (
-    <StoreContext.Provider value={{ state, dispatch }}>
+    <StoreContext.Provider value={{ state, dispatch, saveNow }}>
       {children}
     </StoreContext.Provider>
   );
@@ -1545,7 +1566,7 @@ export function StoreProvider({ children }) {
 
 // The fallback keeps a missing provider (only really possible mid hot-reload)
 // from taking the whole app down while destructuring.
-const NO_STORE = { state: null, dispatch: () => {} };
+const NO_STORE = { state: null, dispatch: () => {}, saveNow: () => {} };
 
 export function useStore() {
   return useContext(StoreContext) ?? NO_STORE;

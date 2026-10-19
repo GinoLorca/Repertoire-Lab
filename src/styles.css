@@ -1336,6 +1336,8 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   background: var(--panel); border: 1px solid var(--accent); border-radius: 14px;
   box-shadow: 0 8px 26px var(--shadow);
 }
+/* Naming a workspace: over the Customizing toolbar too. */
+.modal-overlay.ws-dialog-overlay { z-index: 110; }
 .ws-customize-title { white-space: nowrap; font-size: 14px; }
 .ws-customize-hint { font-size: 12.5px; min-width: 0; flex: 1 1 auto; }
 .ws-customize-bar button { flex: 0 0 auto; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }

@@ -141,7 +141,7 @@ export default function AnalysisView({
   initialLine, initialLab, coachMode, mode: routeMode, onModeChange, positionId, onPositionChange,
   setupSlug, onSetupChange, editorScope = null, onEditorScopeChange,
 }) {
-  const { state, dispatch } = useStore();
+  const { state, dispatch, saveNow } = useStore();
   // Nothing explicit was asked for — a blank "Analysis" open or a Coaches
   // Corner Studio session — so whatever was still on the board last time
   // wins. This is what survives a backgrounded tab: iOS can and does reload
@@ -745,19 +745,21 @@ export default function AnalysisView({
   // target. Arrows are owned entirely here, because react-chessboard clears
   // its own whenever the controlled `customArrows` prop changes.
   const rightFrom = useRef(null);
-  const squareAt = (e) => e.target?.closest?.('[data-square]')?.getAttribute('data-square') ?? null;
+  // A square of this board's own — not one of the Before & After boards that
+  // can stand in its place, which draw on themselves (components/Board.jsx).
+  const ownSquare = (el) => (el && !el.closest('.board-draw-host') ? el.getAttribute('data-square') : null);
+  const squareAt = (e) => ownSquare(e.target?.closest?.('[data-square]'));
 
   const onMouseDown = (e) => {
     if (e.button !== 2) return;
     rightFrom.current = squareAt(e);
   };
 
+  // Only a right-button release draws. A left click never takes marks off —
+  // it used to, anywhere in the board's area, so picking another pen colour
+  // or pressing a button under the board wiped the drawing you were adding
+  // to. Clear (below the board) is the way to take them off.
   const onMouseUp = (e) => {
-    // A plain left click on the board wipes this position's marks.
-    if (e.button === 0) {
-      if (hasMarks && !drawMode) clearMarks();
-      return;
-    }
     if (e.button !== 2) return;
     const from = rightFrom.current;
     const to = squareAt(e);
@@ -778,8 +780,7 @@ export default function AnalysisView({
   // come out" behaviour. Touch also implicitly locks a pointer's `target` to
   // wherever the gesture started, so the square under the finger at release
   // has to be found with elementFromPoint, not e.target.
-  const squareFromPoint = (x, y) => document.elementFromPoint(x, y)
-    ?.closest?.('[data-square]')?.getAttribute('data-square') ?? null;
+  const squareFromPoint = (x, y) => ownSquare(document.elementFromPoint(x, y)?.closest?.('[data-square]'));
 
   // Right-click still runs its own always-on handler above (with the same
   // held-pen-key trick), so a mouse's right button is excluded here to avoid
@@ -819,6 +820,10 @@ export default function AnalysisView({
   });
 
   const hasMarks = marks.arrows.length > 0 || Object.keys(marks.squares).length > 0;
+  // The pen a drag draws with when no pen key is held, and the others' keys —
+  // for the reminder under the board.
+  const penNow = PENS.find((p) => p.value === drawColor) ?? defaultPen(state.settings);
+  const otherPens = PENS.filter((p) => p.id !== penNow.id);
   const markedCount = Object.keys(annotations).filter((k) => {
     const m = annotations[k];
     return m.arrows.length > 0 || Object.keys(m.squares).length > 0;
@@ -1015,6 +1020,9 @@ export default function AnalysisView({
       fieldsRef.current = fields;
       if (publish) sendOnce(gameId);
     }
+    // Onto the device now, not after the store's usual pause: this runs as
+    // the app goes to the background too, when a timer may never fire.
+    saveNow();
     if (aliveRef.current && saveState && saveState !== 'saved') setSaveState(null);
     return true;
   };
@@ -1173,6 +1181,7 @@ export default function AnalysisView({
           : (initialLab?.source ?? null),
       },
     });
+    saveNow();
     // Held on to, so pressing Save again updates this entry rather than
     // scattering near-identical copies through the Lab.
     setLabId(id);
@@ -1399,8 +1408,11 @@ export default function AnalysisView({
   // with more than one game pasted in) go to the picker below instead. Badges
   // and comments ride along either way — a coach's NAG-annotated PGN or study
   // export shouldn't have to lose its "??"s just for coming in this way.
+  // Once a game is on the board the paste fields fold away, giving the room
+  // back; Paste PGN brings them out again.
   const loadEntries = (entries) => {
     if (entries.length === 1) {
+      setPgnOpen(false);
       setBaseFen(newGameAt(startFenOf(entries[0])).fen());
       loadMoves(entries[0].moves, {
         title: entries[0].name, comments: entries[0].comments, badges: entries[0].badges,
@@ -1963,14 +1975,14 @@ export default function AnalysisView({
     {!splitMoment && (
     <div className="muted-note draw-hint" style={{ maxWidth: boardWidth }}>
       {tight ? (
-        <>Press <strong>Draw</strong>, then drag a square to mark up the board · left-click to clear</>
+        <>Press <strong>Draw</strong>, then drag a square to mark up the board · <strong>Clear</strong> takes them off</>
       ) : (
         <>
-          Right-click drag to draw in <strong>{defaultPen(state.settings).name.toLowerCase()}</strong> (the
-          default, set in Settings) · hold {PENS.filter((p) => p.id !== (state.settings.defaultPen ?? 'green')).map((p) => (
+          Right-click drag to draw in <strong>{penNow.name.toLowerCase()}</strong>
+          {penNow.id === defaultPen(state.settings).id ? ' (the default, set in Settings)' : ''} · hold {otherPens.map((p) => (
             <React.Fragment key={p.id}><kbd>{formatShortcutKey(shortcutKey(state.settings, p.shortcutId))}</kbd> </React.Fragment>
-          ))}while dragging for {PENS.filter((p) => p.id !== (state.settings.defaultPen ?? 'green')).map((p) => p.name.toLowerCase()).join(' / ')} ·
-          left-click the board to clear
+          ))}while dragging for {otherPens.map((p) => p.name.toLowerCase()).join(' / ')} ·
+          <strong> Clear</strong> takes them off
         </>
       )}
     </div>
@@ -2937,6 +2949,7 @@ export default function AnalysisView({
                     setStudyGames(null);
                     setStudyUrl('');
                     setPgnText('');
+                    setPgnOpen(false);
                   }}
                 >
                   {g.name || `Chapter ${i + 1}`}

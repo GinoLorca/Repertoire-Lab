@@ -27,6 +27,8 @@ function moveLabel(moves, ply, startFen) {
 // neighbouring lines without closing — the whole point of the preview being
 // quicker than opening each variation in turn.
 const PEN_NAMES = { G: 'Green', R: 'Red', B: 'Blue', Y: 'Yellow' };
+// A colour from the board (a held pen key's) as this line's pen letter.
+const penCode = (color) => (color ? PEN_ORDER.find((c) => PEN[c] === color) ?? null : null);
 
 export default function VariationViewer({
   variation, orientation, onClose, onAnalyze, onSaveComment, onSetBadge, onToggleStar, onEditTags,
@@ -62,8 +64,10 @@ export default function VariationViewer({
     arrows: marks.arrows,
     pen: PEN[pen],
     tapToDraw: drawing,
-    onArrow: (from, to) => onSaveMarks(here, toggleArrow(marks, from, to, pen)),
-    onSquare: (sq) => onSaveMarks(here, toggleSquare(marks, sq, pen)),
+    // A pen key held while drawing (the analysis board's keys) picks that
+    // colour for this one mark; otherwise the one chosen below.
+    onArrow: (from, to, held) => onSaveMarks(here, toggleArrow(marks, from, to, penCode(held) ?? pen)),
+    onSquare: (sq, held) => onSaveMarks(here, toggleSquare(marks, sq, penCode(held) ?? pen)),
   } : { arrows: marks.arrows };
   const squareStyles = Object.fromEntries(Object.entries(marks.squares).map(([sq, fill]) => [sq, { backgroundColor: fill }]));
 

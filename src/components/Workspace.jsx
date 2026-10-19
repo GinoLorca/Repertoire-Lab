@@ -3,6 +3,7 @@ import React, {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { uid } from '../store';
+import { useBackGuard } from '../lib/backGuard';
 import { MenuSheet } from './MoreMenu';
 import { CheckIcon, PencilIcon } from './Icons';
 import {
@@ -88,14 +89,13 @@ export function WorkspaceBar({
   ws, customizing, onCustomize, closedPanels, onOpenPanel, narrow,
 }) {
   const [menu, setMenu] = useState(null); // { kind: 'workspaces' | 'panels', at }
+  // Naming, renaming and deleting ask in a box of the app's own, not the
+  // browser's prompt — Safari on an iPad can swallow that without showing it.
+  const [asking, setAsking] = useState(null); // 'saveAs' | 'rename' | 'delete'
   const open = (kind) => (e) => {
     const r = e.currentTarget.getBoundingClientRect();
     const right = Math.max(8, r.right - 260);
     setMenu({ kind, at: narrow ? null : { x: kind === 'panels' ? r.left : right, y: kind === 'panels' ? r.top - 8 : r.bottom + 6 } });
-  };
-  const ask = (question, fallback) => {
-    const answer = window.prompt(question, fallback);
-    return answer == null ? null : answer.trim().slice(0, MAX_NAME);
   };
   const isDefault = ws.current === DEFAULT_WORKSPACE.id;
   const items = menu?.kind === 'panels'
@@ -113,24 +113,11 @@ export function WorkspaceBar({
       { sep: true },
       !customizing && { label: 'Customize panels', icon: <PencilIcon size={15} />, onClick: onCustomize },
       ws.modified && !isDefault && { label: `Save changes to “${ws.name}”`, onClick: ws.saveChanges },
-      {
-        label: 'Save as a new workspace…',
-        onClick: () => {
-          const name = ask('Name this workspace:', isDefault ? 'My workspace' : ws.name);
-          if (name) ws.saveAs(name);
-        },
-      },
+      { label: 'Save as a new workspace…', onClick: () => setAsking('saveAs') },
       ws.modified && { label: `Reset to the saved “${ws.name}”`, onClick: ws.reset },
       { sep: true },
-      !isDefault && {
-        label: `Rename “${ws.name}”…`,
-        onClick: () => { const name = ask('New name:', ws.name); if (name) ws.rename(name); },
-      },
-      !isDefault && {
-        label: `Delete “${ws.name}”`,
-        danger: true,
-        onClick: () => { if (window.confirm(`Delete the workspace “${ws.name}”?`)) ws.remove(); },
-      },
+      !isDefault && { label: `Rename “${ws.name}”…`, onClick: () => setAsking('rename') },
+      !isDefault && { label: `Delete “${ws.name}”…`, danger: true, onClick: () => setAsking('delete') },
     ];
   return (
     <>
@@ -174,7 +161,76 @@ export function WorkspaceBar({
           onClose={() => setMenu(null)}
         />
       )}
+      {asking === 'saveAs' && (
+        <WorkspaceDialog
+          title="Save as a new workspace"
+          hint="Saved with your settings, so it’s there on your other devices too."
+          initial={isDefault ? 'My workspace' : ws.name}
+          action="Save"
+          onDone={(name) => { ws.saveAs(name); setAsking(null); }}
+          onClose={() => setAsking(null)}
+        />
+      )}
+      {asking === 'rename' && (
+        <WorkspaceDialog
+          title={`Rename “${ws.name}”`}
+          initial={ws.name}
+          action="Rename"
+          onDone={(name) => { ws.rename(name); setAsking(null); }}
+          onClose={() => setAsking(null)}
+        />
+      )}
+      {asking === 'delete' && (
+        <WorkspaceDialog
+          title={`Delete “${ws.name}”?`}
+          hint="Studio goes back to Default. Your other workspaces stay as they are."
+          action="Delete"
+          danger
+          onDone={() => { ws.remove(); setAsking(null); }}
+          onClose={() => setAsking(null)}
+        />
+      )}
     </>
+  );
+}
+
+// A name to type (`initial` given), or just a yes — over the page, on <body>
+// so the header it's opened from can't clip it.
+function WorkspaceDialog({
+  title, hint, initial = null, action, danger = false, onDone, onClose,
+}) {
+  useBackGuard(true, onClose);
+  const [value, setValue] = useState(initial ?? '');
+  const naming = initial != null;
+  const name = value.trim().slice(0, MAX_NAME);
+  const ready = !naming || name.length > 0;
+  const submit = (e) => {
+    e.preventDefault();
+    if (ready) onDone(name);
+  };
+  return createPortal(
+    <div className="modal-overlay ws-dialog-overlay" onClick={onClose} onPointerDown={(e) => e.stopPropagation()}>
+      <form className="modal ws-dialog" role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <h3>{title}</h3>
+        {hint && <p className="hint">{hint}</p>}
+        {naming && (
+          <input
+            type="text"
+            autoFocus
+            value={value}
+            maxLength={MAX_NAME}
+            aria-label="Workspace name"
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => setValue(e.target.value)}
+          />
+        )}
+        <div className="modal-actions">
+          <button type="button" onClick={onClose}>Cancel</button>
+          <button type="submit" className={danger ? 'danger' : 'primary'} disabled={!ready}>{action}</button>
+        </div>
+      </form>
+    </div>,
+    document.body,
   );
 }
 
