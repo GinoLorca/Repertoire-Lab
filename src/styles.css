@@ -2154,17 +2154,23 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   background-image: linear-gradient(var(--skin-scrim), var(--skin-scrim)), url("/themes/gameboy.jpg");
 }
 
-/* --- Default artwork: Drive-Thru and Rose ship a picture drawn for them
-       (SVGs in public/themes, no lettering), laid under a veil of the theme's
-       own page colour. It sits above the theme's pattern; switching the
+/* --- Default artwork: Drive-Thru, Rose and Chess Book ship a picture drawn
+       for them (SVGs in public/themes; only Chess Book's pencil design sheet
+       has lettering, in fonts every Mac and iPhone already has), laid under
+       a veil of the theme's own page colour. It sits above the theme's pattern; switching the
        theme to its pattern (.skin-pattern) or choosing a picture of your own
        uncovers or replaces it. --- */
 :root[data-skin="drivethru"] { --art-scrim: rgba(20, 14, 12, 0.74); }
 :root[data-skin="drivethru"][data-theme="light"] { --art-scrim: rgba(255, 244, 222, 0.72); }
 :root[data-skin="rose"] { --art-scrim: rgba(30, 15, 23, 0.74); }
 :root[data-skin="rose"][data-theme="light"] { --art-scrim: rgba(251, 238, 241, 0.72); }
+/* Chess Book's sheet is mostly bright paper, so its veil is a little heavier
+   after dark: muted text sitting straight on the page keeps 4.3:1. */
+:root[data-skin="chessbook"] { --art-scrim: rgba(15, 13, 10, 0.8); }
+:root[data-skin="chessbook"][data-theme="light"] { --art-scrim: rgba(236, 228, 212, 0.7); }
 :root[data-skin="drivethru"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before,
-:root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before {
+:root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before,
+:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before {
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
@@ -2174,6 +2180,9 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 :root[data-skin="rose"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before {
   background-image: linear-gradient(var(--art-scrim), var(--art-scrim)), url("/themes/rose.svg");
+}
+:root[data-skin="chessbook"]:not(.has-custom-bg):not(.no-skin-wall):not(.skin-pattern) body::before {
+  background-image: linear-gradient(var(--art-scrim), var(--art-scrim)), url("/themes/chessbook.svg");
 }
 
 /* --- Drive-Thru: a paper tray liner printed with fries, a burger, a soda cup

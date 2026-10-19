@@ -362,7 +362,7 @@ export const SKINS = {
   chessbook: {
     id: 'chessbook',
     name: 'Chess Book',
-    blurb: 'Paper, ink and hatched diagrams, set in Garamond. Calm for long study.',
+    blurb: 'Paper, ink and hatched diagrams over a designer’s pencil sheet, set in Garamond. Calm for long study.',
     light: {
       '--bg': '#ece4d4',
       '--panel': '#f8f4ea',
