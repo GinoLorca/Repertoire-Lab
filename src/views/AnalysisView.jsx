@@ -55,6 +55,8 @@ import { cleanMoments, momentMarks } from '../lib/moments';
 import MomentsPanel from '../components/MomentsPanel';
 import MomentBoards from '../components/MomentBoards';
 import MomentPresenter from '../components/MomentPresenter';
+import ArchiveDialog from '../components/PgnArchive';
+import { readPgnFiles, indexGames, openGame } from '../lib/pgnArchive';
 import { DockLayout, WorkspaceBar, useWorkspace } from '../components/Workspace';
 import {
   DEFAULT_LAYOUT, PANELS, foldLayout, solveDock, sameLayout, isOpen, groupOf, moveItem, closePanel, openPanel,
@@ -67,7 +69,7 @@ import { holdSends, releaseSends, sendOnce } from '../lib/cloud/sendHold';
 import { cardHasRoom } from '../lib/cloud/reviews';
 import {
   BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon,
-  FlaskIcon, CommentIcon, TargetIcon, UploadIcon, CheckIcon, HelpIcon,
+  FlaskIcon, CommentIcon, TargetIcon, UploadIcon, CheckIcon, HelpIcon, FolderIcon,
 } from '../components/Icons';
 import {
   PENS, SHORTCUTS, defaultPen, shortcutKey, shortcutMap, isComboKey, comboMatchesEvent, formatShortcutKey,
@@ -248,6 +250,14 @@ export default function AnalysisView({
   const [studyBusy, setStudyBusy] = useState(false);
   const [studyError, setStudyError] = useState(null);
   const [studyGames, setStudyGames] = useState(null); // entries from a fetched study, to pick a chapter from
+  // A .pgn or .zip uploaded onto the board (lib/pgnArchive): its games, the
+  // list of them open or not, and which one is on the board.
+  const [archive, setArchive] = useState(null); // { name, games, skipped, truncated, files }
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveAt, setArchiveAt] = useState(null);
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [dropping, setDropping] = useState(false);
+  const uploadRef = useRef(null);
   const [pgnText, setPgnText] = useState(''); // pasted PGN/movetext, loaded straight onto the board
   const [pgnOpen, setPgnOpen] = useState(false);
   const engineRef = useRef(null);
@@ -1433,6 +1443,55 @@ export default function AnalysisView({
     if (entries.length === 0) { setStudyError('No legal moves found in that text.'); return; }
     loadEntries(entries);
     setPgnText('');
+  };
+
+  // A game from an uploaded file onto the board — false when it can't be
+  // played here (a chess variant, an unreadable first move), and why.
+  const openArchiveGame = (item) => {
+    const entry = openGame(item);
+    if (!entry.moves.length) {
+      setStudyError(`${item.name} ${entry.unusable ?? 'has no moves'} — it can’t go on the board.`);
+      return false;
+    }
+    setStudyError(null);
+    loadEntries([entry]);
+    setArchiveAt(item.id);
+    setArchiveOpen(false);
+    return true;
+  };
+  // A .pgn, .txt or .zip: one game straight onto the board, several into the
+  // list to pick from. Read on this device — nothing is sent anywhere.
+  const uploadFile = async (file) => {
+    if (!file || uploadBusy) return;
+    setUploadBusy(true);
+    setStudyError(null);
+    setStudyGames(null);
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const read = readPgnFiles(file.name, bytes);
+      if (read.error) throw new Error(read.error);
+      const games = indexGames(read.files);
+      if (!games.length) {
+        throw new Error(read.files.length ? `No games found in ${file.name}.` : `There are no PGN files in ${file.name}.`);
+      }
+      const next = {
+        name: file.name, games, skipped: read.skipped, truncated: read.truncated, files: read.files.length,
+      };
+      setArchive(next);
+      if (games.length === 1) openArchiveGame(games[0]);
+      else setArchiveOpen(true);
+    } catch (err) {
+      setStudyError(err.message || 'That file couldn’t be read.');
+    } finally {
+      setUploadBusy(false);
+    }
+  };
+  const archiveIndex = archive ? archive.games.findIndex((g) => g.id === archiveAt) : -1;
+  // The previous or next game in the file that can go on the board.
+  const stepArchive = (d) => {
+    for (let i = archiveIndex + d; archive && i >= 0 && i < archive.games.length; i += d) {
+      if (openArchiveGame(archive.games[i])) return;
+    }
   };
 
   const loadVariation = (value) => {
@@ -2690,7 +2749,24 @@ export default function AnalysisView({
   );
 
   return (
-    <div className={`page wide analysis-page${tight ? ' tight-page' : ''}`}>
+    <div
+      className={`page wide analysis-page${tight ? ' tight-page' : ''}${dropping ? ' file-dropping' : ''}`}
+      // A .pgn or .zip dropped anywhere on the page opens it. Only files: a
+      // piece being dragged on the board isn't one.
+      onDragOver={(e) => {
+        if (![...(e.dataTransfer?.types ?? [])].includes('Files')) return;
+        e.preventDefault();
+        if (!dropping) setDropping(true);
+      }}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropping(false); }}
+      onDrop={(e) => {
+        const file = e.dataTransfer?.files?.[0];
+        if (!file) return;
+        e.preventDefault();
+        setDropping(false);
+        uploadFile(file);
+      }}
+    >
       <div className="page-head analysis-head">
         <h1>Analysis</h1>
         <div className="mode-tabs">
@@ -2797,6 +2873,52 @@ export default function AnalysisView({
             </button>
           </div>
         )}
+        {pgnOpen && (
+          <div className="pgn-upload-row">
+            <button
+              className="small"
+              disabled={uploadBusy}
+              title="A .pgn file, or a .zip of them — a tournament's games, a week of TWIC"
+              onClick={() => uploadRef.current?.click()}
+            >
+              <UploadIcon size={14} /> {uploadBusy ? 'Reading…' : 'Upload a file…'}
+            </button>
+            <span className="muted-note">.pgn or .zip — or drop one anywhere on this page</span>
+            <input
+              ref={uploadRef}
+              type="file"
+              accept=".pgn,.txt,.zip,application/zip,application/x-zip-compressed,application/x-chess-pgn"
+              hidden
+              onChange={(e) => { uploadFile(e.target.files?.[0]); e.target.value = ''; }}
+            />
+          </div>
+        )}
+        {archive && (
+          <div className="archive-bar">
+            <FolderIcon size={14} />
+            <strong className="archive-bar-name">{archive.name}</strong>
+            <span className="muted-note">
+              {archiveIndex >= 0
+                ? `Game ${archiveIndex + 1} of ${archive.games.length.toLocaleString()}`
+                : `${archive.games.length.toLocaleString()} games`}
+            </span>
+            {archive.games.length > 1 && (
+              <>
+                <button className="small ghost" disabled={archiveIndex <= 0} aria-label="Previous game in the file" title="Previous game" onClick={() => stepArchive(-1)}>◀</button>
+                <button className="small ghost" disabled={archiveIndex >= archive.games.length - 1} aria-label="Next game in the file" title="Next game" onClick={() => stepArchive(1)}>▶</button>
+                <button className="small" onClick={() => setArchiveOpen(true)}>All games…</button>
+              </>
+            )}
+            <button
+              className="small ghost"
+              aria-label="Put the file away"
+              title="Put the file away (the game on the board stays)"
+              onClick={() => { setArchive(null); setArchiveAt(null); setArchiveOpen(false); }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
         {studyError && <span className="muted-note study-error">{studyError}</span>}
         {studyGames && (
           <div className="study-games">
@@ -2840,6 +2962,15 @@ export default function AnalysisView({
       )}
 
       {dockOn ? dockLayout : classicLayout}
+
+      {archive && archiveOpen && (
+        <ArchiveDialog
+          archive={archive}
+          openId={archiveAt}
+          onOpen={openArchiveGame}
+          onClose={() => setArchiveOpen(false)}
+        />
+      )}
 
       {presentAt !== null && moments.length > 0 && (
         <MomentPresenter
