@@ -2,6 +2,7 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { mainLineFrom, branchRootOf } from '../lib/moveTree';
 import MoveBadge from './MoveBadge';
+import { MomentPip } from './MomentsPanel';
 import { useStore } from '../store';
 import { topInset, bottomInset, leftInset, rightInset } from '../lib/safeArea';
 
@@ -23,12 +24,16 @@ const highlightStyle = (color) => (color ? {
   borderRadius: 5,
 } : undefined);
 
+// Before & After markers on a move (lib/moments momentMarks): the moment's
+// number, styled by its role there.
+const Pips = ({ marks }) => (marks ?? []).map((m) => <MomentPip key={`${m.role}${m.n}`} role={m.role} n={m.n} />);
+
 // One variation, written the way a book writes it: 3…Bd6 4.e3 Nf6, with any
 // further branches inside it in their own brackets. `startPly` here is
 // already virtual — callers convert once, at the branch point, and this
 // just keeps incrementing it node by node.
 function InlineLine({
-  start, startPly, startNumber, headId, badges, highlights, onGo, onMenu,
+  start, startPly, startNumber, headId, badges, moments, highlights, onGo, onMenu,
 }) {
   const nodes = [start, ...mainLineFrom(start)];
   return (
@@ -48,6 +53,7 @@ function InlineLine({
             >
               {node.san}
               {badges?.[node.id] && <MoveBadge id={badges[node.id]} size={11} />}
+              <Pips marks={moments?.[node.id]} />
             </button>
             {siblings.map((sib) => (
               <span key={sib.id} className="mt-nested" style={highlightStyle(highlights?.[sib.id])}>
@@ -58,6 +64,7 @@ function InlineLine({
                   startNumber={startNumber}
                   headId={headId}
                   badges={badges}
+                  moments={moments}
                   highlights={highlights}
                   onGo={onGo}
                   onMenu={onMenu}
@@ -83,7 +90,7 @@ function InlineLine({
 // table columns stay meaningful — the real first move (Black's) simply
 // lands in the Black column of row one, White's cell left blank.
 export default function MoveTree({
-  root, headId, badges: badgesIn, highlights, onHighlight, onGo, onPromote, onPromoteOne, onDelete,
+  root, headId, badges: badgesIn, moments, highlights, onHighlight, onGo, onPromote, onPromoteOne, onDelete,
   startNumber = 1, startColor = 'w', readOnly = false,
 }) {
   const { state } = useStore();
@@ -150,6 +157,7 @@ export default function MoveTree({
       >
         {node.san}
         {badges?.[node.id] && <MoveBadge id={badges[node.id]} size={12} />}
+        <Pips marks={moments?.[node.id]} />
       </button>
     );
   };
@@ -186,6 +194,7 @@ export default function MoveTree({
                     startNumber={startNumber}
                     headId={headId}
                     badges={badges}
+                    moments={moments}
                     highlights={highlights}
                     onGo={onGo}
                     onMenu={openMenuIfEditable}

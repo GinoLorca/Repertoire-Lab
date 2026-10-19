@@ -979,8 +979,8 @@ function reduce(state, action) {
     // A Studio save onto a game's own fields: only the entries that changed
     // since the board opened (lib/analysisDoc diffGameFields), so a note
     // changed elsewhere meanwhile — the student's, on a move the coach never
-    // touched — survives it. `tree` present replaces the tree and its
-    // coloured branches together (null removes them).
+    // touched — survives it. `tree` present replaces the tree, its coloured
+    // branches and its Before & After moments together (null removes them).
     case 'mergeGameAnalysis':
       return mapPlayer(state, action.playerId, (p) => ({
         ...p,
@@ -1000,6 +1000,8 @@ function reduce(state, action) {
             if (action.tree.tree) next.tree = action.tree.tree; else delete next.tree;
             if (action.tree.variationHighlights) next.variationHighlights = action.tree.variationHighlights;
             else delete next.variationHighlights;
+            if (action.tree.moments?.length) next.moments = action.tree.moments;
+            else delete next.moments;
           }
           return next;
         }),

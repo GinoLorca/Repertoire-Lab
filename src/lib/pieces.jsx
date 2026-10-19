@@ -54,3 +54,27 @@ export function makePieces(light = DEFAULT_PIECE_LIGHT, dark = DEFAULT_PIECE_DAR
   }
   return pieces;
 }
+
+// One piece as a picture to lay on a square: an SVG data URL at `opacity` —
+// the faded piece Before & After (components/MomentBoards) leaves where a
+// piece used to stand, drawn under the board's own pieces and arrows.
+const kebab = (k) => k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+const attr = (v) => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+function toSvg(node, light, dark, opacity) {
+  if (node == null || typeof node !== 'object') return '';
+  if (Array.isArray(node)) return node.map((n) => toSvg(n, light, dark, opacity)).join('');
+  const { style, ...props } = node.p ?? {};
+  if (node.t === 'svg') Object.assign(props, { viewBox: '0 0 45 45', opacity });
+  const css = style ? Object.entries(paint(style, light, dark)).map(([k, v]) => `${kebab(k)}:${v}`).join(';') : '';
+  const attrs = Object.entries(props).map(([k, v]) => ` ${k}="${attr(v)}"`).join('');
+  const kids = 'c' in node ? toSvg(node.c, light, dark, opacity) : '';
+  return `<${node.t}${attrs}${css ? ` style="${attr(css)}"` : ''}>${kids}</${node.t}>`;
+}
+const imageCache = new Map();
+export function pieceImage(code, light = DEFAULT_PIECE_LIGHT, dark = DEFAULT_PIECE_DARK, opacity = 0.3) {
+  const key = `${code}|${light}|${dark}|${opacity}`;
+  if (!imageCache.has(key) && TREES[code]) {
+    imageCache.set(key, `data:image/svg+xml;charset=utf-8,${encodeURIComponent(toSvg(TREES[code], light, dark, opacity))}`);
+  }
+  return imageCache.get(key) ?? null;
+}

@@ -9,7 +9,10 @@
 //                                   off it; node = { id, san, children,
 //                                   note?, badge? }. root.note is the summary.
 //     annotations: { fen: { arrows: [[from, to, colour]], squares: { sq: colour } } },
-//     variationHighlights: { branchRootId: 'green' | 'blue' | 'yellow' } }
+//     variationHighlights: { branchRootId: 'green' | 'blue' | 'yellow' },
+//     moments?: [moment] }          Before & After moments (lib/moments), only
+//                                   when there are any — so a document without
+//                                   reads, and hashes, as it always did
 //
 // Everything is pure, so tests/analysisDoc.test.mjs covers it.
 import { Chess } from 'chess.js';
@@ -20,6 +23,7 @@ import {
   trunkTree, anchorToGame, gameLineOf, notesOnNodes, withNotesOnNodes, hasVariations, mainLineFrom,
 } from './moveTree';
 import { stableStringify } from './cloud/gameLink';
+import { cleanMoments } from './moments';
 
 export const DOC_VERSION = 1;
 export const MAX_NOTE = 5000;
@@ -76,12 +80,14 @@ export function docFromGame(game) {
   });
   const intro = game?.comments?.[START];
   if (typeof intro === 'string' && intro) notes.root = intro;
+  const moments = cleanMoments(game?.moments, tree);
   return {
     v: DOC_VERSION,
     moves,
     tree: withNotesOnNodes(tree, notes, badges),
     annotations: pruneAnnotations(game?.annotations),
     variationHighlights: isObj(game?.variationHighlights) ? game.variationHighlights : {},
+    ...(moments.length ? { moments } : {}),
   };
 }
 
@@ -111,6 +117,9 @@ export function gameFieldsFromDoc(doc) {
     annotations: pruneAnnotations(doc.annotations),
     tree: keep ? withNotesOnNodes(tree, notes, badges, onLine) : undefined,
     variationHighlights: keep && Object.keys(highlights).length ? highlights : undefined,
+    // Its places are moves in the tree (or on the game line, which needs no
+    // tree kept), so a moment always finds them again.
+    moments: doc.moments?.length ? doc.moments : undefined,
   };
 }
 
@@ -130,9 +139,12 @@ export function diffGameFields(before, after) {
       if (b[key] == null) del[k].push(key); else set[k][key] = b[key];
     }
   }
-  const tb = stableStringify({ t: before?.tree ?? null, h: before?.variationHighlights ?? null });
-  const ta = stableStringify({ t: after?.tree ?? null, h: after?.variationHighlights ?? null });
-  const tree = tb === ta ? undefined : { tree: after?.tree ?? null, variationHighlights: after?.variationHighlights ?? null };
+  // The tree, its coloured branches and the moments on it go as one: all of
+  // them point into the tree.
+  const unit = (f) => stableStringify({ t: f?.tree ?? null, h: f?.variationHighlights ?? null, m: f?.moments ?? null });
+  const tree = unit(before) === unit(after) ? undefined : {
+    tree: after?.tree ?? null, variationHighlights: after?.variationHighlights ?? null, moments: after?.moments ?? null,
+  };
   if (tree) changes += 1;
   return { set, del, tree, changes };
 }
@@ -144,7 +156,8 @@ export function docIsEmpty(doc) {
   return Object.keys(notes).length === 0 && Object.keys(badges).length === 0
     && Object.keys(pruneAnnotations(doc.annotations)).length === 0
     && !hasVariations(doc.tree) && mainLineFrom(doc.tree).length <= doc.moves.length
-    && Object.keys(doc.variationHighlights ?? {}).length === 0;
+    && Object.keys(doc.variationHighlights ?? {}).length === 0
+    && !(doc.moments?.length > 0);
 }
 
 function cleanMarks(m) {
@@ -232,6 +245,7 @@ export function sanitizeDoc(raw) {
       if (clean) annotations[fen] = clean;
     }
   }
+  const moments = cleanMoments(raw.moments, tree);
   return {
     v: DOC_VERSION,
     moves,
@@ -239,6 +253,7 @@ export function sanitizeDoc(raw) {
     tree,
     annotations,
     variationHighlights,
+    ...(moments.length ? { moments } : {}),
   };
 }
 

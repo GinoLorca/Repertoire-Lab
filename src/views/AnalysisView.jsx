@@ -51,6 +51,10 @@ import {
   pruneAnnotations, MAX_NOTE, MAX_REVIEW_BYTES,
 } from '../lib/analysisDoc';
 import { seedFor } from '../lib/studioSeed';
+import { cleanMoments, momentMarks } from '../lib/moments';
+import MomentsPanel from '../components/MomentsPanel';
+import MomentBoards from '../components/MomentBoards';
+import MomentPresenter from '../components/MomentPresenter';
 import { reviewKey, pathTo, nodeAtPath } from '../lib/reviewsInProgress';
 import { analysisSourceKey } from '../lib/session';
 import { openReview } from '../components/ReviewReader';
@@ -228,6 +232,10 @@ export default function AnalysisView({
     () => draft?.variationHighlights ?? initialLab?.variationHighlights ?? seed?.highlights
       ?? initialLine?.variationHighlights ?? {},
   );
+  // Before & After (lib/moments): critical positions, each with where the
+  // game went from it and, sometimes, where it should have gone. Kept by the
+  // moves that lead to each place, so they survive the tree being rebuilt.
+  const [moments, setMoments] = useState(() => draft?.moments ?? initialLab?.moments ?? seed?.moments ?? []);
   // The note being typed, with the move it belongs to — so moving the board on,
   // or leaving it, saves it to that move and never to the next one.
   const [noteDraft, setNoteDraft] = useState(() => ({ id: 'root', text: moveNotes.root ?? '' }));
@@ -326,6 +334,7 @@ export default function AnalysisView({
       setMoveNotes(plyMapToNodeIds(t, initialLine.comments));
       setMoveBadges(plyMapToNodeIds(t, initialLine.badges));
       setVariationHighlights(initialLine.variationHighlights ?? {});
+      setMoments([]);
       // A repertoire line keeps its arrows in its comments; a game keeps the
       // ones drawn here in its own annotations.
       if (!initialLine.gameId && !initialLine.annotations) {
@@ -384,6 +393,18 @@ export default function AnalysisView({
   const lineNodes = useMemo(() => lineThrough(tree, head), [tree, head]);
   const moves = useMemo(() => lineNodes.map((n) => n.san), [lineNodes]);
   const ply = useMemo(() => nodePath(tree, head).length, [tree, head]);
+  const headPath = useMemo(() => pathTo(tree, head), [tree, head]);
+  const marksByMove = useMemo(() => momentMarks(tree, moments), [tree, moments]);
+  // Puts the board on the move a moment's place is reached by.
+  const goToPath = (path) => setHead(nodeAtPath(tree, path));
+  // A moment open side by side, in place of the board. Moving the board on —
+  // a move clicked, a key pressed — puts the one board back.
+  const [splitId, setSplitId] = useState(null);
+  const splitIndex = moments.findIndex((m) => m.id === splitId);
+  const splitMoment = splitIndex >= 0 ? moments[splitIndex] : null;
+  useEffect(() => { setSplitId(null); }, [head]);
+  // Presenting (MomentPresenter): which moment it opened on, or null.
+  const [presentAt, setPresentAt] = useState(null);
   // Step to a point on the current line by its ply number.
   const setPly = (value) => {
     const n = typeof value === 'function' ? value(ply) : value;
@@ -429,6 +450,7 @@ export default function AnalysisView({
           moveBadges,
           variationHighlights,
           annotations,
+          moments,
           labId,
           labTitle,
           labNote,
@@ -443,13 +465,13 @@ export default function AnalysisView({
     dispatch({
       type: 'setAnalysisDraft',
       draft: empty ? null : {
-        baseFen, tree, head, orientation, moveNotes, moveBadges, variationHighlights, annotations, labId, labTitle,
-        labNote,
+        baseFen, tree, head, orientation, moveNotes, moveBadges, variationHighlights, annotations, moments, labId,
+        labTitle, labNote,
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseFen, tree, head, orientation, moveNotes, moveBadges, variationHighlights, annotations, labId, labTitle,
-    labNote, sidePane, detached]);
+  }, [baseFen, tree, head, orientation, moveNotes, moveBadges, variationHighlights, annotations, moments, labId,
+    labTitle, labNote, sidePane, detached]);
 
   const game = useMemo(() => {
     const c = newGameAt(baseFen);
@@ -853,6 +875,8 @@ export default function AnalysisView({
   annotationsRef.current = annotations;
   const highlightsRef = useRef(variationHighlights);
   highlightsRef.current = variationHighlights;
+  const momentsRef = useRef(moments);
+  momentsRef.current = moments;
   const noteDraftRef = useRef(noteDraft);
   noteDraftRef.current = noteDraft;
   const liveGameRef = useRef(liveGame);
@@ -918,12 +942,14 @@ export default function AnalysisView({
       treeRef.current = anchored;
       if (aliveRef.current) setTree(anchored);
     }
+    const kept = cleanMoments(momentsRef.current, anchored);
     return {
       v: 1,
       moves: seed.moves,
       tree: withNotesOnNodes(anchored, notesWithDraft(), moveBadgesRef.current),
       annotations: pruneAnnotations(annotationsRef.current),
       variationHighlights: highlightsRef.current ?? {},
+      ...(kept.length ? { moments: kept } : {}),
     };
   };
 
@@ -985,7 +1011,7 @@ export default function AnalysisView({
     if (!editing) return undefined;
     const t = setTimeout(() => saveRef.current({ publish: false }), 900);
     return () => clearTimeout(t);
-  }, [editing, tree, moveNotes, moveBadges, annotations, variationHighlights]);
+  }, [editing, tree, moveNotes, moveBadges, annotations, variationHighlights, moments]);
 
   // Where the board was left, for "Continue" in Reviews in progress — only
   // kept for a game already on that list.
@@ -1117,6 +1143,7 @@ export default function AnalysisView({
         moveBadges,
         moveNotes: notesWithDraft(),
         variationHighlights,
+        moments: cleanMoments(moments, tree),
         // The side it was being looked at from, so it reopens that way.
         orientation,
         coach: !!coachMode,
@@ -1232,6 +1259,23 @@ export default function AnalysisView({
     setHead(nodeId);
   };
 
+  // Taking moves out of the tree takes any Before & After that stood on them:
+  // asked first, then the moments put right — gone where their Before or
+  // After went, without their Better where only that did. True to go ahead.
+  const confirmMomentLoss = (nextTree) => {
+    const kept = cleanMoments(moments, nextTree);
+    const lost = moments.length - kept.length;
+    const lostBetter = kept.filter((m) => !m.better && moments.find((x) => x.id === m.id)?.better).length;
+    if (lost === 0 && lostBetter === 0) return true;
+    const what = [
+      lost ? `${lost} Before & After moment${lost === 1 ? '' : 's'}` : null,
+      lostBetter ? `the Better line of ${lostBetter} moment${lostBetter === 1 ? '' : 's'}` : null,
+    ].filter(Boolean).join(' and ');
+    if (!window.confirm(`This also removes ${what}. Go ahead?`)) return false;
+    setMoments(kept);
+    return true;
+  };
+
   const playSan = (san) => {
     const clone = new Chess(fen);
     let mv = null;
@@ -1314,6 +1358,7 @@ export default function AnalysisView({
     setLabTitle(opts?.title ?? '');
     setLabNote('');
     setAnnotations({});
+    setMoments([]);
     setMoveNotes(plyMapToNodeIds(t, opts?.comments));
     setMoveBadges(plyMapToNodeIds(t, opts?.badges));
   };
@@ -1805,6 +1850,20 @@ export default function AnalysisView({
           onPointerCancel={() => setDrawFrom(null)}
           onContextMenu={(e) => e.preventDefault()}
         >
+          {splitMoment ? (
+            <MomentBoards
+              moment={splitMoment}
+              n={splitIndex + 1}
+              baseFen={baseFen}
+              annotations={annotations}
+              orientation={orientation}
+              width={boardWidth + EVAL_W}
+              narrow={viewportWidth < 600}
+              onClose={() => setSplitId(null)}
+              onPick={(path) => { setSplitId(null); goToPath(path); }}
+              onPresent={() => setPresentAt(splitIndex)}
+            />
+          ) : (
           <div className="board-with-eval">
           {showEvalBar && (
             <EvalBar
@@ -1880,7 +1939,9 @@ export default function AnalysisView({
           />
           </div>
           </div>
+          )}
 
+          {!splitMoment && (
           <div className="annotate-bar" style={{ maxWidth: boardWidth }}>
             <span className="board-menu-wrap">
               <button
@@ -1955,8 +2016,10 @@ export default function AnalysisView({
               Clear
             </button>
           </div>
+          )}
           {/* On a tablet the two-line reminder is what pushes the controls off
               the screen, and there's no right-click there anyway. */}
+          {!splitMoment && (
           <div className="muted-note draw-hint" style={{ maxWidth: boardWidth }}>
             {tight ? (
               <>Press <strong>Draw</strong>, then drag a square to mark up the board · left-click to clear</>
@@ -1970,6 +2033,7 @@ export default function AnalysisView({
               </>
             )}
           </div>
+          )}
 
           {liveGame && (
             <div className="panel game-notes-panel" style={{ maxWidth: boardWidth }}>
@@ -2361,6 +2425,19 @@ export default function AnalysisView({
                   </div>
                 </>
               )}
+              <MomentsPanel
+                moments={moments}
+                setMoments={setMoments}
+                tree={tree}
+                headPath={headPath}
+                baseFen={baseFen}
+                annotations={annotations}
+                setAnnotations={setAnnotations}
+                onGo={goToPath}
+                onOpen={setSplitId}
+                openNow={splitId}
+                onPresent={setPresentAt}
+              />
               <div className="annotate-foot">
                 {attached && (
                   <button
@@ -2455,6 +2532,26 @@ export default function AnalysisView({
             );
           })()}
           </div>
+          {/* Outside Studio, a game's Before & Afters are there to look at and
+              to show — side by side, or presented — not to change. */}
+          {!coachMode && moments.length > 0 && (
+            <div className="panel moments-read-panel">
+              <MomentsPanel
+                moments={moments}
+                setMoments={setMoments}
+                tree={tree}
+                headPath={headPath}
+                baseFen={baseFen}
+                annotations={annotations}
+                setAnnotations={setAnnotations}
+                onGo={goToPath}
+                onOpen={setSplitId}
+                openNow={splitId}
+                onPresent={setPresentAt}
+                editable={false}
+              />
+            </div>
+          )}
         </div>
 
         <div className="analysis-moves-col">
@@ -2478,7 +2575,12 @@ export default function AnalysisView({
                   <button
                     className="small ghost"
                     title="Delete every variation, keeping the main line"
-                    onClick={() => { setTree(keepMainLineOnly(tree)); setHead('root'); }}
+                    onClick={() => {
+                      const next = keepMainLineOnly(tree);
+                      if (!confirmMomentLoss(next)) return;
+                      setTree(next);
+                      setHead('root');
+                    }}
                   >
                     Clear variations
                   </button>
@@ -2501,6 +2603,7 @@ export default function AnalysisView({
                   root={tree}
                   headId={head}
                   badges={moveBadges}
+                  moments={marksByMove}
                   highlights={variationHighlights}
                   onHighlight={assignHighlight}
                   startNumber={baseMeta.startNumber}
@@ -2515,12 +2618,14 @@ export default function AnalysisView({
                       window.alert('That’s a move of the game itself — edit the game’s moves from its card. Moves you’ve added here can be deleted.');
                       return;
                     }
+                    const next = removeNode(tree, id);
+                    if (!confirmMomentLoss(next)) return;
                     // Standing on the move you're deleting: step back first.
                     if (nodePath(tree, id).some((n) => n.id === head)) {
                       const trail = nodePath(tree, id);
                       setHead(trail.length > 1 ? trail[trail.length - 2].id : 'root');
                     }
-                    setTree(removeNode(tree, id));
+                    setTree(next);
                   }}
                 />
               </div>
@@ -2528,6 +2633,17 @@ export default function AnalysisView({
           )}
         </div>
       </div>
+
+      {presentAt !== null && moments.length > 0 && (
+        <MomentPresenter
+          moments={moments}
+          start={presentAt}
+          baseFen={baseFen}
+          annotations={annotations}
+          orientation={orientation}
+          onClose={() => setPresentAt(null)}
+        />
+      )}
 
       {saveLineOpen && (
         <SaveLineToChapter

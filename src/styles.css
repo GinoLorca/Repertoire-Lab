@@ -217,6 +217,152 @@
 .annotate-foot { display: flex; gap: 8px; flex-wrap: wrap; }
 .annotate-pane .hint { margin: 0; }
 
+/* Before & After (MomentsPanel): a critical position, where it led, and
+   where it should have. Pips: the moment's number — a ring for the Before,
+   filled blue for the After, green for the Better. */
+.moment-pip {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 15px; height: 15px; padding: 0 3px; margin-left: 3px; box-sizing: border-box;
+  border-radius: 8px; font-size: 9.5px; font-weight: 800; line-height: 1;
+  vertical-align: middle; font-variant-numeric: tabular-nums; flex: 0 0 auto;
+}
+.moment-pip.before { border: 1.5px solid #e8b339; color: #e8b339; background: transparent; }
+.moment-pip.after { background: #3b9cff; color: #fff; }
+.moment-pip.better { background: #2ecc71; color: #fff; }
+.moment-pip.pending { margin-left: 0; }
+.moments-panel {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-top: 10px; border-top: 1px solid var(--border);
+}
+.moments-head { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13.5px; }
+.moments-count {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  border: 1px solid var(--border); border-radius: 9px; padding: 0 6px;
+}
+.moments-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.moments-actions .moment-pip { margin-left: 0; }
+.moments-intro { font-size: 12.5px; flex: 1 1 180px; }
+.moments-pending .hint { font-size: 13px; margin: 0 0 6px; }
+.moment-card { border: 1px solid var(--border); border-radius: 10px; background: var(--card); overflow: hidden; }
+.moment-card.open { border-color: var(--accent); }
+.moment-summary {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%;
+  padding: 8px 10px; border: 0; border-radius: 0; background: transparent; color: var(--text);
+  text-align: left; cursor: pointer;
+}
+.moment-summary:hover { background: var(--card-hover); }
+.moment-name { font-weight: 700; font-size: 13.5px; }
+.moment-name.untitled { font-weight: 600; }
+.moment-places { font-size: 12.5px; color: var(--muted); }
+.moment-places .moment-pip { margin-left: 0; }
+.moment-scores { display: flex; flex-wrap: wrap; gap: 6px; }
+.moment-score {
+  font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+  padding: 1px 7px; border-radius: 9px; border: 1px solid var(--border); color: var(--muted);
+}
+.moment-score.worse { color: var(--red); border-color: var(--red); }
+.moment-score.better { color: var(--green); border-color: var(--green); }
+.moment-body { display: flex; flex-direction: column; gap: 8px; padding: 0 10px 10px; }
+.moment-jumps { display: flex; flex-wrap: wrap; gap: 4px; }
+.moment-jump .moment-pip { margin-left: 0; margin-right: 2px; }
+.moment-jump.here { color: var(--text); border-color: var(--border); }
+.moment-between { margin: 0; font-size: 12.5px; }
+.moment-title-input { width: 100%; box-sizing: border-box; }
+.moment-tip { margin: 0; font-size: 12px; }
+.moment-note { margin: 0; font-size: 13.5px; line-height: 1.45; white-space: pre-wrap; }
+.moment-open { align-self: flex-start; }
+.moments-read-panel .moments-panel { padding-top: 0; border-top: 0; }
+
+/* A moment side by side, in place of the analysis board (MomentBoards). */
+.moment-boards { display: flex; flex-direction: column; gap: 10px; max-width: 100%; }
+.moment-boards-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.moment-boards-title { font-weight: 700; font-size: 15px; min-width: 0; }
+.moment-boards-row { display: flex; align-items: flex-start; }
+.moment-board { margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.moment-board-head {
+  display: flex; align-items: center; gap: 6px; min-height: 26px; flex-wrap: wrap;
+  font-size: 13px;
+}
+.moment-board-head .moment-pip { margin-left: 0; }
+.moment-board-label { font-weight: 700; }
+.moment-board-move { color: var(--muted); }
+.moment-board-foot { display: flex; align-items: center; gap: 6px; min-height: 26px; }
+.moment-board-pick { margin-left: auto; padding: 2px 8px; font-size: 12px; }
+.moment-board-frame { position: relative; }
+.moment-board-change { font-size: 12.5px; }
+.moment-board.after .moment-board-frame { box-shadow: 0 0 0 2px #3b9cff66; border-radius: 2px; }
+.moment-board.better .moment-board-frame { box-shadow: 0 0 0 2px #2ecc7166; border-radius: 2px; }
+.moment-boards-between { margin: 0; font-size: 13px; color: var(--muted); }
+.moment-boards-between .moment-pip { margin-left: 0; }
+.moment-legend { margin: 0; font-size: 12px; }
+.moment-tabs { display: flex; gap: 4px; }
+.moment-tabs button {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 6px 8px; font-size: 13px;
+}
+.moment-tabs button.active { border-color: var(--accent); color: var(--text); font-weight: 700; }
+.moment-tabs .moment-pip { margin-left: 0; }
+/* Present's "What happens next?" — the After, kept covered until revealed. */
+.moment-board-cover {
+  position: absolute; inset: 0; z-index: 30;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  border: 0; border-radius: 2px; cursor: pointer; color: #fff;
+  background: repeating-linear-gradient(45deg, #1d2633, #1d2633 14px, #222d3b 14px, #222d3b 28px);
+  font-size: 18px; font-weight: 700;
+}
+.moment-board-cover-q {
+  width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: #3b9cff; font-size: 34px;
+}
+.moment-board-cover-tap { font-size: 13px; font-weight: 500; opacity: 0.75; }
+
+/* Before & After, presented (MomentPresenter): the whole screen, for a room.
+   Under the telestrator's pen and bar (120), over everything else. */
+.present {
+  position: fixed; inset: 0; z-index: 110; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center;
+  background: var(--bg); color: var(--text); overflow: auto;
+}
+.present-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  width: 100%; box-sizing: border-box; min-height: 58px; padding: 10px 16px;
+}
+.present-count { font-size: 13px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.present-title { font-size: 20px; font-weight: 800; min-width: 0; }
+.present-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.present-boards { display: flex; align-items: flex-start; justify-content: center; padding: 4px 16px 0; }
+.present-boards.stacked { flex-direction: column; align-items: center; }
+.present .moment-board-head { font-size: 16px; min-height: 30px; }
+.present .moment-board-head .moment-pip { min-width: 19px; height: 19px; font-size: 11.5px; border-radius: 10px; }
+.present .moment-score { font-size: 14px; padding: 2px 9px; }
+.present-caption {
+  margin: 6px 0 0; padding: 0 16px; max-width: 1100px; box-sizing: border-box; text-align: center;
+  font-size: 17px; line-height: 1.45; display: flex; flex-direction: column; gap: 4px; align-items: center;
+}
+.present-note { white-space: pre-wrap; }
+.present-moves { font-size: 14px; color: var(--muted); }
+.present-foot {
+  margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; box-sizing: border-box; min-height: 62px; padding: 10px 16px;
+}
+.present-nav { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px 18px; font-size: 15px; font-weight: 700; }
+.present-dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.present-dot { padding: 4px; border: 0; background: transparent; }
+.present-dot .moment-pip { margin-left: 0; min-width: 20px; height: 20px; font-size: 11px; border-radius: 10px; }
+/* The student's review reader: the coach's moments, each one to walk through. */
+.review-moments {
+  display: flex; flex-direction: column; gap: 6px; margin: 0 0 10px; padding: 8px 10px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--card);
+}
+.review-moments-head { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.review-moments-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.review-moment { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 13.5px; text-align: left; }
+.review-moment .moment-pip { margin-left: 0; }
+/* Clear of the telestrator's pen in the corner (hidden on a phone). */
+@media (min-width: 601px) {
+  .present-foot { padding-right: calc(16px + 62px + var(--safe-right)); }
+}
+
 /* Loading a study straight onto the Studio board. */
 .study-import { display: flex; gap: 8px; margin-top: 10px; width: 100%; }
 .study-url-input { flex: 1; min-width: 0; }

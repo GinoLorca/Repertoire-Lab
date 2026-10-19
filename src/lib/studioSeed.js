@@ -38,7 +38,7 @@ export function seedFor(players, line, { review = true } = {}) {
       comments: pick('comments'),
       badges: pick('badges'),
       annotations: pick('annotations'),
-      ...(own('tree') ? { tree: game.tree, variationHighlights: game.variationHighlights } : {}),
+      ...(own('tree') ? { tree: game.tree, variationHighlights: game.variationHighlights, moments: game.moments } : {}),
     };
     const saved = parseDoc(game.review?.body);
     // Written against these moves, or against earlier ones the student has
@@ -73,6 +73,7 @@ export function seedFor(players, line, { review = true } = {}) {
     badges,
     annotations: doc.annotations,
     highlights: doc.variationHighlights,
+    moments: doc.moments ?? [],
     fields: reviewMode ? null : gameFieldsFromDoc(doc),
     body: reviewMode ? serializeDoc({ ...doc, tree: withNotesOnNodes(bareTree(doc.tree), notes, badges) }) : null,
     theirNotes,

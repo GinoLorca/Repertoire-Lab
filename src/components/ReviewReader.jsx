@@ -8,8 +8,10 @@ import MoveTree from './MoveTree';
 import LiveEvalBar from './LiveEvalBar';
 import ErrorBoundary from './ErrorBoundary';
 import { NotePart } from './StudyMode';
+import { MomentPip } from './MomentsPanel';
+import MomentPresenter from './MomentPresenter';
 import {
-  NextIcon, PrevIcon, SkipEndIcon, SkipStartIcon,
+  NextIcon, PrevIcon, SkipEndIcon, SkipStartIcon, CameraIcon,
 } from './Icons';
 import { useStore } from '../store';
 import { useViewportWidth, useViewportHeight } from './useViewportWidth';
@@ -28,6 +30,7 @@ import {
   findNode, mainLineFrom, nodePath, lastMainLineAncestor, alternativesAt, gameLineOf,
 } from '../lib/moveTree';
 import { START } from '../lib/marks';
+import { momentMarks, defaultTitle } from '../lib/moments';
 
 // A coach's review of a game, read the way a course is read (the study
 // "read" view) — with the evaluation bar beside the board and the move box
@@ -152,6 +155,11 @@ export default function ReviewReader({
   const model = useMemo(() => reviewModel(doc), [doc]);
   const blocks = useMemo(() => reviewBlocks(model), [model]);
   const orientation = game?.meta?.color === 'black' ? 'black' : 'white';
+  // The coach's Before & After moments (lib/moments), each opened to be
+  // walked through the way the coach presents them.
+  const moments = useMemo(() => doc.moments ?? [], [doc]);
+  const momentsByMove = useMemo(() => momentMarks(model.tree, moments), [model.tree, moments]);
+  const [presenting, setPresenting] = useState(null);
 
   // Where the reader is: a move in the tree (head), and optionally a line a
   // note mentions, played out on the board (side).
@@ -249,6 +257,8 @@ export default function ReviewReader({
   // the analysis board, whose own ← → F B would otherwise act as well.
   useEffect(() => {
     const onKey = (e) => {
+      // A moment being presented over the reader has the keys.
+      if (presenting !== null) return;
       const k = e.key;
       // Anything aimed at the page underneath comes back into the reader.
       const target = e.target instanceof Node ? e.target : null;
@@ -277,7 +287,7 @@ export default function ReviewReader({
     };
     window.addEventListener('keydown', onKey, { capture: true });
     return () => window.removeEventListener('keydown', onKey, { capture: true });
-  }, [step, toEnd, toGame, goTo, side, onClose, head, model.tree]);
+  }, [step, toEnd, toGame, goTo, side, onClose, head, model.tree, presenting]);
 
   useBackGuard(true, onClose);
 
@@ -454,6 +464,25 @@ export default function ReviewReader({
           <button type="button" className="small" onClick={() => setSide(null)}>Back to the game</button>
         </div>
       )}
+      {moments.length > 0 && (
+        <div className="review-moments">
+          <span className="review-moments-head"><CameraIcon size={14} /> Key moments</span>
+          <div className="review-moments-list">
+            {moments.map((m, i) => (
+              <button
+                key={m.id}
+                type="button"
+                className="review-moment"
+                title="Before and after — what happens next?"
+                onClick={() => setPresenting(i)}
+              >
+                <MomentPip role="after" n={i + 1} />
+                <span>{m.title?.trim() || defaultTitle(m, model.startFen)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="study-moves-wrap">
         <button
           type="button"
@@ -478,6 +507,7 @@ export default function ReviewReader({
         root={model.tree}
         headId={side ? null : head}
         badges={model.badges}
+        moments={momentsByMove}
         highlights={model.highlights}
         onGo={goTo}
         readOnly
@@ -520,6 +550,16 @@ export default function ReviewReader({
           <div className="review-banner warn">
             {by || 'Your coach'} reviewed an earlier version of these moves — the review shows the moves as they were then.
           </div>
+        )}
+        {presenting !== null && (
+          <MomentPresenter
+            moments={moments}
+            start={presenting}
+            baseFen={model.startFen}
+            annotations={model.annotations}
+            orientation={orientation}
+            onClose={() => { setPresenting(null); overlayRef.current?.focus({ preventScroll: true }); }}
+          />
         )}
         <div className="review-body">
           {boardPart}

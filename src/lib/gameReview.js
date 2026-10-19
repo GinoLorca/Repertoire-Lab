@@ -51,6 +51,14 @@ async function positionLines(engine, chess, fen, depth) {
   return searchOnce(engine, fen, depth);
 }
 
+// One position's score, White's side (lib/engine) — for a Before & After
+// moment's boards (lib/moments). `engine` is the caller's own, as above.
+export async function scoreOf(engine, fen, depth = 14) {
+  const chess = new Chess(fen);
+  const lines = await positionLines(engine, chess, fen, depth);
+  return lines[1]?.score ?? null;
+}
+
 // A score, already in White's-perspective centipawns (or a signed mate
 // distance) per lib/engine.js, read from whoever just moved's own side —
 // positive means good for them, however the game turns out.

@@ -103,14 +103,20 @@ const split = (p) => {
   return i < 0 ? [p, null] : [p.slice(0, i), p.slice(i + 1)];
 };
 
-// The Studio variation tree and its highlighted branches go together, as one
-// opaque unit: a tree's node ids are only meaningful inside that tree, so it
-// is replaced whole, never merged node by node.
+// The Studio variation tree, its highlighted branches and its Before & After
+// moments (lib/moments) go together, as one opaque unit: they all point into
+// the tree, so it is replaced whole, never merged node by node. `moments` is
+// only there when a game has some — every other game's unit, and so its
+// fingerprint, is exactly what it always was. An app from before moments
+// takes the unit and leaves them off.
 export function getPath(g, p) {
   const [head, key] = split(p);
   if (head === 'tree') {
-    if (g?.tree === undefined && g?.variationHighlights === undefined) return undefined;
-    return { tree: g.tree ?? null, variationHighlights: g.variationHighlights ?? null };
+    const moments = Array.isArray(g?.moments) && g.moments.length ? g.moments : undefined;
+    if (g?.tree === undefined && g?.variationHighlights === undefined && !moments) return undefined;
+    return {
+      tree: g.tree ?? null, variationHighlights: g.variationHighlights ?? null, ...(moments ? { moments } : {}),
+    };
   }
   if (head === 'meta') return g?.meta?.[key];
   if (SHARED_MAPS.includes(head)) return g?.[head]?.[key];
@@ -124,10 +130,12 @@ export function setPath(g, p, value) {
   const out = { ...g };
   const empty = isEmpty(value);
   if (head === 'tree') {
-    if (empty) { delete out.tree; delete out.variationHighlights; } else {
+    if (empty) { delete out.tree; delete out.variationHighlights; delete out.moments; } else {
       if (value.tree == null) delete out.tree; else out.tree = value.tree;
       if (value.variationHighlights == null) delete out.variationHighlights;
       else out.variationHighlights = value.variationHighlights;
+      if (Array.isArray(value.moments) && value.moments.length) out.moments = value.moments;
+      else delete out.moments;
     }
     return out;
   }
@@ -250,7 +258,8 @@ function validValue(p, v) {
     case 'comments': return typeof v === 'string' && v.length <= 5000;
     case 'badges': return typeof v === 'string' && Boolean(BADGE_BY_ID[v]);
     case 'annotations': return typeof v === 'object' && stableStringify(v).length <= 20000;
-    case 'tree': return typeof v === 'object' && !Array.isArray(v);
+    case 'tree': return typeof v === 'object' && !Array.isArray(v)
+      && (v.moments == null || (Array.isArray(v.moments) && v.moments.length <= 50));
     case 'meta':
       if (!SHARED_META.includes(key)) return false;
       if (key === 'flags') return Array.isArray(v) && v.length <= 50 && v.every((f) => typeof f === 'string' && f.length <= 60);
