@@ -55,6 +55,11 @@ import { cleanMoments, momentMarks } from '../lib/moments';
 import MomentsPanel from '../components/MomentsPanel';
 import MomentBoards from '../components/MomentBoards';
 import MomentPresenter from '../components/MomentPresenter';
+import { DockLayout, WorkspaceBar, useWorkspace } from '../components/Workspace';
+import {
+  DEFAULT_LAYOUT, PANELS, foldLayout, solveDock, sameLayout, isOpen, groupOf, moveItem, closePanel, openPanel,
+  setCollapsed, resizeBetween,
+} from '../lib/workspace';
 import { reviewKey, pathTo, nodeAtPath } from '../lib/reviewsInProgress';
 import { analysisSourceKey } from '../lib/session';
 import { openReview } from '../components/ReviewReader';
@@ -1457,6 +1462,22 @@ export default function AnalysisView({
   // ones are kept narrow — better than a tall right-hand column you have to
   // scroll to reach the repertoire card.
   // 1040 catches every iPad in landscape (1080, 1112, 1133, 1180, 1194).
+  // ---------- Studio's workspace (lib/workspace, components/Workspace) ----------
+  // Studio's panels as this device has them arranged. Outside Studio — and in
+  // Studio until something is moved — the screen is laid out as it always
+  // has been (classicLayout); a rearranged one is docked (DockLayout).
+  const ws = useWorkspace({ enabled: Boolean(coachMode), settings: state.settings, dispatch });
+  const [customizing, setCustomizing] = useState(false);
+  const isDefaultLayout = useMemo(() => sameLayout(ws.layout, DEFAULT_LAYOUT), [ws.layout]);
+  const dockOn = Boolean(coachMode) && (customizing || !isDefaultLayout);
+  // Each group's tab on show; the Engine / Explorer / Annotate tabs follow
+  // sidePane as they always have, wherever that group has been moved.
+  const [tabState, setTabState] = useState({});
+  useEffect(() => {
+    const g = groupOf(ws.layout, sidePane);
+    if (g) setTabState((t) => (t[g.id] === sidePane ? t : { ...t, [g.id]: sidePane }));
+  }, [sidePane]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const wide = viewportWidth >= 1040;
   const tight = wide && viewportWidth < 1380; // three columns, iPad-sized
   // Tighter padding in the side columns wherever height is short — an iPad on
@@ -1508,7 +1529,20 @@ export default function AnalysisView({
   // Only while Engine's layout is on screen: the Board Editor sizes from this
   // too, and a width measured under another layout (before the iPad turned)
   // would leave its board stuck small.
-  const boardRoom = layoutEl && layoutW ? layoutW - SIDES_W - EVAL_W : 0;
+  // Docked, the columns are the workspace's: folded to fit this screen, and
+  // the board gets whatever room the others leave it.
+  const dockGap = tight ? 14 : 22;
+  const dockStacked = layoutClass === 'stacked';
+  const dockRoom = layoutW || Math.max(0, viewportWidth - 48);
+  const dockCols = dockOn ? foldLayout(ws.layout, {
+    room: dockRoom, gap: dockGap, evalW: EVAL_W, stacked: dockStacked, tight, growing,
+  }) : null;
+  const dock = dockOn ? solveDock(dockCols, {
+    room: dockRoom, gap: dockGap, evalW: EVAL_W, tight, growing,
+  }) : null;
+  const boardRoom = !(layoutEl && layoutW) ? 0
+    : dock ? (dockStacked ? layoutW - EVAL_W : dock.boardRoom)
+      : layoutW - SIDES_W - EVAL_W;
   // A turned iPad or a resized window changes the layout at once — measure
   // then too, before the paint, rather than wait out the debounce above with
   // the side columns already at their new widths and the board squeezed.
@@ -1690,6 +1724,971 @@ export default function AnalysisView({
     );
   }
 
+  // ---------- The screen's panels ----------
+  // Each card on the screen, drawn on its own, so the same pieces can be laid
+  // out the way they always have been (classicLayout, below) or the way a
+  // Studio workspace arranges them (components/Workspace.jsx).
+
+  // The board, its pen and the reminder under it.
+  const boardPanel = () => (
+    <>
+    {splitMoment ? (
+      <MomentBoards
+        moment={splitMoment}
+        n={splitIndex + 1}
+        baseFen={baseFen}
+        annotations={annotations}
+        orientation={orientation}
+        width={boardWidth + EVAL_W}
+        narrow={viewportWidth < 600}
+        onClose={() => setSplitId(null)}
+        onPick={(path) => { setSplitId(null); goToPath(path); }}
+        onPresent={() => setPresentAt(splitIndex)}
+      />
+    ) : (
+    <div className="board-with-eval">
+    {showEvalBar && (
+      <EvalBar
+        score={engineLines[1]?.score}
+        running={engineOn && engineStatus === 'running'}
+        flipped={orientation === 'black'}
+      />
+    )}
+    <div className="board-column" style={{ width: boardWidth }}>
+    <MaterialBar
+      pieces={orientation === 'white' ? material.capturedByBlack : material.capturedByWhite}
+      capturedColor={orientation === 'white' ? 'white' : 'black'}
+      advantage={orientation === 'white' ? Math.max(0, -material.diff) : Math.max(0, material.diff)}
+    />
+    <div
+      className="board-frame"
+      style={{
+        position: 'relative', width: boardWidth, height: boardWidth,
+        // Otherwise a finger dragging to draw an arrow reads as a page
+        // scroll on a touchscreen, which cancels the gesture partway.
+        touchAction: drawMode ? 'none' : undefined,
+      }}
+    >
+    <Board
+      id="analysis"
+      position={fen}
+      onPieceDrop={onPieceDrop}
+      onSquareClick={onSquareClick}
+      onPieceDragBegin={(piece, square) => setPicked(square)}
+      onPieceDragEnd={() => setPicked(null)}
+      onPromotionCheck={() => false}
+      arePiecesDraggable={!drawMode}
+      areArrowsAllowed={false}
+      // This view runs its own pen — colours, saved marks, the Draw
+      // toggle for touch — so it doesn't want Board's plain one too.
+      ownArrows={false}
+      customSquareStyles={squareStyles}
+      lastMove={lastMove}
+      badge={moveBadges[head]}
+      boardOrientation={orientation}
+      boardWidth={boardWidth}
+    />
+    {pendingPromotion && (
+      <PromotionPicker
+        square={pendingPromotion.to}
+        color={pendingPromotion.color}
+        boardWidth={boardWidth}
+        orientation={orientation}
+        onPick={(piece) => commitMove(pendingPromotion.from, pendingPromotion.to, piece)}
+        onCancel={() => setPendingPromotion(null)}
+      />
+    )}
+    <BoardArrows
+      arrows={[...engineArrows, ...marks.arrows]}
+      boardWidth={boardWidth}
+      orientation={orientation}
+    />
+    {/* Drawn above the arrows: an engine arrow crossing a dot used to
+        make it look like two dots on one square. */}
+    {showLegal && (
+      <LegalDots
+        game={position}
+        square={picked}
+        boardWidth={boardWidth}
+        orientation={orientation}
+      />
+    )}
+    </div>
+    <MaterialBar
+      pieces={orientation === 'white' ? material.capturedByWhite : material.capturedByBlack}
+      capturedColor={orientation === 'white' ? 'black' : 'white'}
+      advantage={orientation === 'white' ? Math.max(0, material.diff) : Math.max(0, -material.diff)}
+    />
+    </div>
+    </div>
+    )}
+
+    {!splitMoment && (
+    <div className="annotate-bar" style={{ maxWidth: boardWidth }}>
+      <span className="board-menu-wrap">
+        <button
+          className={`small${boardMenu ? ' primary' : ''}`}
+          title="Board options"
+          onClick={() => setBoardMenu((o) => !o)}
+        >
+          <GearIcon size={15} />
+        </button>
+        {boardMenu && (() => {
+          const toggle = (key) => (e) => dispatch({
+            type: 'setSettings', settings: { [key]: e.target.checked },
+          });
+          const row = ([key, label, on, dot]) => (
+            <label key={key} className={`board-menu-row${on ? ' on' : ''}`}>
+              <input type="checkbox" checked={on} onChange={toggle(key)} />
+              {dot && <span className="pv-dot" style={{ background: dot }} />}
+              {label}
+            </label>
+          );
+          return (
+            <div className="board-menu" onMouseLeave={() => setBoardMenu(false)}>
+              {[
+                ['evalBar', 'Evaluation bar', state.settings.evalBar !== false],
+                ['engineLines', 'Engine lines', showEngineLines],
+                ['engineArrows', 'Engine arrows', showEngineArrows],
+              ].map(row)}
+              {/* Which of the three candidates get drawn. */}
+              <div className={`board-menu-group${showEngineArrows ? '' : ' off'}`}>
+                {[
+                  ['arrowBest', 'Best move', arrowOn[0], ARROW_COLORS[0]],
+                  ['arrowSecond', '2nd best', arrowOn[1], ARROW_COLORS[1]],
+                  ['arrowThird', '3rd best', arrowOn[2], ARROW_COLORS[2]],
+                ].map(row)}
+              </div>
+              {[
+                ['bookMoves', 'Repertoire book moves', useBook],
+                ['engineAuto', 'Engine on when the board opens', state.settings.engineAuto !== false],
+                ['soundEnabled', 'Move sounds', soundOn],
+              ].map(row)}
+            </div>
+          );
+        })()}
+      </span>
+      <button
+        className={`small${drawMode ? ' primary' : ''}`}
+        title={drawMode
+          ? 'Drawing: press a square and drag to another for an arrow, or release without moving to highlight it'
+          : 'Draw arrows and highlights (also: right-click drag on a mouse)'}
+        onClick={() => { setDrawMode((d) => !d); setDrawFrom(null); }}
+      >
+        <PencilIcon size={15} /> {drawMode ? 'Drawing' : 'Draw'}
+      </button>
+      <span className="pens">
+        {PENS.map((p) => (
+          <button
+            key={p.value}
+            className={`pen${drawColor === p.value ? ' active' : ''}`}
+            style={{ background: p.value }}
+            title={p.id === (state.settings.defaultPen ?? 'green')
+              ? `${p.name} (default)`
+              : `${p.name} (hold ${formatShortcutKey(shortcutKey(state.settings, p.shortcutId))} while dragging)`}
+            onClick={() => setDrawColor(p.value)}
+          />
+        ))}
+      </span>
+      <span style={{ flex: 1 }} />
+      {markedCount > 1 && (
+        <span className="muted-note">{markedCount} positions marked</span>
+      )}
+      <button className="small ghost" disabled={!hasMarks} onClick={clearMarks}>
+        Clear
+      </button>
+    </div>
+    )}
+    {/* On a tablet the two-line reminder is what pushes the controls off
+        the screen, and there's no right-click there anyway. */}
+    {!splitMoment && (
+    <div className="muted-note draw-hint" style={{ maxWidth: boardWidth }}>
+      {tight ? (
+        <>Press <strong>Draw</strong>, then drag a square to mark up the board · left-click to clear</>
+      ) : (
+        <>
+          Right-click drag to draw in <strong>{defaultPen(state.settings).name.toLowerCase()}</strong> (the
+          default, set in Settings) · hold {PENS.filter((p) => p.id !== (state.settings.defaultPen ?? 'green')).map((p) => (
+            <React.Fragment key={p.id}><kbd>{formatShortcutKey(shortcutKey(state.settings, p.shortcutId))}</kbd> </React.Fragment>
+          ))}while dragging for {PENS.filter((p) => p.id !== (state.settings.defaultPen ?? 'green')).map((p) => p.name.toLowerCase()).join(' / ')} ·
+          left-click the board to clear
+        </>
+      )}
+    </div>
+    )}
+    </>
+  );
+  const notesPanel = () => (
+    <>
+    {liveGame && (
+      <div className="panel game-notes-panel" style={{ maxWidth: boardWidth }}>
+        <div className="game-notes-head">
+          <strong>Notes</strong>
+        </div>
+        <textarea
+          key={liveGame.id}
+          className="game-notes-input"
+          rows={3}
+          defaultValue={liveGame.meta?.notes ?? ''}
+          placeholder="Notes for this game — what to remember, what to revisit…"
+          onBlur={(e) => {
+            if (e.target.value === (liveGame.meta?.notes ?? '')) return;
+            dispatch({
+              type: 'setGameNotes',
+              playerId: initialLine.playerId,
+              gameId: initialLine.gameId,
+              notes: e.target.value,
+            });
+          }}
+        />
+        <GameFlagPicker
+          flags={liveGame.meta?.flags}
+          onChange={(flags) => dispatch({
+            type: 'setGameFlags', playerId: initialLine.playerId, gameId: initialLine.gameId, flags,
+          })}
+        />
+      </div>
+    )}
+    </>
+  );
+  const controlsPanel = () => (
+    <div className="viewer-controls">
+      <button title="Start" onClick={() => setPly(0)}><SkipStartIcon size={16} /></button>
+      <button onClick={() => setPly((p) => Math.max(0, p - 1))}>◀</button>
+      <button onClick={() => setPly((p) => Math.min(moves.length, p + 1))}>▶</button>
+      <button title="End" onClick={() => setPly(moves.length)}><SkipEndIcon size={16} /></button>
+      <button onClick={() => setOrientation((o) => (o === 'white' ? 'black' : 'white'))}>⇅ Flip</button>
+      <button onClick={() => { setBaseFen(START_FEN); loadMoves([]); }}>Reset</button>
+    </div>
+  );
+  const positionPanel = () => (
+    <div className="fen-row">
+      <input
+        type="text"
+        placeholder={fen}
+        value={fenInput}
+        onChange={(e) => setFenInput(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') loadFen(); }}
+      />
+      <button onClick={loadFen} disabled={!fenInput.trim()}>Set FEN</button>
+    </div>
+  );
+  const labPanel = () => (
+    <>
+    {/* The Lab notebook. Always here, whatever the board is showing —
+        working on a repertoire line is exactly when a thought is worth
+        writing down, so this isn't limited to a blank board. */}
+    <div className="panel lab-panel" style={{ maxWidth: boardWidth }}>
+      <div className="lab-head">
+        <FlaskIcon size={16} />
+        <strong>Lab notes</strong>
+        {labId && <span className="lab-saved-pill">saved</span>}
+        <span style={{ flex: 1 }} />
+        {labId && (
+          <button
+            className="small ghost"
+            title="Start a fresh note — this keeps the saved one as it is"
+            onClick={() => { setLabId(null); setLabTitle(''); setLabNote(''); }}
+          >
+            New
+          </button>
+        )}
+      </div>
+      <input
+        type="text"
+        className="lab-title"
+        placeholder="Title — e.g. “Nf3 sideline, needs a plan for …”"
+        value={labTitle}
+        onChange={(e) => setLabTitle(e.target.value)}
+      />
+      <textarea
+        className="game-notes-input"
+        rows={4}
+        placeholder="Your ideas about this position — plans, what to check, what went wrong…"
+        value={labNote}
+        onChange={(e) => setLabNote(e.target.value)}
+      />
+      <div className="lab-actions">
+        <button className="small primary" onClick={saveToLab} disabled={!canSaveLab}>
+          <FlaskIcon size={14} /> {labId ? 'Update in Lab' : 'Save to Lab'}
+        </button>
+        <button
+          className="small"
+          title="Add the moves on the board to a chapter as a new variation"
+          onClick={() => setSaveLineOpen(true)}
+          disabled={moves.length === 0}
+        >
+          <BookIcon size={14} /> Save line to a chapter…
+        </button>
+        <span style={{ flex: 1 }} />
+        <span className="muted-note">
+          {moves.length} move{moves.length === 1 ? '' : 's'}
+          {markedCount > 0 && ` · ${markedCount} marked position${markedCount === 1 ? '' : 's'}`}
+        </span>
+      </div>
+      <p className="hint">
+        Saving keeps the notes, every move on the board including variations, and the arrows
+        and highlights you've drawn on each position. Find them again under Collections → Lab.
+      </p>
+    </div>
+    </>
+  );
+  const moveNotePanel = () => (
+    <>
+    {/* Whatever's been badged or written on the move that's on the board
+        — a coach's from Coaches Corner, or your own — pinned to the top
+        of this column so it's visible whichever of Engine/Explorer/
+        Annotate is open below, not just tucked under one tab. Nothing
+        renders here at all when there's nothing to say. */}
+    {currentNote && (
+      <div className="side-note">
+        <MoveNote key={currentNote.index} {...currentNote} startFen={baseFen} onMoveClick={highlightNoteSquare} />
+      </div>
+    )}
+    </>
+  );
+  const gamePanel = () => (
+    <>
+    {(initialLine?.meta || initialLine?.subtitle) && moves.length > 0 && (
+      <AnalysedGame line={initialLine} hideSubtitle={fromStart && gameMatch.matched} />
+    )}
+    </>
+  );
+  const repertoirePanel = () => (
+    <>
+    {fromStart && moves.length > 0 && (
+      <div className={`panel book-panel-summary${gameMatch.matched ? '' : ' unmatched'}`}>
+        <h3><BookIcon size={16} /> {repertoireOwner ? `${repertoireOwner.name}'s repertoire` : 'Your repertoire'}</h3>
+        {gameMatch.matched ? (
+          <>
+            <div className="book-match">
+              <strong>{gameMatch.opening.name}</strong> — {gameMatch.variation.name}
+              <span className="depth-tag"> ({gameMatch.chapter.name})</span>
+            </div>
+            <div className="sub" style={{ color: 'var(--muted)', fontSize: 13.5, marginTop: 4 }}>
+              {gameMatch.exhausted
+                ? `The whole game follows this line (${gameMatch.depth} moves).`
+                : `Followed for ${gameMatch.depth} move${gameMatch.depth === 1 ? '' : 's'}.`}
+            </div>
+            {gameMatch.deviation && (
+              <div
+                className="deviation-note"
+                onClick={() => setPly(gameMatch.deviation.atPly)}
+                title="Jump to the position before this move"
+              >
+                <AlertIcon size={13} className="warn-tick" /> Left book at{' '}
+                <strong>{moveLabel(gameMatch.deviation.atPly, baseFen)}{gameMatch.deviation.played}</strong>
+                {' '}— repertoire plays{' '}
+                <strong>{gameMatch.deviation.expected.join(' or ')}</strong>
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ color: 'var(--muted)', fontSize: 14 }}>
+            This game doesn't match any uploaded opening — pure engine analysis below.
+          </div>
+        )}
+      </div>
+    )}
+    </>
+  );
+  // Engine, Explorer and Annotate: what's under each tab.
+  const sideTabStrip = () => (
+    <div className="side-tabs">
+      <button
+        className={sidePane === 'engine' ? 'active' : ''}
+        onClick={() => setSidePane('engine')}
+      >
+        Engine
+      </button>
+      <button
+        className={sidePane === 'explorer' ? 'active' : ''}
+        onClick={() => setSidePane('explorer')}
+      >
+        Explorer
+      </button>
+      {coachMode && (
+        <button
+          className={sidePane === 'annotate' ? 'active' : ''}
+          onClick={() => setSidePane('annotate')}
+        >
+          <FlaskIcon size={13} /> Annotate
+          {(moveBadges[head] || moveNotes[head]) && <span className="tab-dot" />}
+        </button>
+      )}
+    </div>
+  );
+  const enginePanel = () => (
+    <div>
+      <h3>
+        {bookHere.length > 0 ? <><BookIcon size={13} /> Book move</> : 'Stockfish 16'}
+        {engineStatus === 'running' && engineLines[1] && (
+          <span className="depth-tag">depth {engineLines[1].depth}</span>
+        )}
+        <span className="spacer" />
+        <button className="small" onClick={() => setEngineOn((v) => !v)}>
+          {engineOn ? 'Stop' : <><PlayIcon size={14} /> Analyze</>}
+        </button>
+      </h3>
+      {bookHere.map((b) => (
+        <div key={b.san} className="engine-line book-line" onClick={() => playSan(b.san)}>
+          <span className="eval book-eval">book</span>
+          <span className="pv">
+            <strong>{b.san}</strong>
+            <span style={{ color: 'var(--muted)' }}> — {b.opening.name}: {b.variation.name}</span>
+          </span>
+        </div>
+      ))}
+      {bookHere.length > 0 && !compact && (
+        <div className="muted-note" style={{ margin: '2px 0 10px' }}>
+          From your uploaded openings. Engine lines below.
+        </div>
+      )}
+      {!engineOn && (
+        <div style={{ color: 'var(--muted)', fontSize: 14 }}>
+          Engine is off — press Analyze for the lines, the arrows on the board and the
+          evaluation bar.
+        </div>
+      )}
+      {engineOn && !showEngineArrows && (
+        <div className="muted-note" style={{ margin: '2px 0 10px' }}>
+          Arrows are off.{' '}
+          <button
+            className="linkish"
+            onClick={() => dispatch({ type: 'setSettings', settings: { engineArrows: true } })}
+          >
+            Show them on the board
+          </button>
+        </div>
+      )}
+      {engineOn && engineStatus === 'starting' && (
+        <div style={{ color: 'var(--muted)', fontSize: 14 }}>Starting engine…</div>
+      )}
+      {engineOn && !showEngineLines && (
+        <div style={{ color: 'var(--muted)', fontSize: 14 }}>
+          Lines are hidden — the bar beside the board still follows the evaluation.
+        </div>
+      )}
+      {engineOn && showEngineLines && [1, 2, 3].map((n) => {
+        const line = engineLines[n];
+        if (!line) return null;
+        const good = line.score.type === 'mate' ? line.score.value > 0 : line.score.value >= 0;
+        return (
+          <div key={n} className="engine-line" onClick={() => line.sans[0] && playSan(line.sans[0])}>
+            {showEngineArrows && (
+              <span
+                className="pv-dot"
+                style={{ background: ARROW_COLORS[n - 1] }}
+                title={`Drawn on the board in this colour${n === 1 ? ' — the engine’s first choice' : ''}`}
+              />
+            )}
+            <span className={`eval ${good ? 'white-good' : 'black-good'}`}>{formatScore(line.score)}</span>
+            <span className="pv">{line.sans.join(' ')}</span>
+          </div>
+        );
+      })}
+    </div>
+
+  );
+  const explorerPanel = () => (
+    <div>
+      <h3>
+        Opening explorer
+        <span className="spacer" />
+        <select value={db} onChange={(e) => setDb(e.target.value)}>
+          <option value="lichess">Lichess players</option>
+          <option value="masters">Masters</option>
+        </select>
+      </h3>
+      {explorerError && <div style={{ color: 'var(--muted)', fontSize: 14 }}><AlertIcon size={13} /> {explorerError}</div>}
+      {!explorer && !explorerError && <div style={{ color: 'var(--muted)', fontSize: 14 }}>Loading…</div>}
+      {explorer && explorer.moves.length === 0 && (
+        <div style={{ color: 'var(--muted)', fontSize: 14 }}>No games from this position.</div>
+      )}
+      {explorer && explorer.moves.length > 0 && (
+        <table className="explorer-table">
+          <thead>
+            <tr><th>Move</th><th>Games</th><th>%</th><th>White / Draw / Black</th></tr>
+          </thead>
+          <tbody>
+            {explorer.moves.map((m) => {
+              const total = explorerTotals(m);
+              return (
+                <tr key={m.uci} onClick={() => playSan(m.san)}>
+                  <td>{m.san}</td>
+                  <td>{total.toLocaleString()}</td>
+                  <td>{pct(total, totals)}</td>
+                  <td>
+                    <div className="wdl-bar">
+                      <span className="w" style={{ width: pct(m.white, total) }}>{pct(m.white, total)}</span>
+                      <span className="d" style={{ width: pct(m.draws, total) }} />
+                      <span className="b" style={{ width: pct(m.black, total) }}>{pct(m.black, total)}</span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+  const annotatePanel = () => {
+    // The note box follows the board: the move on it, or — on a saved
+    // game — the whole game's summary at the start.
+    const draftText = noteDraft.id === head ? noteDraft.text : (moveNotes[head] ?? '');
+    const dirty = draftText.trim() !== (moveNotes[head] ?? '');
+    const theirNote = reviewMode ? seed.theirNotes[head] : null;
+    const who = seed?.studentName ?? 'the student';
+    return (
+    <div className="annotate-pane">
+      {reviewMode && (
+        <p className="annotate-mode">
+          <CommentIcon size={13} /> Your review of {who}’s game. It stays yours to edit;
+          {' '}{who} reads it in their app when you save.
+        </p>
+      )}
+      {head === 'root' && !editing ? (
+        <p className="hint">
+          Play or load a line, then click any move — here or in the move list below — to
+          badge it and write what a student should take from it.
+        </p>
+      ) : (
+        <>
+          <h3>
+            {head === 'root'
+              ? (reviewMode ? `Summary for ${who}` : 'Summary of the game')
+              : <>Move {moveLabel(ply - 1, baseFen)}{moves[ply - 1]}</>}
+            {moveBadges[head] && <MoveBadge id={moveBadges[head]} size={17} />}
+          </h3>
+          {head !== 'root' && (
+          <div className="badge-row">
+            {BADGES.map((b) => {
+              const on = moveBadges[head] === b.id;
+              return (
+                <button
+                  key={b.id}
+                  className={`badge-pick${on ? ' on' : ''}`}
+                  title={b.label}
+                  style={on ? { background: b.color, borderColor: b.color } : undefined}
+                  onClick={() => {
+                    setMoveBadges((m) => {
+                      const next = { ...m };
+                      if (on) delete next[head];
+                      else next[head] = b.id;
+                      return next;
+                    });
+                    syncGameMove('badge', on ? null : b.id);
+                  }}
+                >
+                  <span className="bp-glyph" style={{ color: on ? '#fff' : b.color }}>{b.symbol}</span>
+                  <span className="bp-label">{b.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          )}
+          {theirNote && (
+            <div className="their-note">
+              <span className="their-note-who">{who}’s note</span> {parseMarks(theirNote).text || theirNote}
+            </div>
+          )}
+          <label className="annotate-note-label">
+            <CommentIcon size={13} />
+            {' '}{head === 'root' ? 'What should they take from this game?' : 'What should a student take from this move?'}
+          </label>
+          <textarea
+            rows={5}
+            className="annotate-textarea"
+            maxLength={MAX_NOTE}
+            placeholder={head === 'root'
+              ? 'e.g. Good opening, then the plan went wrong after 14…c5 — the key moments are marked below.'
+              : 'e.g. This is the critical try — White has to know ...Bxf3 leads to a forced draw.'}
+            value={draftText}
+            onChange={(e) => setNoteDraft({ id: head, text: e.target.value })}
+            // Leaving the box keeps it at once, not after the pause.
+            onBlur={() => commitNote(head, draftText)}
+          />
+          {/* Kept as it's typed — no separate button to forget: a
+              pause, moving to another move, Save or leaving the board
+              all keep it on this move. */}
+          <div className="annotate-note-status muted-note" aria-live="polite">
+            {dirty ? 'Saving…' : (moveNotes[head] && editing
+              ? (reviewMode ? '✓ In your review' : '✓ Saved on this game')
+              : '')}
+          </div>
+        </>
+      )}
+      {!isOpen(ws.layout, 'moments') && (
+        <MomentsPanel
+          moments={moments}
+          setMoments={setMoments}
+          tree={tree}
+          headPath={headPath}
+          baseFen={baseFen}
+          annotations={annotations}
+          setAnnotations={setAnnotations}
+          onGo={goToPath}
+          onOpen={setSplitId}
+          openNow={splitId}
+          onPresent={setPresentAt}
+        />
+      )}
+      <div className="annotate-foot">
+        {attached && (
+          <button
+            className="small primary"
+            onClick={() => { if (saveAnalysis({ publish: true })) setSaveState('saved'); }}
+          >
+            <CheckIcon size={14} />
+            {' '}{saveState === 'saved' ? 'Saved ✓' : (seed.linked ? (reviewMode ? 'Save & send review' : 'Save & send') : 'Save')}
+          </button>
+        )}
+        {editing && inProgress && (
+          <button
+            className="small"
+            title="Take this game off Coaches Corner's Reviews in progress — everything you've written stays on it"
+            onClick={markReviewDone}
+          >
+            <CheckIcon size={14} /> Mark review done
+          </button>
+        )}
+        {attached && (
+          <button
+            className="small"
+            title="The game as it will be read — notes in the text, badges and arrows on the board, the engine alongside"
+            onClick={() => openReview({
+              gameId: seed.gameId,
+              preview: true,
+              doc: buildDoc(),
+              game: liveGameRef.current,
+              by: 'You',
+              theirNotes: seed.reviewMode ? seed.theirNotes : {},
+            })}
+          >
+            <BookIcon size={14} /> {seed.studentCard ? `Preview as ${who}` : 'Read it'}
+          </button>
+        )}
+        <button className={`small${attached ? '' : ' primary'}`} onClick={saveToLab}>
+          <FlaskIcon size={14} /> {labId ? 'Update in Lab' : 'Save session to Lab'}
+        </button>
+        <button
+          className="small"
+          disabled={moves.length === 0}
+          onClick={() => setSaveLineOpen(true)}
+        >
+          <BookIcon size={14} /> Save as a variation…
+        </button>
+        <button
+          type="button"
+          className="small ghost help-btn"
+          title="How saving and these buttons work"
+          aria-label="How saving and these buttons work"
+          onClick={() => setAnnotateHelpOpen(true)}
+        >
+          <HelpIcon size={17} />
+        </button>
+      </div>
+      {saveState && saveState !== 'saved' && <p className="annotate-error">{saveState}</p>}
+      {reviewNote && !inProgress && <p className="hint review-done-note">{reviewNote}</p>}
+      {annotateHelpOpen && (
+        <div className="modal-overlay" onClick={() => setAnnotateHelpOpen(false)}>
+          <div className="modal annotate-help" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+            <h3>How saving works here</h3>
+            <p>
+              {editing
+                ? (seed.linked
+                  ? `Notes, badges, arrows, highlighted squares and variations are kept as you go, and ${who} gets them when you save — or when you leave this board.`
+                  : 'Notes, badges, arrows, highlighted squares and variations are saved on this game as you go. Send the game to Studio again to carry on where you left off.')
+                : 'A badge and note here belong to that exact move on this board’s line.'}
+            </p>
+            <p>
+              <strong>Save to the Lab</strong> keeps a separate copy in Collections → Lab, with every
+              badge and note across the whole tree. It isn’t connected to the game: what you add to
+              the copy later stays in the Lab.
+            </p>
+            <p>
+              <strong>Save as a variation</strong> carries the current line’s notes and badges into a
+              chapter, editable there the same way.
+            </p>
+            <p>
+              <strong>Alternatives:</strong> standing on a move in the game, press 1, 2 or 3
+              (rebindable in Settings → Keyboard, numpad works too) to jump into the top, second or
+              third alternative tried at that point — marking it green, blue or yellow. → walks the
+              rest of that line, 9 jumps back to the game from however deep you are, and the same
+              number again clears the colour and steps back out.
+            </p>
+            <div className="modal-actions">
+              <button className="primary" onClick={() => setAnnotateHelpOpen(false)}>Got it</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+    );
+  };
+  // Outside Studio, a game's Before & Afters are there to look at and to
+  // show — side by side, or presented — not to change.
+  const momentsReadPanel = () => (
+    <div className="panel moments-read-panel">
+      <MomentsPanel
+        moments={moments}
+        setMoments={setMoments}
+        tree={tree}
+        headPath={headPath}
+        baseFen={baseFen}
+        annotations={annotations}
+        setAnnotations={setAnnotations}
+        onGo={goToPath}
+        onOpen={setSplitId}
+        openNow={splitId}
+        onPresent={setPresentAt}
+        editable={false}
+      />
+    </div>
+  );
+  const movesPanel = () => (
+    <>
+    {(moves.length > 0 || baseFen !== START_FEN) && (
+      <div className="panel analysis-movelist-panel">
+        <div className="movelist-head">
+          <span>Moves</span>
+          <span className="muted-note">
+            {(() => {
+              if (ply === 0) return 'start';
+              // Matches MoveTree's own numFor exactly — virtualPly is
+              // the real ply just played, shifted the same way.
+              const virtualPly = ply + (baseMeta.startColor === 'b' ? 1 : 0);
+              const num = Math.floor((virtualPly - 1) / 2) + baseMeta.startNumber;
+              return `${num}${virtualPly % 2 === 1 ? '.' : '…'}${moves[ply - 1]}`;
+            })()}
+            {' · '}{ply} of {moves.length}
+          </span>
+          <span style={{ flex: 1 }} />
+          {hasVariations(tree) && (
+            <button
+              className="small ghost"
+              title="Delete every variation, keeping the main line"
+              onClick={() => {
+                const next = keepMainLineOnly(tree);
+                if (!confirmMomentLoss(next)) return;
+                setTree(next);
+                setHead('root');
+              }}
+            >
+              Clear variations
+            </button>
+          )}
+        </div>
+        <div
+          className="movelist-scroll"
+          ref={moveListRef}
+          style={layoutClass === 'stacked' ? undefined : {
+            // In two columns the moves share the height with the engine
+            // below them; in three they get the board's full height.
+            // Three columns: down to the board's foot, or as far as the
+            // cards beside it run, whichever is further.
+            maxHeight: dockOn ? Math.max(200, boardWidth + 86 - 130) : layoutClass === 'two-col'
+              ? Math.max(150, (boardWidth + 86) * 0.44 - 52)
+              : Math.max(200, Math.max(boardWidth + 86, sideH) - 130),
+          }}
+        >
+          <MoveTree
+            root={tree}
+            headId={head}
+            badges={moveBadges}
+            moments={marksByMove}
+            highlights={variationHighlights}
+            onHighlight={assignHighlight}
+            startNumber={baseMeta.startNumber}
+            startColor={baseMeta.startColor}
+            onGo={setHead}
+            onPromote={(id) => setTree(promote(tree, id))}
+            onPromoteOne={(id) => setTree(promoteOne(tree, id))}
+            onDelete={(id) => {
+              // A move of the saved game itself isn't this board's to
+              // take out — it's the game (edit its moves from its card).
+              if (editing && gamePlyOf(id) !== null) {
+                window.alert('That’s a move of the game itself — edit the game’s moves from its card. Moves you’ve added here can be deleted.');
+                return;
+              }
+              const next = removeNode(tree, id);
+              if (!confirmMomentLoss(next)) return;
+              // Standing on the move you're deleting: step back first.
+              if (nodePath(tree, id).some((n) => n.id === head)) {
+                const trail = nodePath(tree, id);
+                setHead(trail.length > 1 ? trail[trail.length - 2].id : 'root');
+              }
+              setTree(next);
+            }}
+          />
+        </div>
+      </div>
+    )}
+    </>
+  );
+
+  // The screen as it has always been laid out: the board's column, the
+  // engine's, the moves'.
+  const classicLayout = (
+  <div
+    ref={setLayoutEl}
+    className={`analysis-layout ${layoutClass}${tight ? ' tight' : ''}${compact ? ' compact' : ''}`}
+    // The board's column is the board's width; the moves column runs at
+    // least as far down as the board, and as far as the cards beside it.
+    style={{
+      '--board-h': `${boardWidth + 86}px`,
+      '--board-col': `${boardWidth + EVAL_W}px`,
+      '--side-h': `${sideH}px`,
+    }}
+  >
+    <div
+      className="analysis-board"
+      onMouseDown={onMouseDown}
+      onMouseUp={onMouseUp}
+      onPointerDown={onDrawPointerDown}
+      onPointerUp={onDrawPointerUp}
+      onPointerCancel={() => setDrawFrom(null)}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+        {boardPanel()}
+        {notesPanel()}
+        {controlsPanel()}
+        {positionPanel()}
+        {labPanel()}
+      </div>
+
+      <div className="analysis-engine" ref={setEngineColEl}>
+        {moveNotePanel()}
+        {moves.length > 0 && ((initialLine?.meta || initialLine?.subtitle) || fromStart) && (
+          <div className="analysis-cards">
+            {gamePanel()}
+            {repertoirePanel()}
+          </div>
+        )}
+        <div className="panel side-tabs-panel">
+          {sideTabStrip()}
+          {sidePane === 'engine' && enginePanel()}
+          {sidePane === 'explorer' && explorerPanel()}
+          {sidePane === 'annotate' && coachMode && annotatePanel()}
+        </div>
+        {!coachMode && moments.length > 0 && momentsReadPanel()}
+      </div>
+
+      <div className="analysis-moves-col">
+        {movesPanel()}
+      </div>
+    </div>
+  );
+
+  // ---------- Docked (a Studio workspace) ----------
+  const boardDrawHandlers = {
+    onMouseDown, onMouseUp, onPointerDown: onDrawPointerDown, onPointerUp: onDrawPointerUp,
+    onPointerCancel: () => setDrawFrom(null), onContextMenu: (e) => e.preventDefault(),
+  };
+  // A panel, standing on its own or as a tab in a group (where its card's own
+  // frame is the group's).
+  const renderPanel = (id, { tabbed }) => {
+    const card = (content) => (tabbed ? content : <div className="panel side-tabs-panel dock-card">{content}</div>);
+    switch (id) {
+      case 'board': return <div className="analysis-board" {...boardDrawHandlers}>{boardPanel()}</div>;
+      case 'notes': return notesPanel();
+      case 'controls': return controlsPanel();
+      case 'position': return positionPanel();
+      case 'lab': return labPanel();
+      case 'movenote': return moveNotePanel();
+      case 'game': return gamePanel();
+      case 'repertoire': return repertoirePanel();
+      case 'engine': return card(enginePanel());
+      case 'explorer': return card(explorerPanel());
+      case 'annotate': return card(annotatePanel());
+      case 'moments': return card(
+        <MomentsPanel
+          moments={moments}
+          setMoments={setMoments}
+          tree={tree}
+          headPath={headPath}
+          baseFen={baseFen}
+          annotations={annotations}
+          setAnnotations={setAnnotations}
+          onGo={goToPath}
+          onOpen={setSplitId}
+          openNow={splitId}
+          onPresent={setPresentAt}
+        />,
+      );
+      case 'moves': return movesPanel();
+      default: return null;
+    }
+  };
+  // Whether a panel has anything to show right now — a game's notes need a
+  // saved game, the moves need moves. Customizing, the empty ones show as a
+  // placeholder so they can still be arranged.
+  const panelAvailable = (id) => {
+    switch (id) {
+      case 'notes': return Boolean(liveGame);
+      case 'game': return Boolean((initialLine?.meta || initialLine?.subtitle) && moves.length > 0);
+      case 'repertoire': return Boolean(fromStart && moves.length > 0);
+      case 'movenote': return Boolean(currentNote);
+      case 'moves': return moves.length > 0 || baseFen !== START_FEN;
+      case 'moments': return tree.children.length > 0 || moments.length > 0;
+      case 'annotate': return Boolean(coachMode);
+      default: return true;
+    }
+  };
+  const PLACEHOLDER = {
+    notes: 'Shows when a saved game is on the board',
+    game: 'Shows when a saved game is on the board',
+    repertoire: 'Shows when the game starts from the start',
+    movenote: 'Shows the note on the move on the board',
+    moves: 'Shows once there are moves',
+    moments: 'Shows once there are moves',
+  };
+  const panelPlaceholder = (id) => (
+    <div className="panel dock-placeholder">
+      <strong>{PANELS[id].title}</strong>
+      <span className="muted-note">{PLACEHOLDER[id] ?? ''}</span>
+    </div>
+  );
+  const tabLabel = (id) => (id === 'annotate'
+    ? (
+      <>
+        <FlaskIcon size={13} /> Annotate
+        {(moveBadges[head] || moveNotes[head]) && <span className="tab-dot" />}
+      </>
+    )
+    : PANELS[id].title);
+  const activeTab = (group) => tabState[group.id] ?? (group.tabs.includes(sidePane) ? sidePane : group.tabs[0]);
+  const activateTab = (groupId, id) => {
+    setTabState((t) => ({ ...t, [groupId]: id }));
+    if (['engine', 'explorer', 'annotate'].includes(id)) setSidePane(id);
+  };
+  const dockLayout = dockOn && (
+    <DockLayout
+      layout={ws.layout}
+      columns={dockCols}
+      widths={dock.widths}
+      fillerId={dock.fillerId}
+      boardColWidth={boardWidth + EVAL_W}
+      gap={dockGap}
+      stacked={dockStacked}
+      customizing={customizing}
+      className={`analysis-layout${tight ? ' tight' : ''}${compact ? ' compact' : ''}`}
+      layoutRef={setLayoutEl}
+      style={{ '--board-h': `${boardWidth + 86}px`, '--board-col': `${boardWidth + EVAL_W}px` }}
+      renderPanel={renderPanel}
+      available={panelAvailable}
+      placeholder={panelPlaceholder}
+      tabLabel={tabLabel}
+      activeTab={activeTab}
+      onActivate={activateTab}
+      onMove={(item, target) => ws.setLayout((l) => moveItem(l, item, target))}
+      onClose={(id) => ws.setLayout((l) => closePanel(l, id))}
+      onCollapse={(groupId, folded) => ws.setLayout((l) => setCollapsed(l, groupId, folded))}
+      onResize={(left, right, dx, shown) => ws.setLayout((l) => resizeBetween(l, left, right, dx, shown))}
+    />
+  );
+
   return (
     <div className={`page wide analysis-page${tight ? ' tight-page' : ''}`}>
       <div className="page-head analysis-head">
@@ -1721,6 +2720,16 @@ export default function AnalysisView({
           <TargetIcon size={15} />
           {reviewBusy ? `Reviewing… ${reviewProgress?.done ?? 0}/${reviewProgress?.total ?? 0}` : 'Game Review'}
         </button>
+        {coachMode && (
+          <WorkspaceBar
+            ws={ws}
+            customizing={customizing}
+            onCustomize={() => setCustomizing((c) => !c)}
+            closedPanels={ws.layout.closed}
+            onOpenPanel={(id) => ws.setLayout((l) => openPanel(l, id))}
+            narrow={viewportWidth < 600}
+          />
+        )}
         <select
           className="line-picker"
           defaultValue=""
@@ -1830,809 +2839,7 @@ export default function AnalysisView({
         </div>
       )}
 
-      <div
-        ref={setLayoutEl}
-        className={`analysis-layout ${layoutClass}${tight ? ' tight' : ''}${compact ? ' compact' : ''}`}
-        // The board's column is the board's width; the moves column runs at
-        // least as far down as the board, and as far as the cards beside it.
-        style={{
-          '--board-h': `${boardWidth + 86}px`,
-          '--board-col': `${boardWidth + EVAL_W}px`,
-          '--side-h': `${sideH}px`,
-        }}
-      >
-        <div
-          className="analysis-board"
-          onMouseDown={onMouseDown}
-          onMouseUp={onMouseUp}
-          onPointerDown={onDrawPointerDown}
-          onPointerUp={onDrawPointerUp}
-          onPointerCancel={() => setDrawFrom(null)}
-          onContextMenu={(e) => e.preventDefault()}
-        >
-          {splitMoment ? (
-            <MomentBoards
-              moment={splitMoment}
-              n={splitIndex + 1}
-              baseFen={baseFen}
-              annotations={annotations}
-              orientation={orientation}
-              width={boardWidth + EVAL_W}
-              narrow={viewportWidth < 600}
-              onClose={() => setSplitId(null)}
-              onPick={(path) => { setSplitId(null); goToPath(path); }}
-              onPresent={() => setPresentAt(splitIndex)}
-            />
-          ) : (
-          <div className="board-with-eval">
-          {showEvalBar && (
-            <EvalBar
-              score={engineLines[1]?.score}
-              running={engineOn && engineStatus === 'running'}
-              flipped={orientation === 'black'}
-            />
-          )}
-          <div className="board-column" style={{ width: boardWidth }}>
-          <MaterialBar
-            pieces={orientation === 'white' ? material.capturedByBlack : material.capturedByWhite}
-            capturedColor={orientation === 'white' ? 'white' : 'black'}
-            advantage={orientation === 'white' ? Math.max(0, -material.diff) : Math.max(0, material.diff)}
-          />
-          <div
-            className="board-frame"
-            style={{
-              position: 'relative', width: boardWidth, height: boardWidth,
-              // Otherwise a finger dragging to draw an arrow reads as a page
-              // scroll on a touchscreen, which cancels the gesture partway.
-              touchAction: drawMode ? 'none' : undefined,
-            }}
-          >
-          <Board
-            id="analysis"
-            position={fen}
-            onPieceDrop={onPieceDrop}
-            onSquareClick={onSquareClick}
-            onPieceDragBegin={(piece, square) => setPicked(square)}
-            onPieceDragEnd={() => setPicked(null)}
-            onPromotionCheck={() => false}
-            arePiecesDraggable={!drawMode}
-            areArrowsAllowed={false}
-            // This view runs its own pen — colours, saved marks, the Draw
-            // toggle for touch — so it doesn't want Board's plain one too.
-            ownArrows={false}
-            customSquareStyles={squareStyles}
-            lastMove={lastMove}
-            badge={moveBadges[head]}
-            boardOrientation={orientation}
-            boardWidth={boardWidth}
-          />
-          {pendingPromotion && (
-            <PromotionPicker
-              square={pendingPromotion.to}
-              color={pendingPromotion.color}
-              boardWidth={boardWidth}
-              orientation={orientation}
-              onPick={(piece) => commitMove(pendingPromotion.from, pendingPromotion.to, piece)}
-              onCancel={() => setPendingPromotion(null)}
-            />
-          )}
-          <BoardArrows
-            arrows={[...engineArrows, ...marks.arrows]}
-            boardWidth={boardWidth}
-            orientation={orientation}
-          />
-          {/* Drawn above the arrows: an engine arrow crossing a dot used to
-              make it look like two dots on one square. */}
-          {showLegal && (
-            <LegalDots
-              game={position}
-              square={picked}
-              boardWidth={boardWidth}
-              orientation={orientation}
-            />
-          )}
-          </div>
-          <MaterialBar
-            pieces={orientation === 'white' ? material.capturedByWhite : material.capturedByBlack}
-            capturedColor={orientation === 'white' ? 'black' : 'white'}
-            advantage={orientation === 'white' ? Math.max(0, material.diff) : Math.max(0, -material.diff)}
-          />
-          </div>
-          </div>
-          )}
-
-          {!splitMoment && (
-          <div className="annotate-bar" style={{ maxWidth: boardWidth }}>
-            <span className="board-menu-wrap">
-              <button
-                className={`small${boardMenu ? ' primary' : ''}`}
-                title="Board options"
-                onClick={() => setBoardMenu((o) => !o)}
-              >
-                <GearIcon size={15} />
-              </button>
-              {boardMenu && (() => {
-                const toggle = (key) => (e) => dispatch({
-                  type: 'setSettings', settings: { [key]: e.target.checked },
-                });
-                const row = ([key, label, on, dot]) => (
-                  <label key={key} className={`board-menu-row${on ? ' on' : ''}`}>
-                    <input type="checkbox" checked={on} onChange={toggle(key)} />
-                    {dot && <span className="pv-dot" style={{ background: dot }} />}
-                    {label}
-                  </label>
-                );
-                return (
-                  <div className="board-menu" onMouseLeave={() => setBoardMenu(false)}>
-                    {[
-                      ['evalBar', 'Evaluation bar', state.settings.evalBar !== false],
-                      ['engineLines', 'Engine lines', showEngineLines],
-                      ['engineArrows', 'Engine arrows', showEngineArrows],
-                    ].map(row)}
-                    {/* Which of the three candidates get drawn. */}
-                    <div className={`board-menu-group${showEngineArrows ? '' : ' off'}`}>
-                      {[
-                        ['arrowBest', 'Best move', arrowOn[0], ARROW_COLORS[0]],
-                        ['arrowSecond', '2nd best', arrowOn[1], ARROW_COLORS[1]],
-                        ['arrowThird', '3rd best', arrowOn[2], ARROW_COLORS[2]],
-                      ].map(row)}
-                    </div>
-                    {[
-                      ['bookMoves', 'Repertoire book moves', useBook],
-                      ['engineAuto', 'Engine on when the board opens', state.settings.engineAuto !== false],
-                      ['soundEnabled', 'Move sounds', soundOn],
-                    ].map(row)}
-                  </div>
-                );
-              })()}
-            </span>
-            <button
-              className={`small${drawMode ? ' primary' : ''}`}
-              title={drawMode
-                ? 'Drawing: press a square and drag to another for an arrow, or release without moving to highlight it'
-                : 'Draw arrows and highlights (also: right-click drag on a mouse)'}
-              onClick={() => { setDrawMode((d) => !d); setDrawFrom(null); }}
-            >
-              <PencilIcon size={15} /> {drawMode ? 'Drawing' : 'Draw'}
-            </button>
-            <span className="pens">
-              {PENS.map((p) => (
-                <button
-                  key={p.value}
-                  className={`pen${drawColor === p.value ? ' active' : ''}`}
-                  style={{ background: p.value }}
-                  title={p.id === (state.settings.defaultPen ?? 'green')
-                    ? `${p.name} (default)`
-                    : `${p.name} (hold ${formatShortcutKey(shortcutKey(state.settings, p.shortcutId))} while dragging)`}
-                  onClick={() => setDrawColor(p.value)}
-                />
-              ))}
-            </span>
-            <span style={{ flex: 1 }} />
-            {markedCount > 1 && (
-              <span className="muted-note">{markedCount} positions marked</span>
-            )}
-            <button className="small ghost" disabled={!hasMarks} onClick={clearMarks}>
-              Clear
-            </button>
-          </div>
-          )}
-          {/* On a tablet the two-line reminder is what pushes the controls off
-              the screen, and there's no right-click there anyway. */}
-          {!splitMoment && (
-          <div className="muted-note draw-hint" style={{ maxWidth: boardWidth }}>
-            {tight ? (
-              <>Press <strong>Draw</strong>, then drag a square to mark up the board · left-click to clear</>
-            ) : (
-              <>
-                Right-click drag to draw in <strong>{defaultPen(state.settings).name.toLowerCase()}</strong> (the
-                default, set in Settings) · hold {PENS.filter((p) => p.id !== (state.settings.defaultPen ?? 'green')).map((p) => (
-                  <React.Fragment key={p.id}><kbd>{formatShortcutKey(shortcutKey(state.settings, p.shortcutId))}</kbd> </React.Fragment>
-                ))}while dragging for {PENS.filter((p) => p.id !== (state.settings.defaultPen ?? 'green')).map((p) => p.name.toLowerCase()).join(' / ')} ·
-                left-click the board to clear
-              </>
-            )}
-          </div>
-          )}
-
-          {liveGame && (
-            <div className="panel game-notes-panel" style={{ maxWidth: boardWidth }}>
-              <div className="game-notes-head">
-                <strong>Notes</strong>
-              </div>
-              <textarea
-                key={liveGame.id}
-                className="game-notes-input"
-                rows={3}
-                defaultValue={liveGame.meta?.notes ?? ''}
-                placeholder="Notes for this game — what to remember, what to revisit…"
-                onBlur={(e) => {
-                  if (e.target.value === (liveGame.meta?.notes ?? '')) return;
-                  dispatch({
-                    type: 'setGameNotes',
-                    playerId: initialLine.playerId,
-                    gameId: initialLine.gameId,
-                    notes: e.target.value,
-                  });
-                }}
-              />
-              <GameFlagPicker
-                flags={liveGame.meta?.flags}
-                onChange={(flags) => dispatch({
-                  type: 'setGameFlags', playerId: initialLine.playerId, gameId: initialLine.gameId, flags,
-                })}
-              />
-            </div>
-          )}
-
-          <div className="viewer-controls">
-            <button title="Start" onClick={() => setPly(0)}><SkipStartIcon size={16} /></button>
-            <button onClick={() => setPly((p) => Math.max(0, p - 1))}>◀</button>
-            <button onClick={() => setPly((p) => Math.min(moves.length, p + 1))}>▶</button>
-            <button title="End" onClick={() => setPly(moves.length)}><SkipEndIcon size={16} /></button>
-            <button onClick={() => setOrientation((o) => (o === 'white' ? 'black' : 'white'))}>⇅ Flip</button>
-            <button onClick={() => { setBaseFen(START_FEN); loadMoves([]); }}>Reset</button>
-          </div>
-          <div className="fen-row">
-            <input
-              type="text"
-              placeholder={fen}
-              value={fenInput}
-              onChange={(e) => setFenInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') loadFen(); }}
-            />
-            <button onClick={loadFen} disabled={!fenInput.trim()}>Set FEN</button>
-          </div>
-
-          {/* The Lab notebook. Always here, whatever the board is showing —
-              working on a repertoire line is exactly when a thought is worth
-              writing down, so this isn't limited to a blank board. */}
-          <div className="panel lab-panel" style={{ maxWidth: boardWidth }}>
-            <div className="lab-head">
-              <FlaskIcon size={16} />
-              <strong>Lab notes</strong>
-              {labId && <span className="lab-saved-pill">saved</span>}
-              <span style={{ flex: 1 }} />
-              {labId && (
-                <button
-                  className="small ghost"
-                  title="Start a fresh note — this keeps the saved one as it is"
-                  onClick={() => { setLabId(null); setLabTitle(''); setLabNote(''); }}
-                >
-                  New
-                </button>
-              )}
-            </div>
-            <input
-              type="text"
-              className="lab-title"
-              placeholder="Title — e.g. “Nf3 sideline, needs a plan for …”"
-              value={labTitle}
-              onChange={(e) => setLabTitle(e.target.value)}
-            />
-            <textarea
-              className="game-notes-input"
-              rows={4}
-              placeholder="Your ideas about this position — plans, what to check, what went wrong…"
-              value={labNote}
-              onChange={(e) => setLabNote(e.target.value)}
-            />
-            <div className="lab-actions">
-              <button className="small primary" onClick={saveToLab} disabled={!canSaveLab}>
-                <FlaskIcon size={14} /> {labId ? 'Update in Lab' : 'Save to Lab'}
-              </button>
-              <button
-                className="small"
-                title="Add the moves on the board to a chapter as a new variation"
-                onClick={() => setSaveLineOpen(true)}
-                disabled={moves.length === 0}
-              >
-                <BookIcon size={14} /> Save line to a chapter…
-              </button>
-              <span style={{ flex: 1 }} />
-              <span className="muted-note">
-                {moves.length} move{moves.length === 1 ? '' : 's'}
-                {markedCount > 0 && ` · ${markedCount} marked position${markedCount === 1 ? '' : 's'}`}
-              </span>
-            </div>
-            <p className="hint">
-              Saving keeps the notes, every move on the board including variations, and the arrows
-              and highlights you've drawn on each position. Find them again under Collections → Lab.
-            </p>
-          </div>
-        </div>
-
-        <div className="analysis-engine" ref={setEngineColEl}>
-          {/* Whatever's been badged or written on the move that's on the board
-              — a coach's from Coaches Corner, or your own — pinned to the top
-              of this column so it's visible whichever of Engine/Explorer/
-              Annotate is open below, not just tucked under one tab. Nothing
-              renders here at all when there's nothing to say. */}
-          {currentNote && (
-            <div className="side-note">
-              <MoveNote key={currentNote.index} {...currentNote} startFen={baseFen} onMoveClick={highlightNoteSquare} />
-            </div>
-          )}
-
-          {/* The game and the repertoire it follows: one above the other in a
-              narrow column, side by side when the column has the room. */}
-          {moves.length > 0 && ((initialLine?.meta || initialLine?.subtitle) || fromStart) && (
-          <div className="analysis-cards">
-          {(initialLine?.meta || initialLine?.subtitle) && moves.length > 0 && (
-            <AnalysedGame line={initialLine} hideSubtitle={fromStart && gameMatch.matched} />
-          )}
-          {fromStart && moves.length > 0 && (
-            <div className={`panel book-panel-summary${gameMatch.matched ? '' : ' unmatched'}`}>
-              <h3><BookIcon size={16} /> {repertoireOwner ? `${repertoireOwner.name}'s repertoire` : 'Your repertoire'}</h3>
-              {gameMatch.matched ? (
-                <>
-                  <div className="book-match">
-                    <strong>{gameMatch.opening.name}</strong> — {gameMatch.variation.name}
-                    <span className="depth-tag"> ({gameMatch.chapter.name})</span>
-                  </div>
-                  <div className="sub" style={{ color: 'var(--muted)', fontSize: 13.5, marginTop: 4 }}>
-                    {gameMatch.exhausted
-                      ? `The whole game follows this line (${gameMatch.depth} moves).`
-                      : `Followed for ${gameMatch.depth} move${gameMatch.depth === 1 ? '' : 's'}.`}
-                  </div>
-                  {gameMatch.deviation && (
-                    <div
-                      className="deviation-note"
-                      onClick={() => setPly(gameMatch.deviation.atPly)}
-                      title="Jump to the position before this move"
-                    >
-                      <AlertIcon size={13} className="warn-tick" /> Left book at{' '}
-                      <strong>{moveLabel(gameMatch.deviation.atPly, baseFen)}{gameMatch.deviation.played}</strong>
-                      {' '}— repertoire plays{' '}
-                      <strong>{gameMatch.deviation.expected.join(' or ')}</strong>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div style={{ color: 'var(--muted)', fontSize: 14 }}>
-                  This game doesn't match any uploaded opening — pure engine analysis below.
-                </div>
-              )}
-            </div>
-          )}
-          </div>
-          )}
-
-          <div className="panel side-tabs-panel">
-            <div className="side-tabs">
-              <button
-                className={sidePane === 'engine' ? 'active' : ''}
-                onClick={() => setSidePane('engine')}
-              >
-                Engine
-              </button>
-              <button
-                className={sidePane === 'explorer' ? 'active' : ''}
-                onClick={() => setSidePane('explorer')}
-              >
-                Explorer
-              </button>
-              {coachMode && (
-                <button
-                  className={sidePane === 'annotate' ? 'active' : ''}
-                  onClick={() => setSidePane('annotate')}
-                >
-                  <FlaskIcon size={13} /> Annotate
-                  {(moveBadges[head] || moveNotes[head]) && <span className="tab-dot" />}
-                </button>
-              )}
-            </div>
-
-          {sidePane === 'engine' && (
-          <div>
-            <h3>
-              {bookHere.length > 0 ? <><BookIcon size={13} /> Book move</> : 'Stockfish 16'}
-              {engineStatus === 'running' && engineLines[1] && (
-                <span className="depth-tag">depth {engineLines[1].depth}</span>
-              )}
-              <span className="spacer" />
-              <button className="small" onClick={() => setEngineOn((v) => !v)}>
-                {engineOn ? 'Stop' : <><PlayIcon size={14} /> Analyze</>}
-              </button>
-            </h3>
-            {bookHere.map((b) => (
-              <div key={b.san} className="engine-line book-line" onClick={() => playSan(b.san)}>
-                <span className="eval book-eval">book</span>
-                <span className="pv">
-                  <strong>{b.san}</strong>
-                  <span style={{ color: 'var(--muted)' }}> — {b.opening.name}: {b.variation.name}</span>
-                </span>
-              </div>
-            ))}
-            {bookHere.length > 0 && !compact && (
-              <div className="muted-note" style={{ margin: '2px 0 10px' }}>
-                From your uploaded openings. Engine lines below.
-              </div>
-            )}
-            {!engineOn && (
-              <div style={{ color: 'var(--muted)', fontSize: 14 }}>
-                Engine is off — press Analyze for the lines, the arrows on the board and the
-                evaluation bar.
-              </div>
-            )}
-            {engineOn && !showEngineArrows && (
-              <div className="muted-note" style={{ margin: '2px 0 10px' }}>
-                Arrows are off.{' '}
-                <button
-                  className="linkish"
-                  onClick={() => dispatch({ type: 'setSettings', settings: { engineArrows: true } })}
-                >
-                  Show them on the board
-                </button>
-              </div>
-            )}
-            {engineOn && engineStatus === 'starting' && (
-              <div style={{ color: 'var(--muted)', fontSize: 14 }}>Starting engine…</div>
-            )}
-            {engineOn && !showEngineLines && (
-              <div style={{ color: 'var(--muted)', fontSize: 14 }}>
-                Lines are hidden — the bar beside the board still follows the evaluation.
-              </div>
-            )}
-            {engineOn && showEngineLines && [1, 2, 3].map((n) => {
-              const line = engineLines[n];
-              if (!line) return null;
-              const good = line.score.type === 'mate' ? line.score.value > 0 : line.score.value >= 0;
-              return (
-                <div key={n} className="engine-line" onClick={() => line.sans[0] && playSan(line.sans[0])}>
-                  {showEngineArrows && (
-                    <span
-                      className="pv-dot"
-                      style={{ background: ARROW_COLORS[n - 1] }}
-                      title={`Drawn on the board in this colour${n === 1 ? ' — the engine’s first choice' : ''}`}
-                    />
-                  )}
-                  <span className={`eval ${good ? 'white-good' : 'black-good'}`}>{formatScore(line.score)}</span>
-                  <span className="pv">{line.sans.join(' ')}</span>
-                </div>
-              );
-            })}
-          </div>
-          )}
-
-          {sidePane === 'explorer' && (
-          <div>
-            <h3>
-              Opening explorer
-              <span className="spacer" />
-              <select value={db} onChange={(e) => setDb(e.target.value)}>
-                <option value="lichess">Lichess players</option>
-                <option value="masters">Masters</option>
-              </select>
-            </h3>
-            {explorerError && <div style={{ color: 'var(--muted)', fontSize: 14 }}><AlertIcon size={13} /> {explorerError}</div>}
-            {!explorer && !explorerError && <div style={{ color: 'var(--muted)', fontSize: 14 }}>Loading…</div>}
-            {explorer && explorer.moves.length === 0 && (
-              <div style={{ color: 'var(--muted)', fontSize: 14 }}>No games from this position.</div>
-            )}
-            {explorer && explorer.moves.length > 0 && (
-              <table className="explorer-table">
-                <thead>
-                  <tr><th>Move</th><th>Games</th><th>%</th><th>White / Draw / Black</th></tr>
-                </thead>
-                <tbody>
-                  {explorer.moves.map((m) => {
-                    const total = explorerTotals(m);
-                    return (
-                      <tr key={m.uci} onClick={() => playSan(m.san)}>
-                        <td>{m.san}</td>
-                        <td>{total.toLocaleString()}</td>
-                        <td>{pct(total, totals)}</td>
-                        <td>
-                          <div className="wdl-bar">
-                            <span className="w" style={{ width: pct(m.white, total) }}>{pct(m.white, total)}</span>
-                            <span className="d" style={{ width: pct(m.draws, total) }} />
-                            <span className="b" style={{ width: pct(m.black, total) }}>{pct(m.black, total)}</span>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-          )}
-
-          {sidePane === 'annotate' && coachMode && (() => {
-            // The note box follows the board: the move on it, or — on a saved
-            // game — the whole game's summary at the start.
-            const draftText = noteDraft.id === head ? noteDraft.text : (moveNotes[head] ?? '');
-            const dirty = draftText.trim() !== (moveNotes[head] ?? '');
-            const theirNote = reviewMode ? seed.theirNotes[head] : null;
-            const who = seed?.studentName ?? 'the student';
-            return (
-            <div className="annotate-pane">
-              {reviewMode && (
-                <p className="annotate-mode">
-                  <CommentIcon size={13} /> Your review of {who}’s game. It stays yours to edit;
-                  {' '}{who} reads it in their app when you save.
-                </p>
-              )}
-              {head === 'root' && !editing ? (
-                <p className="hint">
-                  Play or load a line, then click any move — here or in the move list below — to
-                  badge it and write what a student should take from it.
-                </p>
-              ) : (
-                <>
-                  <h3>
-                    {head === 'root'
-                      ? (reviewMode ? `Summary for ${who}` : 'Summary of the game')
-                      : <>Move {moveLabel(ply - 1, baseFen)}{moves[ply - 1]}</>}
-                    {moveBadges[head] && <MoveBadge id={moveBadges[head]} size={17} />}
-                  </h3>
-                  {head !== 'root' && (
-                  <div className="badge-row">
-                    {BADGES.map((b) => {
-                      const on = moveBadges[head] === b.id;
-                      return (
-                        <button
-                          key={b.id}
-                          className={`badge-pick${on ? ' on' : ''}`}
-                          title={b.label}
-                          style={on ? { background: b.color, borderColor: b.color } : undefined}
-                          onClick={() => {
-                            setMoveBadges((m) => {
-                              const next = { ...m };
-                              if (on) delete next[head];
-                              else next[head] = b.id;
-                              return next;
-                            });
-                            syncGameMove('badge', on ? null : b.id);
-                          }}
-                        >
-                          <span className="bp-glyph" style={{ color: on ? '#fff' : b.color }}>{b.symbol}</span>
-                          <span className="bp-label">{b.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  )}
-                  {theirNote && (
-                    <div className="their-note">
-                      <span className="their-note-who">{who}’s note</span> {parseMarks(theirNote).text || theirNote}
-                    </div>
-                  )}
-                  <label className="annotate-note-label">
-                    <CommentIcon size={13} />
-                    {' '}{head === 'root' ? 'What should they take from this game?' : 'What should a student take from this move?'}
-                  </label>
-                  <textarea
-                    rows={5}
-                    className="annotate-textarea"
-                    maxLength={MAX_NOTE}
-                    placeholder={head === 'root'
-                      ? 'e.g. Good opening, then the plan went wrong after 14…c5 — the key moments are marked below.'
-                      : 'e.g. This is the critical try — White has to know ...Bxf3 leads to a forced draw.'}
-                    value={draftText}
-                    onChange={(e) => setNoteDraft({ id: head, text: e.target.value })}
-                    // Leaving the box keeps it at once, not after the pause.
-                    onBlur={() => commitNote(head, draftText)}
-                  />
-                  {/* Kept as it's typed — no separate button to forget: a
-                      pause, moving to another move, Save or leaving the board
-                      all keep it on this move. */}
-                  <div className="annotate-note-status muted-note" aria-live="polite">
-                    {dirty ? 'Saving…' : (moveNotes[head] && editing
-                      ? (reviewMode ? '✓ In your review' : '✓ Saved on this game')
-                      : '')}
-                  </div>
-                </>
-              )}
-              <MomentsPanel
-                moments={moments}
-                setMoments={setMoments}
-                tree={tree}
-                headPath={headPath}
-                baseFen={baseFen}
-                annotations={annotations}
-                setAnnotations={setAnnotations}
-                onGo={goToPath}
-                onOpen={setSplitId}
-                openNow={splitId}
-                onPresent={setPresentAt}
-              />
-              <div className="annotate-foot">
-                {attached && (
-                  <button
-                    className="small primary"
-                    onClick={() => { if (saveAnalysis({ publish: true })) setSaveState('saved'); }}
-                  >
-                    <CheckIcon size={14} />
-                    {' '}{saveState === 'saved' ? 'Saved ✓' : (seed.linked ? (reviewMode ? 'Save & send review' : 'Save & send') : 'Save')}
-                  </button>
-                )}
-                {editing && inProgress && (
-                  <button
-                    className="small"
-                    title="Take this game off Coaches Corner's Reviews in progress — everything you've written stays on it"
-                    onClick={markReviewDone}
-                  >
-                    <CheckIcon size={14} /> Mark review done
-                  </button>
-                )}
-                {attached && (
-                  <button
-                    className="small"
-                    title="The game as it will be read — notes in the text, badges and arrows on the board, the engine alongside"
-                    onClick={() => openReview({
-                      gameId: seed.gameId,
-                      preview: true,
-                      doc: buildDoc(),
-                      game: liveGameRef.current,
-                      by: 'You',
-                      theirNotes: seed.reviewMode ? seed.theirNotes : {},
-                    })}
-                  >
-                    <BookIcon size={14} /> {seed.studentCard ? `Preview as ${who}` : 'Read it'}
-                  </button>
-                )}
-                <button className={`small${attached ? '' : ' primary'}`} onClick={saveToLab}>
-                  <FlaskIcon size={14} /> {labId ? 'Update in Lab' : 'Save session to Lab'}
-                </button>
-                <button
-                  className="small"
-                  disabled={moves.length === 0}
-                  onClick={() => setSaveLineOpen(true)}
-                >
-                  <BookIcon size={14} /> Save as a variation…
-                </button>
-                <button
-                  type="button"
-                  className="small ghost help-btn"
-                  title="How saving and these buttons work"
-                  aria-label="How saving and these buttons work"
-                  onClick={() => setAnnotateHelpOpen(true)}
-                >
-                  <HelpIcon size={17} />
-                </button>
-              </div>
-              {saveState && saveState !== 'saved' && <p className="annotate-error">{saveState}</p>}
-              {reviewNote && !inProgress && <p className="hint review-done-note">{reviewNote}</p>}
-              {annotateHelpOpen && (
-                <div className="modal-overlay" onClick={() => setAnnotateHelpOpen(false)}>
-                  <div className="modal annotate-help" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
-                    <h3>How saving works here</h3>
-                    <p>
-                      {editing
-                        ? (seed.linked
-                          ? `Notes, badges, arrows, highlighted squares and variations are kept as you go, and ${who} gets them when you save — or when you leave this board.`
-                          : 'Notes, badges, arrows, highlighted squares and variations are saved on this game as you go. Send the game to Studio again to carry on where you left off.')
-                        : 'A badge and note here belong to that exact move on this board’s line.'}
-                    </p>
-                    <p>
-                      <strong>Save to the Lab</strong> keeps a separate copy in Collections → Lab, with every
-                      badge and note across the whole tree. It isn’t connected to the game: what you add to
-                      the copy later stays in the Lab.
-                    </p>
-                    <p>
-                      <strong>Save as a variation</strong> carries the current line’s notes and badges into a
-                      chapter, editable there the same way.
-                    </p>
-                    <p>
-                      <strong>Alternatives:</strong> standing on a move in the game, press 1, 2 or 3
-                      (rebindable in Settings → Keyboard, numpad works too) to jump into the top, second or
-                      third alternative tried at that point — marking it green, blue or yellow. → walks the
-                      rest of that line, 9 jumps back to the game from however deep you are, and the same
-                      number again clears the colour and steps back out.
-                    </p>
-                    <div className="modal-actions">
-                      <button className="primary" onClick={() => setAnnotateHelpOpen(false)}>Got it</button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            );
-          })()}
-          </div>
-          {/* Outside Studio, a game's Before & Afters are there to look at and
-              to show — side by side, or presented — not to change. */}
-          {!coachMode && moments.length > 0 && (
-            <div className="panel moments-read-panel">
-              <MomentsPanel
-                moments={moments}
-                setMoments={setMoments}
-                tree={tree}
-                headPath={headPath}
-                baseFen={baseFen}
-                annotations={annotations}
-                setAnnotations={setAnnotations}
-                onGo={goToPath}
-                onOpen={setSplitId}
-                openNow={splitId}
-                onPresent={setPresentAt}
-                editable={false}
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="analysis-moves-col">
-          {(moves.length > 0 || baseFen !== START_FEN) && (
-            <div className="panel analysis-movelist-panel">
-              <div className="movelist-head">
-                <span>Moves</span>
-                <span className="muted-note">
-                  {(() => {
-                    if (ply === 0) return 'start';
-                    // Matches MoveTree's own numFor exactly — virtualPly is
-                    // the real ply just played, shifted the same way.
-                    const virtualPly = ply + (baseMeta.startColor === 'b' ? 1 : 0);
-                    const num = Math.floor((virtualPly - 1) / 2) + baseMeta.startNumber;
-                    return `${num}${virtualPly % 2 === 1 ? '.' : '…'}${moves[ply - 1]}`;
-                  })()}
-                  {' · '}{ply} of {moves.length}
-                </span>
-                <span style={{ flex: 1 }} />
-                {hasVariations(tree) && (
-                  <button
-                    className="small ghost"
-                    title="Delete every variation, keeping the main line"
-                    onClick={() => {
-                      const next = keepMainLineOnly(tree);
-                      if (!confirmMomentLoss(next)) return;
-                      setTree(next);
-                      setHead('root');
-                    }}
-                  >
-                    Clear variations
-                  </button>
-                )}
-              </div>
-              <div
-                className="movelist-scroll"
-                ref={moveListRef}
-                style={layoutClass === 'stacked' ? undefined : {
-                  // In two columns the moves share the height with the engine
-                  // below them; in three they get the board's full height.
-                  // Three columns: down to the board's foot, or as far as the
-                  // cards beside it run, whichever is further.
-                  maxHeight: layoutClass === 'two-col'
-                    ? Math.max(150, (boardWidth + 86) * 0.44 - 52)
-                    : Math.max(200, Math.max(boardWidth + 86, sideH) - 130),
-                }}
-              >
-                <MoveTree
-                  root={tree}
-                  headId={head}
-                  badges={moveBadges}
-                  moments={marksByMove}
-                  highlights={variationHighlights}
-                  onHighlight={assignHighlight}
-                  startNumber={baseMeta.startNumber}
-                  startColor={baseMeta.startColor}
-                  onGo={setHead}
-                  onPromote={(id) => setTree(promote(tree, id))}
-                  onPromoteOne={(id) => setTree(promoteOne(tree, id))}
-                  onDelete={(id) => {
-                    // A move of the saved game itself isn't this board's to
-                    // take out — it's the game (edit its moves from its card).
-                    if (editing && gamePlyOf(id) !== null) {
-                      window.alert('That’s a move of the game itself — edit the game’s moves from its card. Moves you’ve added here can be deleted.');
-                      return;
-                    }
-                    const next = removeNode(tree, id);
-                    if (!confirmMomentLoss(next)) return;
-                    // Standing on the move you're deleting: step back first.
-                    if (nodePath(tree, id).some((n) => n.id === head)) {
-                      const trail = nodePath(tree, id);
-                      setHead(trail.length > 1 ? trail[trail.length - 2].id : 'root');
-                    }
-                    setTree(next);
-                  }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      {dockOn ? dockLayout : classicLayout}
 
       {presentAt !== null && moments.length > 0 && (
         <MomentPresenter

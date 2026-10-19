@@ -1213,6 +1213,90 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 .analysis-cards > * { min-width: 0; }
 
+/* Studio workspaces (components/Workspace.jsx): the panels docked in the
+   workspace's own columns. The gaps between columns are the dividers, which
+   Customize lets you drag. */
+.analysis-layout.dock { display: flex; gap: 0; align-items: flex-start; }
+.dock-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.analysis-layout.compact .dock-col { gap: 10px; }
+.dock-col > .dock-group { min-width: 0; }
+/* A panel narrower here than it ever was: its heading row wraps rather than
+   pushing out past its column (the explorer's database picker). */
+.dock-col .panel h3 { flex-wrap: wrap; }
+.dock-col select { max-width: 100%; }
+.dock-divider { align-self: stretch; position: relative; min-height: 40px; }
+.dock-divider.live { cursor: col-resize; touch-action: none; }
+.dock-divider.live::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 4px; transform: translateX(-50%);
+  border-radius: 2px; background: var(--border);
+}
+.dock-divider.live:hover::after, .dock-divider.live:active::after { background: var(--accent); }
+.analysis-layout.dock.dock-stacked { flex-direction: column; align-items: stretch; gap: 16px; }
+.dock-stacked .dock-col { width: 100%; }
+.dock-stacked .dock-board { align-self: center; max-width: 100%; }
+/* Inside a group of tabs, a card's own frame is the group's. */
+.dock-tabs .panel { background: none; border: 0; padding: 0; box-shadow: none; border-radius: 0; }
+.dock-card { min-width: 0; }
+.dock-placeholder { display: flex; flex-direction: column; gap: 4px; border-style: dashed; opacity: 0.75; }
+.dock-collapsed {
+  width: 100%; text-align: left; padding: 8px 12px; font-weight: 600; font-size: 13.5px;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); color: var(--muted);
+}
+/* Customizing: each group framed, with a grip, its title, fold and close. */
+.dock-group.customizing {
+  outline: 1.5px dashed var(--border); outline-offset: 3px; border-radius: var(--radius);
+}
+.dock-chrome {
+  display: flex; align-items: center; gap: 6px; min-height: 32px; margin-bottom: 6px;
+  font-size: 13px; font-weight: 700; color: var(--muted);
+}
+.dock-grip {
+  display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 32px; padding: 0;
+  cursor: grab; touch-action: none; color: var(--muted); background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.dock-grip:active { cursor: grabbing; color: var(--accent); border-color: var(--accent); }
+.dock-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dock-btn {
+  width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 13px;
+}
+.dock-btn:hover { color: var(--text); border-color: var(--text); }
+.dock-tab-grab { touch-action: none; cursor: grab; }
+.dock-dragging, .dock-dragging * { -webkit-user-select: none; user-select: none; cursor: grabbing; }
+.dock-guide { position: fixed; z-index: 95; pointer-events: none; background: var(--accent); border-radius: 2px; }
+.dock-guide.box { background: rgba(59, 156, 255, 0.12); border: 2px solid var(--accent); border-radius: var(--radius); }
+.dock-ghost {
+  position: fixed; z-index: 96; pointer-events: none; padding: 6px 10px; border-radius: 8px;
+  background: var(--panel); color: var(--text); border: 1px solid var(--accent);
+  font-size: 13px; font-weight: 700; box-shadow: 0 6px 18px var(--shadow); white-space: nowrap;
+}
+/* The Workspace button in Studio's header: just the icon where the header
+   is full (an iPad), the name too where there's room. */
+.ws-pick { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; flex: 0 0 auto; }
+.ws-name { max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.tight-page .ws-name { display: none; }
+@media (max-width: 1240px) { .ws-name { display: none; } }
+/* Customizing: a toolbar floating at the foot of the screen, over the page. */
+.ws-customize-bar {
+  position: fixed; z-index: 100; left: 50%; transform: translateX(-50%);
+  bottom: calc(14px + var(--safe-bottom));
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+  max-width: calc(100vw - 96px - var(--safe-left) - var(--safe-right));
+  background: var(--panel); border: 1px solid var(--accent); border-radius: 14px;
+  box-shadow: 0 8px 26px var(--shadow);
+}
+.ws-customize-title { white-space: nowrap; font-size: 14px; }
+.ws-customize-hint { font-size: 12.5px; min-width: 0; flex: 1 1 auto; }
+.ws-customize-bar button { flex: 0 0 auto; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
+@media (max-width: 900px) { .ws-customize-hint { display: none; } }
+@media (max-width: 600px) {
+  .ws-customize-bar { left: calc(8px + var(--safe-left)); right: calc(8px + var(--safe-right)); transform: none; max-width: none; }
+  .ws-customize-title { flex: 1; }
+}
+/* Room at the foot of the page for the toolbar, so the last panel isn't under it. */
+.dock-customizing { padding-bottom: 72px; }
+
 /* The evaluation bar sits flush against the left edge of the board. */
 /* stretch, not flex-start: the eval bar has no height of its own any more —
    the column beside it (material bars + board) is taller than just the
