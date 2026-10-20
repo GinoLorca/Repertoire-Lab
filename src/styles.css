@@ -5190,3 +5190,84 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .give-done-head svg, .give-sent svg { color: var(--green); }
 .give-sent { display: flex; align-items: center; gap: 6px; color: var(--green); font-size: 14px; }
 .give-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 12px; }
+
+/* ChessKid practice from ICN (components/ChessKidPractice.jsx): puzzle
+   accuracy against the goal, then PLW, lessons, workouts, week by week.
+   Status colours always come with an icon and words. */
+.icn-practice { margin-bottom: 16px; --icn: var(--muted); }
+.icn-practice .icn-head { align-items: center; }
+.icn-practice .icn-head .small { display: inline-flex; align-items: center; gap: 5px; }
+.icn-error { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; font-size: 13px; color: var(--red); }
+.icn-hero { display: flex; flex-direction: column; gap: 10px; }
+.icn-hero-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.icn-hero-fig { display: flex; flex-direction: column; gap: 2px; }
+.icn-hero-num { font-size: 52px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; color: var(--text); }
+.icn-hero-label { font-size: 12.5px; color: var(--muted); }
+.icn-status {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+  font-size: 13px; font-weight: 700; color: var(--icn); border: 1px solid var(--icn);
+  background: color-mix(in srgb, var(--icn) 14%, transparent);
+}
+.icn-status.good, .icn-meter.good, .icn-chip.good, .icn-acc.good { --icn: var(--green); }
+.icn-status.near, .icn-meter.near, .icn-chip.near, .icn-acc.near { --icn: var(--amber); }
+.icn-status.low, .icn-meter.low, .icn-chip.low, .icn-acc.low { --icn: var(--red); }
+/* The track is a light step of the fill's own colour, so how far off it is
+   reads across the whole bar; the goal is a mark of plain ink. */
+.icn-meter {
+  position: relative; height: 12px; margin: 22px 0 2px; border-radius: 99px;
+  background: color-mix(in srgb, var(--icn) 20%, var(--track));
+}
+.icn-meter-fill { position: absolute; inset: 0 auto 0 0; border-radius: 99px; background: var(--icn); }
+.icn-meter-goal { position: absolute; top: -5px; bottom: -5px; width: 2px; margin-left: -1px; background: var(--text); border-radius: 2px; }
+.icn-meter-goal-label {
+  position: absolute; bottom: calc(100% + 3px); left: 50%; transform: translateX(-50%);
+  font-size: 11.5px; font-weight: 700; color: var(--text); white-space: nowrap;
+}
+.icn-hero-note { margin: 0; font-size: 13px; color: var(--muted); }
+.icn-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.icn-tile {
+  display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; min-width: 0;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.icn-tile-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.icn-tile-value { font-size: 26px; font-weight: 700; line-height: 1.1; color: var(--text); }
+.icn-tile-sub { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icn-weeks-wrap { margin-top: 16px; overflow-x: auto; }
+.icn-weeks { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.icn-weeks caption { text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-bottom: 6px; }
+.icn-weeks th, .icn-weeks td { padding: 7px 10px; text-align: right; border-top: 1px solid var(--border); white-space: nowrap; }
+.icn-weeks thead th { border-top: 0; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.icn-weeks th[scope="row"], .icn-weeks thead th:first-child { text-align: left; font-weight: 600; }
+.icn-weeks td.icn-acc { color: var(--text); font-weight: 700; }
+.icn-weeks td.icn-acc svg { color: var(--icn); vertical-align: -2px; }
+.icn-weeks-note { margin: 6px 0 0; font-size: 12px; }
+@media (max-width: 720px) {
+  .icn-tiles { grid-template-columns: 1fr 1fr; }
+  .icn-hero-num { font-size: 46px; }
+}
+/* On a card in the list. */
+.icn-chip {
+  display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; color: var(--icn); border: 1px solid var(--icn);
+  background: color-mix(in srgb, var(--icn) 12%, transparent);
+}
+/* Not linked yet: one line, at the top of their Dashboard. */
+.icn-invite {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 10px 14px; font-size: 13.5px;
+  background: var(--card); border: 1px dashed var(--border); border-radius: var(--radius);
+}
+.icn-invite > span:first-child { flex: 1; }
+.icn-invite .small { display: inline-flex; align-items: center; gap: 5px; }
+/* The player editor scrolls within the screen — on a phone it's taller than
+   one, and Save is at the bottom. */
+.modal.player-editor { max-height: 100%; overflow-y: auto; }
+/* The player editor's link. */
+.icn-link { display: flex; flex-direction: column; gap: 6px; grid-column: 1 / -1; }
+.icn-link-title { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.icn-link-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.icn-link-row select { flex: 0 0 auto; }
+.icn-link-row input[type="text"] { flex: 1 1 180px; min-width: 0; }
+.icn-link-row .small { display: inline-flex; align-items: center; gap: 5px; }
+.game-fields .icn-link .icn-goal { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; font-size: 13px; }
+.game-fields .icn-link .icn-goal input { width: 64px; }
+.icn-picks { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }

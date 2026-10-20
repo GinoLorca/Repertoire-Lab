@@ -1,7 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useBackGuard } from '../lib/backGuard';
-import { fetchUscf, fetchChesscom, fetchLichess, ratingAge } from '../lib/ratings';
-import { AlertIcon, CheckIcon, PencilIcon } from './Icons';
+import {
+  fetchUscf, fetchChesscom, fetchLichess, fetchIcn, findIcn, ratingAge,
+} from '../lib/ratings';
+import {
+  ICN_SCHOOLS, DEFAULT_GOAL, accuracy, schoolName,
+} from '../lib/icn';
+import { AlertIcon, CheckIcon, PencilIcon, SearchIcon } from './Icons';
 import { uid } from '../store';
 import { defaultMonsterId } from '../lib/monsters';
 import Avatar from './Avatar';
@@ -26,7 +31,7 @@ function useLookup(value, ready, fetcher, saved) {
       try {
         setState({ status: 'done', data: await fetcher(value) });
       } catch (err) {
-        setState({ status: 'error', message: err.message });
+        setState({ status: 'error', message: err.message, suggestions: err.suggestions ?? [] });
       }
     }, 700);
     return () => clearTimeout(timer);
@@ -74,6 +79,33 @@ export default function PlayerEditor({
   const chesscom = useLookup(profile.chesscom.trim(), !!profile.chesscom.trim(), fetchChesscom, saved.chesscom);
   const lichess = useLookup(profile.lichess.trim(), !!profile.lichess.trim(), fetchLichess, saved.lichess);
 
+  // A student's ChessKid practice, from their school's ICN stats page
+  // (lib/icn.js): the school, and their name as the page has it — the card's
+  // own name until one is typed.
+  const icn = profile.icn ?? {};
+  const setIcn = (patch) => setProfile((p) => ({ ...p, icn: { ...(p.icn ?? {}), ...patch } }));
+  const icnWho = String(icn.name || name).trim();
+  const icnKey = icn.school && icnWho ? `${icn.school}|${icnWho}` : '';
+  const wasIcn = initial?.profile?.icn;
+  const icnSame = Boolean(wasIcn?.school) && icnKey === `${wasIcn.school}|${String(wasIcn.name ?? '').trim()}`;
+  const icnLook = useLookup(
+    icnKey,
+    isStudent && Boolean(icnKey),
+    (k) => { const [school, ...rest] = k.split('|'); return fetchIcn(school, rest.join('|')); },
+    icnSame ? profile.icnStats : null,
+  );
+  const [finding, setFinding] = useState(null); // { status, matches }
+  const findOnIcn = async () => {
+    setFinding({ status: 'loading', matches: [] });
+    try {
+      const matches = await findIcn(name);
+      if (matches.length === 1) setIcn({ school: matches[0].school, name: matches[0].name });
+      setFinding({ status: 'done', matches });
+    } catch (err) {
+      setFinding({ status: 'error', message: err.message, matches: [] });
+    }
+  };
+
   // A US Chess record knows their name and FIDE-style regular rating — fill the
   // blanks in for them, never overwrite something typed by hand.
   useEffect(() => {
@@ -102,14 +134,25 @@ export default function PlayerEditor({
     ...(saved.chesscom && same('chesscom', profile.chesscom.trim()) ? { chesscom: saved.chesscom } : {}),
     ...(saved.lichess && same('lichess', profile.lichess.trim()) ? { lichess: saved.lichess } : {}),
   };
+  // Saved under the name as ICN spells it, once found, so it's found again.
+  const icnFound = icnLook.status === 'done' && icnLook.data;
+  const goal = Number(icn.goal);
+  const icnSaved = isStudent && icn.school ? {
+    icn: {
+      school: icn.school,
+      name: icnFound ? icnLook.data.name : icnWho,
+      ...(goal >= 1 && goal <= 100 ? { goal: Math.round(goal) } : {}),
+    },
+    icnStats: icnFound ? icnLook.data : (icnSame ? profile.icnStats ?? null : null),
+  } : { icn: null, icnStats: null };
   const save = () => onSave(name.trim(), {
-    ...profile, school: (profile.school ?? '').trim(), ratings: { ...kept, ...live },
+    ...profile, school: (profile.school ?? '').trim(), ratings: { ...kept, ...live }, ...icnSaved,
   }, avatar, id);
 
   return (
     <>
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal player-editor" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
         <h3>{initial ? 'Edit player' : 'New player section'}</h3>
         <p className="hint">
           One section per person — yourself, then each student. The IDs are optional; they let a game
@@ -207,6 +250,77 @@ export default function PlayerEditor({
               render={(d) => nums([['rapid', d.rapid], ['blitz', d.blitz], ['bullet', d.bullet]]) || 'no rated games'}
             />
           </label>
+          {isStudent && (
+            <div className="wide icn-link">
+              <span className="icn-link-title">ChessKid practice <span className="muted-note">— their school’s ICN stats page</span></span>
+              <div className="icn-link-row">
+                <select
+                  value={icn.school ?? ''}
+                  aria-label="ICN school"
+                  onChange={(e) => { setIcn({ school: e.target.value }); setFinding(null); }}
+                >
+                  <option value="">Not on an ICN page</option>
+                  {ICN_SCHOOLS.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+                {icn.school ? (
+                  <input
+                    type="text"
+                    value={icn.name ?? ''}
+                    placeholder={name.trim() || 'their name as ICN lists it'}
+                    aria-label="Name on the ICN page"
+                    onChange={(e) => setIcn({ name: e.target.value })}
+                  />
+                ) : (
+                  <button type="button" className="small" disabled={!name.trim() || finding?.status === 'loading'} onClick={findOnIcn}>
+                    <SearchIcon size={14} /> {finding?.status === 'loading' ? 'Looking…' : 'Find on ICN'}
+                  </button>
+                )}
+                {icn.school && (
+                  <label className="icn-goal">
+                    Goal
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={3}
+                      value={icn.goal ?? ''}
+                      placeholder={String(DEFAULT_GOAL)}
+                      aria-label="Puzzle accuracy goal, percent"
+                      onChange={(e) => setIcn({ goal: e.target.value.replace(/\D/g, '') })}
+                    />
+                    %
+                  </label>
+                )}
+              </div>
+              {!icn.school && finding?.status === 'done' && (
+                finding.matches.length === 0
+                  ? <span className="live-rating bad"><AlertIcon size={12} /> No “{name.trim()}” on any ICN school page — pick the school and type the name as ICN has it.</span>
+                  : finding.matches.length > 1 && (
+                    <span className="icn-picks">
+                      {finding.matches.map((m) => (
+                        <button key={`${m.school}|${m.name}`} type="button" className="small ghost" onClick={() => setIcn({ school: m.school, name: m.name })}>
+                          {m.name} · {schoolName(m.school)}{m.grade ? ` · ${m.grade}` : ''}
+                        </button>
+                      ))}
+                    </span>
+                  )
+              )}
+              {finding?.status === 'error' && <span className="live-rating bad"><AlertIcon size={12} /> {finding.message}</span>}
+              {icn.school && icnLook.status === 'error' && icnLook.suggestions?.length > 0 && (
+                <span className="icn-picks">
+                  <span className="muted-note">Did you mean</span>
+                  {icnLook.suggestions.map((n) => (
+                    <button key={n} type="button" className="small ghost" onClick={() => setIcn({ name: n })}>{n}</button>
+                  ))}
+                </span>
+              )}
+              {icn.school && (
+                <LiveLine
+                  state={icnLook}
+                  render={(d) => `${d.name}${d.grade ? ` · ${d.grade}` : ''} — puzzles ${d.correct ?? 0} of ${d.attempted ?? 0}${accuracy(d.correct, d.attempted) != null ? ` (${Math.round(accuracy(d.correct, d.attempted))}%)` : ''} · PLW ${d.plw ?? 0} this week`}
+                />
+              )}
+            </div>
+          )}
         </div>
 
         <div className="modal-actions">

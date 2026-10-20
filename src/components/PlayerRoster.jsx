@@ -30,6 +30,7 @@ import { useMe } from '../lib/cloud/useMe';
 import { useGameLink } from './GameLinkProvider';
 import { parseMarks, withText } from '../lib/marks';
 import PlayerDashboard from './PlayerDashboard';
+import ChessKidPractice, { IcnChip, useIcnRefresh } from './ChessKidPractice';
 import { confirmMeta } from '../lib/uscfMatch';
 import { openReview } from './ReviewReader';
 import { reviewsOf, reviewHash } from '../lib/cloud/reviews';
@@ -395,8 +396,9 @@ function PlayerPage({
   // has sent games not yet seen, which are what the bell brought you for.
   const [tab, setTab] = useState(() => {
     if (initialTab === 'games' || initialTab === 'dashboard') return initialTab; // from a link
-    return String(player.profile?.uscf ?? '').replace(/\D/g, '') && !player.games.some((g) => g.link?.unseen)
-      ? 'dashboard' : 'games';
+    // …or their ChessKid practice from ICN.
+    const stats = String(player.profile?.uscf ?? '').replace(/\D/g, '') || player.profile?.icn?.school;
+    return stats && !player.games.some((g) => g.link?.unseen) ? 'dashboard' : 'games';
   });
   // The tab is part of the page's address (/coaches/<card>/games).
   useEffect(() => { onTabChange?.(tab); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -662,6 +664,9 @@ function PlayerPage({
         </button>
       </div>
 
+      {tab === 'dashboard' && player.kind === 'student' && (
+        <ChessKidPractice player={player} onEditProfile={onEditProfile} />
+      )}
       {tab === 'dashboard' && (
         <PlayerDashboard
           player={player}
@@ -1096,6 +1101,8 @@ export default function PlayerRoster({
   };
 
   const players = state.players.filter((p) => (p.kind ?? 'self') === kind);
+  // Students' ChessKid practice from ICN, kept no more than a few hours old.
+  useIcnRefresh(kind === 'student' ? players : []);
   const openPlayer = players.find((p) => p.id === openPlayerId);
   // A link to a card this account doesn't have (someone else's, or one not
   // synced here yet — it opens if it arrives).
@@ -1204,6 +1211,7 @@ export default function PlayerRoster({
                 )}
               </div>
               <ProfileLine profile={player.profile} />
+              <IcnChip card={player} />
             </div>
             <button
               className="small ghost"

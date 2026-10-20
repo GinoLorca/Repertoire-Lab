@@ -26,6 +26,13 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/uscf-root/, '/api/v1'),
       },
+      // A school's ICN numbers as the Chess Club Tracker publishes them
+      // (lib/icn.js; netlify/functions/icn.mjs in production).
+      '/icn-data': {
+        target: 'https://chess-club-leaderboard.netlify.app',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/icn-data/, '/data/icn'),
+      },
     },
   },
   build: {

@@ -6,6 +6,9 @@
 // own small function (netlify/functions/uscf.mjs) to fetch it instead. See
 // lib/uscf.js for what "live" means there.
 import { normalizeUscf } from './uscf';
+import {
+  ICN_SCHOOLS, isIcnSchool, matchesIn, studentStats, suggestions,
+} from './icn';
 
 async function getJson(url, ms = 12000) {
   const ctrl = new AbortController();
@@ -44,6 +47,39 @@ export async function fetchUscf(id) {
   }
 }
 
+// A student's ChessKid practice from their school's ICN page (lib/icn.js),
+// through the app's own function (netlify/functions/icn.mjs) — or, in local
+// development, straight from the tracker through Vite (vite.config.js).
+// A name not on the page throws with `suggestions`: names on it like it.
+export async function fetchIcn(school, name) {
+  const who = String(name ?? '').trim();
+  if (!isIcnSchool(school)) throw new Error('Pick the student’s ICN school.');
+  if (!who) throw new Error('Type their name as ICN lists it.');
+  if (import.meta.env?.DEV) {
+    const file = await getJson(`/icn-data/${school}.json`);
+    const stats = studentStats(file, who, school);
+    if (!stats) throw Object.assign(new Error(`${who} isn’t on that school’s ICN page.`), { suggestions: suggestions(file, who) });
+    return { ...stats, fetchedAt: Date.now() };
+  }
+  const res = await fetch(`/.netlify/functions/icn?school=${school}&name=${encodeURIComponent(who)}`, { headers: { accept: 'application/json' } });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw Object.assign(new Error(body?.error ?? `HTTP ${res.status}`), { suggestions: body?.suggestions ?? [] });
+  return { ...body, fetchedAt: Date.now() };
+}
+
+// Which ICN school pages list someone of this name: [{ school, name, grade }].
+export async function findIcn(name) {
+  const who = String(name ?? '').trim();
+  if (!who) return [];
+  if (import.meta.env?.DEV) {
+    const found = await Promise.all(ICN_SCHOOLS.map((s) => getJson(`/icn-data/${s.id}.json`)
+      .then((file) => matchesIn(file, who).map((m) => ({ ...m, school: s.id })))
+      .catch(() => [])));
+    return found.flat();
+  }
+  const body = await getJson(`/.netlify/functions/icn?find=${encodeURIComponent(who)}`);
+  return body?.matches ?? [];
+}
 
 export async function fetchChesscom(handle) {
   const name = String(handle ?? '').trim().replace(/^@/, '');
