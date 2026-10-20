@@ -2233,6 +2233,14 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 :root[data-skin="uptown"] [data-square] > div > div[style*="position: absolute"] {
   color: #141517 !important; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
+/* Ranks and files as line signs (components/Board.jsx: LineSigns), over the
+   squares and under any arrows or ink; a tap goes straight through. */
+.line-signs { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.line-sign {
+  position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700; line-height: 1;
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.35); user-select: none;
+}
 :root[data-skin="uptown"] [data-piece] svg { filter: drop-shadow(0 1.2px 0 rgba(0, 0, 0, 0.3)); }
 :root[data-skin="uptown"] [data-piece^="b"] svg { filter: drop-shadow(0 0 0.8px rgba(244, 244, 240, 0.92)) drop-shadow(0 1.2px 0 rgba(0, 0, 0, 0.3)); }
 :root[data-skin="uptown"] [data-piece="bK"] { --ux-pl: #ff6b5e; }

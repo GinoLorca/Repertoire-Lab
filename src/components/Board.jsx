@@ -12,6 +12,7 @@ import { TelestratorLayer } from './Telestrator';
 import {
   PENS, comboMatchesEvent, defaultPen, isComboKey, shortcutKey,
 } from '../lib/shortcuts';
+import { skinId } from '../lib/skins';
 
 export const DEFAULT_SQUARE_LIGHT = '#c6d3e1';
 export const DEFAULT_SQUARE_DARK = '#4a6a8f';
@@ -77,6 +78,50 @@ const highlightStyle = (base, color) => {
   const { background: _shorthand, ...rest } = base ?? {};
   return { ...rest, backgroundColor: `${color}66`, boxShadow: `inset 0 0 0 3px ${color}` };
 };
+
+// Uptown Express: the board's ranks and files as subway line signs — a
+// white number or letter on a disc of its line's colour, as Chess Arcade
+// draws them. There they sit in a strip outside the board; here they take
+// the corners the board's own coordinates use (numbers top-left down the
+// left edge, letters bottom-right along the bottom), so they're drawn as a
+// layer over the board instead of through react-chessboard's notation,
+// which has one style for both.
+const LINE_COLOR = {
+  1: '#ee352e', 2: '#ee352e', 3: '#ee352e',
+  4: '#00933c', 5: '#00933c', 6: '#00933c',
+  7: '#b933ad', 8: '#b933ad',
+  a: '#0039a6', c: '#0039a6', e: '#0039a6',
+  b: '#ff6319', d: '#ff6319', f: '#ff6319',
+  g: '#6cbe45', h: '#6cbe45',
+};
+
+function LineSigns({ boardWidth, orientation }) {
+  const sq = boardWidth / 8;
+  // About a quarter of a square — Chess Arcade's proportion — kept legible
+  // on a small board and not oversized on a big one.
+  const size = Math.round(Math.min(20, Math.max(9, sq * 0.24)));
+  const inset = Math.max(1.5, sq * 0.045);
+  const black = orientation === 'black';
+  const ranks = black ? '12345678' : '87654321'; // top to bottom
+  const files = black ? 'hgfedcba' : 'abcdefgh'; // left to right
+  const sign = (label, left, top) => (
+    <span
+      key={label}
+      className="line-sign"
+      style={{
+        left, top, width: size, height: size, fontSize: Math.round(size * 0.62), background: LINE_COLOR[label],
+      }}
+    >
+      {label.toUpperCase()}
+    </span>
+  );
+  return (
+    <div className="line-signs" aria-hidden="true">
+      {[...ranks].map((r, i) => sign(r, inset, i * sq + inset))}
+      {[...files].map((f, i) => sign(f, (i + 1) * sq - inset - size, boardWidth - inset - size))}
+    </div>
+  );
+}
 
 const squareAtPoint = (x, y) => document.elementFromPoint(x, y)
   ?.closest?.('[data-square]')?.getAttribute('data-square') ?? null;
@@ -172,6 +217,13 @@ export default function Board({
     return out;
   }, [markCheck, markLast, markBadge, lastMove?.from, lastMove?.to, badge, position, customSquareStyles, drawnSquares]);
 
+  const sized = typeof rest.boardWidth === 'number';
+  const orientation = rest.boardOrientation === 'black' ? 'black' : 'white';
+  // Uptown Express's coordinates are line signs (LineSigns above), on any
+  // board with a size to draw them at; the board's own step aside for them.
+  const lineSigns = sized && rest.showBoardNotation !== false && skinId(state.settings) === 'uptown';
+  const signs = lineSigns ? <LineSigns boardWidth={rest.boardWidth} orientation={orientation} /> : null;
+
   const board = (
     <Chessboard
       {...BOARD_THEME}
@@ -184,11 +236,9 @@ export default function Board({
       position={position}
       customSquareStyles={styles}
       {...rest}
+      {...(lineSigns ? { showBoardNotation: false } : {})}
     />
   );
-
-  const sized = typeof rest.boardWidth === 'number';
-  const orientation = rest.boardOrientation === 'black' ? 'black' : 'white';
 
   // Nothing to draw on: a board with no width of its own (the piece editor,
   // the theme preview in Settings) can't host a correctly sized overlay, and
@@ -204,15 +254,23 @@ export default function Board({
       setSquares={setDrawnSquares}
     >
       {board}
+      {signs}
     </DrawableBoard>
   );
-  if (!sized || !telestrator) return drawn;
+  // A board without the arrow layer carries the signs itself.
+  const ownSigns = !ownArrows && signs;
+  if (!sized || !telestrator) {
+    return ownSigns
+      ? <div className="line-sign-host" style={{ position: 'relative', width: rest.boardWidth, height: rest.boardWidth }}>{drawn}{signs}</div>
+      : drawn;
+  }
 
   // The telestrator's ink (components/Telestrator.jsx) sits over every sized
   // board; it's invisible and lets everything through until it's switched on.
   return (
     <div className="tele-host" style={{ position: 'relative', width: rest.boardWidth, height: rest.boardWidth }}>
       {drawn}
+      {ownSigns}
       <TelestratorLayer
         boardWidth={rest.boardWidth}
         orientation={orientation}
