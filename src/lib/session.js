@@ -15,12 +15,16 @@
 // pull each other to different screens.
 //
 // Parts, each written by whoever owns it:
-//   nav      — the screen (App.jsx): view, section, player, chapter, the line
-//              or game on the analysis board, scroll position
+//   nav      — the screen (App.jsx): view, section, player, chapter, scroll
+//              position
+//   boards   — what's on the analysis board and on Studio's (App.jsx): each
+//              one's line or game and Lab entry — kept whatever screen the
+//              app reopens on, so neither board empties itself
 //   practice — a practice session's queue and how far through it (PracticeView)
 //   editor   — the Board Editor's unsaved set-up (BoardEditor)
-// The analysis board's own work is kept in the store (analysisSessionDraft),
-// alongside the blank board's analysisDraft.
+// Each board's own work is kept in the store: the analysis board's in
+// analysisSessionDraft and the blank board's analysisDraft, Studio's in
+// studioSessionDraft and studioDraft.
 
 const KEY = 'repertoire-lab-session-v1';
 
@@ -77,4 +81,44 @@ export function analysisSourceKey(line, lab, studio) {
   if (!line) return null;
   if (line.gameId && line.playerId) return `game:${line.playerId}:${line.gameId}:${studio ? 'studio' : 'plain'}`;
   return `line:${line.startFen ?? ''}|${(line.moves ?? []).join(' ')}|${line.name ?? ''}`;
+}
+
+// ---------- Analysis and Studio, two boards ----------
+//
+// Studio was once a setting on the one analysis board, and what was on the
+// board went with it: a session saved then has the board's line and Lab
+// entry in `nav`, and `coachStudio` saying whether it was Studio. Whatever
+// was on that board belongs to the board it was.
+const NO_BOARDS = {
+  analysisLine: null, analysisLabId: null, studioLine: null, studioLabId: null,
+};
+export function boardsFromNav(nav) {
+  if (!nav) return { ...NO_BOARDS };
+  const on = { line: nav.analysisLine ?? null, labId: nav.analysisLabId ?? null };
+  return nav.coachStudio
+    ? { ...NO_BOARDS, studioLine: on.line, studioLabId: on.labId }
+    : { ...NO_BOARDS, analysisLine: on.line, analysisLabId: on.labId };
+}
+
+// The analysis screen's tab in such a session: Studio's own, when Studio
+// was the board on screen.
+export function subFromNav(nav) {
+  if (!nav) return null;
+  if (nav.coachStudio && nav.view === 'analysis' && !nav.sub) return 'studio';
+  return nav.sub ?? null;
+}
+
+// The store's drafts from before the split (no studioDraft yet): the one
+// board's drafts are Studio's when Studio was that board — the blank one's
+// only when Studio was blank. Null once they're split.
+export function splitDrafts(saved, nav) {
+  if (!saved || 'studioDraft' in saved) return null;
+  const studio = Boolean(nav?.coachStudio);
+  const blankStudio = studio && !nav.analysisLine && !nav.analysisLabId;
+  return {
+    analysisDraft: blankStudio ? null : saved.analysisDraft ?? null,
+    studioDraft: blankStudio ? saved.analysisDraft ?? null : null,
+    analysisSessionDraft: studio ? null : saved.analysisSessionDraft ?? null,
+    studioSessionDraft: studio ? saved.analysisSessionDraft ?? null : null,
+  };
 }

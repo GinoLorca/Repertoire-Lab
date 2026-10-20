@@ -26,7 +26,7 @@ import { ReviewReaderHost, openReview } from './components/ReviewReader';
 import { TelestratorProvider } from './components/Telestrator';
 import TouchTestView from './views/TouchTestView';
 import {
-  loadSession, saveSessionPart, shouldRestore, markBootResume,
+  loadSession, saveSessionPart, shouldRestore, markBootResume, boardsFromNav, subFromNav,
 } from './lib/session';
 
 // What the dot on the Settings icon means.
@@ -57,10 +57,18 @@ function AppInner() {
     if (saved.view === 'analysis' && saved.sub === 'editor') markBootResume('editor');
     return saved;
   });
+  // What's on each board — the analysis board and Studio's — kept whatever
+  // screen the app opens on. A session from before Studio was a board of its
+  // own has it in `nav` (lib/session.js).
+  const [boards] = useState(() => {
+    if (typeof window === 'undefined') return boardsFromNav(null);
+    const all = loadSession();
+    return all.boards ?? boardsFromNav(all.nav);
+  });
   const [route] = useState(() => (boot
     ? {
       view: boot.view,
-      sub: boot.sub ?? null,
+      sub: subFromNav(boot),
       chapterNav: boot.chapterNav ?? null,
       player: boot.player ?? null,
       position: boot.position ?? null,
@@ -95,7 +103,7 @@ function AppInner() {
   const [practiceScope, setPracticeScope] = useState(
     () => (boot?.view === 'practice' && boot.practiceScope != null ? boot.practiceScope : undefined),
   );
-  const [analysisLine, setAnalysisLine] = useState(() => boot?.analysisLine ?? null);
+  const [analysisLine, setAnalysisLine] = useState(() => boards.analysisLine ?? null);
   const [verifyDraft, setVerifyDraft] = useState(null);
   // A photo archived earlier from "Scan this photo" on a game with no moves
   // yet — carried to Import so it can be fed straight into the OCR pipeline.
@@ -117,12 +125,15 @@ function AppInner() {
   // Back returns to whoever's were open at that step.
   const [editorScope, setEditorScope] = useState(() => boot?.editorScope ?? null);
   // A saved Lab session being reopened on the analysis board.
-  const [analysisLab, setAnalysisLab] = useState(
-    () => (boot?.analysisLabId ? (state.labEntries ?? []).find((e) => e.id === boot.analysisLabId) ?? null : null),
-  );
-  // Opened via Coaches Corner's Studio button: a blank board with the
-  // annotate rail and Lichess/repertoire import switched on.
-  const [coachStudio, setCoachStudio] = useState(() => Boolean(boot?.coachStudio));
+  const labById = (id) => (id ? (state.labEntries ?? []).find((e) => e.id === id) ?? null : null);
+  const [analysisLab, setAnalysisLab] = useState(() => labById(boards.analysisLabId));
+  // Studio: a board of its own — the analysis screen's Studio tab (sub
+  // 'studio'), with the annotate rail, workspaces and Lichess/repertoire
+  // import — and what's on it: a game, a Lab entry, or a blank board. Going
+  // to the analysis board never takes it away, and coming back finds it.
+  const [studioLine, setStudioLine] = useState(() => boards.studioLine ?? null);
+  const [studioLab, setStudioLab] = useState(() => labById(boards.studioLabId));
+  const inStudio = view === 'analysis' && sub === 'studio';
   // "Copied" for a second after the link button is used.
   const [linkCopied, setLinkCopied] = useState(false);
 
@@ -324,9 +335,6 @@ function AppInner() {
     position: positionNav,
     setup: setupNav,
     practiceScope: practiceScope ?? null,
-    analysisLine,
-    analysisLabId: analysisLab?.id ?? null,
-    coachStudio,
     libraryScope,
     collectionsScope,
     editorScope,
@@ -336,8 +344,13 @@ function AppInner() {
   navSnapshotRef.current = navSnapshot;
   useEffect(() => {
     saveSessionPart('nav', navSnapshot());
-  }, [view, sub, positionNav, setupNav, chapterNav, playerNav, practiceScope, analysisLine, analysisLab, coachStudio, // eslint-disable-line react-hooks/exhaustive-deps
+  }, [view, sub, positionNav, setupNav, chapterNav, playerNav, practiceScope, // eslint-disable-line react-hooks/exhaustive-deps
     libraryScope, collectionsScope, editorScope]);
+  useEffect(() => {
+    saveSessionPart('boards', {
+      analysisLine, analysisLabId: analysisLab?.id ?? null, studioLine, studioLabId: studioLab?.id ?? null,
+    });
+  }, [analysisLine, analysisLab, studioLine, studioLab]);
   useEffect(() => {
     const keep = () => saveSessionPart('nav', navSnapshotRef.current());
     const onVisibility = () => { if (document.hidden) keep(); };
@@ -380,9 +393,11 @@ function AppInner() {
     // (Named `player` so pathFor reads it straight off a snapshot.)
     player: openPlayerNav,
     practiceScope,
+    // Both boards as they were, so Back comes back to what was on them.
     analysisLine,
-    // Back into a Studio session comes back to Studio, not a plain board.
-    coachStudio,
+    analysisLab,
+    studioLine,
+    studioLab,
     editorScope,
     scrollY: window.scrollY,
     chapterId: view === 'chapter' ? chapterNav?.chapterId : null,
@@ -417,8 +432,10 @@ function AppInner() {
     setChapterNav(prev.chapterNav);
     setPlayerNav(prev.player ?? null);
     setPracticeScope(prev.practiceScope);
-    setAnalysisLine(prev.analysisLine);
-    setCoachStudio(Boolean(prev.coachStudio));
+    setAnalysisLine(prev.analysisLine ?? null);
+    setAnalysisLab(prev.analysisLab ?? null);
+    setStudioLine(prev.studioLine ?? null);
+    setStudioLab(prev.studioLab ?? null);
     setEditorScope(prev.editorScope ?? null);
     setView(prev.view);
     pendingScroll.current = prev.scrollY;
@@ -515,10 +532,7 @@ function AppInner() {
       // gameId/playerId (only set for a real saved game, not a repertoire
       // line or a blank board) let the board edit that game's notes/themes
       // in place instead of just displaying a snapshot of them.
-      setAnalysisLab(null);
-      setCoachStudio(studio);
-      setEditorScope(null);
-      setAnalysisLine({
+      const onBoard = {
         name: line.name,
         moves: line.moves,
         meta: line.meta ?? null,
@@ -551,7 +565,18 @@ function AppInner() {
         // A review continued from Coaches Corner opens on the move it was
         // left on (lib/reviewsInProgress.js).
         resumePath: line.resumePath ?? null,
-      });
+      };
+      // Onto Studio's board, or the analysis board — never both.
+      if (studio) {
+        setStudioLab(null);
+        setStudioLine(onBoard);
+        setSub('studio');
+      } else {
+        setAnalysisLab(null);
+        setAnalysisLine(onBoard);
+        setSub(null);
+      }
+      setEditorScope(null);
       setView('analysis');
     });
   };
@@ -579,23 +604,29 @@ function AppInner() {
   });
 
   // Reopen a saved Lab session: its own moves, marks and notes, and no
-  // repertoire line underneath it.
+  // repertoire line underneath it — on Studio's board if it was saved there.
   const openLab = (entry) => {
     go(() => {
-      setAnalysisLine(null);
-      setAnalysisLab(entry);
-      setCoachStudio(!!entry.coach);
+      if (entry.coach) {
+        setStudioLine(null);
+        setStudioLab(entry);
+        setSub('studio');
+      } else {
+        setAnalysisLine(null);
+        setAnalysisLab(entry);
+        setSub(null);
+      }
       setEditorScope(null);
       setView('analysis');
     });
   };
 
+  // Coaches Corner's Studio button: Studio as it was left — a game, a Lab
+  // entry, or a blank board. Reset there starts it over.
   const openStudio = () => {
     go(() => {
-      setAnalysisLine(null);
-      setAnalysisLab(null);
-      setCoachStudio(true);
       setEditorScope(null);
+      setSub('studio');
       setView('analysis');
     });
   };
@@ -620,9 +651,6 @@ function AppInner() {
   // "Lessons" on a student's page: the Board Editor, on their lessons.
   const openLessonsFor = (studentId) => {
     go(() => {
-      setAnalysisLine(null);
-      setAnalysisLab(null);
-      setCoachStudio(false);
       setEditorScope(studentId);
       setSub('editor');
       setPositionNav(null);
@@ -649,7 +677,8 @@ function AppInner() {
   }, []);
   openLibraryRef.current = openLibraryFor;
   const navTo = (v, subTab = null) => {
-    if (v === view && (!subTab || subTab === sub)) return;
+    // (Analysis from Studio is the analysis board, a board away.)
+    if (v === view && (!subTab || subTab === sub) && !(v === 'analysis' && sub === 'studio')) return;
     go(() => {
       if (v === 'practice') setPracticeScope(undefined);
       setSub(subTab);
@@ -893,13 +922,19 @@ function AppInner() {
             // One board per saved game: a different game — Back to an earlier
             // one, say — opens fresh from the store instead of inheriting this
             // one's moves, notes and drawings.
-            key={analysisLab?.id
-              ?? (analysisLine?.gameId ? `g:${analysisLine.playerId}:${analysisLine.gameId}` : 'board')}
-            initialLine={analysisLine}
-            initialLab={analysisLab}
-            coachMode={coachStudio}
-            mode={sub}
-            onModeChange={setSub}
+            // Studio's board and the analysis board are never the same one.
+            key={inStudio
+              ? `studio:${studioLab?.id ?? (studioLine?.gameId ? `g:${studioLine.playerId}:${studioLine.gameId}` : 'board')}`
+              : analysisLab?.id ?? (analysisLine?.gameId ? `g:${analysisLine.playerId}:${analysisLine.gameId}` : 'board')}
+            initialLine={inStudio ? studioLine : analysisLine}
+            initialLab={inStudio ? studioLab : analysisLab}
+            coachMode={inStudio}
+            mode={inStudio ? null : sub}
+            // Studio is one tab, with no modes of its own to report.
+            onModeChange={(m) => { if (!inStudio) setSub(m); }}
+            // Between the analysis board's tabs and Studio's — the board
+            // being left keeps what's on it.
+            onBoard={(m) => setSub(m === 'engine' ? null : m)}
             positionId={positionNav}
             onPositionChange={setPositionNav}
             setupSlug={setupNav}

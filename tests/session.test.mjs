@@ -11,6 +11,7 @@ globalThis.window = {
 };
 const {
   loadSession, saveSessionPart, shouldRestore, markBootResume, takeBootResume, analysisSourceKey,
+  boardsFromNav, subFromNav, splitDrafts,
 } = await import('../src/lib/session.js');
 
 test('parts are kept apart, stamped, and removed with null', () => {
@@ -49,4 +50,53 @@ test('the analysis board knows whose work it holds', () => {
     'Studio and plain analysis of a game are kept apart',
   );
   assert.equal(analysisSourceKey({ name: 'Main', moves: ['e4', 'c6'] }, null, false), 'line:|e4 c6|Main');
+});
+
+test('from one board to two: what was on it goes to the board it was', () => {
+  const game = { name: 'Jojo vs Sam', gameId: 'g', playerId: 'p', moves: ['e4'] };
+  // Studio on a game, left on the analysis screen.
+  const studio = { view: 'analysis', sub: null, coachStudio: true, analysisLine: game, analysisLabId: null };
+  assert.deepEqual(boardsFromNav(studio), {
+    analysisLine: null, analysisLabId: null, studioLine: game, studioLabId: null,
+  });
+  assert.equal(subFromNav(studio), 'studio', 'reopens on the Studio tab');
+  // The analysis board with a Lab entry on it.
+  const plain = { view: 'analysis', sub: null, coachStudio: false, analysisLine: null, analysisLabId: 'L1' };
+  assert.deepEqual(boardsFromNav(plain), {
+    analysisLine: null, analysisLabId: 'L1', studioLine: null, studioLabId: null,
+  });
+  assert.equal(subFromNav(plain), null);
+  // Studio on, but the Board Editor open: still the editor; Studio elsewhere.
+  assert.equal(subFromNav({ ...studio, view: 'games' }), null);
+  assert.equal(subFromNav({ ...studio, sub: 'editor' }), 'editor');
+  // New sessions keep their tab as is.
+  assert.equal(subFromNav({ view: 'analysis', sub: 'studio' }), 'studio');
+  assert.equal(subFromNav(null), null);
+  assert.deepEqual(boardsFromNav(null), {
+    analysisLine: null, analysisLabId: null, studioLine: null, studioLabId: null,
+  });
+});
+
+test('the store’s drafts split the same way, once', () => {
+  const blank = { tree: { id: 'root' }, labTitle: 'Before class' };
+  const session = { source: 'game:p:g:studio', head: 'n3' };
+  // A blank Studio board: its draft is Studio's.
+  assert.deepEqual(splitDrafts({ analysisDraft: blank, analysisSessionDraft: null }, { coachStudio: true }), {
+    analysisDraft: null, studioDraft: blank, analysisSessionDraft: null, studioSessionDraft: null,
+  });
+  // Studio on a game: the game's session is Studio's; the blank board's
+  // draft stays the analysis board's.
+  assert.deepEqual(
+    splitDrafts({ analysisDraft: blank, analysisSessionDraft: session }, { coachStudio: true, analysisLine: { gameId: 'g' } }),
+    {
+      analysisDraft: blank, studioDraft: null, analysisSessionDraft: null, studioSessionDraft: session,
+    },
+  );
+  // The analysis board: everything stays.
+  assert.deepEqual(splitDrafts({ analysisDraft: blank, analysisSessionDraft: session }, { coachStudio: false }), {
+    analysisDraft: blank, studioDraft: null, analysisSessionDraft: session, studioSessionDraft: null,
+  });
+  // Already split, or nothing saved: nothing to do.
+  assert.equal(splitDrafts({ analysisDraft: blank, studioDraft: null }, { coachStudio: true }), null);
+  assert.equal(splitDrafts(null, { coachStudio: true }), null);
 });

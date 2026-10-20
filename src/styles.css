@@ -2974,6 +2974,12 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   font-weight: 600; font-size: 13.5px; padding: 6px 12px; border-radius: 7px;
 }
 .mode-tabs button.active { background: var(--accent-dim); color: #fff; }
+/* Four tabs on a phone: each on one line, closer together — and the strip
+   scrolls sideways rather than wrapping a label onto two lines. */
+@media (max-width: 600px) {
+  .mode-tabs { max-width: 100%; overflow-x: auto; gap: 2px; }
+  .mode-tabs button { white-space: nowrap; padding: 6px 9px; font-size: 13px; flex: 0 0 auto; }
+}
 
 /* ---------- Board Editor ---------- */
 

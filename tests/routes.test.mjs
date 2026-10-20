@@ -6,6 +6,9 @@ import { parsePath, pathFor } from '../src/lib/routes.js';
 test('sections and their sub-modes round-trip', () => {
   assert.deepEqual(parsePath('/analysis/editor'), { view: 'analysis', sub: 'editor' });
   assert.equal(pathFor({ view: 'analysis', sub: 'editor' }), '/analysis/editor');
+  // Studio: the analysis screen's fourth tab, a board of its own.
+  assert.deepEqual(parsePath('/analysis/studio'), { view: 'analysis', sub: 'studio' });
+  assert.equal(pathFor({ view: 'analysis', sub: 'studio' }), '/analysis/studio');
   assert.deepEqual(parsePath('/chapter/o1/c2'), { view: 'chapter', chapterNav: { openingId: 'o1', chapterId: 'c2' } });
   assert.deepEqual(parsePath('/'), { view: 'library' });
   assert.deepEqual(parsePath('/nowhere'), { view: 'library' });

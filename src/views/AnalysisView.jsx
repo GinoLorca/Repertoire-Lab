@@ -107,17 +107,6 @@ function drawingsFromComments(sans, comments, startFen = START_FEN) {
 
 const EMPTY_MARKS = { arrows: [], squares: {} };
 
-// A flag on `window` itself, not a module-level variable and not component
-// state: it needs to survive anything short of an actual navigation. A plain
-// `let` up here looked right but isn't — Vite's dev-mode Fast Refresh
-// re-executes a changed module's top-level code to hot-swap it, which resets
-// a module-level variable back to its initial value with no reload at all,
-// so mid-session edits kept quietly re-arming "resume" while testing. window
-// is the one thing that's actually scoped to "this tab hasn't navigated
-// since the last real load" — HMR replaces module code without touching it,
-// and only a genuine navigation gets a fresh one.
-const RESUME_FLAG = '__rlAnalysisDraftResumed';
-
 // Best move, second, third — three hues rather than three blues, so a glance at
 // the board tells you which arrow is which line. Read on light and dark squares.
 const ARROW_COLORS = [
@@ -139,7 +128,7 @@ function treeFor(line) {
 
 export default function AnalysisView({
   initialLine, initialLab, coachMode, mode: routeMode, onModeChange, positionId, onPositionChange,
-  setupSlug, onSetupChange, editorScope = null, onEditorScopeChange,
+  setupSlug, onSetupChange, editorScope = null, onEditorScopeChange, onBoard,
 }) {
   const { state, dispatch, saveNow } = useStore();
   // Nothing explicit was asked for — a blank "Analysis" open or a Coaches
@@ -148,20 +137,24 @@ export default function AnalysisView({
   // an inactive tab or home-screen app from scratch under memory pressure,
   // which would otherwise wipe every move just played with nothing saved.
   // A reload (pull-to-refresh, a new build) keeps it too: none of those is
-  // you closing the app (lib/session.js). Reset is how a board starts over.
-  const blankDraft = (!initialLine && !initialLab && !window[RESUME_FLAG])
-    ? (state.analysisDraft ?? null) : null;
-  window[RESUME_FLAG] = true;
+  // you closing the app (lib/session.js) — and so does going somewhere else
+  // in the app and coming back, or over to Studio's board and back. Reset is
+  // how a board starts over. Studio (coachMode) is a board of its own, with
+  // its own drafts: nothing on it shows up here, or the other way round.
+  const blankDraft = (!initialLine && !initialLab)
+    ? ((coachMode ? state.studioDraft : state.analysisDraft) ?? null) : null;
+  const draftBoard = coachMode ? 'studio' : undefined;
   // Any other board — a game from a student's card, a repertoire line, a Lab
-  // entry — keeps its work too, in analysisSessionDraft, under what it's the
-  // board of: open that same thing again (or come back to it after iOS
-  // closed the app) and it's as you left it. In Studio on a game the notes,
-  // badges and drawings are already saved on the game as you go, so only
-  // where you were comes back — unless the board had been switched to
-  // something else, which then comes back whole and not attached to the game.
+  // entry — keeps its work too, in analysisSessionDraft (Studio's in
+  // studioSessionDraft), under what it's the board of: open that same thing
+  // again (or come back to it after iOS closed the app) and it's as you left
+  // it. In Studio on a game the notes, badges and drawings are already saved
+  // on the game as you go, so only where you were comes back — unless the
+  // board had been switched to something else, which then comes back whole
+  // and not attached to the game.
   const sourceKey = analysisSourceKey(initialLine, initialLab, coachMode);
   const [resumed] = useState(() => {
-    const d = state.analysisSessionDraft;
+    const d = coachMode ? state.studioSessionDraft : state.analysisSessionDraft;
     return sourceKey && d?.source === sourceKey ? d : null;
   });
   const studioGame = Boolean(coachMode && initialLine?.gameId && initialLine?.playerId);
@@ -452,6 +445,7 @@ export default function AnalysisView({
     if (sourceKey) {
       dispatch({
         type: 'setAnalysisSessionDraft',
+        board: draftBoard,
         draft: {
           source: sourceKey,
           detached,
@@ -479,6 +473,7 @@ export default function AnalysisView({
       && Object.keys(annotations).length === 0;
     dispatch({
       type: 'setAnalysisDraft',
+      board: draftBoard,
       draft: empty ? null : {
         baseFen, tree, head, orientation, moveNotes, moveBadges, variationHighlights, annotations, moments, labId,
         labTitle, labNote,
@@ -1734,16 +1729,37 @@ export default function AnalysisView({
   ) * 8;
   const totals = explorer ? explorer.white + explorer.draws + explorer.black : 0;
 
+  // The screen's tabs: the analysis board's three, and Studio — a board of
+  // its own (App keeps the two apart), so going from one to the other takes
+  // nothing with it and coming back finds it as it was.
+  const TABS = [
+    ['engine', 'Engine'],
+    ['compare', 'Compare lines', 'Put two similar lines side by side and see exactly where they part'],
+    ['editor', 'Board Editor'],
+    ['studio', 'Studio', 'Annotate games and lessons for students — a board of its own, kept as you left it'],
+  ];
+  const screenTab = coachMode ? 'studio' : mode;
+  const pickTab = (tab) => {
+    if (tab === screenTab) return;
+    if (coachMode || tab === 'studio') onBoard?.(tab); // over to the other board
+    else setMode(tab);
+  };
+  const modeTabs = (
+    <div className="mode-tabs">
+      {TABS.map(([tab, label, title]) => (
+        <button key={tab} type="button" className={tab === screenTab ? 'active' : undefined} title={title} onClick={() => pickTab(tab)}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
   if (mode === 'compare') {
     return (
       <div className="page wide">
         <div className="page-head">
           <h1>Analysis</h1>
-          <div className="mode-tabs">
-            <button onClick={() => setMode('engine')}>Engine</button>
-            <button className="active">Compare lines</button>
-            <button onClick={() => setMode('editor')}>Board Editor</button>
-          </div>
+          {modeTabs}
         </div>
         <CompareView onAnalyze={(v, color) => { setMode('engine'); loadLine(v, color); }} />
       </div>
@@ -1755,11 +1771,7 @@ export default function AnalysisView({
       <div className="page wide editor-page" ref={setEditorPageEl}>
         <div className="page-head">
           <h1>Analysis</h1>
-          <div className="mode-tabs">
-            <button onClick={() => setMode('engine')}>Engine</button>
-            <button onClick={() => setMode('compare')}>Compare lines</button>
-            <button className="active">Board Editor</button>
-          </div>
+          {modeTabs}
         </div>
         <BoardEditor
           // Well over half again Engine mode's board — see editorBoardWidth.
@@ -2780,17 +2792,8 @@ export default function AnalysisView({
       }}
     >
       <div className="page-head analysis-head">
-        <h1>Analysis</h1>
-        <div className="mode-tabs">
-          <button className="active">Engine</button>
-          <button
-            title="Put two similar lines side by side and see exactly where they part"
-            onClick={() => setMode('compare')}
-          >
-            Compare lines
-          </button>
-          <button onClick={() => setMode('editor')}>Board Editor</button>
-        </div>
+        <h1>{coachMode ? 'Studio' : 'Analysis'}</h1>
+        {modeTabs}
         <button
           title={isStandardStart(baseFen)
             ? "Save this game to your Games tab, or a student's profile in Coaches"

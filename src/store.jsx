@@ -17,6 +17,7 @@ import {
   recyclePositions, folderOrderFor, withFolderOrder,
 } from './lib/savedPositions';
 import { startReview, touchReview, endReview } from './lib/reviewsInProgress';
+import { loadSession, splitDrafts } from './lib/session';
 
 const STORAGE_KEY = 'repertoire-lab-state-v1';
 
@@ -58,6 +59,10 @@ export function emptyState() {
     // what it's the board of — see AnalysisView and lib/session.js. This
     // device's own, like analysisDraft: never synced.
     analysisSessionDraft: null,
+    // The same two for Studio, a board of its own: what's on it never shows
+    // up on the analysis board, or the other way round.
+    studioDraft: null,
+    studioSessionDraft: null,
     // Board Editor positions saved for reuse — an endgame set up for a class,
     // a recurring structure, whatever's worth not rebuilding by hand again.
     // One filed for a student carries their card id as ownerId, and its
@@ -1366,10 +1371,15 @@ function reduce(state, action) {
     // switching apps mid-session) comes back exactly where it was instead of
     // a blank board. Overwritten on every change; cleared once the session
     // is explicitly saved to the Lab or abandoned with Reset.
+    // `board: 'studio'` for Studio's own.
     case 'setAnalysisDraft':
-      return { ...state, analysisDraft: action.draft };
+      return action.board === 'studio'
+        ? { ...state, studioDraft: action.draft }
+        : { ...state, analysisDraft: action.draft };
     case 'setAnalysisSessionDraft':
-      return { ...state, analysisSessionDraft: action.draft };
+      return action.board === 'studio'
+        ? { ...state, studioSessionDraft: action.draft }
+        : { ...state, analysisSessionDraft: action.draft };
     // A saved position keeps the arrows and highlighted squares drawn on it
     // in the Board Editor, in the same form Analysis draws in ([[from, to,
     // colour]] and { square: colour }) so they go straight across. Positions
@@ -1466,7 +1476,9 @@ export function StoreProvider({ children }) {
     (async () => {
       let saved = null;
       try { saved = await get(STORAGE_KEY); } catch { saved = null; }
-      const base = saved ?? emptyState();
+      // Drafts saved when Studio and the analysis board were one board go to
+      // the board they were on (lib/session.js) — once.
+      const base = { ...(saved ?? emptyState()), ...(splitDrafts(saved, loadSession().nav) ?? {}) };
       const settings = { ...DEFAULT_SETTINGS, ...(base.settings ?? {}) };
       // There was a time before themes, and a state saved then has no `skin`
       // at all. Filling that gap from the defaults would hand a theme to

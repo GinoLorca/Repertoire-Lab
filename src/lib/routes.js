@@ -34,7 +34,8 @@ const VIEW_TO_PATH = Object.fromEntries(VIEW_PATHS);
 // that position is ignored rather than trusted — a link is an input like any
 // other, and a bad one should land you on the section, not in a broken state.
 export const SUB_VIEWS = {
-  analysis: ['engine', 'compare', 'editor'],
+  // Studio is the analysis screen's fourth tab: a board of its own.
+  analysis: ['engine', 'compare', 'editor', 'studio'],
   settings: ['account', 'appearance', 'themes', 'board', 'trainer', 'analysis', 'keyboard', 'explorer', 'sounds', 'data'],
 };
 
