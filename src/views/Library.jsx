@@ -2045,7 +2045,7 @@ function ShareRepertoire({ myOpenings, students, allOpenings, lockedTo, onClose,
         <h3>Give your lines to students</h3>
         <p className="hint">
           Tick a whole opening, a chapter, or single lines. The moves, comments and badges are
-          copied across; progress isn't — recall belongs to whoever does the practising. After this
+          copied across; progress isn't — recall belongs to whoever does the practicing. After this
           the two repertoires are completely separate: editing one never touches the other.
         </p>
 

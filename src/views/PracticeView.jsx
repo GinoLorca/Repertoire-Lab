@@ -454,7 +454,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   const [pickedSquare, setPickedSquare] = useState(null);
   const [pendingPromotion, setPendingPromotion] = useState(null); // {from, to, color} awaiting a piece choice
   const [tagOpen, setTagOpen] = useState(false);
-  // "Give to student" on the line being practised (components/GiveToStudent).
+  // "Give to student" on the line being practiced (components/GiveToStudent).
   const [giving, setGiving] = useState(false);
   const hasStudents = state.players.some((p) => p.kind === 'student');
   // Timed moves: when the clock expires the move plays itself. `deadline` is

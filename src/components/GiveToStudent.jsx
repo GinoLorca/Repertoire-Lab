@@ -9,7 +9,7 @@ import Avatar from './Avatar';
 import { UsersIcon, CheckIcon } from './Icons';
 
 // One line of your repertoire, handed to one student in one tap — from the
-// line on a chapter page, or from the board while practising it.
+// line on a chapter page, or from the board while practicing it.
 //
 // It goes through the same copy as the Library's "Give to students"
 // (copyOpeningsToPlayers in store.jsx): the student gets the opening (same
