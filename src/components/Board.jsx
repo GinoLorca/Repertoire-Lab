@@ -13,6 +13,9 @@ import {
   PENS, comboMatchesEvent, defaultPen, isComboKey, shortcutKey,
 } from '../lib/shortcuts';
 import { skinId } from '../lib/skins';
+import {
+  profileOf, drawArrow, drawSquare, applyColors, colorOfNext, squareMarkStyle,
+} from '../lib/arrowProfiles';
 
 export const DEFAULT_SQUARE_LIGHT = '#c6d3e1';
 export const DEFAULT_SQUARE_DARK = '#4a6a8f';
@@ -71,13 +74,18 @@ function heldPen(settings, e) {
   return null;
 }
 
-// A highlighted square, the way the analysis board draws one: a wash of the
-// pen's colour with a ring of it round the edge. A longhand colour, not the
+// A highlighted square, the way the analysis board draws one (stronger, with
+// a halo, while an arrow colour profile is on). A longhand colour, not the
 // `background` shorthand, so a badge's glyph on the same square survives.
-const highlightStyle = (base, color) => {
+const highlightStyle = (base, color, profile) => {
   const { background: _shorthand, ...rest } = base ?? {};
-  return { ...rest, backgroundColor: `${color}66`, boxShadow: `inset 0 0 0 3px ${color}` };
+  return { ...rest, ...squareMarkStyle(color, profile) };
 };
+const NO_DRAWING = { arrows: [], squares: {} };
+// The position a board shows, as a FEN — for Strategic arrow colours.
+const fenOf = (position) => (position === 'start'
+  ? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+  : typeof position === 'string' ? position : null);
 
 // Uptown Express: the board's ranks and files as subway line signs — a
 // white number or letter on a disc of its line's colour, as Chess Arcade
@@ -155,10 +163,19 @@ export default function Board({
   position, customSquareStyles, lastMove, badge, ownArrows = true, marks = null, telestrator = true, ...rest
 }) {
   const { state } = useStore();
-  // Highlights right-clicked onto this board (see DrawableBoard): square →
-  // colour. Kept here so they go into the squares' own styles, under the
+  // What's right-clicked onto this board (see DrawableBoard): its arrows and
+  // squares, in the arrow colour profile's colours (lib/arrowProfiles.js).
+  // Kept here so the squares go into the squares' own styles, under the
   // pieces, like everything else drawn on a square.
-  const [drawnSquares, setDrawnSquares] = useState({});
+  const [drawing, setDrawing] = useState(NO_DRAWING);
+  const profile = profileOf(state.settings);
+  // A switch of profile recolours what's drawn.
+  const profileSeen = useRef(profile);
+  useEffect(() => {
+    if (profileSeen.current === profile) return;
+    profileSeen.current = profile;
+    setDrawing((d) => applyColors(d, fenOf(position), profile));
+  }, [profile]); // eslint-disable-line react-hooks/exhaustive-deps
   const markCheck = state.settings.checkHighlight !== false;
   const markLast = state.settings.lastMoveHighlight !== false;
   const markBadge = state.settings.showBoardBadges !== false;
@@ -211,11 +228,11 @@ export default function Board({
     }
 
     // Drawn just now, so on top.
-    for (const [sq, color] of Object.entries(drawnSquares)) {
-      out = { ...out, [sq]: highlightStyle(out?.[sq], color) };
+    for (const [sq, color] of Object.entries(drawing.squares)) {
+      out = { ...out, [sq]: highlightStyle(out?.[sq], color, profile) };
     }
     return out;
-  }, [markCheck, markLast, markBadge, lastMove?.from, lastMove?.to, badge, position, customSquareStyles, drawnSquares]);
+  }, [markCheck, markLast, markBadge, lastMove?.from, lastMove?.to, badge, position, customSquareStyles, drawing.squares, profile]);
 
   const sized = typeof rest.boardWidth === 'number';
   const orientation = rest.boardOrientation === 'black' ? 'black' : 'white';
@@ -250,8 +267,9 @@ export default function Board({
       position={position}
       marks={marks}
       settings={state.settings}
-      squares={drawnSquares}
-      setSquares={setDrawnSquares}
+      profile={profile}
+      drawing={drawing}
+      setDrawing={setDrawing}
     >
       {board}
       {signs}
@@ -297,9 +315,8 @@ export default function Board({
 // touch screen has no right button) a tap on one square and then another is
 // an arrow, the same square twice a highlight.
 function DrawableBoard({
-  boardWidth, orientation, position, marks, settings, squares, setSquares, children,
+  boardWidth, orientation, position, marks, settings, profile, drawing, setDrawing, children,
 }) {
-  const [arrows, setArrows] = useState([]);
   const [pending, setPending] = useState(null); // { from, to, color } while dragging
   const [tapFrom, setTapFrom] = useState(null); // tap-to-draw: the first square
   // A finger down in tap-to-draw: { id, sq, x, y }. It counts as a tap when it
@@ -309,12 +326,20 @@ function DrawableBoard({
   const editing = Boolean(marks?.onArrow);
   useEffect(watchPenKeys, []);
   const restPen = editing ? (marks.pen ?? defaultPen(settings).value) : defaultPen(settings).value;
-  const penNow = (e) => heldPen(settings, e) ?? restPen;
+  const optsFor = (e) => ({
+    held: heldPen(settings, e), pen: restPen, profile, fen: fenOf(position),
+  });
+  // The colour the arrow following the pointer will be drawn in.
+  const colorNow = (e, from, to) => {
+    const o = optsFor(e);
+    if (editing || from === to) return o.held ?? restPen;
+    return colorOfNext(drawing, from, to, o) ?? o.held ?? restPen;
+  };
+  const hasDrawing = drawing.arrows.length > 0 || Object.keys(drawing.squares).length > 0;
 
   // A new position means the drawing was about the old one.
   useEffect(() => {
-    setArrows((l) => (l.length ? [] : l));
-    setSquares((all) => (Object.keys(all).length ? {} : all));
+    setDrawing((d) => (d.arrows.length || Object.keys(d.squares).length ? NO_DRAWING : d));
     setPending(null);
     setTapFrom(null);
   }, [position]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -323,7 +348,7 @@ function DrawableBoard({
   const onPointerDown = (e) => {
     if (e.button === 2) {
       const from = squareAtPoint(e.clientX, e.clientY);
-      if (from) { e.preventDefault(); setPending({ from, to: from, color: penNow(e) }); }
+      if (from) { e.preventDefault(); setPending({ from, to: from, color: colorNow(e, from, from) }); }
     } else if (e.button === 0 && editing && marks.tapToDraw) {
       // A second finger makes it a pinch, not a tap.
       if (!e.isPrimary) { tapRef.current = null; return; }
@@ -331,9 +356,8 @@ function DrawableBoard({
       if (!sq) return;
       e.preventDefault();
       tapRef.current = { id: e.pointerId, sq, x: e.clientX, y: e.clientY };
-    } else if (e.button === 0 && (arrows.length || Object.keys(squares).length)) {
-      setArrows([]);
-      setSquares({});
+    } else if (e.button === 0 && hasDrawing) {
+      setDrawing(NO_DRAWING);
     }
   };
 
@@ -341,9 +365,9 @@ function DrawableBoard({
     const t = tapRef.current;
     if (t && t.id === e.pointerId && Math.hypot(e.clientX - t.x, e.clientY - t.y) > 10) tapRef.current = null;
     if (!pending) return;
-    const to = squareAtPoint(e.clientX, e.clientY);
-    const color = penNow(e);
-    if ((to && to !== pending.to) || color !== pending.color) setPending((p) => ({ ...p, to: to ?? p.to, color }));
+    const to = squareAtPoint(e.clientX, e.clientY) ?? pending.to;
+    const color = colorNow(e, pending.from, to);
+    if (to !== pending.to || color !== pending.color) setPending((p) => ({ ...p, to, color }));
   };
 
   const onPointerUp = (e) => {
@@ -367,22 +391,10 @@ function DrawableBoard({
       return;
     }
     if (!from || !to) return;
-    const color = penNow(e);
-    // The same mark in the same colour takes it off; in another colour,
-    // recolours it — the others stay.
-    if (to === from) {
-      setSquares((all) => {
-        const next = { ...all };
-        if (next[from] === color) delete next[from];
-        else next[from] = color;
-        return next;
-      });
-      return;
-    }
-    setArrows((list) => {
-      const others = list.filter(([f, tt]) => !(f === from && tt === to));
-      return list.some(([f, tt, c]) => f === from && tt === to && c === color) ? others : [...others, [from, to, color]];
-    });
+    // The same mark again takes it off; in another colour, recolours it —
+    // the others stay.
+    const o = optsFor(e);
+    setDrawing((d) => (to === from ? drawSquare(d, from, o) : drawArrow(d, from, to, o)));
   };
 
   const live = pending && pending.to !== pending.from
@@ -404,7 +416,12 @@ function DrawableBoard({
       onContextMenu={(e) => e.preventDefault()}
     >
       {children}
-      <BoardArrows arrows={[...(marks?.arrows ?? []), ...arrows, ...live]} boardWidth={boardWidth} orientation={orientation} />
+      <BoardArrows
+        arrows={[...(marks?.arrows ?? []), ...drawing.arrows, ...live]}
+        boardWidth={boardWidth}
+        orientation={orientation}
+        halo={profile !== 'default'}
+      />
       {tapCell && (
         <div
           className="draw-tap-from"

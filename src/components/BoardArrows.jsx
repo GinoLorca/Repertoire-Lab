@@ -1,4 +1,5 @@
 import React from 'react';
+import { haloOf } from '../lib/arrowProfiles';
 
 // Square name -> board coordinates in "cells from the top-left", honouring
 // which way the board is facing.
@@ -18,7 +19,12 @@ const isKnightHop = (dx, dy) => {
 
 // Arrow overlay drawn on top of the board. Knight moves bend at a right angle
 // the way chess.com draws them, instead of cutting across diagonally.
-export default function BoardArrows({ arrows, boardWidth, orientation }) {
+// `halo`: a thin outline round each arrow, while an arrow colour profile is
+// on (lib/arrowProfiles.js) — a profile picks colours without asking, so one
+// can land on a square of its own hue, and the outline keeps it readable.
+export default function BoardArrows({
+  arrows, boardWidth, orientation, halo = false,
+}) {
   if (!arrows?.length || !boardWidth) return null;
   const size = boardWidth / 8;
   const centre = (c) => ({ x: (c.x + 0.5) * size, y: (c.y + 0.5) * size });
@@ -86,8 +92,15 @@ export default function BoardArrows({ arrows, boardWidth, orientation }) {
           ? `${tailX},${tailY} ${corner.x},${corner.y} ${baseX},${baseY}`
           : `${tailX},${tailY} ${baseX},${baseY}`;
 
+        const head = `${end.x},${end.y} ${baseX + px * headHalf},${baseY + py * headHalf} ${baseX - px * headHalf},${baseY - py * headHalf}`;
         return (
           <g key={`${from}-${to}-${i}`} opacity="0.85">
+            {halo && (
+              <>
+                <polyline points={points} fill="none" stroke={haloOf(stroke)} strokeWidth={shaft + 3} strokeLinecap="butt" strokeLinejoin="miter" />
+                <polygon points={head} fill="none" stroke={haloOf(stroke)} strokeWidth={3} strokeLinejoin="round" />
+              </>
+            )}
             <polyline
               points={points}
               fill="none"
@@ -96,10 +109,7 @@ export default function BoardArrows({ arrows, boardWidth, orientation }) {
               strokeLinecap="butt"
               strokeLinejoin="miter"
             />
-            <polygon
-              points={`${end.x},${end.y} ${baseX + px * headHalf},${baseY + py * headHalf} ${baseX - px * headHalf},${baseY - py * headHalf}`}
-              fill={stroke}
-            />
+            <polygon points={head} fill={stroke} />
           </g>
         );
       })}

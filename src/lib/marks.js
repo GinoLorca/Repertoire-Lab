@@ -140,7 +140,25 @@ export function countMarks(comments) {
 // squares { sq: hex } in the pen colours — so a line's marks go across to it
 // and come back from it through these two.
 const LETTER_OF = Object.fromEntries(Object.entries(PEN).map(([c, hex]) => [hex.toLowerCase(), c]));
-const letterOf = (hex) => LETTER_OF[String(hex ?? '').toLowerCase()] ?? 'G';
+const rgbOf = (hex) => {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(String(hex ?? ''));
+  return m ? m.slice(1, 4).map((x) => parseInt(x, 16)) : null;
+};
+// A colour the codes have no letter for (an arrow colour profile's purple,
+// pink, light blue, brown or black) takes the nearest one there is.
+export const letterOf = (hex) => {
+  const exact = LETTER_OF[String(hex ?? '').toLowerCase()];
+  if (exact) return exact;
+  const c = rgbOf(hex);
+  if (!c) return 'G';
+  let best = 'G';
+  let bestD = Infinity;
+  for (const [letter, value] of Object.entries(PEN)) {
+    const d = rgbOf(value).reduce((t, v, i) => t + (v - c[i]) ** 2, 0);
+    if (d < bestD) { bestD = d; best = letter; }
+  }
+  return best;
+};
 
 export function drawingOf({ cal = [], csl = [] }) {
   return {

@@ -4669,6 +4669,22 @@ body.card-dragging, body.card-dragging * { cursor: grabbing !important; user-sel
 .draw-pen.on { border-color: var(--text); }
 @media (pointer: coarse) { .draw-pen { width: 32px; height: 32px; } }
 .draw-hint-line { font-size: 12px; margin: 6px 0 0; }
+/* The arrow colour profile, at the end of a board's drawing hint
+   (components/ArrowProfileLabel.jsx): tap for the next. All three texts sit
+   in one cell, only the active one showing, so a switch never re-wraps. */
+button.arrow-profile, button.arrow-profile:hover {
+  font: inherit; color: inherit; background: none; border: none; box-shadow: none; border-radius: 0;
+  padding: 0; margin: 0; min-height: 0; cursor: pointer; text-align: left;
+  display: inline-grid; white-space: nowrap; line-height: inherit; vertical-align: baseline;
+}
+button.arrow-profile:hover { color: var(--text); }
+.arrow-profile > .arrow-profile-pv { grid-area: 1 / 1; visibility: hidden; }
+.arrow-profile > .arrow-profile-pv.on { visibility: visible; }
+.arrow-profile:not(.is-default) .arrow-profile-name { color: var(--text); font-weight: 600; }
+.arrow-profile .pen-dot, .profile-dots .pen-dot, .hint .pen-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; margin: 0 1px;
+}
+.profile-dots { white-space: nowrap; }
 /* Tap-to-draw: the square the arrow starts from. */
 .draw-tap-from {
   position: absolute; z-index: 3; pointer-events: none; box-sizing: border-box;

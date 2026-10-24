@@ -9,9 +9,12 @@ import { BADGES, badgeAt } from '../lib/badges';
 import { TagChips } from './TagEditor';
 import { useBackGuard } from '../lib/backGuard';
 import {
-  parseMarks, toggleArrow, toggleSquare, commentAt, PEN, PEN_ORDER, START,
+  parseMarks, toggleArrow, toggleSquare, commentAt, drawingOf, letterOf, PEN, PEN_ORDER, START,
 } from '../lib/marks';
+import { profileOf, colorForPlain } from '../lib/arrowProfiles';
+import { useStore } from '../store';
 import { isTouchCapable } from './Board';
+import ArrowProfileLabel from './ArrowProfileLabel';
 import {
   TagIcon, StarIcon, CommentIcon, SkipStartIcon, SkipEndIcon, PrevIcon, NextIcon,
 } from './Icons';
@@ -60,14 +63,35 @@ export default function VariationViewer({
   // with a mouse, right-drag works whenever it's on.
   const [drawing, setDrawing] = useState(Boolean(startDrawing) && Boolean(onSaveMarks));
   const [pen, setPen] = useState('G');
+  // A pen key held while drawing (the analysis board's keys) picks that
+  // colour for this one mark; otherwise the one chosen below — or, with an
+  // arrow colour profile on (lib/arrowProfiles.js), the profile's, worked out
+  // from what's already drawn here. A line keeps its marks as PGN codes, so a
+  // profile colour with no code of its own takes the nearest there is, and
+  // nothing is recoloured afterwards. Null: drawing it again takes it off.
+  const { state } = useStore();
+  const profile = profileOf(state.settings);
+  const letterFor = (target, held) => {
+    if (held || profile === 'default') return penCode(held) ?? pen;
+    const hex = colorForPlain(drawingOf(marks), fens[Math.min(ply, fens.length - 1)], target, {
+      held: null, pen: PEN[pen], profile,
+    });
+    return hex ? letterOf(hex) : null;
+  };
   const draw = onSaveMarks ? {
     arrows: marks.arrows,
     pen: PEN[pen],
     tapToDraw: drawing,
-    // A pen key held while drawing (the analysis board's keys) picks that
-    // colour for this one mark; otherwise the one chosen below.
-    onArrow: (from, to, held) => onSaveMarks(here, toggleArrow(marks, from, to, penCode(held) ?? pen)),
-    onSquare: (sq, held) => onSaveMarks(here, toggleSquare(marks, sq, penCode(held) ?? pen)),
+    onArrow: (from, to, held) => {
+      const c = letterFor({ from, to }, held);
+      onSaveMarks(here, c == null
+        ? { ...marks, cal: marks.cal.filter((a) => !(a.from === from && a.to === to)) }
+        : toggleArrow(marks, from, to, c));
+    },
+    onSquare: (sq, held) => {
+      const c = letterFor({ sq }, held);
+      onSaveMarks(here, c == null ? { ...marks, csl: marks.csl.filter((x) => x.sq !== sq) } : toggleSquare(marks, sq, c));
+    },
   } : { arrows: marks.arrows };
   const squareStyles = Object.fromEntries(Object.entries(marks.squares).map(([sq, fill]) => [sq, { backgroundColor: fill }]));
 
@@ -164,7 +188,8 @@ export default function VariationViewer({
               {drawing || isTouchCapable
                 ? 'Tap a square, then another, for an arrow · the same square twice to highlight it · again to remove'
                 : 'Right-drag for an arrow · right-click a square to highlight it · again to remove'}
-              {' — saved with the line.'}
+              {' — saved with the line. '}
+              <ArrowProfileLabel />
             </p>
           )}
           <div className="viewer-controls" style={{ marginTop: 12 }}>

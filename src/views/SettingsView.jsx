@@ -9,6 +9,9 @@ import { processBackground } from '../lib/background';
 import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
 import { DEFAULT_SQUARE_LIGHT, DEFAULT_SQUARE_DARK } from '../components/Board';
 import {
+  PROFILES, PROFILE_ORDER, SEQUENCE, STRATEGIC, profileOf,
+} from '../lib/arrowProfiles';
+import {
   PENS, SHORTCUTS, shortcutKey, formatShortcutKey, isPenShortcut, modifierToken, MODIFIER_ORDER,
   eventKey,
 } from '../lib/shortcuts';
@@ -282,6 +285,7 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
     ...(currentSkin === 'custom' ? { background: null } : {}),
   });
   const speed = s.trainerSpeed ?? 'fast';
+  const arrowProfile = profileOf(s);
   const bgFileRef = useRef(null);
   const [bgError, setBgError] = useState(null);
   // Same deal as Analysis's mode: the URL seeds it, changes are reported back,
@@ -645,6 +649,49 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
           onChange={(v) => set({ checkHighlight: v })}
         />
 
+        {/* Arrow colour profiles (lib/arrowProfiles.js), from Chess Arcade. */}
+        <div className="settings-row" style={{ marginTop: 18 }}><span><strong>Arrow colours</strong> — the colour of the arrows and highlights you draw</span></div>
+        <div className="speed-choices arrow-profile-choices">
+          {PROFILE_ORDER.map((id) => (
+            <button
+              key={id}
+              className={`theme-card${arrowProfile === id ? ' active' : ''}`}
+              aria-pressed={arrowProfile === id}
+              onClick={() => set({ arrowProfile: id })}
+            >
+              <strong>{PROFILES[id].label}</strong>
+              <span className="muted-note profile-dots">
+                {id === 'default' && 'Your pen colour'}
+                {id === 'sequential' && <>{SEQUENCE.slice(0, 5).map((c) => <span key={c} className="pen-dot" style={{ background: c }} />)}… in order</>}
+                {id === 'strategic' && <>{[STRATEGIC.w, STRATEGIC.b, STRATEGIC.wx, STRATEGIC.bx].map((c) => <span key={c} className="pen-dot" style={{ background: c }} />)} by side</>}
+              </span>
+            </button>
+          ))}
+        </div>
+        <p className="hint">
+          {arrowProfile === 'default' && 'Your pen colour: the default pen in Keyboard, or hold a pen key while you draw for green, red, blue or yellow.'}
+          {arrowProfile === 'sequential' && (
+            <>
+              Each arrow you draw on a position takes the next colour —{' '}
+              <span className="profile-dots">{SEQUENCE.map((c) => <span key={c} className="pen-dot" style={{ background: c }} />)}</span>
+              {' '}— then green again. A highlight takes the colour of the arrow before it.
+            </>
+          )}
+          {arrowProfile === 'strategic' && (
+            <>
+              Colours follow the side that moves: White <span className="pen-dot" style={{ background: STRATEGIC.w }} />,
+              {' '}Black <span className="pen-dot" style={{ background: STRATEGIC.b }} />, a White capture{' '}
+              <span className="pen-dot" style={{ background: STRATEGIC.wx }} />, a Black capture{' '}
+              <span className="pen-dot" style={{ background: STRATEGIC.bx }} />. A piece keeps its side all along the line you
+              draw, and two arrows from one square are two ideas for the same piece. A highlight takes the colour of the
+              arrow before it.
+            </>
+          )}
+          {arrowProfile !== 'default' && ' Hold a pen key to pick a colour yourself.'}
+          {' '}The colours you see are the ones saved, so a student opening your review sees them too. Tap
+          {' '}“Arrows” under the analysis board to switch there.
+        </p>
+
         {/* The telestrator — the pen in the corner of the screen whenever a
             board is up (components/Telestrator.jsx). */}
         <div className="settings-row" style={{ marginTop: 18 }}><span><strong>Telestrator</strong></span></div>
@@ -675,6 +722,7 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
           </button>
           <span className="muted-note">Check the board passes your finger through before a lesson relies on it.</span>
         </div>
+
       </Section>
 
       <Section id="trainer" tab={tab} title="Move trainer" hint="Learn and Practice">

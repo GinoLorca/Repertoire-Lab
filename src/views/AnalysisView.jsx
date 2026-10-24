@@ -10,6 +10,10 @@ import { fetchExplorer, explorerTotals, pct } from '../lib/explorer';
 import { useViewportWidth, useViewportHeight } from '../components/useViewportWidth';
 import { topInset, bottomInset } from '../lib/safeArea';
 import BoardArrows from '../components/BoardArrows';
+import ArrowProfileLabel from '../components/ArrowProfileLabel';
+import {
+  profileOf, drawArrow as drawProfileArrow, drawSquare as drawProfileSquare, recolorAll, squareMarkStyle,
+} from '../lib/arrowProfiles';
 import CompareView from './CompareView';
 import GameEditor from '../components/GameEditor';
 import EvalBar from '../components/EvalBar';
@@ -687,13 +691,22 @@ export default function AnalysisView({
     return { ...all, [fen]: next };
   });
 
-  const addArrow = (from, to, color = drawColor) => updateMarks((m) => ({
-    ...m,
-    // Drawing the same arrow twice removes it, like Lichess.
-    arrows: m.arrows.some((a) => a[0] === from && a[1] === to && a[2] === color)
-      ? m.arrows.filter((a) => !(a[0] === from && a[1] === to))
-      : [...m.arrows.filter((a) => !(a[0] === from && a[1] === to)), [from, to, color]],
+  // The arrow colour profile (lib/arrowProfiles.js): with Sequential or
+  // Strategic on, an arrow or square drawn without a pen key takes the
+  // profile's colour, and that's the colour saved. `held`: a pen key's
+  // colour, or null. Drawing the same arrow twice removes it, like Lichess.
+  const arrowProfile = profileOf(state.settings);
+  const addArrow = (from, to, held = null) => updateMarks((m) => drawProfileArrow(m, from, to, {
+    held, pen: drawColor, profile: arrowProfile, fen,
   }));
+  // A switch of profile recolours what's drawn on this board (only what was
+  // drawn without a pen key), and that's saved like any other change.
+  const profileSeen = useRef(arrowProfile);
+  useEffect(() => {
+    if (profileSeen.current === arrowProfile) return;
+    profileSeen.current = arrowProfile;
+    setAnnotations((all) => recolorAll(all, arrowProfile));
+  }, [arrowProfile]);
 
   // Which pen keys (see lib/shortcuts.js) are currently held down, checked
   // at the end of a drag rather than a single keydown — so holding one
@@ -716,14 +729,14 @@ export default function AnalysisView({
     };
   }, []);
 
-  // The colour a drag ending right now would use: whichever pen's key is
-  // held, or the pen picked as the default (Settings → default pen colour,
-  // and the pen swatches below) if none is. A pen's binding is either a
+  // The colour of the pen key held as a drag ends, or null for none — then
+  // the arrow is the profile's colour, or the pen picked as the default
+  // (Settings → default pen colour, and the pen swatches below). A pen's binding is either a
   // plain letter (checked against what's been held via keydown/up above) or
   // a pure modifier chord like ⌥ or ⌃⌥ — those are read straight off the
   // release event's own altKey/ctrlKey/etc, which the browser already
   // tracks accurately, rather than through our own key-tracking.
-  const currentPenColor = (e) => {
+  const heldPenColor = (e) => {
     for (const pen of PENS) {
       const key = shortcutKey(state.settings, pen.shortcutId);
       if (!key) continue;
@@ -733,7 +746,7 @@ export default function AnalysisView({
         return pen.value;
       }
     }
-    return drawColor;
+    return null;
   };
 
   // Right-click drag on a mouse: press on the origin square, release on the
@@ -760,9 +773,9 @@ export default function AnalysisView({
     const to = squareAt(e);
     rightFrom.current = null;
     if (!from || !to) return;
-    const color = currentPenColor(e);
-    if (from === to) toggleSquare(from, color);
-    else addArrow(from, to, color);
+    const held = heldPenColor(e);
+    if (from === to) toggleSquare(from, held);
+    else addArrow(from, to, held);
   };
 
   // Draw mode (mouse, trackpad or touch — needed on iPad, which has no
@@ -794,19 +807,16 @@ export default function AnalysisView({
     if (!drawMode || !e.isPrimary || !drawFrom || !isDrawButton(e)) return;
     const square = squareFromPoint(e.clientX, e.clientY);
     if (square) {
-      const color = currentPenColor(e);
-      if (square === drawFrom) toggleSquare(square, color);
-      else addArrow(drawFrom, square, color);
+      const held = heldPenColor(e);
+      if (square === drawFrom) toggleSquare(square, held);
+      else addArrow(drawFrom, square, held);
     }
     setDrawFrom(null);
   };
 
-  const toggleSquare = (square, color = drawColor) => updateMarks((m) => {
-    const squares = { ...m.squares };
-    if (squares[square] === color) delete squares[square];
-    else squares[square] = color;
-    return { ...m, squares };
-  });
+  const toggleSquare = (square, held = null) => updateMarks((m) => drawProfileSquare(m, square, {
+    held, pen: drawColor, profile: arrowProfile, fen,
+  }));
 
   const clearMarks = () => setAnnotations((all) => {
     const next = { ...all };
@@ -1254,9 +1264,7 @@ export default function AnalysisView({
   const squareStyles = useMemo(() => {
     const styles = {};
     if (picked) styles[picked] = { background: 'rgba(59, 156, 255, 0.5)' };
-    for (const [sq, color] of Object.entries(marks.squares)) {
-      styles[sq] = { background: `${color}66`, boxShadow: `inset 0 0 0 3px ${color}` };
-    }
+    for (const [sq, color] of Object.entries(marks.squares)) styles[sq] = squareMarkStyle(color, arrowProfile);
     if (drawFrom) styles[drawFrom] = { background: `${drawColor}88` };
     // A note's move reference was clicked — glow that square on top of
     // whatever else is drawn, since it's the most recent, deliberate thing
@@ -1265,7 +1273,7 @@ export default function AnalysisView({
       styles[noteHighlight.square] = { ...styles[noteHighlight.square], ...NOTE_HIGHLIGHT_STYLE };
     }
     return styles;
-  }, [marks.squares, drawFrom, drawColor, picked, position, showLegal, noteHighlight]);
+  }, [marks.squares, drawFrom, drawColor, picked, position, showLegal, noteHighlight, arrowProfile]);
 
   // ---------- Moves ----------
 
@@ -1881,11 +1889,9 @@ export default function AnalysisView({
         onCancel={() => setPendingPromotion(null)}
       />
     )}
-    <BoardArrows
-      arrows={[...engineArrows, ...marks.arrows]}
-      boardWidth={boardWidth}
-      orientation={orientation}
-    />
+    <BoardArrows arrows={engineArrows} boardWidth={boardWidth} orientation={orientation} />
+    {/* Yours above the engine's, outlined while an arrow colour profile is on. */}
+    <BoardArrows arrows={marks.arrows} boardWidth={boardWidth} orientation={orientation} halo={arrowProfile !== 'default'} />
     {/* Drawn above the arrows: an engine arrow crossing a dot used to
         make it look like two dots on one square. */}
     {showLegal && (
@@ -1990,13 +1996,21 @@ export default function AnalysisView({
         <>Press <strong>Draw</strong>, then drag a square to mark up the board · <strong>Clear</strong> takes them off</>
       ) : (
         <>
-          Right-click drag to draw in <strong>{penNow.name.toLowerCase()}</strong>
-          {penNow.id === defaultPen(state.settings).id ? ' (the default, set in Settings)' : ''} · hold {otherPens.map((p) => (
+          {/* With a colour profile on, the profile picks the colour; the
+              keys still pick one by hand. */}
+          Right-click drag to draw
+          {arrowProfile === 'default' && (
+            <> in <strong>{penNow.name.toLowerCase()}</strong>
+              {penNow.id === defaultPen(state.settings).id ? ' (the default, set in Settings)' : ''}
+            </>
+          )} · hold {(arrowProfile === 'default' ? otherPens : PENS).map((p) => (
             <React.Fragment key={p.id}><kbd>{formatShortcutKey(shortcutKey(state.settings, p.shortcutId))}</kbd> </React.Fragment>
-          ))}while dragging for {otherPens.map((p) => p.name.toLowerCase()).join(' / ')} ·
+          ))}while dragging for {(arrowProfile === 'default' ? otherPens : PENS).map((p) => p.name.toLowerCase()).join(' / ')} ·
           <strong> Clear</strong> takes them off
         </>
       )}
+      {/* The arrow colour profile, as in Chess Arcade's tips: tap for the next. */}
+      {' '}<ArrowProfileLabel />
     </div>
     )}
     </>
