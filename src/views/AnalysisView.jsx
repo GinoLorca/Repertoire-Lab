@@ -763,10 +763,10 @@ export default function AnalysisView({
     rightFrom.current = squareAt(e);
   };
 
-  // Only a right-button release draws. A left click never takes marks off —
-  // it used to, anywhere in the board's area, so picking another pen colour
-  // or pressing a button under the board wiped the drawing you were adding
-  // to. Clear (below the board) is the way to take them off.
+  // Only a right-button release draws. A left click takes marks off only on
+  // a square (the board frame's onClickCapture) — it used to anywhere in the
+  // board's area, so picking another pen colour or pressing a button under
+  // the board wiped the drawing you were adding to.
   const onMouseUp = (e) => {
     if (e.button !== 2) return;
     const from = rightFrom.current;
@@ -1859,6 +1859,15 @@ export default function AnalysisView({
         // scroll on a touchscreen, which cancels the gesture partway.
         touchAction: drawMode ? 'none' : undefined,
       }}
+      // A click on the board takes this position's arrows and squares off and
+      // does nothing else — no piece picked up — as in Chess Arcade and on
+      // lichess. Only a click on a square: the pens, buttons and panels round
+      // the board, and the promotion picker on it, never clear anything.
+      onClickCapture={(e) => {
+        if (drawMode || !hasMarks || !squareAt(e)) return;
+        clearMarks();
+        e.stopPropagation();
+      }}
     >
     <Board
       id="analysis"
@@ -1993,7 +2002,7 @@ export default function AnalysisView({
     {!splitMoment && (
     <div className="muted-note draw-hint" style={{ maxWidth: boardWidth }}>
       {tight ? (
-        <>Press <strong>Draw</strong>, then drag a square to mark up the board · <strong>Clear</strong> takes them off</>
+        <>Press <strong>Draw</strong>, then drag to mark up the board · tap it or <strong>Clear</strong> to take them off</>
       ) : (
         <>
           {/* With a colour profile on, the profile picks the colour; the
@@ -2006,7 +2015,7 @@ export default function AnalysisView({
           )} · hold {(arrowProfile === 'default' ? otherPens : PENS).map((p) => (
             <React.Fragment key={p.id}><kbd>{formatShortcutKey(shortcutKey(state.settings, p.shortcutId))}</kbd> </React.Fragment>
           ))}while dragging for {(arrowProfile === 'default' ? otherPens : PENS).map((p) => p.name.toLowerCase()).join(' / ')} ·
-          <strong> Clear</strong> takes them off
+          click the board or <strong>Clear</strong> to take them off
         </>
       )}
       {/* The arrow colour profile, as in Chess Arcade's tips: tap for the next. */}
