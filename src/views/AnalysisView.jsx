@@ -73,7 +73,7 @@ import { holdSends, releaseSends, sendOnce } from '../lib/cloud/sendHold';
 import { cardHasRoom } from '../lib/cloud/reviews';
 import {
   BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon,
-  FlaskIcon, CommentIcon, TargetIcon, UploadIcon, CheckIcon, HelpIcon, FolderIcon,
+  FlaskIcon, CommentIcon, TargetIcon, UploadIcon, CheckIcon, HelpIcon, FolderIcon, ResetIcon,
 } from '../components/Icons';
 import {
   PENS, SHORTCUTS, defaultPen, shortcutKey, shortcutMap, isComboKey, comboMatchesEvent, formatShortcutKey,
@@ -132,7 +132,7 @@ function treeFor(line) {
 
 export default function AnalysisView({
   initialLine, initialLab, coachMode, mode: routeMode, onModeChange, positionId, onPositionChange,
-  setupSlug, onSetupChange, editorScope = null, onEditorScopeChange, onBoard,
+  setupSlug, onSetupChange, editorScope = null, onEditorScopeChange, onBoard, onReset,
 }) {
   const { state, dispatch, saveNow } = useStore();
   // Nothing explicit was asked for — a blank "Analysis" open or a Coaches
@@ -142,9 +142,10 @@ export default function AnalysisView({
   // which would otherwise wipe every move just played with nothing saved.
   // A reload (pull-to-refresh, a new build) keeps it too: none of those is
   // you closing the app (lib/session.js) — and so does going somewhere else
-  // in the app and coming back, or over to Studio's board and back. Reset is
-  // how a board starts over. Studio (coachMode) is a board of its own, with
-  // its own drafts: nothing on it shows up here, or the other way round.
+  // in the app and coming back, or over to Studio's board and back. Reset
+  // board is how a board starts over (App's resetBoard). Studio (coachMode)
+  // is a board of its own, with its own drafts: nothing on it shows up here,
+  // or the other way round.
   const blankDraft = (!initialLine && !initialLab)
     ? ((coachMode ? state.studioDraft : state.analysisDraft) ?? null) : null;
   const draftBoard = coachMode ? 'studio' : undefined;
@@ -290,6 +291,7 @@ export default function AnalysisView({
   const highlightNoteSquare = (square) => setNoteHighlight({ square, key: Date.now() });
   const [pendingPromotion, setPendingPromotion] = useState(null); // {from, to, color} awaiting a piece choice
   const [saving, setSaving] = useState(false); // "save to Games" dialog
+  const [resetOpen, setResetOpen] = useState(false); // "Start a fresh board?"
   // Game Review: a full engine pass over the loaded game, badging every move
   // the way a coach would by hand — see runReview below.
   const [reviewBusy, setReviewBusy] = useState(false);
@@ -2057,6 +2059,63 @@ export default function AnalysisView({
     )}
     </>
   );
+  // Reset board (App's resetBoard): already fresh — the start, nothing on it,
+  // nothing loaded — there's nothing to do.
+  const boardIsFresh = !initialLine && !initialLab && baseFen === START_FEN && tree.children.length === 0
+    && !Object.keys(moveNotes).length && !Object.keys(annotations).length && !labId && !labTitle && !labNote;
+  // Its box: what comes off the board, that nothing saved goes with it, and —
+  // only on a blank board, the one thing a reset can lose — moves or drawings
+  // that aren't saved anywhere.
+  const resetDialog = () => {
+    const m = liveGame?.meta ?? initialLine?.meta ?? {};
+    const home = seed?.studentCard ? `${seed.studentName}’s card in Coaches Corner` : 'Games';
+    let off = null;
+    let kept = 'Nothing saved is deleted — your games, Lab entries and repertoire stay as they are.';
+    if (initialLab) {
+      off = <><strong>{initialLab.title || 'This Lab entry'}</strong> comes off this board.</>;
+      kept = 'Nothing saved is deleted — it stays in the Lab as you last saved it.';
+    } else if (initialLine?.gameId) {
+      off = <><strong>{m.white && m.black ? `${m.white} – ${m.black}` : (initialLine.name || 'This game')}</strong> comes off this board.</>;
+      kept = editing
+        ? `Nothing saved is deleted — what you’ve written on it is saved onto the game first${seed.linked ? ` and sent to ${seed.studentName}` : ''}, and the game stays in ${home}.`
+        : `Nothing saved is deleted — the game, its notes and drawings stay in ${home}.`;
+    } else if (initialLine) {
+      off = <><strong>{initialLine.name || 'This line'}</strong> comes off this board.</>;
+      kept = 'Nothing saved is deleted — the line stays in your repertoire.';
+    } else if (labId) {
+      kept = `Nothing saved is deleted — ${labTitle ? `“${labTitle}”` : 'your Lab entry'} stays in the Lab as you last saved it.`;
+    }
+    const played = mainLineFrom(tree).length;
+    const unsaved = !initialLine && !initialLab && !labId && !boardIsFresh;
+    return (
+      <div className="modal-overlay" onClick={() => setResetOpen(false)}>
+        <div className="modal reset-board" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+          <h3>Start a fresh board?</h3>
+          <p>
+            {off}{off ? ' ' : ''}The board goes back to the starting position, with no moves, notes or drawings.
+          </p>
+          <p className="hint">{kept}</p>
+          {unsaved && (
+            <p className="reset-warn">
+              <AlertIcon size={15} />
+              <span>
+                {played > 0
+                  ? `The ${played === 1 ? 'move' : `${played} moves`} on this board ${played === 1 ? 'isn’t' : 'aren’t'} saved anywhere`
+                  : 'What’s on this board isn’t saved anywhere'}
+                {' '}— <strong>Save game</strong> or <strong>Save to Lab</strong> first to keep {played === 1 ? 'it' : 'them'}.
+              </span>
+            </p>
+          )}
+          <div className="modal-actions">
+            <button onClick={() => setResetOpen(false)}>Cancel</button>
+            <button className="primary" onClick={() => { setResetOpen(false); onReset?.(); }}>
+              <ResetIcon size={15} /> Reset board
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
   const controlsPanel = () => (
     <div className="viewer-controls">
       <button title="Start" onClick={() => setPly(0)}><SkipStartIcon size={16} /></button>
@@ -2064,7 +2123,7 @@ export default function AnalysisView({
       <button onClick={() => setPly((p) => Math.min(moves.length, p + 1))}>▶</button>
       <button title="End" onClick={() => setPly(moves.length)}><SkipEndIcon size={16} /></button>
       <button onClick={() => setOrientation((o) => (o === 'white' ? 'black' : 'white'))}>⇅ Flip</button>
-      <button onClick={() => { setBaseFen(START_FEN); loadMoves([]); }}>Reset</button>
+      <button disabled={boardIsFresh} onClick={() => setResetOpen(true)}>Reset</button>
     </div>
   );
   const positionPanel = () => (
@@ -2834,6 +2893,17 @@ export default function AnalysisView({
           <TargetIcon size={15} />
           {reviewBusy ? `Reviewing… ${reviewProgress?.done ?? 0}/${reviewProgress?.total ?? 0}` : 'Game Review'}
         </button>
+        <button
+          title={boardIsFresh
+            ? 'This board is already fresh'
+            : 'A fresh board at the start — what’s on it comes off, and nothing saved is deleted'}
+          aria-label="Reset board"
+          className="reset-board-btn"
+          disabled={boardIsFresh}
+          onClick={() => setResetOpen(true)}
+        >
+          <ResetIcon size={15} /><span className="reset-board-label"> Reset board</span>
+        </button>
         {coachMode && (
           <WorkspaceBar
             ws={ws}
@@ -3108,6 +3178,8 @@ export default function AnalysisView({
           onClose={() => setSaving(false)}
         />
       )}
+
+      {resetOpen && resetDialog()}
     </div>
   );
 }

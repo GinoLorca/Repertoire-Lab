@@ -36,7 +36,7 @@ const SYNC_ALERT = {
 };
 
 function AppInner() {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
   const { attention: syncAttention } = useCloud();
   // Where the URL says we are. Read once, at mount: after that the address bar
   // follows the app (see the sync effect below) rather than driving it, except
@@ -622,12 +622,34 @@ function AppInner() {
   };
 
   // Coaches Corner's Studio button: Studio as it was left — a game, a Lab
-  // entry, or a blank board. Reset there starts it over.
+  // entry, or a blank board. Reset board there starts it over.
   const openStudio = () => {
     go(() => {
       setEditorScope(null);
       setSub('studio');
       setView('analysis');
+    });
+  };
+
+  // Reset board: a fresh board, at the start, in place of whatever's on this
+  // one (the analysis board's or Studio's — the other keeps its own). The
+  // game, Lab entry or line only comes off the board — nothing saved is
+  // touched, and Studio's work on a game is saved onto it as the board goes,
+  // as on any way out. What goes is the blank board's own unsaved work. A
+  // step of its own, so Back puts the game back on. The count makes a blank
+  // board starting over a new board too.
+  const [freshBoards, setFreshBoards] = useState({ analysis: 0, studio: 0 });
+  const resetBoard = (studio) => {
+    go(() => {
+      if (studio) {
+        setStudioLine(null);
+        setStudioLab(null);
+      } else {
+        setAnalysisLine(null);
+        setAnalysisLab(null);
+      }
+      dispatch({ type: 'setAnalysisDraft', board: studio ? 'studio' : undefined, draft: null });
+      setFreshBoards((n) => (studio ? { ...n, studio: n.studio + 1 } : { ...n, analysis: n.analysis + 1 }));
     });
   };
 
@@ -924,8 +946,8 @@ function AppInner() {
             // one's moves, notes and drawings.
             // Studio's board and the analysis board are never the same one.
             key={inStudio
-              ? `studio:${studioLab?.id ?? (studioLine?.gameId ? `g:${studioLine.playerId}:${studioLine.gameId}` : 'board')}`
-              : analysisLab?.id ?? (analysisLine?.gameId ? `g:${analysisLine.playerId}:${analysisLine.gameId}` : 'board')}
+              ? `studio:${studioLab?.id ?? (studioLine?.gameId ? `g:${studioLine.playerId}:${studioLine.gameId}` : `board:${freshBoards.studio}`)}`
+              : analysisLab?.id ?? (analysisLine?.gameId ? `g:${analysisLine.playerId}:${analysisLine.gameId}` : `board:${freshBoards.analysis}`)}
             initialLine={inStudio ? studioLine : analysisLine}
             initialLab={inStudio ? studioLab : analysisLab}
             coachMode={inStudio}
@@ -935,6 +957,7 @@ function AppInner() {
             // Between the analysis board's tabs and Studio's — the board
             // being left keeps what's on it.
             onBoard={(m) => setSub(m === 'engine' ? null : m)}
+            onReset={() => resetBoard(inStudio)}
             positionId={positionNav}
             onPositionChange={setPositionNav}
             setupSlug={setupNav}

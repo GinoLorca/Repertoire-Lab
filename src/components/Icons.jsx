@@ -179,6 +179,14 @@ export const DownloadIcon = (p) => (
   </Icon>
 );
 
+// An arrow coming round to the start: Reset board.
+export const ResetIcon = (p) => (
+  <Icon {...p}>
+    <path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3" />
+    <path d="M4.5 3.5v4h4" />
+  </Icon>
+);
+
 export const UploadIcon = (p) => (
   <Icon {...p}>
     <path d="M12 14.5v-11" />

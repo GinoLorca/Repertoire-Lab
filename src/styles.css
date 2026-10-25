@@ -1449,6 +1449,11 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .modal h3 { margin: 0; }
 .modal .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .modal p.hint { color: var(--muted); font-size: 13.5px; margin: 0; }
+/* Reset board's box (AnalysisView), and its warning about moves on a blank
+   board that aren't saved anywhere. */
+.modal.reset-board p { margin: 0; }
+.modal .reset-warn { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; color: var(--amber); }
+.modal .reset-warn svg { flex: none; margin-top: 2px; }
 
 .empty-note { color: var(--muted); text-align: center; padding: 40px 0; }
 
@@ -4057,10 +4062,17 @@ input[type="date"] {
 .line-picker { min-width: 0; max-width: 100%; flex: 1 1 240px; }
 /* Analysis's header on one row from a 1024-wide iPad up: the title keeps only
    its own width and the line picker gives way, so the cards below start a row
-   higher — which is what lets them land on one screen. */
+   higher — which is what lets them land on one screen. The picker starts
+   small (it grows into whatever's left) so Reset board fits in the same rows
+   as before, and Reset board is just its icon until there's room for the
+   words. */
+.analysis-head .line-picker { flex-basis: 160px; }
 @media (min-width: 980px) {
   .analysis-head h1 { flex: 0 0 auto; min-width: 0; }
-  .analysis-head .line-picker { flex: 1 1 150px; min-width: 120px; max-width: 380px; }
+  .analysis-head .line-picker { flex: 1 1 110px; min-width: 100px; max-width: 380px; }
+}
+@media (max-width: 1339px) {
+  .analysis-head .reset-board-label { display: none; }
 }
 
 /* A button that reads as a link, for one-tap fixes inside a note. */
