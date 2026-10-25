@@ -19,9 +19,14 @@ const when = (ms) => {
 // on knowing nothing about it.
 export default function AccountSection() {
   const {
-    configured, ready, user, status, detail, lastSync, sync, signOut,
+    configured, ready, user, status, detail, lastSync, sync, signOut, lastAccount, stayOut,
   } = useCloud();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(lastAccount || '');
+  // Who was signed in here can arrive a moment after this opens (it's read
+  // from IndexedDB): filled in then, unless something's been typed.
+  useEffect(() => {
+    if (lastAccount) setEmail((typed) => typed || lastAccount);
+  }, [lastAccount]);
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -113,11 +118,25 @@ export default function AccountSection() {
   if (!user) {
     return (
       <>
-        <p className="hint">
-          Sign in on every device you use and they keep each other up to date — openings, lines,
-          and how far along you are on each. Learn a variation on one and it’s on the others next
-          time you open them.
-        </p>
+        {lastAccount != null ? (
+          // Signed out without pressing Sign out: a password changed on
+          // another device, or the browser let the sign-in go.
+          <div className="signed-out-note">
+            <p>
+              <strong>You’ve been signed out on this device</strong>
+              {lastAccount ? <> ({lastAccount})</> : null}. Sign out wasn’t pressed: changing the
+              password on another device does this, and so can the browser clearing what it keeps
+              for this site. Sign in again to carry on syncing — anything synced comes back with it.
+            </p>
+            <button type="button" className="small ghost" onClick={stayOut}>Stay signed out</button>
+          </div>
+        ) : (
+          <p className="hint">
+            Sign in on every device you use and they keep each other up to date — openings, lines,
+            and how far along you are on each. Learn a variation on one and it’s on the others next
+            time you open them.
+          </p>
+        )}
         <form
           className="account-form"
           onSubmit={(e) => { e.preventDefault(); submit('in'); }}

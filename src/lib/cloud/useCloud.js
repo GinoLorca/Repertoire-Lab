@@ -1,6 +1,7 @@
 import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
+import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
 import { useStore } from '../../store';
 import { cloudConfigured } from './config';
 import { watchAuth, signOutNow } from './auth';
@@ -49,6 +50,15 @@ function useCloudEngine() {
   const { state, dispatch } = useStore();
   const [user, setUser] = useState(null);
   const [ready, setReady] = useState(!cloudConfigured);
+  // Who was last signed in on this device, until Sign out is pressed — so
+  // being signed out any other way can be said, with the email filled in.
+  const [lastAccount, setLastAccount] = useState(recallAccount);
+  useEffect(() => {
+    if (!cloudConfigured) return;
+    idbGet(LAST_ACCOUNT).then((kept) => {
+      if (kept?.email != null) setLastAccount((known) => known || kept.email);
+    }).catch(() => {});
+  }, []);
   const [status, setStatus] = useState('idle'); // idle | syncing | error
   const [detail, setDetail] = useState(null);
   const [lastSync, setLastSync] = useState(null);
@@ -91,8 +101,12 @@ function useCloudEngine() {
       watchAuth((u) => {
         setUser(u);
         setReady(true);
-        if (u) remember(WAS_SIGNED_IN, '1');
-        if (u) readMeta(u.uid).then((m) => setLastSync(m.lastSync ?? null));
+        if (u) {
+          rememberAccount(u.email ?? '');
+          setLastAccount(u.email ?? '');
+          keepStorage();
+          readMeta(u.uid).then((m) => setLastSync(m.lastSync ?? null));
+        }
       }).then((fn) => { if (cancelled) fn(); else stop = fn; }).catch(() => {
         started = false;
         setStatus('error');
@@ -338,7 +352,8 @@ function useCloudEngine() {
       // eslint-disable-next-line no-await-in-loop
       await new Promise((r) => setTimeout(r, 100));
     }
-    remember(WAS_SIGNED_IN, null); // on purpose: nothing to warn about
+    forgetAccount(); // on purpose: nothing to warn about
+    setLastAccount(null);
     await signOutNow();
     await forgetMeta();
     lastHash.current = null;
@@ -356,9 +371,14 @@ function useCloudEngine() {
     signOut: signOutEverywhere,
     // Something to flag outside Settings, where nobody would otherwise see
     // it: signed out without choosing to (a password changed on another
-    // device ends the session here), or sync failing again after a retry.
-    attention: (ready && !user && recall(WAS_SIGNED_IN) === '1') ? 'signed-out'
+    // device ends the session here, or the browser let the sign-in go), or
+    // sync failing again after a retry.
+    attention: (ready && !user && lastAccount != null) ? 'signed-out'
       : (user && status === 'error' && failures.current >= 2) ? 'error' : null,
+    // That account's email ('' if it isn't known), or null — for the Account
+    // screen to say so and fill it in. Staying signed out lets it go.
+    lastAccount: user ? null : lastAccount,
+    stayOut: () => { forgetAccount(); setLastAccount(null); },
     // What a linked coach just added or corrected, for the "Gino added a
     // game" note. Cleared by whoever shows it.
     coachApplied,
@@ -368,12 +388,42 @@ function useCloudEngine() {
   };
 }
 
+// The account last signed in on this device: its email, in localStorage and
+// in IndexedDB both, so a browser that clears one still leaves the other to
+// say who it was. (WAS_SIGNED_IN, a bare flag, is from before the email was
+// kept: still read, so a device updated while signed out is still told.)
 const WAS_SIGNED_IN = 'repertoire-lab-was-signed-in';
-function remember(key, value) {
-  try { if (value == null) localStorage.removeItem(key); else localStorage.setItem(key, value); } catch { /* private mode */ }
+const LAST_ACCOUNT = 'repertoire-lab-last-account';
+function recallAccount() {
+  try {
+    const email = localStorage.getItem(LAST_ACCOUNT);
+    if (email != null) return email;
+    return localStorage.getItem(WAS_SIGNED_IN) === '1' ? '' : null;
+  } catch { return null; }
 }
-function recall(key) {
-  try { return localStorage.getItem(key); } catch { return null; }
+function rememberAccount(email) {
+  try { localStorage.setItem(LAST_ACCOUNT, email); localStorage.setItem(WAS_SIGNED_IN, '1'); } catch { /* private mode */ }
+  idbSet(LAST_ACCOUNT, { email, at: Date.now() }).catch(() => {});
+}
+function forgetAccount() {
+  try { localStorage.removeItem(LAST_ACCOUNT); localStorage.removeItem(WAS_SIGNED_IN); } catch { /* private mode */ }
+  idbDel(LAST_ACCOUNT).catch(() => {});
+}
+
+// Asks the browser to keep this site's storage — the library and the
+// sign-in — rather than clear it when it decides to make room or tidy up.
+// Safari decides for itself (a Home Screen or Dock web app is the likeliest
+// to be kept); Chrome and Edge go by how much the site is used; Firefox asks.
+// Once per launch, and only signed in: that's what there is to lose.
+let askedToKeep = false;
+function keepStorage() {
+  if (askedToKeep) return;
+  askedToKeep = true;
+  const sm = typeof navigator !== 'undefined' ? navigator.storage : null;
+  if (!sm?.persist) return;
+  Promise.resolve(sm.persisted?.())
+    .then((already) => (already ? true : sm.persist()))
+    .catch(() => {});
 }
 
 const CONSENT_KEY = 'repertoire-lab-accepted-games';

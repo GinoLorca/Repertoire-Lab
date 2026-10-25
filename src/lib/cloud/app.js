@@ -21,9 +21,14 @@ export function cloud() {
       const app = initializeApp(firebaseConfig);
       // Local persistence: signing in on a device keeps you signed in, which
       // is the whole point — this is an app you open on a phone between
-      // lessons, not a bank.
+      // lessons, not a bank. Kept in IndexedDB, where the library itself is,
+      // so the two are kept (or lost) together; localStorage only where
+      // IndexedDB can't be opened. It used to be localStorage alone, and
+      // coming back to a device found you signed out with everything else
+      // still there. A sign-in kept the old way is found and moved across by
+      // Firebase itself, so the change signs nobody out.
       const authInstance = auth.initializeAuth(app, {
-        persistence: auth.browserLocalPersistence,
+        persistence: [auth.indexedDBLocalPersistence, auth.browserLocalPersistence],
       });
       // Firestore's own offline cache, so a move made on a plane is queued
       // and sent when there's signal again rather than lost or blocking.
