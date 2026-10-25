@@ -33,17 +33,23 @@ function guardTouchMoves() {
 // The click the browser sends after a press that drew (or a tap that only
 // cleared) isn't a tap on the board: it would pick a piece up, or clear what
 // was just drawn. Caught on the window, ahead of everything — React's own
-// listeners included — and only near where the finger lifted, just after.
+// listeners included — and only near where the finger lifted, and only
+// until the next press: a tap straight after is a tap.
 export function swallowClickAt(x, y) {
   if (typeof window === 'undefined') return;
-  const swallow = (ev) => {
+  const done = () => {
+    window.removeEventListener('click', swallow, true);
+    window.removeEventListener('pointerdown', done, true);
+  };
+  function swallow(ev) {
     if (Math.hypot(ev.clientX - x, ev.clientY - y) > 30) return;
     ev.stopPropagation();
     ev.preventDefault();
-    window.removeEventListener('click', swallow, true);
-  };
+    done();
+  }
   window.addEventListener('click', swallow, true);
-  setTimeout(() => window.removeEventListener('click', swallow, true), 700);
+  window.addEventListener('pointerdown', done, true);
+  setTimeout(done, 700);
 }
 
 // `squareAt(x, y)`: the square under a point on this board, or null.
