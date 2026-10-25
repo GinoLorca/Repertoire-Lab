@@ -9,6 +9,7 @@ import { boardBadgeStyle } from '../lib/badges';
 import { boardColors } from '../lib/theme';
 import BoardArrows, { cell } from './BoardArrows';
 import { TelestratorLayer } from './Telestrator';
+import { useHoldToDraw, swallowClickAt, HOLD_SLOP } from './useHoldToDraw';
 import {
   PENS, comboMatchesEvent, defaultPen, isComboKey, shortcutKey,
 } from '../lib/shortcuts';
@@ -42,7 +43,10 @@ export const isTouchCapable = typeof window !== 'undefined' && 'ontouchstart' in
 const dndProps = isTouchCapable
   ? {
     customDndBackend: TouchBackend,
-    customDndBackendOptions: { enableMouseEvents: true, delayTouchStart: 0 },
+    // A piece drag starts once a finger has travelled as far as gives up a
+    // hold to draw (useHoldToDraw), so a finger resting on a piece is never
+    // both lifting it and drawing from it.
+    customDndBackendOptions: { enableMouseEvents: true, delayTouchStart: 0, touchSlop: HOLD_SLOP },
   }
   : {};
 
@@ -300,7 +304,10 @@ export default function Board({
 
 // Right-drag to draw an arrow, right-drag the same pair again to take it away;
 // right-click one square to highlight it; left-click the board to clear the
-// lot — the gestures everyone already knows from lichess and chess.com. In
+// lot — the gestures everyone already knows from lichess and chess.com. On a
+// touch screen, a finger held on a square stands in for the right button
+// (useHoldToDraw): hold, then drag for an arrow, or lift for a highlight; a
+// tap clears. The click that clears does only that — no piece picked up. In
 // the pen you've set as the default (Settings), or whichever pen's key is
 // held: the analysis board's keys, so a red arrow and a green one, or squares
 // in two colours, sit side by side. Kept here rather than in each view so
@@ -318,6 +325,8 @@ function DrawableBoard({
   boardWidth, orientation, position, marks, settings, profile, drawing, setDrawing, children,
 }) {
   const [pending, setPending] = useState(null); // { from, to, color } while dragging
+  const [held, setHeld] = useState(null); // the same, for a finger held to draw
+  const hostRef = useRef(null);
   const [tapFrom, setTapFrom] = useState(null); // tap-to-draw: the first square
   // A finger down in tap-to-draw: { id, sq, x, y }. It counts as a tap when it
   // lifts where it landed — a scroll or a pinch that starts on the board
@@ -341,11 +350,45 @@ function DrawableBoard({
   useEffect(() => {
     setDrawing((d) => (d.arrows.length || Object.keys(d.squares).length ? NO_DRAWING : d));
     setPending(null);
+    setHeld(null);
     setTapFrom(null);
   }, [position]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!marks?.tapToDraw) setTapFrom(null); }, [marks?.tapToDraw]);
 
+  // A finger held on a square draws (see useHoldToDraw). Only this board's
+  // squares: a Before & After pair sits side by side.
+  const ownSquareAt = (x, y) => {
+    const el = document.elementFromPoint(x, y)?.closest?.('[data-square]');
+    return el && hostRef.current?.contains(el) ? el.getAttribute('data-square') : null;
+  };
+  const hold = useHoldToDraw({
+    squareAt: ownSquareAt,
+    onHold: (from) => {
+      tapRef.current = null; // not a tap-to-draw tap as well
+      setHeld({ from, to: from, color: colorNow(null, from, from) });
+    },
+    onMove: (from, to) => setHeld({ from, to, color: colorNow(null, from, to) }),
+    onDone: (from, to) => {
+      setHeld(null);
+      if (editing) {
+        if (to !== from) marks.onArrow(from, to, heldPen(settings, null));
+        else marks.onSquare(from, heldPen(settings, null));
+        return;
+      }
+      const o = optsFor(null);
+      setDrawing((d) => (to === from ? drawSquare(d, from, o) : drawArrow(d, from, to, o)));
+    },
+    onCancel: () => setHeld(null),
+    // A tap clears what's drawn here, and that's all it does.
+    onTap: (sq, ev) => {
+      if (editing || !hasDrawing) return;
+      setDrawing(NO_DRAWING);
+      swallowClickAt(ev.clientX, ev.clientY);
+    },
+  });
+
   const onPointerDown = (e) => {
+    if (e.pointerType !== 'mouse') hold.onPointerDown(e);
     if (e.button === 2) {
       const from = squareAtPoint(e.clientX, e.clientY);
       if (from) { e.preventDefault(); setPending({ from, to: from, color: colorNow(e, from, from) }); }
@@ -356,8 +399,11 @@ function DrawableBoard({
       if (!sq) return;
       e.preventDefault();
       tapRef.current = { id: e.pointerId, sq, x: e.clientX, y: e.clientY };
-    } else if (e.button === 0 && hasDrawing) {
+    } else if (e.button === 0 && hasDrawing && e.pointerType === 'mouse') {
+      // A click clears, and does only that. (A finger clears when it lifts
+      // from a tap — put down, it may be starting another arrow.)
       setDrawing(NO_DRAWING);
+      swallowClickAt(e.clientX, e.clientY);
     }
   };
 
@@ -397,15 +443,19 @@ function DrawableBoard({
     setDrawing((d) => (to === from ? drawSquare(d, from, o) : drawArrow(d, from, to, o)));
   };
 
-  const live = pending && pending.to !== pending.from
-    ? [[pending.from, pending.to, pending.color]]
+  const drag = held ?? pending;
+  const live = drag && drag.to !== drag.from
+    ? [[drag.from, drag.to, drag.color]]
     : [];
   const pen = restPen;
   const size = boardWidth / 8;
-  const tapCell = tapFrom ? cell(tapFrom, orientation) : null;
+  // The square a tap-to-draw arrow starts from, or a held finger's.
+  const startSq = held?.from ?? tapFrom;
+  const tapCell = startSq ? cell(startSq, orientation) : null;
 
   return (
     <div
+      ref={hostRef}
       className="board-draw-host"
       style={{ position: 'relative', width: boardWidth, height: boardWidth }}
       onPointerDown={onPointerDown}
@@ -426,7 +476,7 @@ function DrawableBoard({
         <div
           className="draw-tap-from"
           style={{
-            left: tapCell.x * size, top: tapCell.y * size, width: size, height: size, borderColor: pen,
+            left: tapCell.x * size, top: tapCell.y * size, width: size, height: size, borderColor: held?.color ?? pen,
           }}
         />
       )}

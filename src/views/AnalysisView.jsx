@@ -13,7 +13,9 @@ import BoardArrows from '../components/BoardArrows';
 import ArrowProfileLabel from '../components/ArrowProfileLabel';
 import {
   profileOf, drawArrow as drawProfileArrow, drawSquare as drawProfileSquare, recolorAll, squareMarkStyle,
+  colorOfNext,
 } from '../lib/arrowProfiles';
+import { useHoldToDraw } from '../components/useHoldToDraw';
 import CompareView from './CompareView';
 import GameEditor from '../components/GameEditor';
 import EvalBar from '../components/EvalBar';
@@ -110,6 +112,9 @@ function drawingsFromComments(sans, comments, startFen = START_FEN) {
 }
 
 const EMPTY_MARKS = { arrows: [], squares: {} };
+
+// A finger is this device's main pointer (an iPad, a phone), not a mouse.
+const COARSE = typeof window !== 'undefined' && Boolean(window.matchMedia?.('(pointer: coarse)')?.matches);
 
 // Best move, second, third — three hues rather than three blues, so a glance at
 // the board tells you which arrow is which line. Read on light and dark squares.
@@ -278,6 +283,8 @@ export default function AnalysisView({
   }, [state.settings.defaultPen]);
   const [drawMode, setDrawMode] = useState(false);
   const [drawFrom, setDrawFrom] = useState(null);
+  // A finger held on a square and dragged (useHoldToDraw): the square it's over.
+  const [holdTo, setHoldTo] = useState(null);
   const [picked, setPicked] = useState(null); // click-to-move: the piece you tapped
   // A square glowed because a move reference in a note was clicked — see
   // MoveNote.jsx. `key` forces the CSS animation to restart even when the
@@ -815,6 +822,24 @@ export default function AnalysisView({
     }
     setDrawFrom(null);
   };
+
+  // Without Draw on, a finger held on a square draws all the same — what a
+  // right-drag is with a mouse (components/useHoldToDraw.js): hold, then
+  // drag for an arrow, or lift for a highlight. Saved like any other. A tap
+  // clears, through the board frame's click handler.
+  const hold = useHoldToDraw({
+    enabled: !drawMode,
+    squareAt: squareFromPoint,
+    onHold: (from) => { setDrawFrom(from); setHoldTo(null); },
+    onMove: (from, to) => setHoldTo(to === from ? null : to),
+    onDone: (from, to) => {
+      setDrawFrom(null);
+      setHoldTo(null);
+      if (to === from) toggleSquare(from, heldPenColor(null));
+      else addArrow(from, to, heldPenColor(null));
+    },
+    onCancel: () => { setDrawFrom(null); setHoldTo(null); },
+  });
 
   const toggleSquare = (square, held = null) => updateMarks((m) => drawProfileSquare(m, square, {
     held, pen: drawColor, profile: arrowProfile, fen,
@@ -1870,6 +1895,7 @@ export default function AnalysisView({
         clearMarks();
         e.stopPropagation();
       }}
+      onPointerDown={hold.onPointerDown}
     >
     <Board
       id="analysis"
@@ -1902,7 +1928,17 @@ export default function AnalysisView({
     )}
     <BoardArrows arrows={engineArrows} boardWidth={boardWidth} orientation={orientation} />
     {/* Yours above the engine's, outlined while an arrow colour profile is on. */}
-    <BoardArrows arrows={marks.arrows} boardWidth={boardWidth} orientation={orientation} halo={arrowProfile !== 'default'} />
+    <BoardArrows
+      arrows={drawFrom && holdTo
+        // The arrow a held finger is dragging out, in the colour it will be.
+        ? [...marks.arrows, [drawFrom, holdTo, colorOfNext(marks, drawFrom, holdTo, {
+          held: null, pen: drawColor, profile: arrowProfile, fen,
+        }) ?? drawColor]]
+        : marks.arrows}
+      boardWidth={boardWidth}
+      orientation={orientation}
+      halo={arrowProfile !== 'default'}
+    />
     {/* Drawn above the arrows: an engine arrow crossing a dot used to
         make it look like two dots on one square. */}
     {showLegal && (
@@ -2003,7 +2039,10 @@ export default function AnalysisView({
         the screen, and there's no right-click there anyway. */}
     {!splitMoment && (
     <div className="muted-note draw-hint" style={{ maxWidth: boardWidth }}>
-      {tight ? (
+      {COARSE ? (
+        // A finger first (an iPad, a phone): the hold, not the right button.
+        <>Hold a square, then drag to draw · tap the board or <strong>Clear</strong> to take them off</>
+      ) : tight ? (
         <>Press <strong>Draw</strong>, then drag to mark up the board · tap it or <strong>Clear</strong> to take them off</>
       ) : (
         <>
