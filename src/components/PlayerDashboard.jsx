@@ -106,7 +106,8 @@ function useUscf(id) {
 }
 
 export default function PlayerDashboard({
-  player, index, onOpenGame, onAnalyzeGame, onStudioGame, onAddGame, onEditProfile, onRatings,
+  player, index, onOpenGame, onAnalyzeGame, onStudioGame, onEditGame, onFixOpponent, onAddGame, onEditProfile,
+  onRatings,
 }) {
   const id = String(player.profile?.uscf ?? '').replace(/\D/g, '');
   if (!id) {
@@ -133,6 +134,8 @@ export default function PlayerDashboard({
       onOpenGame={onOpenGame}
       onAnalyzeGame={onAnalyzeGame}
       onStudioGame={onStudioGame}
+      onEditGame={onEditGame}
+      onFixOpponent={onFixOpponent}
       onAddGame={onAddGame}
       onRatings={onRatings}
     />
@@ -140,7 +143,7 @@ export default function PlayerDashboard({
 }
 
 function Dashboard({
-  id, player, index, onOpenGame, onAnalyzeGame, onStudioGame, onAddGame, onRatings,
+  id, player, index, onOpenGame, onAnalyzeGame, onStudioGame, onEditGame, onFixOpponent, onAddGame, onRatings,
 }) {
   const { state, dispatch } = useStore();
   const {
@@ -435,6 +438,8 @@ function Dashboard({
               onOpenGame={onOpenGame}
               onAnalyzeGame={onAnalyzeGame}
               onStudioGame={onStudioGame}
+              onEditGame={onEditGame}
+              onFixOpponent={onFixOpponent}
               onAddGame={(sec, round) => onAddGame(sec, round, asPlayed(sec))}
               onConfirm={confirm}
               onRefuse={refuse}
@@ -601,7 +606,8 @@ function Highlight({ title, games, empty }) {
 }
 
 function EventRow({
-  section, standing: st, match, gameById, spare, open, onToggle, onOpenGame, onAnalyzeGame, onStudioGame, onAddGame,
+  section, standing: st, match, gameById, spare, open, onToggle, onOpenGame, onAnalyzeGame, onStudioGame, onEditGame,
+  onFixOpponent, onAddGame,
   onConfirm, onRefuse, onUnlink, loading, failed, onRetry, onScout,
 }) {
   const sys = mainSystem(section);
@@ -684,6 +690,8 @@ function EventRow({
                       onOpenGame={onOpenGame}
                       onAnalyzeGame={onAnalyzeGame}
                       onStudioGame={onStudioGame}
+                      onEditGame={onEditGame}
+                      onFixOpponent={onFixOpponent}
                       onAddGame={onAddGame}
                       onScout={onScout}
                       onConfirm={onConfirm}
@@ -702,8 +710,8 @@ function EventRow({
 }
 
 function RoundRow({
-  section, round: r, myPre, m, gameById, spare, onOpenGame, onAnalyzeGame, onStudioGame, onAddGame, onConfirm, onRefuse, onUnlink,
-  onScout,
+  section, round: r, myPre, m, gameById, spare, onOpenGame, onAnalyzeGame, onStudioGame, onEditGame, onFixOpponent,
+  onAddGame, onConfirm, onRefuse, onUnlink, onScout,
 }) {
   const key = roundKey(section.key, r.round);
   const played = PLAYED.has(r.result);
@@ -711,6 +719,15 @@ function RoundRow({
     ? 1 / (1 + 10 ** ((r.oppPre - myPre) / 400)) : null;
   const game = m ? gameById.get(m.gameId) : null;
   const [picking, setPicking] = useState(false);
+  // The opponent as the game has them, when that isn't who US Chess paired
+  // — a name typed from memory ("Gene" for Jean Seo). One tap puts US
+  // Chess's in; the link to the round stays as it is.
+  const meta = game?.meta ?? {};
+  const theirSide = meta.color === 'black' ? 'white' : meta.color === 'white' ? 'black' : null;
+  const onGame = theirSide ? String(meta[theirSide] ?? '').trim() : '';
+  const tidy = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const nameDiffers = !!(game && m && m.state !== 'suggested' && r.oppName && onGame
+    && tidy(onGame) !== tidy(r.oppName));
   return (
     <tr className={played ? '' : 'quiet'}>
       <td className="dash-rd">{r.round}</td>
@@ -722,6 +739,19 @@ function RoundRow({
               ? <button type="button" className="link" title={`Scout ${r.oppName}`} onClick={() => onScout(r.oppId)}>{r.oppName}</button>
               : r.oppName}
             {r.oppPre != null && <span className="muted-note"> {r.oppPre}</span>}
+            {nameDiffers && onFixOpponent && (
+              <span className="dash-namefix">
+                your game says “{onGame}” ·{' '}
+                <button
+                  type="button"
+                  className="link"
+                  title={`Change the opponent on this game to ${r.oppName}, as US Chess has it`}
+                  onClick={() => onFixOpponent(game.id, theirSide, r.oppName, r.oppPre)}
+                >
+                  use “{r.oppName}”
+                </button>
+              </span>
+            )}
           </span>
         ) : <span className="muted-note">{RESULT_LABEL[r.result]}</span>}
       </td>
@@ -753,6 +783,16 @@ function RoundRow({
                 title="Review this game in Studio — badges, notes, arrows and variations, saved onto the game"
               >
                 <FlaskIcon size={12} /> Send to studio
+              </button>
+            )}
+            {onEditGame && (
+              <button
+                className="small ghost"
+                title="Edit this game — names, ratings, result, date and moves. It stays linked to this round."
+                aria-label="Edit game"
+                onClick={() => onEditGame(game.id)}
+              >
+                <PencilIcon size={13} />
               </button>
             )}
             {m.conflict

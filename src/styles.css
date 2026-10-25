@@ -5313,3 +5313,9 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .game-fields .icn-link .icn-goal { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; font-size: 13px; }
 .game-fields .icn-link .icn-goal input { width: 64px; }
 .icn-picks { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+/* The opponent's name on a linked game, when it isn't US Chess's
+   (PlayerDashboard): on its own line under the name. */
+.dash-opp:has(.dash-namefix) { flex-wrap: wrap; row-gap: 2px; }
+.dash-namefix { flex-basis: 100%; font-size: 12.5px; color: var(--amber); }
+.dash-namefix button.link { color: var(--amber); font-size: 12.5px; padding: 0; }

@@ -677,6 +677,24 @@ function PlayerPage({
             const game = player.games.find((g) => g.id === gameId);
             if (game?.moves?.length) onAnalyze(lineFor(game, { subtitle: categoryOf(game, index, state)?.label }));
           }}
+          // The Games tab's Edit, from the round the game is linked to.
+          onEditGame={(gameId) => {
+            const game = player.games.find((g) => g.id === gameId);
+            if (game) setEditing(game);
+          }}
+          // US Chess's name for the opponent, in place of the one typed in;
+          // their rating too, if the game had none.
+          onFixOpponent={(gameId, side, name, elo) => {
+            const game = player.games.find((g) => g.id === gameId);
+            if (!game || !side || !name) return;
+            const meta = { [side]: name };
+            if (elo != null && !String(game.meta?.[`${side}Elo`] ?? '').trim()) meta[`${side}Elo`] = String(elo);
+            const white = side === 'white' ? name : (game.meta?.white || 'White');
+            const black = side === 'black' ? name : (game.meta?.black || 'Black');
+            dispatch({
+              type: 'updateGame', playerId: player.id, gameId, game: { meta, name: `${white} vs ${black}` },
+            });
+          }}
           // …and its "Send to studio".
           onStudioGame={onGameStudio && ((gameId) => {
             const game = player.games.find((g) => g.id === gameId);
