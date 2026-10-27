@@ -187,6 +187,15 @@ export const ResetIcon = (p) => (
   </Icon>
 );
 
+// A box with an arrow out of it: Share, as the share sheet draws it.
+export const ShareIcon = (p) => (
+  <Icon {...p}>
+    <path d="M12 14V3.5" />
+    <path d="M8 7.5 12 3.5l4 4" />
+    <path d="M8.5 10.5H6.5a1.5 1.5 0 0 0-1.5 1.5v7a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-7a1.5 1.5 0 0 0-1.5-1.5h-2" />
+  </Icon>
+);
+
 export const UploadIcon = (p) => (
   <Icon {...p}>
     <path d="M12 14.5v-11" />

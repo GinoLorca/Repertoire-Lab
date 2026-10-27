@@ -16,7 +16,7 @@ import { useStore } from '../store';
 import { isTouchCapable } from './Board';
 import ArrowProfileLabel from './ArrowProfileLabel';
 import {
-  TagIcon, StarIcon, CommentIcon, SkipStartIcon, SkipEndIcon, PrevIcon, NextIcon,
+  TagIcon, ShareIcon, StarIcon, CommentIcon, SkipStartIcon, SkipEndIcon, PrevIcon, NextIcon,
 } from './Icons';
 
 function moveLabel(moves, ply, startFen) {
@@ -34,7 +34,7 @@ const PEN_NAMES = { G: 'Green', R: 'Red', B: 'Blue', Y: 'Yellow' };
 const penCode = (color) => (color ? PEN_ORDER.find((c) => PEN[c] === color) ?? null : null);
 
 export default function VariationViewer({
-  variation, orientation, onClose, onAnalyze, onSaveComment, onSetBadge, onToggleStar, onEditTags,
+  variation, orientation, onClose, onAnalyze, onSaveComment, onSetBadge, onToggleStar, onEditTags, onShare,
   onPrevVariation, onNextVariation, position,
   // Arrows and squares drawn on the line's moves, kept with it (lib/marks.js).
   onSaveMarks, startDrawing = false,
@@ -236,6 +236,11 @@ export default function VariationViewer({
             {onEditTags && (
               <button className="small ghost" title="Themes / nickname for this variation" onClick={onEditTags}>
                 <TagIcon size={15} /> Themes
+              </button>
+            )}
+            {onShare && (
+              <button className="small ghost" title="Share this line’s PGN" aria-haspopup="menu" onClick={onShare}>
+                <ShareIcon size={15} /> Share
               </button>
             )}
           </div>

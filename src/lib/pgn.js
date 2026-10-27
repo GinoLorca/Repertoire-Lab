@@ -360,14 +360,18 @@ export function variationToPgn(variation, { event, white, black }) {
   return `${headerText}\n\n${movetext} *\n`;
 }
 
+// One line of a chapter, labelled as the chapter's export labels it: the
+// opening on your side of the board, the line's name on the other.
+export function variationPgn(opening, chapter, variation) {
+  return variationToPgn(variation, {
+    event: `${opening.name}: ${chapter.name}`,
+    white: opening.color === 'white' ? opening.name : variation.name,
+    black: opening.color === 'white' ? variation.name : opening.name,
+  });
+}
+
 export function chapterToPgn(opening, chapter) {
-  return chapter.variations
-    .map((v) => variationToPgn(v, {
-      event: `${opening.name}: ${chapter.name}`,
-      white: opening.color === 'white' ? opening.name : v.name,
-      black: opening.color === 'white' ? v.name : opening.name,
-    }))
-    .join('\n');
+  return chapter.variations.map((v) => variationPgn(opening, chapter, v)).join('\n');
 }
 
 export function openingToPgn(opening) {
