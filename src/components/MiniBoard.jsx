@@ -26,17 +26,24 @@ function squaresFromFen(fen) {
   return grid;
 }
 
+const FILES = 'abcdefgh';
+
 // A small static board — the position a game finished in, chess.com style.
-export default function MiniBoard({ fen, size = 104, orientation = 'white', title }) {
+// `marks`: squares to ring ('e4', …) — where two boards differ, say.
+export default function MiniBoard({
+  fen, size = 104, orientation = 'white', title, marks,
+}) {
   const grid = squaresFromFen(fen);
+  const ringed = new Set(marks ?? []);
   const rows = orientation === 'black' ? [...grid].reverse() : grid;
   const cells = [];
   rows.forEach((row, y) => {
     const line = orientation === 'black' ? [...row].reverse() : row;
     line.forEach((piece, x) => {
       const dark = (x + y) % 2 === 1;
+      const sq = orientation === 'black' ? `${FILES[7 - x]}${y + 1}` : `${FILES[x]}${8 - y}`;
       cells.push(
-        <span key={`${x}-${y}`} className={`mb-sq${dark ? ' dark' : ''}`}>
+        <span key={`${x}-${y}`} className={`mb-sq${dark ? ' dark' : ''}${ringed.has(sq) ? ' marked' : ''}`}>
           {piece && (
             <span className={`mb-piece${piece.white ? ' white' : ' black'}`}>{piece.glyph}</span>
           )}

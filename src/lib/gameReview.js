@@ -100,6 +100,42 @@ function sacrificedMaterial(fenBefore, from, to) {
 // this early. Past the opening, the same eval-swing wouldn't mean much (a
 // good 25th move isn't "book" just because it was accurate), so this only
 // ever fires inside the first few full moves.
+// How a move's loss (centipawns, from its own side) reads: the review's own
+// bands below, without the judgments only a whole game can make (book,
+// brilliant, great).
+export function gradeLoss(loss) {
+  if (loss <= 10) return 'best';
+  if (loss <= 30) return 'excellent';
+  if (loss <= 60) return 'good';
+  if (loss <= 100) return 'inaccuracy';
+  if (loss <= 300) return 'mistake';
+  return 'blunder';
+}
+
+// How good each of `sans` is in the position `fen`, measured as the review
+// measures a move: Stockfish's score with the move played against the
+// position's own (its best move's), from the mover's side. For Similar
+// openings (AnalysisView): a repertoire line's next move, tried on a board
+// that only resembles the line's. `engine` is the caller's own, as for the
+// review; `stop()` ends it early. { [san]: { loss, grade } }.
+export async function checkMoves(engine, fen, sans, { depth = 14, stop } = {}) {
+  const chess = new Chess(fen);
+  const mover = chess.turn();
+  const best = moverScore((await positionLines(engine, chess, fen, depth))[1]?.score, mover);
+  const out = {};
+  for (const san of sans) {
+    if (stop?.()) break;
+    const after = new Chess(fen);
+    let mv;
+    try { mv = after.move(san); } catch { mv = null; }
+    if (!mv) continue;
+    const lines = await positionLines(engine, after, after.fen(), depth);
+    const loss = Math.max(0, best - moverScore(lines[1]?.score, mover));
+    out[san] = { loss, grade: gradeLoss(loss) };
+  }
+  return out;
+}
+
 const BOOK_PLIES = 10;
 const BOOK_LOSS_CEILING = 40;
 

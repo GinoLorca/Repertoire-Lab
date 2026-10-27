@@ -19,7 +19,7 @@ test('the default is the screen as it always was, every panel accounted for', ()
   const d = defaultLayout();
   assert.deepEqual(shape(d), [
     'board | notes | controls | position | lab',
-    'movenote | game | repertoire | engine+explorer+annotate',
+    'movenote | game | repertoire | engine+explorer+similar+annotate',
     'moves',
   ]);
   assert.deepEqual(d.closed, ['moments']);
@@ -54,6 +54,24 @@ test('a layout from anywhere is rebuilt from what’s allowed', () => {
   assert.equal(where(noBoard, 'board'), 'c/g-board#0');
 });
 
+test('a panel added since a layout was saved: Similar openings joins Explorer', () => {
+  // Saved before it existed: it takes the tab after Explorer, wherever that is.
+  const old = normalizeLayout({
+    columns: [
+      { id: 'c-board', groups: [{ id: 'g-board', tabs: ['board'] }] },
+      { id: 'c-x', groups: [{ id: 'g-x', tabs: ['moves', 'explorer', 'engine'] }] },
+    ],
+    closed: [],
+  });
+  assert.equal(groupOf(old, 'similar').tabs.join('+'), 'moves+explorer+similar+engine');
+  // Put away since: it stays put away.
+  const shut = normalizeLayout({ ...old, closed: ['similar'], columns: old.columns.map((c) => ({ ...c, groups: c.groups.map((g) => ({ ...g, tabs: g.tabs.filter((t) => t !== 'similar') })) })) });
+  assert.ok(!isOpen(shut, 'similar') && shut.closed.includes('similar'));
+  // No Explorer open to sit beside: the Panels menu has it.
+  const bare = normalizeLayout({ columns: [{ id: 'c', groups: [{ id: 'g', tabs: ['board'] }] }], closed: [] });
+  assert.ok(bare.closed.includes('similar'));
+});
+
 test('moving a panel: between groups, into a group as a tab, into a new column', () => {
   let l = defaultLayout();
   // Moves under the board.
@@ -63,10 +81,10 @@ test('moving a panel: between groups, into a group as a tab, into a new column',
   // Explorer out of the tabs into a column of its own on the right.
   l = moveItem(l, { panel: 'explorer' }, { kind: 'column', beforeColId: null });
   assert.equal(shape(l)[2], 'explorer');
-  assert.equal(groupOf(l, 'engine').tabs.join('+'), 'engine+annotate');
+  assert.equal(groupOf(l, 'engine').tabs.join('+'), 'engine+similar+annotate');
   // Lab notes in with Engine as a tab.
   l = moveItem(l, { panel: 'lab' }, { kind: 'tab', groupId: SIDE_GROUP });
-  assert.equal(groupOf(l, 'lab').tabs.join('+'), 'engine+annotate+lab');
+  assert.equal(groupOf(l, 'lab').tabs.join('+'), 'engine+similar+annotate+lab');
   // A column to the left of the board.
   l = moveItem(l, { panel: 'game' }, { kind: 'column', beforeColId: 'c-board' });
   assert.equal(shape(l)[0], 'game');
@@ -76,11 +94,11 @@ test('moving a panel: between groups, into a group as a tab, into a new column',
 
 test('moving a whole group keeps its tabs together', () => {
   let l = moveItem(defaultLayout(), { group: SIDE_GROUP }, { kind: 'column', beforeColId: null });
-  assert.equal(shape(l)[l.columns.length - 1], 'engine+explorer+annotate');
+  assert.equal(shape(l)[l.columns.length - 1], 'engine+explorer+similar+annotate');
   assert.equal(groupOf(l, 'explorer').id, SIDE_GROUP);
   // …and into another group as tabs.
   l = moveItem(l, { group: SIDE_GROUP }, { kind: 'tab', groupId: 'g-moves' });
-  assert.equal(groupOf(l, 'moves').tabs.join('+'), 'moves+engine+explorer+annotate');
+  assert.equal(groupOf(l, 'moves').tabs.join('+'), 'moves+engine+explorer+similar+annotate');
 });
 
 test('what can’t be done isn’t', () => {
@@ -108,7 +126,7 @@ test('the board can move to another column, and the column it leaves keeps the r
 test('closing and opening panels; the board stays', () => {
   let l = closePanel(defaultLayout(), 'explorer');
   assert.ok(!isOpen(l, 'explorer') && l.closed.includes('explorer'));
-  assert.equal(groupOf(l, 'engine').tabs.join('+'), 'engine+annotate');
+  assert.equal(groupOf(l, 'engine').tabs.join('+'), 'engine+similar+annotate');
   assert.equal(closePanel(l, 'board'), l);
   l = closePanel(l, 'moves');
   assert.equal(l.columns.length, 2);

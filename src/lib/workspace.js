@@ -28,13 +28,14 @@ export const PANELS = {
   repertoire: { title: 'Your repertoire', tabbable: true, closable: true },
   engine: { title: 'Engine', tabbable: true, closable: true },
   explorer: { title: 'Explorer', tabbable: true, closable: true },
+  similar: { title: 'Similar openings', tabbable: true, closable: true },
   annotate: { title: 'Annotate', tabbable: true, closable: true },
   moments: { title: 'Before & After', tabbable: true, closable: true },
   moves: { title: 'Moves', tabbable: true, closable: true },
 };
 export const PANEL_IDS = Object.keys(PANELS);
 
-// The Engine / Explorer / Annotate tabs: the group the analysis board's own
+// The Engine / Explorer / Similar / Annotate tabs: the group the analysis board's own
 // tab state (sidePane) belongs to, wherever it's moved.
 export const SIDE_GROUP = 'side';
 
@@ -60,7 +61,7 @@ export const DEFAULT_LAYOUT = Object.freeze({
         { id: 'g-movenote', tabs: ['movenote'] },
         { id: 'g-game', tabs: ['game'] },
         { id: 'g-repertoire', tabs: ['repertoire'] },
-        { id: SIDE_GROUP, tabs: ['engine', 'explorer', 'annotate'] },
+        { id: SIDE_GROUP, tabs: ['engine', 'explorer', 'similar', 'annotate'] },
       ],
     },
     { id: 'c-moves', groups: [{ id: 'g-moves', tabs: ['moves'] }] },
@@ -82,7 +83,10 @@ const tabbable = (id) => PANELS[id]?.tabbable === true;
 // unknown panels dropped, each panel once, the board alone in its own group
 // and always somewhere, nothing empty left standing. A panel the layout
 // doesn't mention at all (one added to the app since it was saved) comes in
-// closed — the Panels menu has it — rather than moving everything around.
+// closed — the Panels menu has it — rather than moving everything around;
+// one that belongs beside another (JOINS) takes the tab after it instead,
+// if that one's open.
+const JOINS = { similar: 'explorer' };
 export function normalizeLayout(raw) {
   if (!isObj(raw) || !Array.isArray(raw.columns)) return defaultLayout();
   const seen = new Set();
@@ -129,6 +133,12 @@ export function normalizeLayout(raw) {
     if (!columns.length) columns.push({ id: fresh('c-board'), groups: [] });
     columns[0].groups.unshift({ id: fresh('g-board'), tabs: ['board'] });
     seen.add('board');
+  }
+  for (const [id, beside] of Object.entries(JOINS)) {
+    const g = !seen.has(id) && columns.flatMap((c) => c.groups).find((x) => x.tabs.includes(beside));
+    if (!g) continue;
+    g.tabs.splice(g.tabs.indexOf(beside) + 1, 0, id);
+    seen.add(id);
   }
   for (const id of PANEL_IDS) if (!seen.has(id)) closed.push(id);
   return { v: LAYOUT_VERSION, columns, closed };

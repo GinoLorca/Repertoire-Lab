@@ -5,7 +5,10 @@ import { Chess } from 'chess.js';
 import Board from '../components/Board';
 import { useStore, uid } from '../store';
 import { Engine, formatScore } from '../lib/engine';
-import { runGameReview } from '../lib/gameReview';
+import { runGameReview, checkMoves } from '../lib/gameReview';
+import {
+  buildSimilarIndex, similarOpenings, describeDiff, differingSquares, MIN_PLY,
+} from '../lib/similarOpenings';
 import { fetchExplorer, explorerTotals, pct } from '../lib/explorer';
 import { useViewportWidth, useViewportHeight } from '../components/useViewportWidth';
 import { topInset, bottomInset } from '../lib/safeArea';
@@ -37,10 +40,11 @@ import { lastMoveOf, NOTE_HIGHLIGHT_STYLE } from '../lib/legalMoves';
 import { useBackGuard } from '../lib/backGuard';
 import { parseStudyUrl, fetchStudyPgn } from '../lib/lichess';
 import { pgnTextToEntries } from '../lib/pgnImport';
-import { BADGES } from '../lib/badges';
+import { BADGES, BADGE_BY_ID } from '../lib/badges';
 import MoveBadge from '../components/MoveBadge';
 import MoveTree from '../components/MoveTree';
 import MoveNote from '../components/MoveNote';
+import MiniBoard from '../components/MiniBoard';
 import {
   parseMarks, withMarks, drawingOf, marksOfDrawing, START,
 } from '../lib/marks';
@@ -304,7 +308,7 @@ export default function AnalysisView({
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewProgress, setReviewProgress] = useState(null); // {done, total}
   const [reviewResult, setReviewResult] = useState(null); // {accuracy: {white, black}}
-  const [sidePane, setSidePane] = useState(resumed?.sidePane ?? (coachMode ? 'annotate' : 'engine')); // engine | explorer | annotate
+  const [sidePane, setSidePane] = useState(resumed?.sidePane ?? (coachMode ? 'annotate' : 'engine')); // engine | explorer | similar | annotate
 
   // The saved game this board is showing, if any — initialLine is a snapshot
   // from the moment "Analyze" was pressed, but notes/themes edited here need
@@ -1415,6 +1419,7 @@ export default function AnalysisView({
     setMoments([]);
     setMoveNotes(plyMapToNodeIds(t, opts?.comments));
     setMoveBadges(plyMapToNodeIds(t, opts?.badges));
+    return t;
   };
 
   const loadFen = () => {
@@ -1553,6 +1558,24 @@ export default function AnalysisView({
     }
   };
 
+  // A Similar openings line, on the board at the position it resembles.
+  // What's on the board now gives way to it, as with the line picker — asked
+  // first, when there's anything to lose.
+  const openSimilarLine = (sg) => {
+    const what = `${sg.opening.name} — ${sg.variation.name}`;
+    if (tree.children.length && !window.confirm(`Open ${what} on the board, ${sg.after}? It takes the place of the moves on the board now; nothing saved is changed.`)) return;
+    setBaseFen(newGameAt(startFenOf(sg.variation)).fen());
+    const t = loadMoves(sg.variation.moves, {
+      title: sg.variation.name,
+      comments: sg.variation.comments,
+      badges: sg.variation.badges,
+    });
+    let node = t;
+    for (let i = 0; i < sg.ply && node.children[0]; i += 1) node = node.children[0];
+    setHead(node.id);
+    setOrientation(sg.opening.color);
+  };
+
   // Keep the engine and explorer beside the board whenever they fit: the board
   // takes what's left after the side panel, instead of being sized from the
   // window and pushing the panel onto its own row.
@@ -1571,13 +1594,84 @@ export default function AnalysisView({
   const [customizing, setCustomizing] = useState(false);
   const isDefaultLayout = useMemo(() => sameLayout(ws.layout, DEFAULT_LAYOUT), [ws.layout]);
   const dockOn = Boolean(coachMode) && (customizing || !isDefaultLayout);
-  // Each group's tab on show; the Engine / Explorer / Annotate tabs follow
-  // sidePane as they always have, wherever that group has been moved.
+  // Each group's tab on show; the Engine / Explorer / Similar / Annotate tabs
+  // follow sidePane as they always have, wherever that group has been moved.
   const [tabState, setTabState] = useState({});
   useEffect(() => {
     const g = groupOf(ws.layout, sidePane);
     if (g) setTabState((t) => (t[g.id] === sidePane ? t : { ...t, [g.id]: sidePane }));
   }, [sidePane]); // eslint-disable-line react-hooks/exhaustive-deps
+  const activeTab = (group) => tabState[group.id] ?? (group.tabs.includes(sidePane) ? sidePane : group.tabs[0]);
+
+  // ---------- Similar openings (lib/similarOpenings) ----------
+  // Lines in the repertoire whose positions resemble the board's, worked out
+  // only while the tab is on show; the index behind them is built the first
+  // time it's needed and kept until the repertoire changes.
+  const similarGroup = dockOn ? groupOf(ws.layout, 'similar') : null;
+  const similarVisible = mode === 'engine' && (dockOn
+    ? Boolean(similarGroup && !similarGroup.collapsed && activeTab(similarGroup) === 'similar')
+    : sidePane === 'similar');
+  const similarIndexRef = useRef({ of: null, index: null });
+  // The side being played here, when something says so: a game's, else the
+  // side of the repertoire the moves follow. Lines from it come first.
+  const playingSide = useMemo(
+    () => sideOf(initialLine?.meta?.color) ?? sideOf(liveGame?.meta?.color)
+      ?? repertoireSide(moves, positionIndex, baseFen),
+    [initialLine, liveGame, moves, positionIndex, baseFen],
+  );
+  // At the start every line is "the same position": nothing to say yet.
+  const similarTooSoon = fromStart && ply === 0;
+  const similar = useMemo(() => {
+    if (!similarVisible || positionIndex.size === 0 || similarTooSoon) return [];
+    if (similarIndexRef.current.of !== positionIndex) {
+      similarIndexRef.current = { of: positionIndex, index: buildSimilarIndex(positionIndex) };
+    }
+    return similarOpenings(similarIndexRef.current.index, fen, {
+      gamePly: fromStart ? ply : null, side: playingSide,
+    });
+  }, [similarVisible, positionIndex, fen, fromStart, ply, playingSide, similarTooSoon]);
+  // The Stockfish check: each suggestion's move, played here, graded the way
+  // Game Review grades a move — on an engine of its own, so the Engine tab's
+  // lines carry on. A check still going when the board moves on is dropped
+  // with its engine; one that's finished leaves the engine for the next.
+  const checkSans = useMemo(() => [...new Set(similar
+    .map((sg) => sg.via?.san ?? sg.next.find((m) => m.legal)?.san)
+    .filter(Boolean))].slice(0, 3), [similar]);
+  const checkKey = checkSans.length ? `${fen}|${checkSans.join(' ')}` : null;
+  const [similarChecks, setSimilarChecks] = useState({ key: null, moves: {}, failed: false });
+  const checkEngineRef = useRef(null);
+  const checkBusyRef = useRef(false);
+  useEffect(() => {
+    if (!checkKey || similarChecks.key === checkKey) return undefined;
+    let dropped = false;
+    const t = setTimeout(async () => {
+      if (checkBusyRef.current) { checkEngineRef.current?.quit(); checkEngineRef.current = null; }
+      if (!checkEngineRef.current) checkEngineRef.current = new Engine({ multiPV: 1 });
+      const engine = checkEngineRef.current;
+      checkBusyRef.current = true;
+      let timer;
+      const late = new Promise((resolve) => { timer = setTimeout(() => resolve(null), 30000); });
+      const result = await Promise.race([
+        checkMoves(engine, fen, checkSans, { depth: 14, stop: () => dropped }), late,
+      ]);
+      clearTimeout(timer);
+      if (checkEngineRef.current !== engine) return;
+      checkBusyRef.current = false;
+      if (!result) { engine.quit(); checkEngineRef.current = null; } // stuck: a fresh one next time
+      if (!dropped) setSimilarChecks({ key: checkKey, moves: result ?? {}, failed: !result });
+    }, 500);
+    return () => { dropped = true; clearTimeout(t); };
+  }, [checkKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Put away with the tab, and with the board.
+  useEffect(() => {
+    if (similarVisible) return undefined;
+    checkEngineRef.current?.quit();
+    checkEngineRef.current = null;
+    checkBusyRef.current = false;
+    return undefined;
+  }, [similarVisible]);
+  useEffect(() => () => { checkEngineRef.current?.quit(); checkEngineRef.current = null; }, []);
+  const [similarCompare, setSimilarCompare] = useState(null); // the key of the one shown side by side
 
   const wide = viewportWidth >= 1040;
   const tight = wide && viewportWidth < 1380; // three columns, iPad-sized
@@ -2296,7 +2390,7 @@ export default function AnalysisView({
     )}
     </>
   );
-  // Engine, Explorer and Annotate: what's under each tab.
+  // Engine, Explorer, Similar openings and Annotate: what's under each tab.
   const sideTabStrip = () => (
     <div className="side-tabs">
       <button
@@ -2310,6 +2404,12 @@ export default function AnalysisView({
         onClick={() => setSidePane('explorer')}
       >
         Explorer
+      </button>
+      <button
+        className={sidePane === 'similar' ? 'active' : ''}
+        onClick={() => setSidePane('similar')}
+      >
+        {coachMode ? 'Similar' : 'Similar openings'}
       </button>
       {coachMode && (
         <button
@@ -2437,6 +2537,131 @@ export default function AnalysisView({
       )}
     </div>
   );
+  // Similar openings: up to three lines from the repertoire that this
+  // position resembles (lib/similarOpenings), closest first — each with what's
+  // different, the line's next move, and Stockfish's word on that move here.
+  const SIMILAR_TIER = {
+    same: 'Same position', move: 'One move away', pawns: 'Same pawns', pawn: 'One pawn to push',
+  };
+  const GRADE_SAYS = {
+    best: 'the best move', excellent: 'excellent', good: 'good', inaccuracy: 'an inaccuracy', mistake: 'a mistake', blunder: 'a blunder',
+  };
+  const similarCheck = (san) => {
+    if (!san) return null;
+    const done = similarChecks.key === checkKey;
+    const got = done ? similarChecks.moves[san] : null;
+    if (!done) return <div className="similar-check checking">Checking {san} with Stockfish…</div>;
+    if (!got) {
+      return similarChecks.failed
+        ? <div className="similar-check">Stockfish couldn’t check {san} just now.</div>
+        : null;
+    }
+    const badge = BADGE_BY_ID[got.grade];
+    return (
+      <div className="similar-check" style={{ '--grade': badge?.color }}>
+        <MoveBadge id={got.grade} size={14} />
+        <span>
+          Stockfish here: <strong>{san}</strong> is {GRADE_SAYS[got.grade]}
+          {got.loss > 10 && <> ({(got.loss / 100).toFixed(2)} short of its best)</>}
+        </span>
+      </div>
+    );
+  };
+  const similarPanel = () => {
+    const whose = repertoireOwner ? `${repertoireOwner.name}'s repertoire` : 'your repertoire';
+    let empty = null;
+    if (positionIndex.size === 0) {
+      empty = `Nothing to compare with yet — ${repertoireOwner ? `${repertoireOwner.name} has` : 'you have'} no repertoire lines.`;
+    } else if (similarTooSoon) {
+      empty = `Play some moves: the lines in ${whose} that the position resembles show here.`;
+    } else if (!similar.length) {
+      empty = fromStart && ply < MIN_PLY
+        ? 'A few moves in, every opening looks alike — play on and the closest lines show here.'
+        : `Nothing in ${whose} is close to this position.`;
+    }
+    return (
+      <div className="similar-panel">
+        <h3>
+          <BookIcon size={13} /> Similar openings
+          <span className="spacer" />
+          {repertoireOwner && <span className="depth-tag">{repertoireOwner.name}</span>}
+        </h3>
+        {empty && <div style={{ color: 'var(--muted)', fontSize: 14 }}>{empty}</div>}
+        {similar.map((sg) => {
+          const checked = sg.via?.san ?? sg.next.find((m) => m.legal)?.san;
+          const comparing = similarCompare === sg.key;
+          const side = sg.opening.color === 'white' || sg.opening.color === 'black' ? sg.opening.color : null;
+          return (
+            <div key={sg.key} className={`similar-item tier-${sg.tier}`}>
+              <div className="similar-head">
+                <span className="similar-tier">{SIMILAR_TIER[sg.tier]}</span>
+                <span className="similar-after">{sg.after}</span>
+              </div>
+              <div className="similar-name">
+                <strong>{sg.opening.name}</strong> — {sg.variation.name}
+                <span className="depth-tag">
+                  {' '}({sg.chapter.name}{side ? `, as ${side[0].toUpperCase()}${side.slice(1)}` : ''})
+                </span>
+                {sg.lines > 1 && (
+                  <span className="similar-also"> · in {sg.lines} lines</span>
+                )}
+              </div>
+              {sg.via && (
+                <div className="similar-via">
+                  <button className="similar-move" onClick={() => playSan(sg.via.san)} title="Play it on the board">
+                    {sg.via.label}
+                  </button>
+                  {' '}reaches it
+                  {sg.then.length > 0 && <>, and the line goes on {sg.then.map((m) => m.san).join(' or ')}</>}
+                  .
+                </div>
+              )}
+              {sg.diffs.length > 0 && (
+                <ul className="similar-diffs">
+                  {sg.diffs.map((d) => <li key={describeDiff(d)}>{describeDiff(d)}</li>)}
+                </ul>
+              )}
+              {!sg.via && sg.next.length > 0 && (
+                <div className="similar-next">
+                  The line goes on{' '}
+                  {sg.next.map((m, i) => (
+                    <React.Fragment key={m.san}>
+                      {i > 0 && ' or '}
+                      {m.legal ? (
+                        <button className="similar-move" onClick={() => playSan(m.san)} title="Play it on the board">{m.san}</button>
+                      ) : (
+                        <span className="similar-move off" title="Can’t be played in this position">{m.san}</span>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+              {!sg.via && sg.next.length === 0 && (
+                <div className="similar-next">The line ends here.</div>
+              )}
+              {checked && similarCheck(checked)}
+              <div className="similar-actions">
+                <button className="linkish" onClick={() => setSimilarCompare(comparing ? null : sg.key)}>
+                  {comparing ? 'Hide boards' : 'Compare boards'}
+                </button>
+                <button className="linkish" onClick={() => openSimilarLine(sg)}>Open this line</button>
+              </div>
+              {comparing && (
+                <div className="similar-compare">
+                  {[[fen, 'This board'], [sg.fen, `The line, ${sg.after}`]].map(([f, label]) => (
+                    <figure key={label}>
+                      <MiniBoard fen={f} size={132} orientation={orientation} marks={differingSquares(fen, sg.fen)} />
+                      <figcaption>{label}</figcaption>
+                    </figure>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
   const annotatePanel = () => {
     // The note box follows the board: the move on it, or — on a saved
     // game — the whole game's summary at the start.
@@ -2774,6 +2999,7 @@ export default function AnalysisView({
           {sideTabStrip()}
           {sidePane === 'engine' && enginePanel()}
           {sidePane === 'explorer' && explorerPanel()}
+          {sidePane === 'similar' && similarPanel()}
           {sidePane === 'annotate' && coachMode && annotatePanel()}
         </div>
         {!coachMode && moments.length > 0 && momentsReadPanel()}
@@ -2805,6 +3031,7 @@ export default function AnalysisView({
       case 'repertoire': return repertoirePanel();
       case 'engine': return card(enginePanel());
       case 'explorer': return card(explorerPanel());
+      case 'similar': return card(similarPanel());
       case 'annotate': return card(annotatePanel());
       case 'moments': return card(
         <MomentsPanel
@@ -2854,18 +3081,20 @@ export default function AnalysisView({
       <span className="muted-note">{PLACEHOLDER[id] ?? ''}</span>
     </div>
   );
-  const tabLabel = (id) => (id === 'annotate'
-    ? (
-      <>
-        <FlaskIcon size={13} /> Annotate
-        {(moveBadges[head] || moveNotes[head]) && <span className="tab-dot" />}
-      </>
-    )
-    : PANELS[id].title);
-  const activeTab = (group) => tabState[group.id] ?? (group.tabs.includes(sidePane) ? sidePane : group.tabs[0]);
+  const tabLabel = (id) => {
+    if (id === 'annotate') {
+      return (
+        <>
+          <FlaskIcon size={13} /> Annotate
+          {(moveBadges[head] || moveNotes[head]) && <span className="tab-dot" />}
+        </>
+      );
+    }
+    return id === 'similar' ? 'Similar' : PANELS[id].title;
+  };
   const activateTab = (groupId, id) => {
     setTabState((t) => ({ ...t, [groupId]: id }));
-    if (['engine', 'explorer', 'annotate'].includes(id)) setSidePane(id);
+    if (['engine', 'explorer', 'similar', 'annotate'].includes(id)) setSidePane(id);
   };
   const dockLayout = dockOn && (
     <DockLayout

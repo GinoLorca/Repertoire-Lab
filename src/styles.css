@@ -3604,6 +3604,7 @@ input[type="date"] {
   display: flex; align-items: center; justify-content: center;
 }
 .mb-sq.dark { background: var(--board-dark); }
+.mb-sq.marked { box-shadow: inset 0 0 0 2px var(--accent); }
 .mb-piece.white {
   color: #fff;
   -webkit-text-stroke: 0.5px #1b2430;
@@ -3663,15 +3664,56 @@ input[type="date"] {
    side by side instead of stacking down the page. */
 .side-tabs-panel { padding-top: 10px; }
 .side-tabs {
-  display: flex; gap: 4px; margin-bottom: 12px;
+  display: flex; gap: 3px; margin-bottom: 12px;
   background: var(--panel); border-radius: 9px; padding: 3px;
+  /* A Studio group given more tabs than fit scrolls them, rather than spill. */
+  overflow-x: auto; scrollbar-width: none;
 }
 .side-tabs button {
-  flex: 1; background: transparent; border: none; color: var(--muted);
-  font-weight: 600; font-size: 13.5px; padding: 6px 10px; border-radius: 7px;
+  flex: 1 1 auto; background: transparent; border: none; color: var(--muted);
+  font-weight: 600; font-size: 13.5px; padding: 6px 8px; border-radius: 7px;
+  white-space: nowrap;
 }
+@media (max-width: 380px) { .side-tabs button { padding: 6px 6px; } }
 .side-tabs button.active { background: var(--accent-dim); color: #fff; }
 .side-tabs-panel h3 { margin-top: 0; }
+
+/* Similar openings: the lines this position resembles, each a small card. */
+.similar-item {
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 9px 11px; margin-bottom: 9px; font-size: 13.5px;
+}
+.similar-item:last-child { margin-bottom: 0; }
+.similar-item.tier-same, .similar-item.tier-move { border-color: rgba(46, 204, 113, 0.45); }
+.similar-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+.similar-tier {
+  font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase;
+  color: var(--accent);
+}
+.similar-item.tier-same .similar-tier, .similar-item.tier-move .similar-tier { color: #2ecc71; }
+.similar-after { color: var(--muted); font-size: 12.5px; margin-left: auto; white-space: nowrap; }
+.similar-name { font-size: 14.5px; line-height: 1.35; }
+.similar-also { color: var(--muted); font-size: 12.5px; }
+.similar-via, .similar-next { margin-top: 6px; }
+.similar-diffs { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
+.similar-diffs li { margin: 2px 0; }
+.similar-move {
+  display: inline-block; padding: 1px 7px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--panel); color: var(--text);
+  font: inherit; font-weight: 700; cursor: pointer;
+}
+.similar-move:hover { border-color: var(--accent); }
+.similar-move.off { color: var(--muted); font-weight: 600; cursor: default; text-decoration: line-through; }
+.similar-check {
+  display: flex; align-items: center; gap: 7px; margin-top: 7px;
+  padding: 5px 8px; border-radius: 7px; font-size: 13px;
+  background: color-mix(in srgb, var(--grade, var(--muted)) 12%, transparent);
+}
+.similar-check.checking { color: var(--muted); }
+.similar-actions { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; font-size: 13px; }
+.similar-compare { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 9px; }
+.similar-compare figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.similar-compare figcaption { font-size: 11.5px; color: var(--muted); }
 
 /* Two columns (iPad and narrow desktops): the moves ride at the top of the
    right-hand column, beside the board, with the engine below them. */
