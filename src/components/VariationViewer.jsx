@@ -239,7 +239,7 @@ export default function VariationViewer({
               </button>
             )}
             {onShare && (
-              <button className="small ghost" title="Share this line’s PGN" aria-haspopup="menu" onClick={onShare}>
+              <button className="small ghost" title="Share this line — its moves and a link to open it in Lichess" onClick={onShare}>
                 <ShareIcon size={15} /> Share
               </button>
             )}

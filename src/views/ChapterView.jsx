@@ -17,7 +17,7 @@ import SendToSubVariation from '../components/SendToSubVariation';
 import { headOf, subVariationsOf, subLabel } from '../lib/subVariations';
 import ReorderSheet from '../components/ReorderSheet';
 import GiveToStudent, { GiveToStudentButton } from '../components/GiveToStudent';
-import ShareLine from '../components/ShareLine';
+import { useShareLine } from '../components/ShareLine';
 import {
   fen4, isWhiteMove, moveNumberOf, moveNumberLabel,
 } from '../lib/startPos';
@@ -42,14 +42,8 @@ export default function ChapterView({
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState('');
   const [tagging, setTagging] = useState(null); // { kind, variationId? }
-  const [sharing, setSharing] = useState(null); // { variationId, at?, n } — a line's Share menu
-  // Each a fresh menu, even while the last one's "copied" is still showing.
-  const openShare = (variationId, at = null) => setSharing({ variationId, at, n: Date.now() });
-  // Opened from a button: the menu drops down from under it.
-  const shareFrom = (variationId) => (e) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    openShare(variationId, { x: r.left, y: r.bottom + 4 });
-  };
+  // Share: a line's name, moves and a Lichess link, in one tap.
+  const shareLine = useShareLine();
   const [importing, setImporting] = useState(false);
   // Tick-box mode: off until you ask for it, so an ordinary tap still opens a
   // line rather than selecting it.
@@ -119,7 +113,7 @@ export default function ChapterView({
 
   // Everything you can do to one line: behind ⋯ on a phone, and a long
   // press or right-click on any line anywhere.
-  const lineMenu = (variation, at = null) => {
+  const lineMenu = (variation) => {
     const linked = showVideo && chapter.video && variation.videoTimestamp != null;
     const move = (dir) => () => dispatch({ type: 'moveVariation', openingId, chapterId, variationId: variation.id, dir });
     return [
@@ -145,10 +139,10 @@ export default function ChapterView({
         onClick: () => setTagging({ kind: 'variation', variationId: variation.id }),
       },
       {
-        label: 'Share PGN…',
-        hint: 'send it, copy it, download it or open it in Lichess',
+        label: 'Share line',
+        hint: 'its moves and a link to open it in Lichess',
         icon: <ShareIcon size={16} />,
-        onClick: () => openShare(variation.id, at),
+        onClick: () => shareLine.share(opening, variation),
       },
       { sep: true },
       {
@@ -751,10 +745,9 @@ export default function ChapterView({
               </button>
               <button
                 className="small ghost share-btn"
-                title="Share this line’s PGN"
-                aria-label="Share this line’s PGN"
-                aria-haspopup="menu"
-                onClick={shareFrom(variation.id)}
+                title="Share this line — its moves and a link to open it in Lichess"
+                aria-label="Share this line"
+                onClick={() => shareLine.share(opening, variation)}
               >
                 <ShareIcon size={15} />
               </button>
@@ -826,7 +819,7 @@ export default function ChapterView({
       {menuFor && lineById.get(menuFor.id) && (
         <MenuSheet
           title={lineById.get(menuFor.id).name}
-          items={lineMenu(lineById.get(menuFor.id), menuFor.at)}
+          items={lineMenu(lineById.get(menuFor.id))}
           at={menuFor.at}
           onClose={() => setMenuFor(null)}
         />
@@ -981,7 +974,7 @@ export default function ChapterView({
           }}
           onToggleStar={() => dispatch({ type: 'toggleStar', openingId, chapterId, variationId: viewing.id })}
           onEditTags={() => setTagging({ kind: 'variation', variationId: viewing.id })}
-          onShare={shareFrom(viewing.id)}
+          onShare={() => shareLine.share(opening, viewing)}
           onSaveMarks={(moveIndex, marks) => dispatch({
             type: 'setMoveMarks', openingId, chapterId, variationId: viewing.id, moveIndex, marks,
           })}
@@ -1004,20 +997,7 @@ export default function ChapterView({
           })}
         />
       )}
-      {sharing && (() => {
-        const variation = chapter.variations.find((v) => v.id === sharing.variationId);
-        if (!variation) return null;
-        return (
-          <ShareLine
-            key={sharing.n}
-            opening={opening}
-            chapter={chapter}
-            variation={variation}
-            at={sharing.at ?? null}
-            onDone={() => setSharing(null)}
-          />
-        );
-      })()}
+      {shareLine.ui}
       {tagging && (() => {
         const target = tagging.kind === 'chapter'
           ? chapter

@@ -1,16 +1,14 @@
-// Sharing a line — src/lib/shareLine.js: its PGN, the share sheet, and the link
-// to Lichess's analysis board.
+// Sharing a line — src/lib/shareLine.js: the message (the line's name, its
+// moves, a Lichess link), the link itself, and the share sheet.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Chess } from 'chess.js';
 import {
-  linePgn, hasShareSheet, sharePgn, lichessUrl,
+  hasShareSheet, lineMessage, shareMessage, lichessUrl,
 } from '../src/lib/shareLine.js';
-import { splitPgnGames, movetextToLines } from '../src/lib/pgn.js';
 
 const CARO = { id: 'caro', name: 'Caro-Kann', color: 'black' };
 const LONDON = { id: 'london', name: 'Jobava London', color: 'white' };
-const CHAPTER = { id: 'x', name: 'Exchange Variation' };
 const LINE = {
   id: 'v1',
   name: 'Caro-Kann Exchange Variation: 4.Nf3 #4',
@@ -19,30 +17,23 @@ const LINE = {
   badges: { 8: 'inaccuracy' },
 };
 
-test('a line’s PGN: named for the opening and line, with its notes, glyphs and arrows', () => {
-  const { pgn, filename, title } = linePgn(CARO, CHAPTER, LINE);
-  assert.equal(filename, 'Caro-Kann_Exchange_Variation_4_Nf3_4.pgn');
-  assert.equal(title, 'Caro-Kann — Caro-Kann Exchange Variation: 4.Nf3 #4');
-  assert.match(pgn, /\[Event "Caro-Kann: Exchange Variation"\]/);
-  // Your side is the opening's: Black here.
-  assert.match(pgn, /\[White "Caro-Kann Exchange Variation: 4\.Nf3 #4"\]/);
-  assert.match(pgn, /\[Black "Caro-Kann"\]/);
-  assert.match(pgn, /5\.Bb5\?! \$6 Bg4 \{Pin the knight\. \[%cal Gg4f3\]\} 6\.O-O/);
-  // And it reads back as the same line.
-  const [game] = splitPgnGames(pgn);
-  const [back] = movetextToLines(game.movetext);
-  assert.deepEqual(back.moves, LINE.moves);
-  assert.equal(back.badges[8], 'inaccuracy');
-  assert.equal(back.comments[9], LINE.comments[9]);
-  assert.equal(linePgn(LONDON, CHAPTER, LINE).pgn.match(/\[White "(.*)"\]/)[1], 'Jobava London');
+test('the message: the line’s name, its moves, then the Lichess link — nothing else', () => {
+  assert.equal(lineMessage(CARO, LINE), [
+    'Caro-Kann Exchange Variation: 4.Nf3 #4',
+    '1.e4 c6 2.d4 d5 3.exd5 cxd5 4.Nf3 Nc6 5.Bb5 Bg4 6.O-O e6 7.h3 Bh5 8.Qd3 Bd6',
+    'Open in Lichess: https://lichess.org/analysis/pgn/1.e4_c6_2.d4_d5_3.exd5_cxd5_4.Nf3_Nc6_5.Bb5_Bg4_6.O-O_e6_7.h3_Bh5_8.Qd3_Bd6?color=black',
+  ].join('\n\n'));
+  // Check signs read as written; only the link leaves them off.
+  const checks = lineMessage(LONDON, { name: 'Bb5+', moves: ['e4', 'd5', 'Bb5+', 'c6'] });
+  assert.match(checks, /\n\n1\.e4 d5 2\.Bb5\+ c6\n\n/);
 });
 
-test('a line from a set-up position keeps its FEN', () => {
+test('a line from a set-up position says where it starts', () => {
   const fen = 'r1bqkbnr/pp2pppp/2n5/3p4/3P4/5N2/PP3PPP/RNBQKB1R b KQkq - 1 5';
-  const { pgn } = linePgn(CARO, CHAPTER, { ...LINE, startFen: fen, moves: ['Nf6', 'Bb5'], comments: {}, badges: {} });
-  assert.match(pgn, /\[SetUp "1"\]/);
-  assert.ok(pgn.includes(`[FEN "${fen}"]`));
-  assert.match(pgn, /5\.\.\.Nf6 6\.Bb5 \*/);
+  const parts = lineMessage(CARO, { name: 'Set up', startFen: fen, moves: ['Nf6', 'Bb5'] }).split('\n\n');
+  assert.equal(parts[1], `From the position: ${fen}`);
+  assert.equal(parts[2], '5...Nf6 6.Bb5');
+  assert.match(parts[3], /^Open in Lichess: https:\/\/lichess\.org\/analysis\/pgn\/%5BSetUp/);
 });
 
 test('the Lichess link: the moves, from your side, nothing it would misread', () => {
@@ -60,24 +51,20 @@ test('the Lichess link: the moves, from your side, nothing it would misread', ()
   assert.ok(new Chess(fen).move('Nf6'));
 });
 
-test('the share sheet: a .pgn file where it takes one, else the text; closing it isn’t a failure', async () => {
+test('the share sheet gets the message as text; closing it isn’t a failure', async () => {
   const shared = [];
-  const nav = (canFiles, fail) => ({
-    canShare: ({ files }) => canFiles && files.every((f) => f.name.endsWith('.pgn')),
+  const nav = (fail) => ({
     share: async (data) => {
       if (fail) { const e = new Error('no'); e.name = fail; throw e; }
       shared.push(data);
     },
   });
-  const item = linePgn(CARO, CHAPTER, LINE);
-  assert.equal(await sharePgn(item, nav(true)), 'shared');
-  assert.equal(shared[0].files[0].name, item.filename);
-  assert.equal(await shared[0].files[0].text(), item.pgn);
-  assert.equal(await sharePgn(item, nav(false)), 'shared');
-  assert.equal(shared[1].text, item.pgn);
-  assert.equal(await sharePgn(item, nav(true, 'AbortError')), 'cancelled');
-  assert.equal(await sharePgn(item, nav(true, 'NotAllowedError')), 'failed');
-  assert.equal(await sharePgn(item, {}), 'failed');
+  const text = lineMessage(CARO, LINE);
+  assert.equal(await shareMessage(text, nav()), 'shared');
+  assert.deepEqual(shared[0], { text });
+  assert.equal(await shareMessage(text, nav('AbortError')), 'cancelled');
+  assert.equal(await shareMessage(text, nav('NotAllowedError')), 'failed');
+  assert.equal(await shareMessage(text, {}), 'failed');
   assert.equal(hasShareSheet({}), false);
-  assert.equal(hasShareSheet(nav(true)), true);
+  assert.equal(hasShareSheet(nav()), true);
 });
