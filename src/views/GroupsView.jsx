@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../store';
 import MoveText from '../components/MoveText';
-import { isDue } from '../lib/srs';
+import { isDue, dueCount, unlearnedCount } from '../lib/srs';
 import {
-  StarIcon, TagIcon, ClockIcon, CheckIcon, PencilIcon, PlayIcon, CapIcon, FlaskIcon,
+  StarIcon, TagIcon, ClockIcon, PencilIcon, PlayIcon, CapIcon, FlaskIcon,
 } from '../components/Icons';
 
 // Every variation, with the tags and stars it inherits from its chapter and
@@ -30,8 +30,35 @@ function flatten(openings) {
   return rows;
 }
 
+// Learn and Practice, as on a chapter's line cards: Learn stands out (with
+// what's left to learn) until there's nothing to learn, then Practice does,
+// with a clock when something's due.
+function LearnPractice({ learn, practice }) {
+  return (
+    <>
+      <button
+        className={`learn-btn${learn.primary ? ' primary' : ''}`}
+        title={learn.title}
+        disabled={learn.disabled}
+        onClick={learn.onClick}
+      >
+        Learn
+        {learn.badge != null && <span className="badge">{learn.badge}</span>}
+      </button>
+      <button
+        className={`learn-btn${practice.primary ? ' primary' : ''}`}
+        title={practice.title}
+        onClick={practice.onClick}
+      >
+        Practice
+        {practice.due && <span className="badge due"><ClockIcon size={12} /></span>}
+      </button>
+    </>
+  );
+}
+
 function Row({
-  kind, title, crumbs, moves, startFen, badges, onOpen, onPractice, practiceTitle, onUntag, untagTitle, fading,
+  kind, title, crumbs, moves, startFen, note, onOpen, learn, practice, onUntag, untagTitle, fading,
 }) {
   return (
     <div className={`group-row group-row-${kind}${fading ? ' fading' : ''}`}>
@@ -53,10 +80,8 @@ function Row({
         {moves && <span className="group-row-moves"><MoveText moves={moves} startFen={startFen} /></span>}
       </button>
       <span className="group-row-tail">
-        {badges}
-        <button className="small" title={practiceTitle} onClick={onPractice}>
-          <PlayIcon size={14} />
-        </button>
+        {note}
+        <LearnPractice learn={learn} practice={practice} />
       </span>
     </div>
   );
@@ -74,25 +99,30 @@ function VariationRow({ row, onOpenChapter, onPractice, onUntag, untagTitle, fad
       crumbs={`${opening.name} ▸ ${chapter.name}`}
       moves={variation.moves.slice(0, 10)}
       startFen={variation.startFen}
-      badges={(
-        <>
-          {variation.learned && !isDue(variation) && <CheckIcon size={14} className="done-tick" />}
-          {isDue(variation) && <span className="due-pill"><ClockIcon size={13} /></span>}
-        </>
-      )}
       onOpen={() => onOpenChapter(opening.id, chapter.id)}
-      onPractice={() => onPractice({
-        openingId: opening.id,
-        chapterId: chapter.id,
-        variationId: variation.id,
-        mode: 'practice',
-      })}
-      practiceTitle="Practice this line, then carry on through its chapter"
+      learn={{
+        primary: !variation.learned,
+        // The line's length, until it's learned.
+        badge: variation.learned ? null : variation.moves.length,
+        title: 'Learn this line — the moves are shown first, then you replay it from memory — then carry on through its chapter',
+        onClick: () => onPractice({
+          openingId: opening.id, chapterId: chapter.id, variationId: variation.id, mode: 'learn',
+        }),
+      }}
+      practice={{
+        primary: variation.learned,
+        due: isDue(variation),
+        title: 'Practice this line from memory, then carry on through its chapter',
+        onClick: () => onPractice({
+          openingId: opening.id, chapterId: chapter.id, variationId: variation.id, mode: 'practice',
+        }),
+      }}
     />
   );
 }
 
 function ChapterRow({ opening, chapter, onOpenChapter, onPractice, onUntag, untagTitle, fading }) {
+  const fresh = unlearnedCount(chapter);
   return (
     <Row
       kind="chapter"
@@ -101,16 +131,29 @@ function ChapterRow({ opening, chapter, onOpenChapter, onPractice, onUntag, unta
       fading={fading}
       title={chapter.name}
       crumbs={[opening.name, chapter.section, chapter.subsection].filter(Boolean).join(' ▸ ')}
-      badges={<span className="muted-note">{chapter.variations.length} lines</span>}
+      note={<span className="muted-note">{chapter.variations.length} line{chapter.variations.length === 1 ? '' : 's'}</span>}
       onOpen={() => onOpenChapter(opening.id, chapter.id)}
-      onPractice={() => onPractice({ openingId: opening.id, chapterId: chapter.id, mode: 'practice' })}
-      practiceTitle="Practice this whole chapter"
+      learn={{
+        primary: fresh > 0,
+        badge: fresh || null,
+        disabled: fresh === 0,
+        title: fresh ? `Learn the ${fresh} line${fresh === 1 ? '' : 's'} here you haven't learned yet` : 'Every line here is learned',
+        onClick: () => onPractice({ openingId: opening.id, chapterId: chapter.id, mode: 'learn' }),
+      }}
+      practice={{
+        primary: fresh === 0,
+        due: dueCount(chapter) > 0,
+        title: 'Practice this whole chapter',
+        onClick: () => onPractice({ openingId: opening.id, chapterId: chapter.id, mode: 'practice' }),
+      }}
     />
   );
 }
 
 function OpeningRow({ opening, onPractice, onUntag, untagTitle, fading }) {
   const lines = opening.chapters.reduce((a, c) => a + c.variations.length, 0);
+  const fresh = opening.chapters.reduce((a, c) => a + unlearnedCount(c), 0);
+  const due = opening.chapters.some((c) => dueCount(c) > 0);
   return (
     <Row
       kind="opening"
@@ -119,10 +162,21 @@ function OpeningRow({ opening, onPractice, onUntag, untagTitle, fading }) {
       fading={fading}
       title={opening.name}
       crumbs={`${opening.chapters.length} chapters · you play ${opening.color}`}
-      badges={<span className="muted-note">{lines} lines</span>}
+      note={<span className="muted-note">{lines} line{lines === 1 ? '' : 's'}</span>}
       onOpen={() => onPractice({ openingId: opening.id, mode: 'practice' })}
-      onPractice={() => onPractice({ openingId: opening.id, mode: 'practice' })}
-      practiceTitle="Practice this whole opening"
+      learn={{
+        primary: fresh > 0,
+        badge: fresh || null,
+        disabled: fresh === 0,
+        title: fresh ? `Learn the ${fresh} line${fresh === 1 ? '' : 's'} here you haven't learned yet` : 'Every line here is learned',
+        onClick: () => onPractice({ openingId: opening.id, mode: 'learn' }),
+      }}
+      practice={{
+        primary: fresh === 0,
+        due,
+        title: 'Practice this whole opening',
+        onClick: () => onPractice({ openingId: opening.id, mode: 'practice' }),
+      }}
     />
   );
 }

@@ -1758,6 +1758,15 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 .group-row-tail { display: flex; align-items: center; gap: 8px; padding-right: 6px; }
 .group-row-tail button { min-width: 42px; min-height: 38px; }
+/* Learn and Practice, the chapter cards' buttons, a size down to sit in a row. */
+.group-row-tail .learn-btn { padding: 6px 14px; }
+.group-row-tail .learn-btn + .learn-btn { margin-left: 2px; }
+/* On a phone they go under the line, side by side, the width of the row. */
+@media (max-width: 600px) {
+  .group-row { flex-wrap: wrap; }
+  .group-row-tail { flex: 1 1 100%; padding: 0 6px 10px; }
+  .group-row-tail .learn-btn { flex: 1; min-height: 44px; }
+}
 .group-filter { max-width: 200px; }
 .group-icon { color: var(--muted); flex: 0 0 auto; }
 .group-icon.star { color: var(--amber); }
