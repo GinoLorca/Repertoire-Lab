@@ -83,7 +83,7 @@ import {
 } from '../components/Icons';
 import {
   PENS, SHORTCUTS, defaultPen, shortcutKey, shortcutMap, isComboKey, comboMatchesEvent, formatShortcutKey,
-  eventKey,
+  eventKey, keyToken,
 } from '../lib/shortcuts';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -332,6 +332,10 @@ export default function AnalysisView({
     state.settings.arrowSecond !== false,
     state.settings.arrowThird !== false,
   ];
+  // E (as on Chess Arcade): the suggested moves — lines and arrows — out of
+  // sight, while the engine and the eval bar keep going.
+  const hideSuggestions = state.settings.hideSuggestions === true;
+  const keyName = (id) => formatShortcutKey(shortcutKey(state.settings, id));
   const soundOn = state.settings.soundEnabled !== false;
   const [boardMenu, setBoardMenu] = useState(false); // the board's own settings
 
@@ -387,7 +391,7 @@ export default function AnalysisView({
     });
   };
 
-  // The keyboard's 1 / 2 / 3: "instead of what was played here, show me the
+  // The keyboard's Shift+1 / 2 / 3: "instead of what was played here, show me the
   // top / second / third alternative" — pressed from the game itself, which
   // is where you actually are when reviewing it. It marks that line and puts
   // the board on its first move, so → walks the rest of the line from there
@@ -564,9 +568,20 @@ export default function AnalysisView({
       }
       // Pen keys aren't here — they're held during a drag (see currentPenColor
       // above), not pressed once to fire an action.
-      switch (keyMap[key.toLowerCase()]) {
+      // 1 / 2 / 3 while the suggestions are hidden (or the arrows off) bring
+      // them back with that arrow on — a toggle there would show nothing.
+      const arrowKey = (i) => {
+        const id = ['arrowBest', 'arrowSecond', 'arrowThird'][i];
+        if (hideSuggestions || !showEngineArrows) settings({ hideSuggestions: false, engineArrows: true, [id]: true });
+        else settings({ [id]: !arrowOn[i] });
+      };
+      switch (keyMap[keyToken(e)]) {
         case 'flipBoard': setOrientation((o) => (o === 'white' ? 'black' : 'white')); break;
         case 'toggleEngine': setEngineOn((v) => !v); break;
+        case 'hideSuggestions': settings({ hideSuggestions: !hideSuggestions }); break;
+        case 'arrowBest': arrowKey(0); break;
+        case 'arrowSecond': arrowKey(1); break;
+        case 'arrowThird': arrowKey(2); break;
         case 'toggleArrows': settings({ engineArrows: !showEngineArrows }); break;
         case 'toggleLines': settings({ engineLines: !showEngineLines }); break;
         case 'toggleEvalBar': settings({ evalBar: !showEvalBar }); break;
@@ -584,7 +599,7 @@ export default function AnalysisView({
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moves.length, ply, lineNodes, showEngineArrows, showEngineLines, showEvalBar, keyMap, head, tree,
-    variationHighlights, clickerMode, mode]);
+    variationHighlights, clickerMode, mode, hideSuggestions, arrowOn[0], arrowOn[1], arrowOn[2]]);
 
   // ---------- Repertoire awareness ----------
 
@@ -1274,7 +1289,7 @@ export default function AnalysisView({
   // Stockfish's top moves as arrows. One colour each, matching the dot beside
   // the line in the panel, so three candidates don't read as one suggestion.
   const engineArrows = useMemo(() => {
-    if (!engineOn || !showEngineArrows || !position) return [];
+    if (!engineOn || !showEngineArrows || hideSuggestions || !position) return [];
     const out = [];
     [1, 2, 3].forEach((n, i) => {
       if (!arrowOn[i]) return;
@@ -1288,7 +1303,7 @@ export default function AnalysisView({
     });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engineOn, showEngineArrows, engineLines, position, arrowOn[0], arrowOn[1], arrowOn[2]]);
+  }, [engineOn, showEngineArrows, hideSuggestions, engineLines, position, arrowOn[0], arrowOn[1], arrowOn[2]]);
 
   // Highlighted squares are drawn as translucent overlays; a picked piece also
   // shows every square it can legally reach.
@@ -2067,26 +2082,29 @@ export default function AnalysisView({
           const toggle = (key) => (e) => dispatch({
             type: 'setSettings', settings: { [key]: e.target.checked },
           });
-          const row = ([key, label, on, dot]) => (
+          // Each row's key at its right end, as Chess Arcade's cog shows them.
+          const row = ([key, label, on, dot, shortcut]) => (
             <label key={key} className={`board-menu-row${on ? ' on' : ''}`}>
               <input type="checkbox" checked={on} onChange={toggle(key)} />
               {dot && <span className="pv-dot" style={{ background: dot }} />}
               {label}
+              {shortcut && keyName(shortcut) && <kbd className="board-menu-key">{keyName(shortcut)}</kbd>}
             </label>
           );
           return (
             <div className="board-menu" onMouseLeave={() => setBoardMenu(false)}>
               {[
-                ['evalBar', 'Evaluation bar', state.settings.evalBar !== false],
-                ['engineLines', 'Engine lines', showEngineLines],
-                ['engineArrows', 'Engine arrows', showEngineArrows],
+                ['evalBar', 'Evaluation bar', state.settings.evalBar !== false, null, 'toggleEvalBar'],
+                ['hideSuggestions', 'Hide suggested moves', hideSuggestions, null, 'hideSuggestions'],
+                ['engineLines', 'Engine lines', showEngineLines, null, 'toggleLines'],
+                ['engineArrows', 'Engine arrows', showEngineArrows, null, 'toggleArrows'],
               ].map(row)}
               {/* Which of the three candidates get drawn. */}
               <div className={`board-menu-group${showEngineArrows ? '' : ' off'}`}>
                 {[
-                  ['arrowBest', 'Best move', arrowOn[0], ARROW_COLORS[0]],
-                  ['arrowSecond', '2nd best', arrowOn[1], ARROW_COLORS[1]],
-                  ['arrowThird', '3rd best', arrowOn[2], ARROW_COLORS[2]],
+                  ['arrowBest', 'Best move', arrowOn[0], ARROW_COLORS[0], 'arrowBest'],
+                  ['arrowSecond', '2nd best', arrowOn[1], ARROW_COLORS[1], 'arrowSecond'],
+                  ['arrowThird', '3rd best', arrowOn[2], ARROW_COLORS[2], 'arrowThird'],
                 ].map(row)}
               </div>
               {[
@@ -2430,7 +2448,7 @@ export default function AnalysisView({
           <span className="depth-tag">depth {engineLines[1].depth}</span>
         )}
         <span className="spacer" />
-        <button className="small" onClick={() => setEngineOn((v) => !v)}>
+        <button className="small" title={`Start or stop the engine (${keyName('toggleEngine')})`} onClick={() => setEngineOn((v) => !v)}>
           {engineOn ? 'Stop' : <><PlayIcon size={14} /> Analyze</>}
         </button>
       </h3>
@@ -2454,7 +2472,18 @@ export default function AnalysisView({
           evaluation bar.
         </div>
       )}
-      {engineOn && !showEngineArrows && (
+      {engineOn && hideSuggestions && (
+        <div className="muted-note suggestions-hidden" style={{ margin: '2px 0 10px' }}>
+          Suggested moves hidden · press <kbd>{keyName('hideSuggestions')}</kbd> to show{' '}
+          <button
+            className="linkish"
+            onClick={() => dispatch({ type: 'setSettings', settings: { hideSuggestions: false } })}
+          >
+            Show
+          </button>
+        </div>
+      )}
+      {engineOn && !hideSuggestions && !showEngineArrows && (
         <div className="muted-note" style={{ margin: '2px 0 10px' }}>
           Arrows are off.{' '}
           <button
@@ -2468,12 +2497,12 @@ export default function AnalysisView({
       {engineOn && engineStatus === 'starting' && (
         <div style={{ color: 'var(--muted)', fontSize: 14 }}>Starting engine…</div>
       )}
-      {engineOn && !showEngineLines && (
+      {engineOn && !hideSuggestions && !showEngineLines && (
         <div style={{ color: 'var(--muted)', fontSize: 14 }}>
           Lines are hidden — the bar beside the board still follows the evaluation.
         </div>
       )}
-      {engineOn && showEngineLines && [1, 2, 3].map((n) => {
+      {engineOn && showEngineLines && !hideSuggestions && [1, 2, 3].map((n) => {
         const line = engineLines[n];
         if (!line) return null;
         const good = line.score.type === 'mate' ? line.score.value > 0 : line.score.value >= 0;
@@ -2841,11 +2870,12 @@ export default function AnalysisView({
               chapter, editable there the same way.
             </p>
             <p>
-              <strong>Alternatives:</strong> standing on a move in the game, press 1, 2 or 3
-              (rebindable in Settings → Keyboard, numpad works too) to jump into the top, second or
-              third alternative tried at that point — marking it green, blue or yellow. → walks the
-              rest of that line, 9 jumps back to the game from however deep you are, and the same
-              number again clears the colour and steps back out.
+              <strong>Alternatives:</strong> standing on a move in the game, press Shift+1, Shift+2 or
+              Shift+3 (rebindable in Settings → Keyboard) to jump into the top, second or third
+              alternative tried at that point — marking it green, blue or yellow. → walks the rest
+              of that line, 9 jumps back to the game from however deep you are, and the same keys
+              again clear the colour and step back out. (1, 2 and 3 alone switch the engine’s
+              arrows, as on Chess Arcade.)
             </p>
             <div className="modal-actions">
               <button className="primary" onClick={() => setAnnotateHelpOpen(false)}>Got it</button>
@@ -3413,7 +3443,7 @@ export default function AnalysisView({
               </React.Fragment>
               <React.Fragment><kbd>PgUp PgDn</kbd><span>Step back and forward</span></React.Fragment>
               <React.Fragment><kbd>Home End</kbd><span>Jump to the start / the end</span></React.Fragment>
-              {SHORTCUTS.map((s) => (
+              {SHORTCUTS.filter((s) => shortcutKey(state.settings, s.id)).map((s) => (
                 <React.Fragment key={s.id}>
                   <kbd>{formatShortcutKey(shortcutKey(state.settings, s.id))}</kbd>
                   <span>{s.label}</span>

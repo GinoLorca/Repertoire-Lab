@@ -3743,6 +3743,13 @@ input[type="date"] {
 .board-menu-row:hover { background: var(--card-hover); }
 .board-menu-row.on { color: var(--text); font-weight: 600; }
 .board-menu-row input { width: 15px; height: 15px; accent-color: var(--accent); }
+/* A row's key (1, 2, 3, E…) at its right end. */
+.board-menu-key, .suggestions-hidden kbd {
+  font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 3px 6px; border-radius: 5px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--muted);
+}
+.board-menu-key { margin-left: auto; }
 /* The three candidate arrows, indented under the switch that governs them. */
 .board-menu-group {
   margin: 2px 0 2px 12px; padding-left: 8px;

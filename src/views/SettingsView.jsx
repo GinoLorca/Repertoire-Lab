@@ -13,7 +13,7 @@ import {
 } from '../lib/arrowProfiles';
 import {
   PENS, SHORTCUTS, shortcutKey, formatShortcutKey, isPenShortcut, modifierToken, MODIFIER_ORDER,
-  eventKey,
+  eventKey, keyToken,
 } from '../lib/shortcuts';
 
 // Themes that have both a picture and a pattern underneath it. Bauhaus and
@@ -104,9 +104,10 @@ function ShortcutEditor({ settings, set }) {
       // Via eventKey so a numpad digit binds as its printed digit rather than
       // as whatever Num Lock makes it report — without it, pressing numpad 1
       // here arrives as 'End' and gets rejected below as unbindable.
-      const key = eventKey(e);
-      if (key.length !== 1) return; // named keys (Tab, F5, …) aren't bindable
-      finalize(key.toLowerCase());
+      const token = keyToken(e);
+      if (token.startsWith('shift+')) { finalize(token); return; } // Shift+digit
+      if (eventKey(e).length !== 1) return; // named keys (Tab, F5, …) aren't bindable
+      finalize(token);
     };
 
     const onKeyUp = (e) => {
@@ -165,7 +166,7 @@ function ShortcutEditor({ settings, set }) {
                 ? 'Click, then press a key — or hold Option and/or Control alone, no letter, and release'
                 : 'Click, then press a key'}
             >
-              {listening === s.id ? '…' : formatShortcutKey(shortcutKey(settings, s.id))}
+              {listening === s.id ? '…' : (formatShortcutKey(shortcutKey(settings, s.id)) || '—')}
             </button>
             <span>{s.label}</span>
           </React.Fragment>

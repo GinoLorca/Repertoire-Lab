@@ -16,9 +16,17 @@ export const PENS = [
 // same colour, not the only way to reach it.
 export const SHORTCUTS = [
   { id: 'flipBoard', label: 'Flip the board', default: 'x' },
-  { id: 'toggleEngine', label: 'Start or stop the engine', default: 'e' },
+  // The engine keys are Chess Arcade's, so both apps' boards answer alike:
+  // L the engine, E the suggested moves, 1 / 2 / 3 each arrow.
+  { id: 'toggleEngine', label: 'Start or stop the engine', default: 'l' },
+  { id: 'hideSuggestions', label: 'Hide or show the suggested moves (lines and arrows — the eval bar keeps going)', default: 'e' },
+  { id: 'arrowBest', label: 'Best-move arrow on / off', default: '1' },
+  { id: 'arrowSecond', label: '2nd-best arrow on / off', default: '2' },
+  { id: 'arrowThird', label: '3rd-best arrow on / off', default: '3' },
   { id: 'toggleArrows', label: 'Engine arrows on / off', default: 'a' },
-  { id: 'toggleLines', label: 'Engine lines on / off', default: 'l' },
+  // No key of its own any more (E hides lines and arrows together); one can
+  // be given it in Settings → Keyboard.
+  { id: 'toggleLines', label: 'Engine lines on / off', default: '' },
   { id: 'toggleEvalBar', label: 'Evaluation bar on / off', default: 'b' },
   { id: 'toggleCheckHighlight', label: 'Highlight the king in check', default: 'k' },
   { id: 'toggleDrawMode', label: 'Drawing mode', default: 'd' },
@@ -31,9 +39,9 @@ export const SHORTCUTS = [
   // move you're standing on and marks that whole line (see alternativesAt
   // and branchRootOf in lib/moveTree.js). The same key again clears the
   // colour and steps back out to the game.
-  { id: 'highlightGreen', label: 'Top alternative to this move — jump in, mark it green', default: '1' },
-  { id: 'highlightBlue', label: 'Second alternative — jump in, mark it blue', default: '2' },
-  { id: 'highlightYellow', label: 'Third alternative — jump in, mark it yellow', default: '3' },
+  { id: 'highlightGreen', label: 'Top alternative to this move — jump in, mark it green', default: 'shift+1' },
+  { id: 'highlightBlue', label: 'Second alternative — jump in, mark it blue', default: 'shift+2' },
+  { id: 'highlightYellow', label: 'Third alternative — jump in, mark it yellow', default: 'shift+3' },
   // Jumps back to wherever the trunk was last stood on, however many
   // variations (nested or not) deep `head` currently is — see
   // lastMainLineAncestor in lib/moveTree.js. A dedicated key rather than
@@ -61,6 +69,15 @@ const NUMPAD_DIGITS = {
 // came from the numpad, otherwise the key exactly as reported.
 export function eventKey(e) {
   return NUMPAD_DIGITS[e.code] ?? e.key;
+}
+
+// What a keydown is bound by: Shift with a top-row or keypad digit is
+// 'shift+1' (Shift+1 types "!" on one keyboard and something else on the
+// next), anything else the key as eventKey gives it, lowercased.
+export function keyToken(e) {
+  const digit = /^(?:Digit|Numpad)(\d)$/.exec(e.code ?? '');
+  if (e.shiftKey && digit) return `shift+${digit[1]}`;
+  return eventKey(e).toLowerCase();
 }
 
 export function shortcutKey(settings, id) {
@@ -119,6 +136,8 @@ export function comboMatchesEvent(key, e) {
 // the glyphs read fine run together, the way macOS itself shows them).
 export function formatShortcutKey(key) {
   if (!key) return '';
+  const shifted = /^shift\+(.)$/.exec(key);
+  if (shifted) return `${MODIFIER_GLYPH.shift}${shifted[1].toUpperCase()}`;
   if (isComboKey(key)) {
     const parts = key.split('+');
     return MODIFIER_ORDER.filter((m) => parts.includes(m)).map((m) => MODIFIER_GLYPH[m]).join('');
