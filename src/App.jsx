@@ -6,7 +6,7 @@ import { unseenStudentGames, gameSummary } from './lib/cloud/gameLink';
 import { openPlayerCard } from './lib/openPlayer';
 import { resolveTheme, applyTheme, applyBackground, applySkin } from './lib/theme';
 import { runTopGuard } from './lib/backGuard';
-import { parsePath, pathFor, SECTION_LABEL } from './lib/routes';
+import { parsePath, pathFor, lineLinkFrom, SECTION_LABEL } from './lib/routes';
 import { LinkIcon } from './components/Icons';
 import Library from './views/Library';
 import ChapterView from './views/ChapterView';
@@ -76,6 +76,17 @@ function AppInner() {
     }
     : parsePath(typeof window === 'undefined' ? '/' : window.location.pathname)));
   const [view, setView] = useState(route.view);
+  // A link to one line (Chess Arcade's "Learn this line" / "Practice this line"): read once, then taken out of the
+  // address bar, so a reload doesn't start the drill again. Acted on below, once that line is in the repertoire.
+  const [lineLink] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    // (a restored session never hides it: it only restores when the address is this same chapter)
+    const link = lineLinkFrom(window.location.pathname, window.location.search);
+    if (window.location.search) {
+      try { window.history.replaceState(window.history.state, '', window.location.pathname); } catch { /* history unavailable */ }
+    }
+    return link;
+  });
   const [chapterNav, setChapterNav] = useState(route.chapterNav ?? null);
   // The sub-mode inside a section — Analysis's engine/compare/editor, the
   // Settings tab. Lifted up here only so it can be part of the address; each
@@ -517,6 +528,21 @@ function AppInner() {
       setView('practice');
     });
   };
+
+  // The line link's Learn or Practice, on top of its chapter (Back lands on the chapter). It waits for the line to be
+  // here (the repertoire can still be arriving from the cloud) and runs once; a line this repertoire doesn't have
+  // leaves you on the chapter.
+  const lineLinkDone = useRef(false);
+  useEffect(() => {
+    if (!lineLink?.mode || lineLinkDone.current) return;
+    const opening = state.openings.find((o) => o.id === lineLink.openingId);
+    const chapter = opening?.chapters.find((c) => c.id === lineLink.chapterId);
+    if (!chapter?.variations.some((v) => v.id === lineLink.variationId)) return;
+    lineLinkDone.current = true;
+    startPractice({
+      openingId: lineLink.openingId, chapterId: lineLink.chapterId, variationId: lineLink.variationId, mode: lineLink.mode,
+    });
+  }, [lineLink, state.openings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // `studio`: open straight into the Annotate tab (badges/notes) instead of
   // Engine — used by "Send to studio" on a saved game, so its gameId/playerId

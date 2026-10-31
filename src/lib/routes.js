@@ -99,6 +99,25 @@ export function parsePath(pathname = '/') {
   return { view, sub };
 }
 
+// One line of a chapter, from outside the app: Chess Arcade's review of a game links the line the game followed as
+// /chapter/<opening>/<chapter>?line=<variation>&go=learn (or go=practice), so a line you left in a game is one tap
+// from learning it. Read once, at launch. Anything that isn't a chapter address with a valid line id is no link; a
+// go other than learn/practice just opens the chapter.
+export function lineLinkFrom(pathname = '/', search = '') {
+  const here = parsePath(pathname);
+  if (here.view !== 'chapter' || !here.chapterNav) return null;
+  const q = new URLSearchParams(String(search ?? ''));
+  const line = q.get('line');
+  if (!validCardId(line)) return null;
+  const go = q.get('go');
+  return {
+    openingId: here.chapterNav.openingId,
+    chapterId: here.chapterNav.chapterId,
+    variationId: line,
+    mode: go === 'learn' || go === 'practice' ? go : null,
+  };
+}
+
 // The tab strip's own labels, for the "copy a link to here" button.
 export const SECTION_LABEL = {
   library: 'Library',

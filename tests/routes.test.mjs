@@ -1,7 +1,7 @@
 // Addresses: every screen worth linking to, and back again.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parsePath, pathFor } from '../src/lib/routes.js';
+import { parsePath, pathFor, lineLinkFrom } from '../src/lib/routes.js';
 
 test('sections and their sub-modes round-trip', () => {
   assert.deepEqual(parsePath('/analysis/editor'), { view: 'analysis', sub: 'editor' });
@@ -52,4 +52,19 @@ test('a quick setup has an address: /analysis/editor/setup/<slug>', () => {
 test('the touch test page has an address', () => {
   assert.deepEqual(parsePath('/touch-test'), { view: 'touchtest', sub: null });
   assert.equal(pathFor({ view: 'touchtest' }), '/touch-test');
+});
+
+test('a link to one line (from Chess Arcade): /chapter/<opening>/<chapter>?line=<variation>&go=learn|practice', () => {
+  assert.deepEqual(lineLinkFrom('/chapter/qzdv1pq4msjue24q/cl0nny0qmsjwktf1', '?line=v8k2m1x9q&go=learn'),
+    { openingId: 'qzdv1pq4msjue24q', chapterId: 'cl0nny0qmsjwktf1', variationId: 'v8k2m1x9q', mode: 'learn' });
+  assert.equal(lineLinkFrom('/chapter/a1b/c2d', '?line=v8k2m1x9q&go=practice').mode, 'practice');
+  // no go, or one it doesn't know: the chapter, with the line named
+  assert.equal(lineLinkFrom('/chapter/a1b/c2d', '?line=v8k2m1x9q').mode, null);
+  assert.equal(lineLinkFrom('/chapter/a1b/c2d', '?line=v8k2m1x9q&go=delete').mode, null);
+  // not a chapter, no line, or a line id that isn't one: no link
+  assert.equal(lineLinkFrom('/library', '?line=v8k2m1x9q&go=learn'), null);
+  assert.equal(lineLinkFrom('/chapter/a1b', '?line=v8k2m1x9q&go=learn'), null);
+  assert.equal(lineLinkFrom('/chapter/a1b/c2d', '?go=learn'), null);
+  assert.equal(lineLinkFrom('/chapter/a1b/c2d', '?line=../x&go=learn'), null);
+  assert.equal(lineLinkFrom('/chapter/a1b/c2d', ''), null);
 });
