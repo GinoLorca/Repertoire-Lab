@@ -5,7 +5,7 @@ import {
   putVideo, getVideo, deleteVideo, videoObjectUrl, MAX_VIDEO_BYTES,
 } from '../lib/videoStore';
 import {
-  cloudVideosReady, startUpload, uploadStatus, watchUpload, cloudVideoUrl, saveOffline, deleteCloudVideo,
+  watchCloudVideos, startUpload, uploadStatus, watchUpload, cloudVideoUrl, saveOffline, deleteCloudVideo,
 } from '../lib/cloud/videos';
 import { classifyVideoUrl, embedSrc, fmtTime } from '../lib/videoLinks';
 import { uid } from '../store';
@@ -83,11 +83,7 @@ const ChapterVideo = forwardRef(({
     };
   }, [video?.id, video?.kind, fileTick]);
 
-  useEffect(() => {
-    let live = true;
-    cloudVideosReady().then((ok) => { if (live) setCloudOk(ok); });
-    return () => { live = false; };
-  }, []);
+  useEffect(() => watchCloudVideos(setCloudOk), []);
 
   // An upload of this video, wherever it was started from.
   useEffect(() => {

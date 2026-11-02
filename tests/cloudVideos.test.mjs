@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  videoPath, cloudVideosReady, startUpload, uploadStatus, watchUpload, cloudVideoUrl, saveOffline, deleteCloudVideo,
+  videoPath, cloudVideosReady, watchCloudVideos, startUpload, uploadStatus, watchUpload, cloudVideoUrl, saveOffline, deleteCloudVideo,
 } from '../src/lib/cloud/videos.js';
 import { getVideo } from '../src/lib/videoStore.js';
 
@@ -27,16 +27,36 @@ function fakeCloud({ signedIn = true, bucket = true, failUpload = false } = {}) 
     getDownloadURL: async (r) => `https://bucket.example/${r.path}?token=t`,
     deleteObject: async (r) => { deleted.push(r.path); objects.delete(r.path); },
   };
+  const user = signedIn ? { uid: 'u1' } : null;
+  const authInstance = { currentUser: null };
   const c = {
     storage,
     storageInstance: bucket ? {} : null,
-    authInstance: { currentUser: signedIn ? { uid: 'u1' } : null },
+    // As Firebase is when the app opens: no user until the kept sign-in is back.
+    authInstance: Object.assign(authInstance, {
+      authStateReady: () => new Promise((r) => setTimeout(() => { authInstance.currentUser = user; r(); }, 5)),
+    }),
+    auth: {
+      onAuthStateChanged: (_inst, cb) => { const t = setTimeout(() => cb(user), 5); return () => clearTimeout(t); },
+    },
   };
   return { get: () => c, objects, deleted };
 }
 const until = (cond) => new Promise((resolve) => {
   const tick = () => (cond() ? resolve() : setTimeout(tick, 1));
   tick();
+});
+
+test('signed in as soon as the kept sign-in is back — not "signed out" while it loads', async () => {
+  const seen = [];
+  const off = watchCloudVideos((ok) => seen.push(ok), fakeCloud().get);
+  await new Promise((r) => setTimeout(r, 20));
+  off();
+  assert.deepEqual(seen, [true]);
+  const none = [];
+  watchCloudVideos((ok) => none.push(ok), fakeCloud({ bucket: false }).get);
+  await new Promise((r) => setTimeout(r, 5));
+  assert.deepEqual(none, [false]);
 });
 
 test('the cloud holds videos only signed in, with a bucket', async () => {

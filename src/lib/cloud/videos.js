@@ -16,8 +16,12 @@ import { putVideo } from '../videoStore';
 export const videoPath = (uid, videoId) => `users/${uid}/videos/${videoId}`;
 
 // The cloud, when it can hold videos: configured, signed in, with a bucket.
+// Signed in as Firebase has it once it's finished bringing back the sign-in
+// kept on this device — straight after the app opens it hasn't yet, and
+// reading currentUser then says "signed out".
 async function ready(get = cloud) {
   const c = await Promise.resolve().then(get).catch(() => null);
+  await c?.authInstance?.authStateReady?.().catch(() => {});
   const uid = c?.authInstance?.currentUser?.uid;
   if (!c?.storageInstance || !uid) return null;
   return { c, uid };
@@ -25,6 +29,20 @@ async function ready(get = cloud) {
 
 export async function cloudVideosReady(get) {
   return Boolean(await ready(get));
+}
+
+// `cb(true / false)` now and whenever you sign in or out — so the player
+// offers the cloud as soon as it can, not only if you were signed in at the
+// moment it appeared. Returns the unsubscribe.
+export function watchCloudVideos(cb, get = cloud) {
+  let live = true;
+  let off = () => {};
+  Promise.resolve().then(get).then((c) => {
+    if (!live) return;
+    if (!c?.storageInstance) { cb(false); return; }
+    off = c.auth.onAuthStateChanged(c.authInstance, (user) => { if (live) cb(Boolean(user)); });
+  }).catch(() => { if (live) cb(false); });
+  return () => { live = false; off(); };
 }
 
 // Uploads under way, by video id. Kept here rather than in the player, so an
