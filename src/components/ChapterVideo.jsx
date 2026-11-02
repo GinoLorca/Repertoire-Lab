@@ -1,7 +1,12 @@
 import React, {
   forwardRef, useEffect, useImperativeHandle, useRef, useState,
 } from 'react';
-import { putVideo, deleteVideo, videoObjectUrl, MAX_VIDEO_BYTES } from '../lib/videoStore';
+import {
+  putVideo, getVideo, deleteVideo, videoObjectUrl, MAX_VIDEO_BYTES,
+} from '../lib/videoStore';
+import {
+  cloudVideosReady, startUpload, uploadStatus, watchUpload, cloudVideoUrl, saveOffline, deleteCloudVideo,
+} from '../lib/cloud/videos';
 import { classifyVideoUrl, embedSrc, fmtTime } from '../lib/videoLinks';
 import { uid } from '../store';
 import { UploadIcon, LinkIcon, PencilIcon } from './Icons';
@@ -25,7 +30,16 @@ import { UploadIcon, LinkIcon, PencilIcon } from './Icons';
 // `hideEmpty`: render nothing while there's no video and nobody's adding one.
 // The phone's chapter page puts "add a video" in its ⋯ sheet instead of a
 // strip of the screen; the sheet reaches in through `openAdd` on the ref.
-const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) => {
+// A file is also uploaded to the cloud when you're signed in (lib/cloud/
+// videos.js): `onCloud(videoId, cloud)` records it on the chapter once it's
+// there, and every other device then streams it from there — or saves it
+// for offline, after which it plays there with no connection too.
+const mb = (bytes) => `${Math.max(1, Math.round((bytes ?? 0) / 1024 / 1024))} MB`;
+const pct = (p) => `${Math.floor((p ?? 0) * 100)}%`;
+
+const ChapterVideo = forwardRef(({
+  video, onChange, onCloud, hideEmpty = false,
+}, ref) => {
   const [mode, setMode] = useState(null); // null | 'upload' | 'url'
   const [urlInput, setUrlInput] = useState('');
   const [error, setError] = useState(null);
@@ -36,6 +50,12 @@ const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) =>
   const [fileStatus, setFileStatus] = useState('loading'); // 'loading' | 'ready' | 'missing'
   const [fileTick, setFileTick] = useState(0); // bumped when the file is added here
   const hereRef = useRef(null);
+  // The cloud: whether it can hold videos here (signed in, with a bucket),
+  // this video's upload, a link to stream it from, and saving it for offline.
+  const [cloudOk, setCloudOk] = useState(false);
+  const [uploading, setUploading] = useState(null); // { progress, error }
+  const [streamUrl, setStreamUrl] = useState(null);
+  const [saving, setSaving] = useState(null); // { progress } | { error }
   const [currentTime, setCurrentTime] = useState(0);
   const [reloadKey, setReloadKey] = useState(0); // bumped to force an embed iframe to reload at a new start=
   const fileRef = useRef(null);
@@ -62,6 +82,53 @@ const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) =>
       if (url) URL.revokeObjectURL(url);
     };
   }, [video?.id, video?.kind, fileTick]);
+
+  useEffect(() => {
+    let live = true;
+    cloudVideosReady().then((ok) => { if (live) setCloudOk(ok); });
+    return () => { live = false; };
+  }, []);
+
+  // An upload of this video, wherever it was started from.
+  useEffect(() => {
+    if (video?.kind !== 'file') { setUploading(null); return undefined; }
+    setUploading(uploadStatus(video.id));
+    return watchUpload(video.id, (u) => setUploading(u.done ? null : u));
+  }, [video?.id, video?.kind, uploading === null]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sendToCloud = (videoId, file) => {
+    startUpload({ videoId, file, onDone: (c) => onCloud?.(videoId, c) }).then((started) => {
+      if (started) setUploading(uploadStatus(videoId));
+    });
+  };
+  // One already on this device, from before videos went to the cloud.
+  const uploadExisting = async () => {
+    const blob = await getVideo(video.id);
+    if (blob) sendToCloud(video.id, blob);
+  };
+
+  // Not on this device but in the cloud: stream it from there.
+  useEffect(() => {
+    let live = true;
+    setStreamUrl(null);
+    if (video?.kind === 'file' && fileStatus === 'missing' && video.cloud?.path && cloudOk) {
+      cloudVideoUrl(video.cloud.path).then((u) => { if (live) setStreamUrl(u); }).catch(() => {});
+    }
+    return () => { live = false; };
+  }, [video?.id, video?.kind, video?.cloud?.path, fileStatus, cloudOk]);
+
+  const keepOffline = async () => {
+    setSaving({ progress: 0 });
+    try {
+      await saveOffline({
+        videoId: video.id, path: video.cloud.path, onProgress: (p) => setSaving({ progress: p }),
+      });
+      setSaving(null);
+      setFileTick((t) => t + 1);
+    } catch {
+      setSaving({ error: true });
+    }
+  };
 
   useImperativeHandle(ref, () => ({
     seekTo(seconds) {
@@ -99,12 +166,14 @@ const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) =>
       // Replacing a file video: drop the old blob so it doesn't sit in
       // IndexedDB forever with nothing pointing at it.
       if (video?.kind === 'file') await deleteVideo(video.id);
+      if (video?.cloud?.path) deleteCloudVideo(video.cloud.path);
       const id = uid();
       await putVideo(id, file);
       onChange({
         id, kind: 'file', name: file.name, mime: file.type, size: file.size, addedAt: Date.now(),
       });
       setMode(null);
+      if (cloudOk) sendToCloud(id, file);
     } catch {
       setError('Could not store that file — it may be too large for this browser to keep offline.');
     } finally {
@@ -140,6 +209,7 @@ const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) =>
       return;
     }
     if (video?.kind === 'file') deleteVideo(video.id).catch(() => {});
+    if (video?.cloud?.path) deleteCloudVideo(video.cloud.path);
     // classified spreads last: for YouTube/Vimeo its `id` IS the platform's
     // video id, which embedSrc() builds the player URL from — a generic id
     // assigned here would silently overwrite it and point the embed at a
@@ -154,6 +224,7 @@ const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) =>
   const remove = () => {
     if (!window.confirm('Remove this chapter’s video? Variations linked to a moment in it keep their timestamp, in case a replacement video runs the same way.')) return;
     if (video?.kind === 'file') deleteVideo(video.id).catch(() => {});
+    if (video?.cloud?.path) deleteCloudVideo(video.cloud.path);
     onChange(null);
   };
 
@@ -204,18 +275,54 @@ const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) =>
   }
 
   const isEmbed = video.kind === 'youtube' || video.kind === 'vimeo';
+  // Where an uploaded file is — here, in the cloud, on its way — and what
+  // can be done about it.
+  const act = (label, onClick) => <button type="button" className="linkish cv-act" onClick={onClick}>{label}</button>;
+  const fileLine = () => {
+    if (uploading?.error) return <>Upload to the cloud didn’t finish {act('Try again', uploadExisting)}</>;
+    if (uploading) return `Uploading to the cloud… ${pct(uploading.progress)} — keep the app open till it’s done`;
+    if (fileStatus === 'ready') {
+      if (video.cloud?.path) return 'On this device and in the cloud — plays offline here';
+      return cloudOk
+        ? <>Only on this device {act('Upload to the cloud', uploadExisting)}</>
+        : 'Stored on this device — plays offline';
+    }
+    if (streamUrl) {
+      if (saving?.error) return <>Couldn’t save it for offline {act('Try again', keepOffline)}</>;
+      if (saving) return `Saving for offline… ${pct(saving.progress)}`;
+      return <>Streaming from the cloud {act(`Save for offline (${mb(video.cloud.size ?? video.size)})`, keepOffline)}</>;
+    }
+    return fileStatus === 'missing' ? 'Not on this device' : '';
+  };
 
   return (
     <div className="chapter-video">
       <div className={`cv-player${video.kind === 'file' && fileStatus === 'missing' ? ' missing' : ''}`}>
-        {video.kind === 'file' && fileStatus === 'missing' && (
+        {video.kind === 'file' && streamUrl && (
+          <video
+            ref={videoRef}
+            src={streamUrl}
+            controls
+            preload="metadata"
+            playsInline
+            onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+          />
+        )}
+        {video.kind === 'file' && fileStatus === 'missing' && !streamUrl && (
           <div className="cv-missing">
             <strong>This video isn’t on this device</strong>
-            <p>
-              It’s saved on the device it was added from{video.name ? ` (“${video.name}”)` : ''} —
-              video files don’t sync between devices. Add the same file here, from Files or after
-              AirDropping it, or use a link (an unlisted YouTube video plays everywhere).
-            </p>
+            {video.cloud?.path ? (
+              <p>
+                It’s in the cloud — sign in (Settings → Account) to play it here. Or add the same
+                file to this device, or use a link instead.
+              </p>
+            ) : (
+              <p>
+                It’s saved on the device it was added from{video.name ? ` (“${video.name}”)` : ''}
+                {' '}and isn’t in the cloud yet — open it there, signed in, and press “Upload to the
+                cloud”. Or add the same file here, from Files or after AirDropping it, or use a link.
+              </p>
+            )}
             <div className="cv-missing-actions">
               <input
                 ref={hereRef}
@@ -264,11 +371,11 @@ const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) =>
       <div className="cv-bar">
         <span className="muted-note cv-source">
           {video.kind === 'file'
-            ? (fileStatus === 'missing' ? 'Not on this device — the file is on the one it was added from' : 'Stored on this device — plays offline')
+            ? fileLine()
             : `Streamed from ${video.kind === 'youtube' ? 'YouTube' : video.kind === 'vimeo' ? 'Vimeo' : 'a link'} — needs a connection`}
         </span>
         <span style={{ flex: 1 }} />
-        {!isEmbed && fileStatus !== 'missing' && (
+        {!isEmbed && (fileStatus !== 'missing' || streamUrl) && (
           <span className="muted-note cv-time">{fmtTime(currentTime)}</span>
         )}
         <button className="small ghost" title="Replace this video" onClick={() => setMode('replace')}>

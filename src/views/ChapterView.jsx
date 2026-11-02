@@ -521,6 +521,9 @@ export default function ChapterView({
             // of taking a strip of the screen on every chapter without one.
             hideEmpty={isPhone}
             onChange={(video) => dispatch({ type: 'setChapterVideo', openingId, chapterId, video })}
+            onCloud={(videoId, cloud) => dispatch({
+              type: 'setChapterVideoCloud', openingId, chapterId, videoId, cloud,
+            })}
           />
         </div>
       )}

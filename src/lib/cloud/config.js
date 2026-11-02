@@ -16,7 +16,10 @@ export const firebaseConfig = {
   apiKey: env.VITE_FIREBASE_API_KEY,
   authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
+  // The project's default bucket when none is set: Firebase names new ones
+  // <project id>.firebasestorage.app.
+  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET
+    || (env.VITE_FIREBASE_PROJECT_ID ? `${env.VITE_FIREBASE_PROJECT_ID}.firebasestorage.app` : undefined),
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: env.VITE_FIREBASE_APP_ID,
 };

@@ -623,6 +623,12 @@ function reduce(state, action) {
         ...c,
         video: action.video,
       }));
+    // A chapter's video, now in the cloud too (lib/cloud/videos.js) — only if
+    // it's still the chapter's video by the time the upload finishes.
+    case 'setChapterVideoCloud':
+      return mapChapter(state, action.openingId, action.chapterId, (c) => (c.video?.id === action.videoId
+        ? { ...c, video: { ...c.video, cloud: action.cloud } }
+        : c));
     // The moment in that video where a variation's explanation starts. Clears
     // on its own if the video is ever removed — a stray timestamp with
     // nothing to seek in is silently ignored rather than tracked as an error.

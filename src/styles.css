@@ -193,6 +193,7 @@
   display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap;
 }
 .cv-source { font-size: 12.5px; }
+.cv-source .cv-act { font-size: 12.5px; margin-left: 6px; }
 .cv-time { font-variant-numeric: tabular-nums; }
 
 /* The camera icon on a variation card. */

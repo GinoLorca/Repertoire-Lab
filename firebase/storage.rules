@@ -8,11 +8,11 @@ rules_version = '2';
 // far above artwork or a wallpaper and far below anything that would quietly
 // run up a bill.
 //
-// Not live until published, same as firestore.rules — but this one stays a
-// paste job: `npm run deploy:rules` deliberately doesn't touch Storage,
-// because the project has no bucket (free plan) and a deploy that tries
-// would fail. Firebase console → Storage → Rules → Publish, if a bucket is
-// ever added.
+// Chapter videos (src/lib/cloud/videos.js) are the exception to the 20 MB
+// cap: up to 800 MB each, the app's own limit, and only video files.
+//
+// Not live until published, same as firestore.rules: `npm run deploy:rules`
+// publishes both, or Firebase console → Storage → Rules → Publish.
 service firebase.storage {
   match /b/{bucket}/o {
     match /users/{uid}/{path=**} {
@@ -20,6 +20,14 @@ service firebase.storage {
       allow write: if request.auth != null
                    && request.auth.uid == uid
                    && request.resource.size < 20 * 1024 * 1024;
+    }
+    match /users/{uid}/videos/{videoId} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null
+                            && request.auth.uid == uid
+                            && request.resource.size < 800 * 1024 * 1024
+                            && request.resource.contentType.matches('video/.*');
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
   }
 }

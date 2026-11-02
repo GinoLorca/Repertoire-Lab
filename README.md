@@ -79,14 +79,30 @@ and looked, from the app, exactly like a bug in the app.
 npm run deploy:rules
 ```
 
-That publishes `firebase/firestore.rules` to the `repertoire-lab` project. The
-first run needs `npx firebase-tools login` (a browser sign-in as the project's
-owner); after that it's one command. Pasting the file into Firebase console →
-Firestore Database → Rules → Publish does the same job.
+That publishes `firebase/firestore.rules` and `firebase/storage.rules` to the
+`repertoire-lab` project. The first run needs `npx firebase-tools login` (a
+browser sign-in as the project's owner); after that it's one command. Pasting
+each file into Firebase console → Firestore Database → Rules (or Storage →
+Rules) → Publish does the same job.
 
-`firebase/storage.rules` stays a paste job on purpose — the project has no
-Storage bucket on the free plan, so a deploy that included it would fail.
-Pictures go in Firestore instead; see `src/lib/cloud/blobs.js`.
+### Cloud Storage (chapter videos)
+
+The project is on the Blaze plan with a default bucket,
+`repertoire-lab.firebasestorage.app` (the app assumes `<project id>
+.firebasestorage.app` unless `VITE_FIREBASE_STORAGE_BUCKET` says otherwise).
+Chapter videos upload there from the device they're added on and stream or
+save for offline everywhere else — see `src/lib/cloud/videos.js`.
+
+Saving a video for offline downloads it in the browser, which the bucket only
+allows once its CORS setting is in place — once, from Cloud Shell in the
+Google Cloud console:
+
+```bash
+gcloud storage buckets update gs://repertoire-lab.firebasestorage.app --cors-file=cors.json
+```
+
+with `firebase/cors.json` saved there as `cors.json` first. Streaming works
+without it; only "Save for offline" needs it.
 
 `npm run zip` still produces `repertoire-lab-site.zip` for a hand-drop onto
 Netlify, as a fallback if a build ever needs to bypass Git.
