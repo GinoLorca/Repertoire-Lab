@@ -31,6 +31,11 @@ const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) =>
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [objectUrl, setObjectUrl] = useState(null);
+  // An uploaded file's bytes live on the device it was added from; the
+  // chapter's note of it syncs, the file doesn't. 'missing': not here.
+  const [fileStatus, setFileStatus] = useState('loading'); // 'loading' | 'ready' | 'missing'
+  const [fileTick, setFileTick] = useState(0); // bumped when the file is added here
+  const hereRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [reloadKey, setReloadKey] = useState(0); // bumped to force an embed iframe to reload at a new start=
   const fileRef = useRef(null);
@@ -40,7 +45,15 @@ const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) =>
     let url;
     let cancelled = false;
     if (video?.kind === 'file') {
-      videoObjectUrl(video.id).then((u) => { if (!cancelled) { url = u; setObjectUrl(u); } });
+      setFileStatus('loading');
+      videoObjectUrl(video.id)
+        .catch(() => null)
+        .then((u) => {
+          if (cancelled) { if (u) URL.revokeObjectURL(u); return; }
+          url = u;
+          setObjectUrl(u);
+          setFileStatus(u ? 'ready' : 'missing');
+        });
     } else {
       setObjectUrl(null);
     }
@@ -48,7 +61,7 @@ const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) =>
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [video?.id, video?.kind]);
+  }, [video?.id, video?.kind, fileTick]);
 
   useImperativeHandle(ref, () => ({
     seekTo(seconds) {
@@ -92,6 +105,27 @@ const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) =>
         id, kind: 'file', name: file.name, mime: file.type, size: file.size, addedAt: Date.now(),
       });
       setMode(null);
+    } catch {
+      setError('Could not store that file — it may be too large for this browser to keep offline.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // The same video, added on this device too: kept under the same id, so the
+  // chapter (and every line linked to a moment in it) is unchanged everywhere.
+  const addHere = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('video/')) { setError('That file doesn’t look like a video.'); return; }
+    if (file.size > MAX_VIDEO_BYTES) {
+      setError(`That file is ${Math.round(file.size / 1024 / 1024)} MB — the limit is ${Math.round(MAX_VIDEO_BYTES / 1024 / 1024)} MB.`);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await putVideo(video.id, file);
+      setFileTick((t) => t + 1);
     } catch {
       setError('Could not store that file — it may be too large for this browser to keep offline.');
     } finally {
@@ -173,7 +207,32 @@ const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) =>
 
   return (
     <div className="chapter-video">
-      <div className="cv-player">
+      <div className={`cv-player${video.kind === 'file' && fileStatus === 'missing' ? ' missing' : ''}`}>
+        {video.kind === 'file' && fileStatus === 'missing' && (
+          <div className="cv-missing">
+            <strong>This video isn’t on this device</strong>
+            <p>
+              It’s saved on the device it was added from{video.name ? ` (“${video.name}”)` : ''} —
+              video files don’t sync between devices. Add the same file here, from Files or after
+              AirDropping it, or use a link (an unlisted YouTube video plays everywhere).
+            </p>
+            <div className="cv-missing-actions">
+              <input
+                ref={hereRef}
+                type="file"
+                accept="video/*"
+                hidden
+                onChange={(e) => addHere(e.target.files[0])}
+              />
+              <button className="small primary" disabled={busy} onClick={() => hereRef.current?.click()}>
+                <UploadIcon size={14} /> {busy ? 'Storing…' : 'Add the file on this device'}
+              </button>
+              <button className="small" onClick={() => setMode('replace')}>
+                <LinkIcon size={14} /> Use a video link instead
+              </button>
+            </div>
+          </div>
+        )}
         {video.kind === 'file' && objectUrl && (
           <video
             ref={videoRef}
@@ -205,11 +264,11 @@ const ChapterVideo = forwardRef(({ video, onChange, hideEmpty = false }, ref) =>
       <div className="cv-bar">
         <span className="muted-note cv-source">
           {video.kind === 'file'
-            ? 'Stored on this device — plays offline'
+            ? (fileStatus === 'missing' ? 'Not on this device — the file is on the one it was added from' : 'Stored on this device — plays offline')
             : `Streamed from ${video.kind === 'youtube' ? 'YouTube' : video.kind === 'vimeo' ? 'Vimeo' : 'a link'} — needs a connection`}
         </span>
         <span style={{ flex: 1 }} />
-        {!isEmbed && (
+        {!isEmbed && fileStatus !== 'missing' && (
           <span className="muted-note cv-time">{fmtTime(currentTime)}</span>
         )}
         <button className="small ghost" title="Replace this video" onClick={() => setMode('replace')}>

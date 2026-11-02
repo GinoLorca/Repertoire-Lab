@@ -179,6 +179,16 @@
 .cv-player video, .cv-player iframe {
   position: absolute; inset: 0; width: 100%; height: 100%; border: none;
 }
+/* An uploaded video whose file is on another device: say so, and how to fix it —
+   as tall as that takes, not a black 16:9 box. */
+.cv-player.missing { aspect-ratio: auto; }
+.cv-missing {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 16px 20px; text-align: center;
+  background: var(--panel); color: var(--text);
+}
+.cv-missing p { margin: 0; max-width: 520px; color: var(--muted); font-size: 13.5px; }
+.cv-missing-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 4px; }
 .cv-bar {
   display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap;
 }
