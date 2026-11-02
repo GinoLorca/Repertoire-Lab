@@ -10,6 +10,7 @@ import { cloud } from './app';
 import { findByScreenName } from './profile';
 import { mergeBackup } from '../backup';
 import { folderOf } from '../savedPositions';
+import { kidArtwork } from '../kidArtwork';
 
 // Deliveries are text. Artwork, avatars and photos are stripped rather than
 // sent: they're megabytes, they'd need cross-account Storage permissions to
@@ -48,8 +49,14 @@ function asFreshLines(openings) {
 // also clears the owner from a copy an earlier delivery left hidden.
 const asTheirOwn = (openings) => openings.map((o) => ({ ...o, ownerId: null }));
 
+// Pictures don't travel (a document has a size limit), and a student never
+// gets the coach's artwork anyway: each opening goes with its kid card.
 export function deliveryPayload(openings) {
-  return asTheirOwn(asFreshLines(stripImages(openings)));
+  return asTheirOwn(asFreshLines(stripImages(openings))).map((o) => ({
+    ...o,
+    artwork: kidArtwork(o.name),
+    ...(o.courses ? { courses: o.courses.map((c) => ({ ...c, artwork: null })) } : {}),
+  }));
 }
 
 // A short human summary, so the bell can say what arrived without opening it.

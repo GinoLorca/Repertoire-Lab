@@ -11,6 +11,7 @@ import {
 } from './lib/subVariations';
 import { arrangeTop, arrangeFolder, gatherIntoFolder } from './lib/chapterOrder';
 import { sendToChapter } from './lib/chapterTransfer';
+import { kidArtwork, kidArtForStudents, isKidArt } from './lib/kidArtwork';
 import { parseMarks, withText, withMarks } from './lib/marks';
 import { canonicalStartFen, fen4 } from './lib/startPos';
 import {
@@ -304,15 +305,25 @@ function reduce(state, action) {
       }
       return reducer(state, { type: 'hydrate', state: next });
     }
-    case 'hydrate':
+    case 'hydrate': {
       // Older saved states may predate newer top-level fields.
-      return {
+      const next = {
         ...action.state,
         players: action.state.players ?? [],
         categories: action.state.categories ?? [],
         playlists: action.state.playlists ?? [],
         labEntries: action.state.labEntries ?? [],
       };
+      // Once: students' openings swap the coach's artwork they were copied
+      // with for their kid cards (lib/kidArtwork.js). Remembered in settings,
+      // which sync, so a picture put on one deliberately later is kept.
+      if (next.settings?.kidArtDone || !Array.isArray(next.openings)) return next;
+      return {
+        ...next,
+        openings: kidArtForStudents(next.openings),
+        settings: { ...(next.settings ?? {}), kidArtDone: true },
+      };
+    }
     // ---------- Handing a repertoire to students ----------
     // A coach's students often play the coach's own lines. This copies chosen
     // openings onto one or more students, with the moves and the teaching
@@ -380,14 +391,15 @@ function reduce(state, action) {
             const courses = (source.courses ?? []).map((c) => {
               const id = uid();
               courseIds.set(c.id, id);
-              return { ...c, id, artwork: c.artwork ? { ...c.artwork } : null };
+              // Never the coach's own pictures: a kid card for a cover.
+              return { ...c, id, artwork: c.artwork ? kidArtwork(c.name) : null };
             });
             openings = [...openings, {
               ...source,
               id: uid(),
               ownerId: targetId,
               tags: [...(source.tags ?? [])],
-              artwork: source.artwork ? { ...source.artwork } : null,
+              artwork: kidArtwork(source.name),
               starred: false,
               courses,
               chapters: source.chapters.map((ch) => freshChapter(ch, courseIds)),
@@ -403,7 +415,7 @@ function reduce(state, action) {
             if (match) { courseIds.set(c.id, match.id); continue; }
             const id = uid();
             courseIds.set(c.id, id);
-            addedCourses.push({ ...c, id, artwork: c.artwork ? { ...c.artwork } : null });
+            addedCourses.push({ ...c, id, artwork: c.artwork ? kidArtwork(c.name) : null });
           }
 
           // Chapter by chapter: a chapter they don't have arrives whole; one
@@ -450,12 +462,13 @@ function reduce(state, action) {
         const courses = (o.courses ?? []).map((c) => {
           const id = uid();
           courseIds.set(c.id, id);
-          return { ...c, id };
+          return { ...c, id, artwork: c.artwork ? kidArtwork(c.name) : null };
         });
         return {
           ...o,
           id: uid(),
           ownerId: action.playerId,
+          artwork: kidArtwork(o.name),
           courses,
           chapters: (o.chapters ?? []).map((ch) => ({
             ...ch,
@@ -522,8 +535,9 @@ function reduce(state, action) {
     case 'renameCourse':
       return mapOpening(state, action.openingId, (o) => ({
         ...o,
-        courses: (o.courses ?? []).map((c) => (
-          c.id === action.courseId ? { ...c, name: action.name } : c)),
+        courses: (o.courses ?? []).map((c) => (c.id === action.courseId
+          ? { ...c, name: action.name, ...(isKidArt(c.artwork) ? { artwork: kidArtwork(action.name) } : {}) }
+          : c)),
       }));
     case 'deleteCourse':
       // The chapters stay; they just come back out to the opening's top level.
@@ -568,12 +582,18 @@ function reduce(state, action) {
         // scope the Library was showing when you hit "+ Add Opening" decides
         // this — see Library.jsx.
         ownerId: action.ownerId ?? null,
+        // A student's starts with its kid card (lib/kidArtwork.js).
+        ...(action.ownerId ? { artwork: kidArtwork(action.name) } : {}),
         chapters: [],
       };
       return { ...state, openings: [...state.openings, opening] };
     }
     case 'renameOpening':
-      return mapOpening(state, action.openingId, (o) => ({ ...o, name: action.name }));
+      return mapOpening(state, action.openingId, (o) => ({
+        ...o,
+        name: action.name,
+        ...(isKidArt(o.artwork) ? { artwork: kidArtwork(action.name) } : {}),
+      }));
     case 'setOpeningColor':
       return mapOpening(state, action.openingId, (o) => ({ ...o, color: action.color }));
     case 'toggleOpeningCollapse':
