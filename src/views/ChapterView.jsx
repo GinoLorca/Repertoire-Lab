@@ -18,6 +18,7 @@ import { headOf, subVariationsOf, subLabel } from '../lib/subVariations';
 import ReorderSheet from '../components/ReorderSheet';
 import GiveToStudent, { GiveToStudentButton } from '../components/GiveToStudent';
 import { useShareLine } from '../components/ShareLine';
+import SendToChapter from '../components/SendToChapter';
 import {
   fen4, isWhiteMove, moveNumberOf, moveNumberLabel,
 } from '../lib/startPos';
@@ -54,7 +55,8 @@ export default function ChapterView({
   const [reordering, setReordering] = useState(false);
   const [menuFor, setMenuFor] = useState(null); // { id, at } — a line's long-press / right-click menu
   const [sending, setSending] = useState(null); // { anchorId } or { ids } — lines on their way to a sub-variation
-  const [sentNote, setSentNote] = useState(null); // { chapterId, name, count } — where they went
+  const [sentNote, setSentNote] = useState(null); // { chapterId, name, count, verb?, openingId?, skipped? } — where they went
+  const [transferIds, setTransferIds] = useState(null); // lines on their way to another chapter
   const [drawOnOpen, setDrawOnOpen] = useState(false); // the viewer opened to draw arrows
   // Said where it can be seen: the note sits under the title, and a send
   // started from a line far down the chapter would otherwise go unconfirmed.
@@ -156,6 +158,12 @@ export default function ChapterView({
         hint: 'a chapter of its own, filed with this one — like Tartakower under Classical',
         icon: '⤵',
         onClick: () => setSending({ anchorId: variation.id }),
+      },
+      {
+        label: 'Send to another chapter…',
+        hint: 'copy it there, or move it',
+        icon: '⇢',
+        onClick: () => setTransferIds([variation.id]),
       },
       canGive && {
         label: 'Give to a student…',
@@ -489,8 +497,9 @@ export default function ChapterView({
           )}
           {sentNote && (
             <span className="subvar-sent" role="status">
-              Sent {sentNote.count} line{sentNote.count === 1 ? '' : 's'} to{' '}
-              <a onClick={() => onOpenChapter?.(openingId, sentNote.chapterId)}>{sentNote.name}</a>
+              {sentNote.verb ?? 'Sent'} {sentNote.count} line{sentNote.count === 1 ? '' : 's'} to{' '}
+              <a onClick={() => onOpenChapter?.(sentNote.openingId ?? openingId, sentNote.chapterId)}>{sentNote.name}</a>
+              {sentNote.skipped > 0 && <span className="muted-note"> · {sentNote.skipped} already there, left out</span>}
               <button type="button" className="small ghost" aria-label="Dismiss" onClick={() => setSentNote(null)}>✕</button>
             </span>
           )}
@@ -534,6 +543,13 @@ export default function ChapterView({
           </button>
           <button className="small ghost" onClick={() => setChosen({})}>Clear</button>
           <span style={{ flex: 1 }} />
+          <button
+            disabled={chosenIds.length === 0}
+            title="Copy or move the ticked lines to another chapter"
+            onClick={() => setTransferIds(chosenIds)}
+          >
+            ⇢ Send to another chapter
+          </button>
           <button
             disabled={chosenIds.length === 0}
             title="Move the ticked lines to a sub-variation of this chapter — a chapter of their own, filed with this one"
@@ -822,6 +838,20 @@ export default function ChapterView({
           items={lineMenu(lineById.get(menuFor.id))}
           at={menuFor.at}
           onClose={() => setMenuFor(null)}
+        />
+      )}
+
+      {transferIds && (
+        <SendToChapter
+          opening={opening}
+          chapter={chapter}
+          ids={transferIds}
+          onClose={() => setTransferIds(null)}
+          onSent={({ mode, ...note }) => {
+            setTransferIds(null);
+            leavePicking();
+            setSentNote({ ...note, verb: mode === 'copy' ? 'Copied' : 'Moved' });
+          }}
         />
       )}
 

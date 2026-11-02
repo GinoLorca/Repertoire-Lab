@@ -10,6 +10,7 @@ import {
   sendLines, makeSub, leaveFolder, withFolderMates,
 } from './lib/subVariations';
 import { arrangeTop, arrangeFolder, gatherIntoFolder } from './lib/chapterOrder';
+import { sendToChapter } from './lib/chapterTransfer';
 import { parseMarks, withText, withMarks } from './lib/marks';
 import { canonicalStartFen, fen4 } from './lib/startPos';
 import {
@@ -720,6 +721,24 @@ function reduce(state, action) {
               ? { ...it, chapterId: target } : it)),
           }
           : p)),
+      };
+    }
+    // Lines copied or moved to another chapter (lib/chapterTransfer.js). A
+    // moved line stays in its playlists, which name its chapter too.
+    case 'sendToChapter': {
+      const openings = sendToChapter(state.openings, action, uid);
+      if (openings === state.openings || action.mode !== 'move') return { ...state, openings };
+      const moved = new Set(action.ids);
+      const still = new Set(openings.find((o) => o.id === action.from.openingId)
+        ?.chapters.find((c) => c.id === action.from.chapterId)?.variations.map((v) => v.id) ?? []);
+      const went = (it) => moved.has(it.variationId) && !still.has(it.variationId)
+        && it.chapterId === action.from.chapterId;
+      return {
+        ...state,
+        openings,
+        playlists: (state.playlists ?? []).map((pl) => (pl.items.some(went)
+          ? { ...pl, items: pl.items.map((it) => (went(it) ? { ...it, openingId: action.to.openingId, chapterId: action.to.chapterId } : it)) }
+          : pl)),
       };
     }
     // Chapter cards arranged by hand (lib/chapterOrder.js): a course's grid

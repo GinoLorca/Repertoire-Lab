@@ -4568,6 +4568,13 @@ input[type="date"] {
 .send-sub-label { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
 .send-sub-dest { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .send-sub-dest input[type="text"] { flex: 1; min-width: 0; }
+/* Send to another chapter: the destination list, by opening. */
+.send-chapter-lines { margin: 0 0 6px; padding-left: 18px; font-size: 13.5px; }
+.send-chapter-list { max-height: 44vh; overflow-y: auto; margin-top: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; }
+.send-chapter-opening { font-size: 11.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); padding: 8px 2px 2px; }
+.send-chapter-dest { padding: 6px 4px; border-radius: 6px; cursor: pointer; }
+.send-chapter-dest.on { background: var(--card-hover); }
+.send-chapter-name { flex: 1; min-width: 0; }
 .send-sub-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .send-sub-lines {
   list-style: none; margin: 0; padding: 0; max-height: 34vh; overflow-y: auto;
