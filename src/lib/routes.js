@@ -35,7 +35,8 @@ const VIEW_TO_PATH = Object.fromEntries(VIEW_PATHS);
 // other, and a bad one should land you on the section, not in a broken state.
 export const SUB_VIEWS = {
   // Studio is the analysis screen's fourth tab: a board of its own.
-  analysis: ['engine', 'compare', 'editor', 'studio'],
+  // Game Review is its fifth: Chess Arcade's review (views/GameReviewView).
+  analysis: ['engine', 'compare', 'editor', 'studio', 'review'],
   settings: ['account', 'appearance', 'themes', 'board', 'trainer', 'analysis', 'keyboard', 'explorer', 'sounds', 'data'],
 };
 

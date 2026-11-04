@@ -3,7 +3,7 @@ import PlayerRoster from '../components/PlayerRoster';
 
 // Your own games — students live in the Coaches tab instead.
 export default function GamesView({
-  onAnalyze, onGameStudio, onScan, routePlayer, onPlayerChange,
+  onAnalyze, onGameStudio, onGameReview, onScan, routePlayer, onPlayerChange,
 }) {
   return (
     <PlayerRoster
@@ -15,6 +15,7 @@ export default function GamesView({
       emptyLabel='No sections yet. Add one to get started — e.g. "My games".'
       onAnalyze={onAnalyze}
       onGameStudio={onGameStudio}
+      onGameReview={onGameReview}
       onScan={onScan}
       routePlayer={routePlayer}
       onPlayerChange={onPlayerChange}

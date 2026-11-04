@@ -49,6 +49,7 @@ import { parseMarks, withText, withMarks } from '../src/lib/marks.js';
 import { canonicalStartFen, fen4 } from '../src/lib/startPos.js';
 import { sendToChapter } from '../src/lib/chapterTransfer.js';
 import { kidArtwork, kidArtForStudents, isKidArt } from '../src/lib/kidArtwork.js';
+import { cleanGameReview } from '../src/lib/analysisDoc.js';
 
 // ---------------------------------------------------------------------------
 // The app's own reducer and emptyState, straight from src/store.jsx.
@@ -71,9 +72,9 @@ const { reducer, emptyState } = (() => {
     'return { reducer, emptyState };',
   ].join('\n');
   // eslint-disable-next-line no-new-func
-  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', 'canonicalStartFen', 'fen4', 'sendToChapter', 'kidArtwork', 'kidArtForStudents', 'isKidArt', body)(
+  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', 'canonicalStartFen', 'fen4', 'sendToChapter', 'kidArtwork', 'kidArtForStudents', 'isKidArt', 'cleanGameReview', body)(
     DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, sendLines, makeSub, leaveFolder, withFolderMates, arrangeTop, arrangeFolder, gatherIntoFolder, parseMarks, withText, withMarks, canonicalStartFen, fen4,
-    sendToChapter, kidArtwork, kidArtForStudents, isKidArt,
+    sendToChapter, kidArtwork, kidArtForStudents, isKidArt, cleanGameReview,
   );
 })();
 

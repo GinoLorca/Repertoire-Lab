@@ -10,7 +10,8 @@
     "deploy:rules": "npx -y firebase-tools deploy --only firestore:rules,storage",
     "build": "npm run lint && vite build && node scripts/precache.mjs",
     "preview": "vite preview",
-    "zip": "npm run build && node scripts/zip-site.mjs"
+    "zip": "npm run build && node scripts/zip-site.mjs",
+    "sync:arcade": "node scripts/sync-arcade.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.116.0",

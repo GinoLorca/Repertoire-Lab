@@ -57,7 +57,7 @@ import {
   anchorToGame, gameLineOf, withNotesOnNodes, findNode,
 } from '../lib/moveTree';
 import {
-  gameFieldsFromDoc, diffGameFields, serializeDoc, docBytes, docIsEmpty,
+  gameFieldsFromDoc, diffGameFields, serializeDoc, parseDoc, docBytes, docIsEmpty,
   pruneAnnotations, MAX_NOTE, MAX_REVIEW_BYTES,
 } from '../lib/analysisDoc';
 import { seedFor } from '../lib/studioSeed';
@@ -1038,6 +1038,9 @@ export default function AnalysisView({
     const doc = buildDoc();
     const { playerId, gameId } = seed;
     if (seed.reviewMode) {
+      // What Game Review wrote in the same review stays in it.
+      const gameReview = parseDoc(liveGameRef.current?.review?.body ?? null)?.gameReview;
+      if (gameReview) doc.gameReview = gameReview;
       const body = serializeDoc(doc);
       if (docBytes(body) > MAX_REVIEW_BYTES) {
         if (aliveRef.current) setSaveState('This review is too big to send — take out some drawings or long notes.');
@@ -1881,11 +1884,13 @@ export default function AnalysisView({
     ['compare', 'Compare lines', 'Put two similar lines side by side and see exactly where they part'],
     ['editor', 'Board Editor'],
     ['studio', 'Studio', 'Annotate games and lessons for students — a board of its own, kept as you left it'],
+    // Chess Arcade's game review, on a screen of its own (views/GameReviewView).
+    ['review', 'Game Review', 'Chess Arcade’s game review — badges, CLAMP, tactics and notes, saved onto the game'],
   ];
   const screenTab = coachMode ? 'studio' : mode;
   const pickTab = (tab) => {
     if (tab === screenTab) return;
-    if (coachMode || tab === 'studio') onBoard?.(tab); // over to the other board
+    if (coachMode || tab === 'studio' || tab === 'review') onBoard?.(tab); // over to the other board
     else setMode(tab);
   };
   const modeTabs = (
@@ -3189,7 +3194,7 @@ export default function AnalysisView({
           onClick={runReview}
         >
           <TargetIcon size={15} />
-          {reviewBusy ? `Reviewing… ${reviewProgress?.done ?? 0}/${reviewProgress?.total ?? 0}` : 'Game Review'}
+          {reviewBusy ? `Reviewing… ${reviewProgress?.done ?? 0}/${reviewProgress?.total ?? 0}` : 'Analyze Game'}
         </button>
         <button
           title={boardIsFresh
@@ -3357,7 +3362,7 @@ export default function AnalysisView({
       {reviewResult && (
         <div className="review-summary">
           <TargetIcon size={14} />
-          <strong>Game Review</strong>
+          <strong>Analyze Game</strong>
           {reviewResult.accuracy.white != null && (
             <span className="rs-side"><span className="rs-dot white" /> White {reviewResult.accuracy.white.toFixed(1)}%</span>
           )}

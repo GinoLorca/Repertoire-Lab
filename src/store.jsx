@@ -12,6 +12,7 @@ import {
 import { arrangeTop, arrangeFolder, gatherIntoFolder } from './lib/chapterOrder';
 import { sendToChapter } from './lib/chapterTransfer';
 import { kidArtwork, kidArtForStudents, isKidArt } from './lib/kidArtwork';
+import { cleanGameReview } from './lib/analysisDoc';
 import { parseMarks, withText, withMarks } from './lib/marks';
 import { canonicalStartFen, fen4 } from './lib/startPos';
 import {
@@ -245,7 +246,7 @@ const GAME_EDITS = new Set([
   'setGameBadges', 'setGameComments', 'setGameAnnotations', 'setGameTree',
   'setGameFlags', 'setGameTags', 'setGamePhoto', 'moveGameToPlayer',
   'addGame', 'updateGame', 'renameGame', 'undoCoachChanges',
-  'mergeGameAnalysis', 'setGameReview',
+  'mergeGameAnalysis', 'setGameReview', 'setGameReviewRecords',
 ]);
 
 // Games carry `updatedAt`: when anyone last changed them, on any device. It's
@@ -990,6 +991,22 @@ function reduce(state, action) {
     // The whole result of a Game Review in one go, rather than one dispatch
     // per move — badges keyed by ply, replacing whatever badges (hand-placed
     // or from an earlier review) were there before.
+    // What Game Review (Chess Arcade's review — lib/gameReviewBridge) wrote
+    // on a game: its Notes card and the analysis on its board, as Chess
+    // Arcade saved them, the moment it saved them.
+    case 'setGameReviewRecords':
+      return mapPlayer(state, action.playerId, (p) => ({
+        ...p,
+        games: p.games.map((g) => {
+          if (g.id !== action.gameId) return g;
+          const rec = cleanGameReview(action.records);
+          const was = g.gameReview ?? null;
+          if ((rec?.note ?? '') === (was?.note ?? '') && (rec?.an ?? '') === (was?.an ?? '')) return g;
+          const next = { ...g };
+          if (rec) next.gameReview = rec; else delete next.gameReview;
+          return next;
+        }),
+      }));
     case 'setGameBadges':
       return mapPlayer(state, action.playerId, (p) => ({
         ...p,
@@ -1176,8 +1193,13 @@ function reduce(state, action) {
         } : {}),
       };
     case 'addGame': {
+      // An id can come with it (Game Review saving a pasted game opens it
+      // straight after) — only a fresh one, never one already in use.
+      const wanted = typeof action.game.id === 'string' && /^[a-z0-9]{6,24}$/.test(action.game.id)
+        && !state.players.some((p) => p.games?.some((g) => g.id === action.game.id));
+      const review = cleanGameReview(action.game.gameReview);
       const game = {
-        id: uid(),
+        id: wanted ? action.game.id : uid(),
         name: action.game.name || 'Game',
         moves: action.game.moves,
         comments: action.game.comments ?? {},
@@ -1185,6 +1207,7 @@ function reduce(state, action) {
         date: action.game.date ?? Date.now(),
         // OTB details worth keeping with a digitised scoresheet.
         meta: action.game.meta ?? null,
+        ...(review ? { gameReview: review } : {}),
       };
       return mapPlayer(state, action.playerId, (p) => {
         // A game added to a student's card while that card is linked to

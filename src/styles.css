@@ -5415,3 +5415,34 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .dash-opp:has(.dash-namefix) { flex-wrap: wrap; row-gap: 2px; }
 .dash-namefix { flex-basis: 100%; font-size: 12.5px; color: var(--amber); }
 .dash-namefix button.link { color: var(--amber); font-size: 12.5px; padding: 0; }
+
+/* ---------- Game Review (views/GameReviewView) ----------
+   Chess Arcade's review in a frame, with what opens a game above it. */
+.game-review-view { display: flex; flex-direction: column; gap: 8px; }
+.gr-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.gr-pick { max-width: 320px; min-width: 0; flex: 0 1 auto; }
+.gr-title {
+  flex: 1 1 200px; min-width: 0; font-weight: 600; font-size: 14px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gr-paste { margin-top: 0; }
+.gr-error { margin: 0; }
+.gr-empty { margin: 6px 0; max-width: 640px; }
+.gr-list { background: var(--card); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.gr-list-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gr-list-head input { flex: 1 1 200px; min-width: 0; }
+.gr-list-rows { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
+.gr-list-row {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+  background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px;
+}
+.gr-frame-wrap { position: relative; }
+.gr-frame { display: block; width: 100%; border: 0; border-radius: 12px; background: #1a3423; }
+.gr-loading {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: #f3ead2; font-weight: 600; pointer-events: none;
+}
+@media (max-width: 600px) {
+  .gr-pick { max-width: 100%; flex: 1 1 100%; }
+  .gr-frame { border-radius: 0; }
+}

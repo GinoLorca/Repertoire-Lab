@@ -106,7 +106,7 @@ function useUscf(id) {
 }
 
 export default function PlayerDashboard({
-  player, index, onOpenGame, onAnalyzeGame, onStudioGame, onEditGame, onFixOpponent, onAddGame, onEditProfile,
+  player, index, onOpenGame, onAnalyzeGame, onReviewGame, onStudioGame, onEditGame, onFixOpponent, onAddGame, onEditProfile,
   onRatings,
 }) {
   const id = String(player.profile?.uscf ?? '').replace(/\D/g, '');
@@ -133,6 +133,7 @@ export default function PlayerDashboard({
       index={index}
       onOpenGame={onOpenGame}
       onAnalyzeGame={onAnalyzeGame}
+      onReviewGame={onReviewGame}
       onStudioGame={onStudioGame}
       onEditGame={onEditGame}
       onFixOpponent={onFixOpponent}
@@ -143,7 +144,7 @@ export default function PlayerDashboard({
 }
 
 function Dashboard({
-  id, player, index, onOpenGame, onAnalyzeGame, onStudioGame, onEditGame, onFixOpponent, onAddGame, onRatings,
+  id, player, index, onOpenGame, onAnalyzeGame, onReviewGame, onStudioGame, onEditGame, onFixOpponent, onAddGame, onRatings,
 }) {
   const { state, dispatch } = useStore();
   const {
@@ -437,6 +438,7 @@ function Dashboard({
               onScout={scout}
               onOpenGame={onOpenGame}
               onAnalyzeGame={onAnalyzeGame}
+              onReviewGame={onReviewGame}
               onStudioGame={onStudioGame}
               onEditGame={onEditGame}
               onFixOpponent={onFixOpponent}
@@ -606,7 +608,7 @@ function Highlight({ title, games, empty }) {
 }
 
 function EventRow({
-  section, standing: st, match, gameById, spare, open, onToggle, onOpenGame, onAnalyzeGame, onStudioGame, onEditGame,
+  section, standing: st, match, gameById, spare, open, onToggle, onOpenGame, onAnalyzeGame, onReviewGame, onStudioGame, onEditGame,
   onFixOpponent, onAddGame,
   onConfirm, onRefuse, onUnlink, loading, failed, onRetry, onScout,
 }) {
@@ -689,6 +691,7 @@ function EventRow({
                       spare={spare}
                       onOpenGame={onOpenGame}
                       onAnalyzeGame={onAnalyzeGame}
+                      onReviewGame={onReviewGame}
                       onStudioGame={onStudioGame}
                       onEditGame={onEditGame}
                       onFixOpponent={onFixOpponent}
@@ -710,7 +713,7 @@ function EventRow({
 }
 
 function RoundRow({
-  section, round: r, myPre, m, gameById, spare, onOpenGame, onAnalyzeGame, onStudioGame, onEditGame, onFixOpponent,
+  section, round: r, myPre, m, gameById, spare, onOpenGame, onAnalyzeGame, onReviewGame, onStudioGame, onEditGame, onFixOpponent,
   onAddGame, onConfirm, onRefuse, onUnlink, onScout,
 }) {
   const key = roundKey(section.key, r.round);
@@ -771,6 +774,17 @@ function RoundRow({
                 title="Send this game to the analysis board — the engine, the explorer and your repertoire"
               >
                 <MonitorIcon size={12} /> Send to analysis
+              </button>
+            )}
+            {/* Chess Arcade's review: everything written there is saved onto
+                the game, for you and for the student. */}
+            {onReviewGame && game.moves?.length > 0 && (
+              <button
+                className="small"
+                onClick={() => onReviewGame(game.id)}
+                title="Review this game in Game Review — badges, CLAMP, tactics and notes, saved onto the game for you and your student"
+              >
+                <TargetIcon size={12} /> Send to Game Review
               </button>
             )}
             {/* The Games tab's "Send to studio": every annotation tool, and

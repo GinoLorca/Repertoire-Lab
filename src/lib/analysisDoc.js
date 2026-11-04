@@ -10,9 +10,12 @@
 //                                   note?, badge? }. root.note is the summary.
 //     annotations: { fen: { arrows: [[from, to, colour]], squares: { sq: colour } } },
 //     variationHighlights: { branchRootId: 'green' | 'blue' | 'yellow' },
-//     moments?: [moment] }          Before & After moments (lib/moments), only
+//     moments?: [moment],           Before & After moments (lib/moments), only
 //                                   when there are any — so a document without
 //                                   reads, and hashes, as it always did
+//     gameReview?: { note, an, at } } what the coach wrote in Game Review
+//                                   (lib/gameReviewBridge), the same way: only
+//                                   when there is some
 //
 // Everything is pure, so tests/analysisDoc.test.mjs covers it.
 import { Chess } from 'chess.js';
@@ -46,6 +49,19 @@ const FEN_KEY = /^[1-8pnbrqkPNBRQK/]{15,90} [wb] (?:[KQkq]{1,4}|-) (?:[a-h][36]|
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const text = (v) => (typeof v === 'string' ? v.slice(0, MAX_NOTE) : '');
+
+// Game Review's two texts (Chess Arcade's note limit, lib/gameReviewBridge's
+// MAX_TEXT) and when they were written; null when there's nothing.
+const GAME_REVIEW_MAX = 10000;
+export function cleanGameReview(raw) {
+  if (!isObj(raw)) return null;
+  const note = typeof raw.note === 'string' ? raw.note.slice(0, GAME_REVIEW_MAX) : '';
+  const an = typeof raw.an === 'string' ? raw.an.slice(0, GAME_REVIEW_MAX) : '';
+  if (!note.trim() && !an.trim()) return null;
+  const out = { note, an };
+  if (typeof raw.at === 'number' && Number.isFinite(raw.at) && raw.at > 0) out.at = Math.round(raw.at);
+  return out;
+}
 
 export const serializeDoc = (doc) => stableStringify(doc);
 export const docBytes = (json) => new TextEncoder().encode(json).length;
@@ -157,7 +173,8 @@ export function docIsEmpty(doc) {
     && Object.keys(pruneAnnotations(doc.annotations)).length === 0
     && !hasVariations(doc.tree) && mainLineFrom(doc.tree).length <= doc.moves.length
     && Object.keys(doc.variationHighlights ?? {}).length === 0
-    && !(doc.moments?.length > 0);
+    && !(doc.moments?.length > 0)
+    && !cleanGameReview(doc.gameReview);
 }
 
 function cleanMarks(m) {
@@ -246,6 +263,7 @@ export function sanitizeDoc(raw) {
     }
   }
   const moments = cleanMoments(raw.moments, tree);
+  const gameReview = cleanGameReview(raw.gameReview);
   return {
     v: DOC_VERSION,
     moves,
@@ -254,6 +272,7 @@ export function sanitizeDoc(raw) {
     annotations,
     variationHighlights,
     ...(moments.length ? { moments } : {}),
+    ...(gameReview ? { gameReview } : {}),
   };
 }
 

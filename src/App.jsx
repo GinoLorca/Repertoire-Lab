@@ -14,6 +14,7 @@ import ImportView from './views/ImportView';
 import PracticeView from './views/PracticeView';
 import GroupsView from './views/GroupsView';
 import AnalysisView from './views/AnalysisView';
+import GameReviewView from './views/GameReviewView';
 import GamesView from './views/GamesView';
 import VerifyView from './views/VerifyView';
 import SearchPanel from './views/SearchPanel';
@@ -145,6 +146,11 @@ function AppInner() {
   const [studioLine, setStudioLine] = useState(() => boards.studioLine ?? null);
   const [studioLab, setStudioLab] = useState(() => labById(boards.studioLabId));
   const inStudio = view === 'analysis' && sub === 'studio';
+  // Game Review: the analysis screen's fifth tab (views/GameReviewView) and
+  // the game open on it — { playerId, gameId } for a game in Games or Coaches
+  // Corner, or { temp } for a pasted one not saved yet.
+  const [reviewOn, setReviewOn] = useState(() => boards.reviewOn ?? null);
+  const inReview = view === 'analysis' && sub === 'review';
   // "Copied" for a second after the link button is used.
   const [linkCopied, setLinkCopied] = useState(false);
 
@@ -359,9 +365,9 @@ function AppInner() {
     libraryScope, collectionsScope, editorScope]);
   useEffect(() => {
     saveSessionPart('boards', {
-      analysisLine, analysisLabId: analysisLab?.id ?? null, studioLine, studioLabId: studioLab?.id ?? null,
+      analysisLine, analysisLabId: analysisLab?.id ?? null, studioLine, studioLabId: studioLab?.id ?? null, reviewOn,
     });
-  }, [analysisLine, analysisLab, studioLine, studioLab]);
+  }, [analysisLine, analysisLab, studioLine, studioLab, reviewOn]);
   useEffect(() => {
     const keep = () => saveSessionPart('nav', navSnapshotRef.current());
     const onVisibility = () => { if (document.hidden) keep(); };
@@ -409,6 +415,7 @@ function AppInner() {
     analysisLab,
     studioLine,
     studioLab,
+    reviewOn,
     editorScope,
     scrollY: window.scrollY,
     chapterId: view === 'chapter' ? chapterNav?.chapterId : null,
@@ -448,6 +455,7 @@ function AppInner() {
     setStudioLine(prev.studioLine ?? null);
     setStudioLab(prev.studioLab ?? null);
     setEditorScope(prev.editorScope ?? null);
+    setReviewOn(prev.reviewOn ?? null);
     setView(prev.view);
     pendingScroll.current = prev.scrollY;
     // Coming back to the library, make sure the chapter you were in is visible
@@ -610,6 +618,17 @@ function AppInner() {
   // Same line, opened straight into Studio's Annotate tab — "Send to
   // studio" on a saved game, next to the ordinary "Send to analysis board".
   const analyzeInStudio = (line) => analyze(line, { studio: true });
+
+  // "Send to Game Review" on a saved game: Chess Arcade's review of it, on
+  // the analysis screen's Game Review tab.
+  const sendToReview = (line) => {
+    if (!line?.gameId || !line?.playerId) return;
+    go(() => {
+      setReviewOn({ playerId: line.playerId, gameId: line.gameId });
+      setSub('review');
+      setView('analysis');
+    });
+  };
 
   // "Continue" on a review in progress: the game back in Studio, at the move
   // it was left on.
@@ -935,6 +954,7 @@ function AppInner() {
           <GamesView
             onAnalyze={analyze}
             onGameStudio={analyzeInStudio}
+            onGameReview={sendToReview}
             onScan={scanPhoto}
             routePlayer={openPlayerNav}
             onPlayerChange={(p) => setPlayerNav(withView(p, view))}
@@ -944,6 +964,7 @@ function AppInner() {
           <CoachesView
             onAnalyze={analyze}
             onGameStudio={analyzeInStudio}
+            onGameReview={sendToReview}
             onScan={scanPhoto}
             routePlayer={openPlayerNav}
             onPlayerChange={(p) => setPlayerNav(withView(p, view))}
@@ -965,7 +986,14 @@ function AppInner() {
             onAnalyze={analyze}
           />
         )}
-        {view === 'analysis' && (
+        {inReview && (
+          <GameReviewView
+            open={reviewOn}
+            onOpen={setReviewOn}
+            onBoard={(m) => setSub(m === 'engine' ? null : m)}
+          />
+        )}
+        {view === 'analysis' && !inReview && (
           <AnalysisView
             // One board per saved game: a different game — Back to an earlier
             // one, say — opens fresh from the store instead of inheriting this

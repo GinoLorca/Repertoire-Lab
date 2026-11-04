@@ -113,6 +113,22 @@ self.addEventListener('fetch', (event) => {
   // Opening the app: answer from cache first and check for a new build in the
   // background. Waiting on the network here is what made it hang with no
   // signal — a phone with one bar is slower to fail than to succeed.
+  // Chess Arcade's Game Review (public/arcade, see scripts/sync-arcade.mjs) is
+  // a page of its own that the Game Review tab loads in a frame — a
+  // navigation, but not the app's: answered with itself, never index.html.
+  // Its name changes with every copy, so the cache can keep it.
+  if (url.pathname.startsWith('/arcade/')) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE);
+      const hit = await cache.match(url.pathname);
+      if (hit) return hit;
+      const res = await fetch(url.pathname);
+      if (res.ok) cache.put(url.pathname, res.clone());
+      return res;
+    })());
+    return;
+  }
+
   if (event.request.mode === 'navigate') {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE);

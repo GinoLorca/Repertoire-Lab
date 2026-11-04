@@ -14,7 +14,9 @@ import { fileURLToPath } from 'node:url';
 // fileURLToPath, not .pathname: a project path with a space in it arrives
 // percent-encoded otherwise.
 const dist = fileURLToPath(new URL('../dist/', import.meta.url));
-const SKIP_DIRS = new Set(['stockfish', 'tesseract', 'netlify']);
+// Chess Arcade's Game Review (public/arcade) is several megabytes and only one
+// tab needs it — cached the first time it's opened, like the engine.
+const SKIP_DIRS = new Set(['stockfish', 'tesseract', 'netlify', 'arcade']);
 const SKIP_FILES = new Set(['sw.js', 'netlify.toml']);
 // Firebase is only needed once someone signs in, which needs the network
 // anyway. Pinning it would add most of a megabyte to every install for a

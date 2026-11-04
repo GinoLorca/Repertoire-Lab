@@ -193,7 +193,7 @@ function reviewActionFor(game, player, players) {
 }
 
 function GameRow({
-  game, playerId, category, index, state, onAnalyze, onGameStudio, onView, onEdit, onSetCategory, onSetPhoto,
+  game, playerId, category, index, state, onAnalyze, onGameStudio, onGameReview, onView, onEdit, onSetCategory, onSetPhoto,
   onDelete, onScan, onEditTags, onTagClick, linkStatus, partnerName, onLinkAction, review,
 }) {
   const m = game.meta ?? {};
@@ -369,6 +369,17 @@ function GameRow({
                 <FlaskIcon size={14} /> Send to studio
               </button>
             )}
+            {/* Chess Arcade's review of it — what's written there is saved
+                onto this game, and reaches the student with it. */}
+            {onGameReview && game.moves?.length > 0 && (
+              <button
+                className="learn-btn ghost"
+                title="Review this game in Game Review — badges, CLAMP, tactics and notes, saved onto the game for you and your student"
+                onClick={onGameReview}
+              >
+                <TargetIcon size={14} /> Send to Game Review
+              </button>
+            )}
             <button
               className="learn-btn primary"
               title="Open this game on the analysis board with Stockfish and the explorer"
@@ -386,7 +397,7 @@ function GameRow({
 }
 
 function PlayerPage({
-  player, rosterTitle, onBack, onAnalyze, onGameStudio, onScan, onEditProfile, onOpenLibrary, onOpenCollections,
+  player, rosterTitle, onBack, onAnalyze, onGameStudio, onGameReview, onScan, onEditProfile, onOpenLibrary, onOpenCollections,
   onOpenLessons, initialTab = null, onTabChange,
 }) {
   const { state, dispatch } = useStore();
@@ -695,6 +706,11 @@ function PlayerPage({
               type: 'updateGame', playerId: player.id, gameId, game: { meta, name: `${white} vs ${black}` },
             });
           }}
+          // …its "Send to Game Review"…
+          onReviewGame={onGameReview && ((gameId) => {
+            const game = player.games.find((g) => g.id === gameId);
+            if (game?.moves?.length) onGameReview(lineFor(game));
+          })}
           // …and its "Send to studio".
           onStudioGame={onGameStudio && ((gameId) => {
             const game = player.games.find((g) => g.id === gameId);
@@ -901,6 +917,7 @@ function PlayerPage({
             onView={() => setViewingGameId(game.id)}
             onAnalyze={() => onAnalyze(lineFor(game, { subtitle: category.label }))}
             onGameStudio={onGameStudio && (() => onGameStudio(lineFor(game, { subtitle: category.label })))}
+            onGameReview={onGameReview && (() => onGameReview(lineFor(game)))}
             onSetCategory={(categoryId) => dispatch({
               type: 'setGameCategory', playerId: player.id, gameId: game.id, categoryId,
             })}
@@ -1041,7 +1058,7 @@ function takePendingOpen(kind) {
 }
 
 export default function PlayerRoster({
-  kind, title, subtitle, addLabel, emptyLabel, onAnalyze, onGameStudio, onScan, onOpenLibrary, onOpenCollections,
+  kind, title, subtitle, addLabel, emptyLabel, onAnalyze, onGameStudio, onGameReview, onScan, onOpenLibrary, onOpenCollections,
   onOpenLessons, onOpenStudio, onContinueReview, routePlayer = null, onPlayerChange,
 }) {
   const { state, dispatch } = useStore();
@@ -1138,6 +1155,7 @@ export default function PlayerRoster({
           onBack={() => { setOpenPlayerId(null); setTab(null); }}
           onAnalyze={onAnalyze}
           onGameStudio={onGameStudio}
+          onGameReview={onGameReview}
           onScan={onScan}
           onEditProfile={() => setEditingPlayer(openPlayer)}
           onOpenLibrary={onOpenLibrary}

@@ -35,6 +35,10 @@ import { hashOf } from './shape';
 import { BADGE_BY_ID } from '../badges';
 import { defaultMonsterId } from '../monsters';
 
+// Chess Arcade's own limit on one note — lib/gameReviewBridge's MAX_TEXT
+// (not imported: that file reads review documents, which import this one).
+const GAME_REVIEW_MAX = 10000;
+
 // ---------------------------------------------------------------------------
 // What's shared and what isn't
 // ---------------------------------------------------------------------------
@@ -47,7 +51,10 @@ export const SHARED_META = [
 ];
 // Keyed maps travel one key at a time — a comment on move 14 is its own
 // field — so two people annotating different moves never collide.
-export const SHARED_MAPS = ['comments', 'badges', 'annotations'];
+// gameReview is what Game Review (Chess Arcade's review, lib/gameReviewBridge)
+// wrote on the game: its Notes card (note), the analysis on its board (an)
+// and when (at) — the note and the analysis each their own field.
+export const SHARED_MAPS = ['comments', 'badges', 'annotations', 'gameReview'];
 
 // Never sent, and never overwritten by the other side: each person's own
 // notes, tags, filing and scoresheet photo stay theirs. Listed for the
@@ -70,7 +77,7 @@ export const bytesOf = (x) => new TextEncoder().encode(JSON.stringify(x, (k, v) 
 // Room left in one section document (1 MiB), with a margin.
 export const SECTION_BYTES = 900000;
 // The analysis on a game, as opposed to the game itself.
-const ANALYSIS = new Set(['comments', 'badges', 'annotations', 'tree']);
+const ANALYSIS = new Set(['comments', 'badges', 'annotations', 'tree', 'gameReview']);
 export const CARD_BUDGET = 700000;
 
 // ---------------------------------------------------------------------------
@@ -235,7 +242,7 @@ export function nextRev(now, sentRev = 0, studentRev = 0) {
 // Patches on the wire
 // ---------------------------------------------------------------------------
 
-const PATH_RE = /^(name|date|moves|tree|meta:[a-zA-Z]{1,20}|comments:(?:-1|\d{1,4})|badges:\d{1,4}|annotations:[^\u0000]{1,120})$/;
+const PATH_RE = /^(name|date|moves|tree|meta:[a-zA-Z]{1,20}|comments:(?:-1|\d{1,4})|badges:\d{1,4}|annotations:[^\u0000]{1,120}|gameReview:(?:note|an|at))$/;
 const POISON = new Set(['__proto__', 'constructor', 'prototype']);
 export const MAX_PATCH = 900000;
 
@@ -258,6 +265,9 @@ function validValue(p, v) {
     case 'comments': return typeof v === 'string' && v.length <= 5000;
     case 'badges': return typeof v === 'string' && Boolean(BADGE_BY_ID[v]);
     case 'annotations': return typeof v === 'object' && stableStringify(v).length <= 20000;
+    case 'gameReview': return key === 'at'
+      ? typeof v === 'number' && Number.isFinite(v)
+      : typeof v === 'string' && v.length <= GAME_REVIEW_MAX;
     case 'tree': return typeof v === 'object' && !Array.isArray(v)
       && (v.moments == null || (Array.isArray(v.moments) && v.moments.length <= 50));
     case 'meta':
