@@ -50769,10 +50769,26 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     try{ parentWin = window.parent.location.origin===location.origin ? window.parent : null; }catch(e){ parentWin = null; }
     if(!parentWin) return;
     document.documentElement.classList.add('rl-embed');
+    // Hidden here: Chess Arcade's own ways around Chess Arcade, and the Settings that only
+    // matter there — its accounts (Lichess, chess.com, Repertoire Lab, Spotify), its puzzles,
+    // notes sync and Game History's opening checks, and its drills' titles and game intro. What
+    // stays is what the review looks and sounds like: theme, pieces, squares, arrows, line signs,
+    // background, the board's cards, sounds and the tactic sound.
+    const HIDE = ['#home-fab', '#friends-tab', '#view-play-history .back-link', '#hv-groups',
+      '#settings-overlay .field:has(#glass-row)', '#settings-overlay .field:has(#intro-row)', '#oj-field',
+      '#settings-overlay .field:has(#lichess-token-input)', '#gn-field', '#pz-sync-field', '#cc-field', '#rl-field',
+      '#settings-overlay .field:has(#spotify-client-id-input)'];
     const css = document.createElement('style');
-    css.textContent = 'html.rl-embed #home-fab, html.rl-embed #friends-tab, html.rl-embed #view-play-history .back-link,'
-      + ' html.rl-embed #hv-groups { display:none !important; }';
+    css.textContent = HIDE.map((s)=> 'html.rl-embed '+s).join(', ')+' { display:none !important; }';
     document.head.appendChild(css);
+    // The Notes card's line under the note: Repertoire Lab keeps the note (on the game, synced),
+    // so never "Connect Lichess to keep them on all your devices". A note this browser couldn't
+    // save still says so, as Chess Arcade words it.
+    const statusOf = gnStatusText;
+    gnStatusText = function(gid){
+      if(gnStore==='blocked' || gnStore==='full') return statusOf.apply(this, arguments);
+      return gnNoteText(gid) ? 'Saved onto this game in Repertoire Lab.' : '';
+    };
     let quiet = 0, changeTimer = 0;
     const tell = (type, extra)=>{ try{ parentWin.postMessage(Object.assign({ source:'rl-review', type }, extra || {}), location.origin); }catch(e){} };
     // Every change to a note or a game's analysis is saved through gnPersist: after each one, the frame says so.
