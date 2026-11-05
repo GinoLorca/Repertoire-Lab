@@ -36,6 +36,7 @@ const TABS = [
 ];
 
 const LIST_MAX = 300;
+const FULL_KEY = 'rl.gameReview.full';
 
 function findGame(players, playerId, gameId) {
   const player = players.find((p) => p.id === playerId);
@@ -62,6 +63,15 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Full screen: the review over the whole window, the app's top bar too —
+  // exactly the room Chess Arcade has on its own. Remembered on this device.
+  const [full, setFull] = useState(() => {
+    try { return localStorage.getItem(FULL_KEY) === '1'; } catch { return false; }
+  });
+  const setFullKept = (on) => {
+    setFull(on);
+    try { localStorage.setItem(FULL_KEY, on ? '1' : '0'); } catch { /* not kept: fine */ }
+  };
 
   // What's open: one of the games in your sections, or a pasted one.
   const saved = open?.gameId ? findGame(state.players, open.playerId, open.gameId) : null;
@@ -73,6 +83,13 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
     [saved?.game, saved?.player?.kind, temp?.records], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const side = saved ? (saved.game.meta?.color || null) : sideFromNames(temp?.game?.meta, state.players);
+  const fullOn = full && Boolean(caId);
+  useEffect(() => {
+    if (!fullOn) return undefined;
+    const was = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = was; };
+  }, [fullOn]);
 
   // The latest of all that, for the frame's messages and for leaving.
   const live = useRef({});
@@ -154,6 +171,10 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
     openedRef.current = caId;
     a.load(caId, records ?? {});
     a.open(arcadeGame(source, caId, { side }));
+    if (roomy() && !full && wrapRef.current) {
+      const y = wrapRef.current.getBoundingClientRect().top + window.scrollY - barHeight() - 4;
+      window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    }
   }, [ready, caId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The game's review changed somewhere else — another device, the student —
@@ -164,12 +185,20 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
     if (!sameRecords(cleanRecords(a.records(caId)), records)) a.load(caId, records ?? {});
   }, [records]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The frame takes the rest of the screen.
+  // The frame takes the rest of the screen. On a desktop, all of it under the
+  // app's top bar — the room Chess Arcade has on its own, which it sizes its
+  // board to — with the heading and import row above it scrolled out of the
+  // way when a game opens (scroll up for them). A phone or an iPad keeps the
+  // frame in what's left under them.
+  const roomy = () => typeof window.matchMedia === 'function'
+    && window.matchMedia('(min-width: 1024px) and (pointer: fine)').matches;
+  const barHeight = () => document.querySelector('.topbar')?.getBoundingClientRect().height ?? 0;
   useLayoutEffect(() => {
     const fit = () => {
       const top = wrapRef.current?.getBoundingClientRect().top ?? 0;
       const vh = window.visualViewport?.height ?? window.innerHeight;
-      setHeight(Math.max(520, Math.round(vh - Math.max(0, top) - 12)));
+      const room = roomy() ? vh - barHeight() - 8 : vh - Math.max(0, top) - 12;
+      setHeight(Math.max(520, Math.round(room)));
     };
     fit();
     window.addEventListener('resize', fit);
@@ -265,9 +294,7 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
             </button>
           ))}
         </div>
-      </div>
-
-      <div className="gr-bar">
+        <div className="gr-bar">
         <button className={`small${pasteOpen ? ' primary' : ''}`} onClick={() => setPasteOpen((o) => !o)}>
           <UploadIcon size={14} /> Paste PGN
         </button>
@@ -314,6 +341,15 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
             {temp && <span className="muted-note"> · not saved</span>}
           </span>
         )}
+        {caId && (
+          <button
+            className="small"
+            title="The review over the whole window, like Chess Arcade on its own"
+            onClick={() => setFullKept(true)}
+          >
+            ⤢ Full screen
+          </button>
+        )}
         {temp && (
           <button
             className="small primary"
@@ -323,6 +359,7 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
             <DownloadIcon size={14} /> Save game
           </button>
         )}
+        </div>
       </div>
 
       {pasteOpen && (
@@ -373,16 +410,25 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
         </p>
       )}
 
-      <div ref={wrapRef} className="gr-frame-wrap" style={{ display: caId ? 'block' : 'none' }}>
+      <div
+        ref={wrapRef}
+        className={`gr-frame-wrap${fullOn ? ' gr-full' : ''}`}
+        style={{ display: caId ? 'block' : 'none' }}
+      >
         <iframe
           ref={frameRef}
           className="gr-frame"
           title="Game Review"
           src={ARCADE_REVIEW_URL}
-          style={{ height }}
+          style={fullOn ? undefined : { height }}
           allow="clipboard-write"
         />
         {!ready && caId && <div className="gr-loading">Loading Game Review…</div>}
+        {fullOn && (
+          <button type="button" className="small gr-exit-full" onClick={() => setFullKept(false)}>
+            ✕ Exit full screen
+          </button>
+        )}
       </div>
 
       {saving && temp && (

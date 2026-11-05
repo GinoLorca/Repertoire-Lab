@@ -5419,7 +5419,11 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 /* ---------- Game Review (views/GameReviewView) ----------
    Chess Arcade's review in a frame, with what opens a game above it. */
 .game-review-view { display: flex; flex-direction: column; gap: 8px; }
-.gr-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* One row: the heading, the tabs and what opens a game — wrapping under them
+   when there isn't room. */
+.game-review-view .page-head { margin-bottom: 0; gap: 8px 14px; }
+.game-review-view .page-head h1 { flex: 0 0 auto; min-width: 0; }
+.gr-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex: 1 1 420px; min-width: 0; }
 .gr-pick { max-width: 320px; min-width: 0; flex: 0 1 auto; }
 .gr-title {
   flex: 1 1 200px; min-width: 0; font-weight: 600; font-size: 14px;
@@ -5437,6 +5441,15 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
   background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px;
 }
 .gr-frame-wrap { position: relative; }
+/* Full screen: over the whole window, the top bar too. The way out sits where
+   Chess Arcade's own home button would be (hidden in Repertoire Lab). */
+.gr-frame-wrap.gr-full { position: fixed; inset: 0; z-index: 150; background: #1a3423; }
+.gr-frame-wrap.gr-full .gr-frame { height: 100%; border-radius: 0; }
+.gr-exit-full {
+  position: absolute; z-index: 1;
+  top: calc(12px + var(--safe-top)); left: calc(12px + var(--safe-left));
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
 .gr-frame { display: block; width: 100%; border: 0; border-radius: 12px; background: #1a3423; }
 .gr-loading {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
