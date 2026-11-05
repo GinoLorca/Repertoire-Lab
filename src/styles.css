@@ -5480,3 +5480,22 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
   .gr-pick { max-width: 100%; flex: 1 1 100%; }
   .gr-frame { border-radius: 0; }
 }
+
+/* ---------- A player's CLAMP and Tactics (components/PlayerInsights) ---------- */
+.pi-wrap { margin-top: 12px; }
+.pi-empty { margin: 8px 0; max-width: 680px; }
+.pi-frame-box { position: relative; }
+.pi-frame { display: block; width: 100%; border: 0; border-radius: 12px; background: #1a3423; }
+/* The five CLAMP colours, as Chess Arcade draws its letters. */
+.pt-clamp { display: inline-flex; gap: 2px; margin-right: 2px; vertical-align: middle; }
+.pt-clamp i { width: 7px; height: 7px; border-radius: 50%; display: block; }
+.pt-clamp i:nth-child(1) { background: #d83a34; }
+.pt-clamp i:nth-child(2) { background: #c8641a; }
+.pt-clamp i:nth-child(3) { background: #2f6fd0; }
+.pt-clamp i:nth-child(4) { background: #7c4fd6; }
+.pt-clamp i:nth-child(5) { background: #21894f; }
+/* Four tabs on a phone: one line, scrolling sideways if they must. */
+@media (max-width: 600px) {
+  .player-tabs { overflow-x: auto; flex-wrap: nowrap; max-width: 100%; box-sizing: border-box; }
+  .player-tabs button { white-space: nowrap; flex: 0 0 auto; padding: 7px 10px; }
+}

@@ -7288,6 +7288,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .tx-two button{ min-height:36px; padding:6px 8px; border:0; background:none; color:var(--ink); font:inherit; font-size:12.5px; line-height:1.25; cursor:pointer; }
   .tx-two button + button{ border-left:1px solid var(--line); }
   .tx-two button[aria-checked="true"]{ background:var(--ink); color:var(--surface); font-weight:700; }
+  /* four choices (2026-11-05): this side's two on the first row, the other side's two under them */
+  .tx-two.is-four button:nth-child(3){ border-left:0; }
+  .tx-two.is-four button:nth-child(n+3){ border-top:1px solid var(--line); }
+  .tx-two button:disabled{ color:var(--ink-soft); opacity:.55; cursor:not-allowed; }
+  .tx-flip-note{ margin:6px 0 0; font-size:12px; line-height:1.4; color:var(--ink-soft); }
   .tx-err{ margin:0; font-size:12.5px; line-height:1.4; color:color-mix(in srgb, var(--bad) 70%, var(--ink)); }
   .tx-err[hidden]{ display:none; }
   .tx-acts{ flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:8px 12px 10px; border-top:1px solid var(--line); background:var(--surface); }
@@ -39674,7 +39679,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     el.id = 'tx-box';
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-label', 'Tactic after '+hvNodeLabel(node));
-    HV_TAC_BOX = { node, c, was, el, pick:false, outSet:!!was, sqSet:!!was, clampOn:false, q:'', more:false, err:'', back:back || null, noteOpen:false, promo:-1, order:hvTacOrder(), temp:null, band:'' };
+    HV_TAC_BOX = { node, c, was, el, pick:false, outSet:!!was, sqSet:!!was, clampOn:false, q:'', more:false, err:'', back:back || null, noteOpen:false, promo:-1, order:hvTacOrder(), temp:null, band:'', flip:false };
     el.addEventListener('keydown', hvTacBoxKey);
     el.addEventListener('focusin', (e)=>{ if(e.target.closest && e.target.closest('.tx-chips[role="group"]')) hvTacRove(e.target); });
     el.addEventListener('click', hvTacBoxClick);
@@ -39895,20 +39900,33 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     gm.appendChild(document.createTextNode('Game: '));
     gm.appendChild(hvEl('b', '', next ? hvNodeLabel(next) : 'ended here'));
     const f3 = field('What happened', gm);
-    if(!next){ c.out = 'e'; f3.appendChild(hvEl('p', 'tx-over', 'Game over: the game ended after this move.')); }
+    if(!next){ c.out = 'e'; X.flip = false; f3.appendChild(hvEl('p', 'tx-over', 'Game over: the game ended after this move.')); }
     else {
-      const two = hvEl('div', 'tx-two');
+      // Four choices (2026-11-05, the user: "it's supposed to be from Black's perspective, so it has to be they played it
+      // or they missed it ... have all 4 options"): this side's chance, played or missed, and the other side's. The other
+      // side's is their tactic starting WITH this move (4. Bb5, setting up Bxc6 against the knight that holds e5): it is
+      // filed where the review keeps that side's chances, after the move before (3...Nc6, White to move), with this move
+      // first in its moves (hvTacFinal). Not on the game's first move (nothing before it), a chance over several turns, or
+      // when the move before already holds a tactic.
+      const two = hvEl('div', 'tx-two is-four');
       two.setAttribute('role', 'radiogroup');
       two.setAttribute('aria-label', 'What happened');
-      (mine && me ? ['You played it', 'You missed it'] : me ? ['They played it', 'They missed it'] : [hvTacSideName(c.side)+' played it', hvTacSideName(c.side)+' missed it']).forEach((t, i)=>{
-        const v = i ? 'm' : 'p', b = btn('', t, 'out|'+v);
-        b.dataset.act = 'out'; b.dataset.v = v;
+      const other = c.side==='w' ? 'b' : 'w', flipWhy = hvTacFlipWhy(X);
+      const say = (side, verb)=> me ? (side===me ? 'You ' : 'They ')+verb+' it' : hvTacSideName(side)+' '+verb+' it';
+      [[c.side, 'p', false], [c.side, 'm', false], [other, 'p', true], [other, 'm', true]].forEach(([side, v, flip], i)=>{
+        const on = c.out===v && !!X.flip===flip, b = btn('', say(side, v==='p' ? 'played' : 'missed'), 'out|'+v+(flip ? '|f' : ''));
+        b.dataset.act = 'out'; b.dataset.v = v; b.dataset.flip = flip ? '1' : '0';
         b.setAttribute('role', 'radio');
-        b.setAttribute('aria-checked', c.out===v ? 'true' : 'false');
-        b.tabIndex = c.out===v || (!c.out && !i) ? 0 : -1;
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+        b.tabIndex = on || (!c.out && !i) ? 0 : -1;
+        if(flip && flipWhy){ b.disabled = true; b.title = flipWhy; }
         two.appendChild(b);
       });
       f3.appendChild(two);
+      if(X.flip && !flipWhy){
+        const prev = S.main[node.ply - 2];
+        f3.appendChild(hvEl('p', 'tx-flip-note', 'Saved as '+hvTacSideName(other)+'\u2019s tactic starting with '+hvNodeLabel(node)+' \u2014 kept after '+hvNodeLabel(prev)+', '+hvTacSideName(other)+' to move.'));
+      } else if(flipWhy && X.flip){ X.flip = false; }
     }
     // 4. the pieces (preset from the moves; a click on the board adds or removes one)
     const f4 = field('Pieces', phone ? '' : (touch ? 'from the moves; tap a piece to add or remove' : 'from the moves; click a piece to add or remove'), phone ? 'is-row' : '');
@@ -40152,7 +40170,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     else if(a==='game'){ const n = hvTacGameNext(X.node, c); if(n){ c.arrows.push([n.uci.slice(0, 2), n.uci.slice(2, 4), n.uci.slice(4)]); hvTacMovesChanged(); hvSay('Added '+hvNodeLabel(n)); } }
     else if(a==='undo'){ c.arrows.pop(); hvTacMovesChanged(); hvSay('Last move taken off'); }
     else if(a==='promo'){ if(c.arrows[X.promo]) c.arrows[X.promo][2] = b.dataset.p; hvTacMovesChanged(); }
-    else if(a==='out'){ c.out = b.dataset.v; X.outSet = true; }
+    else if(a==='out'){ c.out = b.dataset.v; X.flip = b.dataset.flip==='1'; X.outSet = true; }
     else if(a==='unsq'){ const j = c.sq.indexOf(b.dataset.s); if(j >= 0) c.sq.splice(j, 1); X.sqSet = true; }
     else if(a==='pick') X.pick = !X.pick;
     else if(a==='icback') c.ic = '';
@@ -40192,13 +40210,21 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if((e.key==='ArrowLeft' || e.key==='ArrowRight') && t.tagName==='BUTTON'){
       const row = t.closest('.tx-chips, .tx-two');
       if(!row) return;
-      const own = Array.from(row.querySelectorAll('button')).filter(b=> !b.hidden && b.closest('.tx-chips, .tx-two')===row), i = own.indexOf(t);
+      const own = Array.from(row.querySelectorAll('button')).filter(b=> !b.hidden && !b.disabled && b.closest('.tx-chips, .tx-two')===row), i = own.indexOf(t);
       if(i < 0) return;
       e.preventDefault(); e.stopPropagation();
       const n = own[(i + (e.key==='ArrowRight' ? 1 : -1) + own.length) % own.length];
-      if(row.classList.contains('tx-two')){ X.c.out = n.dataset.v; X.outSet = true; hvTacRender(); const f = X.el.querySelector('[data-fid="out|'+n.dataset.v+'"]'); if(f) f.focus(); return; }
+      if(row.classList.contains('tx-two')){ X.c.out = n.dataset.v; X.flip = n.dataset.flip==='1'; X.outSet = true; hvTacRender(); const f = X.el.querySelector('[data-fid="out|'+n.dataset.v+(X.flip ? '|f' : '')+'"]'); if(f) f.focus(); return; }
       try{ n.focus(); }catch(err){}
     }
+  }
+  // Why the other side's two choices can't be had for this move ('' when they can): see What happened in hvTacRender
+  function hvTacFlipWhy(X){
+    const S = HV_STATE, node = X.node, prev = node.ply >= 2 ? S.main[node.ply - 2] : null;
+    if(!prev) return 'The game\u2019s first move: there\u2019s no move before it to keep the other side\u2019s tactic after.';
+    if(X.c.plies.length > 1) return 'A chance over several turns stays this side\u2019s.';
+    if(prev.tac && prev.tac!==X.was) return 'There\u2019s already a tactic after '+hvNodeLabel(prev)+': open it there.';
+    return '';
   }
   // ---- Save, Delete, add this turn ----
   function hvTacFinal(){
@@ -40206,6 +40232,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!c.keys.length){ hvTacErr('Pick a tactic first: a name, or search for one.'); return null; }
     if(!S.main[node.ply]) c.out = 'e';
     if(!c.out){ hvTacErr('Pick what happened.'); return null; }
+    if(X.flip && c.out!=='e' && !hvTacFlipWhy(X)){
+      // the other side's tactic, starting with this move: kept after the move before, this move first in its moves
+      const prev = S.main[node.ply - 2], m = node.move;
+      const first = [idxToAlg(m.from), idxToAlg(m.to), m.promotion || ''];
+      const arrows = [first].concat(c.arrows.map(a=> a.slice())).slice(0, TAC_ARROW_MAX);
+      const out = { plies:[prev.ply], keys:c.keys.slice(0, TAC_NAME_MAX), side:prev.state.turn, out:c.out, arrows,
+        sq:c.sq.slice(0, TAC_SQ_MAX), note:gnTacNote(c.note), ic:'' };
+      if(c.ic && c.ic!==hvTacKeySq(Object.assign({}, out, { ic:'' }), prev)) out.ic = c.ic;
+      return out;
+    }
     const out = { plies:c.plies.slice(), keys:c.keys.slice(0, TAC_NAME_MAX), side:node.state.turn, out:c.out, arrows:c.arrows.slice(0, TAC_ARROW_MAX).map(a=> a.slice()),
       sq:c.sq.slice(0, TAC_SQ_MAX), note:gnTacNote(c.note), ic:'' };
     if(c.ic && c.ic!==hvTacKeySq(Object.assign({}, out, { ic:'' }), node)) out.ic = c.ic;
@@ -40262,7 +40298,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hvTacClose(true);
     if(L) hvClampToggle(node, L);          // kept at once too; it says why when the record has no room
     hvTacShown(c);
-    hvSay(hvNodeLabel(node)+': '+hvTacNames(c)+' saved. '+hvTacWords(c, 'long'));
+    const at = c.plies[0]!==node.ply && S.main[c.plies[0] - 1] ? S.main[c.plies[0] - 1] : node;
+    hvSay(hvNodeLabel(at)+': '+hvTacNames(c)+' saved. '+hvTacWords(c, 'long'));
   }
   function hvTacDelete(){
     const X = HV_TAC_BOX, S = HV_STATE;
@@ -50774,7 +50811,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // notes sync and Game History's opening checks, and its drills' titles and game intro. What
     // stays is what the review looks and sounds like: theme, pieces, squares, arrows, line signs,
     // background, the board's cards, sounds and the tactic sound.
-    const HIDE = ['#friends-tab', '#lichess-activity-widget', 'html.rl-embed:not(.rl-chrome) #view-play-history .back-link', '#hv-groups',
+    const HIDE = ['#friends-tab', '#lichess-activity-widget',
+      // a player's CLAMP and Tactics: Chess Arcade's page header, its way home, Game History's own header (its title,
+      // the Lichess line, its tabs), its sites and the chess.com offer
+      'html.rl-history #page-header', 'html.rl-history #home-fab', 'html.rl-history #settings-fab',
+      'html.rl-history #view-history > .back-link', 'html.rl-history #view-history .history-head',
+      'html.rl-history #gh-view', 'html.rl-history #gh-site', 'html.rl-history #cc-offer', 'html.rl-history #cc-progress-sr', 'html.rl-embed:not(.rl-chrome) #view-play-history .back-link', '#hv-groups',
       // Chess Arcade's home button and the Game Review button: only while the review has the whole
       // window (Repertoire Lab's own bars are hidden then; see "corners" below)
       'html.rl-embed:not(.rl-chrome) #home-fab', 'html.rl-embed:not(.rl-chrome) #rl-menu',
@@ -50860,6 +50902,35 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       return out;
     };
     hvOnNode(()=> tell('node', { plies: playedLine().length }));
+
+    // ---- a player's CLAMP and Tactics (Repertoire Lab's player page): Chess Arcade's own two Game History tabs,
+    // over that player's games only — their analysis records, with the summary each tab reads (who had which side,
+    // the result, the speed, the moves). Game History's way around Chess Arcade (its sites, its other tabs, the
+    // chess.com offer, the page's own header) is hidden; opening a game, or a moment, goes to Repertoire Lab's Game
+    // Review; Practice opens that tactic's puzzles on Lichess. The frame is as tall as the page (height).
+    const historyOn = ()=> document.documentElement.classList.contains('rl-history');
+    const openGameWas = ghOpenGame;
+    ghOpenGame = function(g, opts){
+      if(historyOn() && g && g.id){
+        const o = opts || {};
+        tell('openGame', { gid: String(g.id), opts: { at: o.at || null, clamp: o.clamp || null, tac: o.tac || null } });
+        return Promise.resolve();
+      }
+      return openGameWas.apply(this, arguments);
+    };
+    const practiceWas = ttPractice;
+    ttPractice = function(key){
+      if(historyOn()){ try{ window.open('https://lichess.org/training/'+encodeURIComponent(key), '_blank', 'noopener'); }catch(e){} return; }
+      return practiceWas.apply(this, arguments);
+    };
+    let heightWas = 0;
+    const sayHeight = ()=>{
+      if(!historyOn()) return;
+      const v = document.getElementById('view-history');
+      const h = v ? Math.ceil(v.getBoundingClientRect().bottom + window.scrollY + 24) : 0;
+      if(h && Math.abs(h - heightWas) > 2){ heightWas = h; tell('height', { h }); }
+    };
+    try{ new ResizeObserver(sayHeight).observe(document.getElementById('view-history')); }catch(e){}
     window.__rlReview = {
       v: 1,
       // The game's saved note and analysis, as Repertoire Lab keeps them on the game.
@@ -50894,6 +50965,30 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       },
       current(){ return HV_STATE && HV_STATE.game ? String(HV_STATE.game.id) : null; },
       line(){ return playedLine(); },
+      // games: [{ id, an, summary }] — that player's, and only theirs; view: 'clamp' | 'tactics'
+      history(games, view){
+        const want = new Set((games || []).map((g)=> 'an-'+String(g.id)));
+        quiet++;
+        try{
+          Object.keys(GN.notes).forEach((id)=>{ if(gnIsAn(id) && !want.has(id)) delete GN.notes[id]; });
+          (games || []).forEach((g)=>{
+            const id = 'an-'+String(g.id);
+            if(textOf(id)!==String(g.an || '')) gnSetNote(id, String(g.an || ''), null);
+            const n = GN.notes[id];
+            if(n) n.g = gnCleanG(g.summary);
+          });
+          gnPersist();
+        } finally { quiet--; }
+        try{ GN_TAC_MEMO.clear(); }catch(e){}
+        document.documentElement.classList.add('rl-history');
+        document.documentElement.classList.remove('rl-chrome');
+        if(currentView!=='history') showView('history');
+        if(GH_UI.view!==view) ghoSetView(view === 'tactics' ? 'tactics' : 'clamp');
+        else ghRender();
+        window.scrollTo(0, 0);
+        heightWas = 0;
+        setTimeout(sayHeight, 60);
+      },
       // The Save button in the corner: null hides it; { label, title, done } shows it.
       saveState(st){
         if(!st){ savePill.style.display = 'none'; return; }

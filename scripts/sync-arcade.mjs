@@ -78,7 +78,12 @@ const BRIDGE = String.raw`
     // notes sync and Game History's opening checks, and its drills' titles and game intro. What
     // stays is what the review looks and sounds like: theme, pieces, squares, arrows, line signs,
     // background, the board's cards, sounds and the tactic sound.
-    const HIDE = ['#friends-tab', '#lichess-activity-widget', 'html.rl-embed:not(.rl-chrome) #view-play-history .back-link', '#hv-groups',
+    const HIDE = ['#friends-tab', '#lichess-activity-widget',
+      // a player's CLAMP and Tactics: Chess Arcade's page header, its way home, Game History's own header (its title,
+      // the Lichess line, its tabs), its sites and the chess.com offer
+      'html.rl-history #page-header', 'html.rl-history #home-fab', 'html.rl-history #settings-fab',
+      'html.rl-history #view-history > .back-link', 'html.rl-history #view-history .history-head',
+      'html.rl-history #gh-view', 'html.rl-history #gh-site', 'html.rl-history #cc-offer', 'html.rl-history #cc-progress-sr', 'html.rl-embed:not(.rl-chrome) #view-play-history .back-link', '#hv-groups',
       // Chess Arcade's home button and the Game Review button: only while the review has the whole
       // window (Repertoire Lab's own bars are hidden then; see "corners" below)
       'html.rl-embed:not(.rl-chrome) #home-fab', 'html.rl-embed:not(.rl-chrome) #rl-menu',
@@ -164,6 +169,35 @@ const BRIDGE = String.raw`
       return out;
     };
     hvOnNode(()=> tell('node', { plies: playedLine().length }));
+
+    // ---- a player's CLAMP and Tactics (Repertoire Lab's player page): Chess Arcade's own two Game History tabs,
+    // over that player's games only — their analysis records, with the summary each tab reads (who had which side,
+    // the result, the speed, the moves). Game History's way around Chess Arcade (its sites, its other tabs, the
+    // chess.com offer, the page's own header) is hidden; opening a game, or a moment, goes to Repertoire Lab's Game
+    // Review; Practice opens that tactic's puzzles on Lichess. The frame is as tall as the page (height).
+    const historyOn = ()=> document.documentElement.classList.contains('rl-history');
+    const openGameWas = ghOpenGame;
+    ghOpenGame = function(g, opts){
+      if(historyOn() && g && g.id){
+        const o = opts || {};
+        tell('openGame', { gid: String(g.id), opts: { at: o.at || null, clamp: o.clamp || null, tac: o.tac || null } });
+        return Promise.resolve();
+      }
+      return openGameWas.apply(this, arguments);
+    };
+    const practiceWas = ttPractice;
+    ttPractice = function(key){
+      if(historyOn()){ try{ window.open('https://lichess.org/training/'+encodeURIComponent(key), '_blank', 'noopener'); }catch(e){} return; }
+      return practiceWas.apply(this, arguments);
+    };
+    let heightWas = 0;
+    const sayHeight = ()=>{
+      if(!historyOn()) return;
+      const v = document.getElementById('view-history');
+      const h = v ? Math.ceil(v.getBoundingClientRect().bottom + window.scrollY + 24) : 0;
+      if(h && Math.abs(h - heightWas) > 2){ heightWas = h; tell('height', { h }); }
+    };
+    try{ new ResizeObserver(sayHeight).observe(document.getElementById('view-history')); }catch(e){}
     window.__rlReview = {
       v: 1,
       // The game's saved note and analysis, as Repertoire Lab keeps them on the game.
@@ -198,6 +232,30 @@ const BRIDGE = String.raw`
       },
       current(){ return HV_STATE && HV_STATE.game ? String(HV_STATE.game.id) : null; },
       line(){ return playedLine(); },
+      // games: [{ id, an, summary }] — that player's, and only theirs; view: 'clamp' | 'tactics'
+      history(games, view){
+        const want = new Set((games || []).map((g)=> 'an-'+String(g.id)));
+        quiet++;
+        try{
+          Object.keys(GN.notes).forEach((id)=>{ if(gnIsAn(id) && !want.has(id)) delete GN.notes[id]; });
+          (games || []).forEach((g)=>{
+            const id = 'an-'+String(g.id);
+            if(textOf(id)!==String(g.an || '')) gnSetNote(id, String(g.an || ''), null);
+            const n = GN.notes[id];
+            if(n) n.g = gnCleanG(g.summary);
+          });
+          gnPersist();
+        } finally { quiet--; }
+        try{ GN_TAC_MEMO.clear(); }catch(e){}
+        document.documentElement.classList.add('rl-history');
+        document.documentElement.classList.remove('rl-chrome');
+        if(currentView!=='history') showView('history');
+        if(GH_UI.view!==view) ghoSetView(view === 'tactics' ? 'tactics' : 'clamp');
+        else ghRender();
+        window.scrollTo(0, 0);
+        heightWas = 0;
+        setTimeout(sayHeight, 60);
+      },
       // The Save button in the corner: null hides it; { label, title, done } shows it.
       saveState(st){
         if(!st){ savePill.style.display = 'none'; return; }

@@ -169,3 +169,109 @@ export function withGameReview(body, game, records) {
   if (rec) doc.gameReview = rec; else delete doc.gameReview;
   return serializeDoc(doc);
 }
+
+// ---------- A player's CLAMP and Tactics (components/PlayerInsights) ----------
+//
+// Chess Arcade's two Game History tabs over one player's games: each game
+// with something marked in Game Review — CLAMP letters (k) or tactics (t) in
+// its analysis record — and the summary those tabs read a game by (Chess
+// Arcade's gnCleanG): whose side, the result, the speed, when, the moves.
+
+// Whose game it is: the side on record, else the side whose name is the
+// player's, else White.
+function sideFor(game, player) {
+  const c = game?.meta?.color;
+  if (c === 'white' || c === 'black') return c;
+  const names = [player?.name, player?.profile?.chesscom, player?.profile?.lichess]
+    .filter(Boolean).map((n) => String(n).trim().toLowerCase());
+  const w = String(game?.meta?.white ?? '').trim().toLowerCase();
+  const b = String(game?.meta?.black ?? '').trim().toLowerCase();
+  if (b && names.includes(b) && !names.includes(w)) return 'black';
+  return 'white';
+}
+
+function resultFor(result, me) {
+  const r = String(result ?? '').trim();
+  if (r === '1-0') return me === 'white' ? 'win' : 'loss';
+  if (r === '0-1') return me === 'black' ? 'win' : 'loss';
+  return 'draw';
+}
+
+// "600+5" (seconds, a PGN's TimeControl) or "G/60;d5" / "G/90+30" (US Chess,
+// minutes) → Chess Arcade's speed and its "base-increment" key. Anything else:
+// classical, the usual over the board.
+export function speedOf(timeControl) {
+  const t = String(timeControl ?? '').trim();
+  let base = null;
+  let inc = 0;
+  let m = /^(\d{1,5})(?:\+(\d{1,3}))?$/.exec(t);
+  if (m) { base = Number(m[1]); inc = Number(m[2] ?? 0); }
+  m = !m && /^G\s*\/\s*(\d{1,3})(?:\s*[;+]\s*(?:d|inc)?\s*(\d{1,3}))?/i.exec(t);
+  if (m) { base = Number(m[1]) * 60; inc = Number(m[2] ?? 0); }
+  if (base == null) return { speed: 'classical', tc: '' };
+  const est = base + 40 * inc;
+  const speed = est < 180 ? 'bullet' : est < 480 ? 'blitz' : est < 1500 ? 'rapid' : 'classical';
+  return { speed, tc: `${base}-${inc}` };
+}
+
+const ratingOrNull = (v) => (/^\d{2,4}$/.test(String(v ?? '').trim()) ? Number(v) : null);
+
+export function insightSummary(game, player) {
+  const me = sideFor(game, player);
+  const m = game?.meta ?? {};
+  const moves = (game?.moves ?? []).filter((s) => typeof s === 'string' && s.trim());
+  const opp = me === 'white' ? m.black : m.white;
+  const { speed, tc } = speedOf(m.timeControl);
+  const at = typeof game?.date === 'number' ? game.date : Date.parse(String(m.date ?? '').replace(/\./g, '-'));
+  return {
+    me,
+    res: resultFor(m.result, me),
+    speed,
+    rated: false,
+    tc,
+    status: '',
+    at: Number.isFinite(at) ? at : 0,
+    eco: '',
+    opening: '',
+    opp: String(opp ?? '').trim().slice(0, 40) || 'Opponent',
+    oppId: String(opp ?? '').trim().toLowerCase().replace(/[^\w-]+/g, '-').slice(0, 30),
+    oppTitle: '',
+    oppRating: ratingOrNull(me === 'white' ? m.blackElo : m.whiteElo),
+    myRating: ratingOrNull(me === 'white' ? m.whiteElo : m.blackElo),
+    plies: moves.length,
+    variant: 'standard',
+    fen: '',
+    san: moves.join(' '),
+  };
+}
+
+// Whether a game's analysis record has CLAMP letters or tactics on it.
+export function marksIn(an) {
+  if (typeof an !== 'string' || !an.trim()) return { clamp: false, tactics: false };
+  try {
+    const A = JSON.parse(an);
+    return {
+      clamp: Array.isArray(A?.k) && A.k.length > 0,
+      tactics: Array.isArray(A?.t) && A.t.length > 0,
+    };
+  } catch {
+    return { clamp: false, tactics: false };
+  }
+}
+
+// The player's marked games, as Chess Arcade's two tabs take them. Their ids
+// are Chess Arcade's (arcadeId), so `byArcadeId` leads back to the game.
+export function insightGames(player) {
+  const games = [];
+  const byArcadeId = new Map();
+  for (const game of player?.games ?? []) {
+    if (!(game.moves?.length > 0)) continue;
+    const rec = recordsFor(game, player);
+    const marks = marksIn(rec?.an);
+    if (!marks.clamp && !marks.tactics) continue;
+    const id = arcadeId(game.id);
+    byArcadeId.set(id, game.id);
+    games.push({ id, an: rec.an, summary: insightSummary(game, player), ...marks });
+  }
+  return { games, byArcadeId };
+}

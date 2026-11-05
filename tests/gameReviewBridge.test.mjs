@@ -183,3 +183,55 @@ test('the student’s own Game Review on their own game reaches the coach’s ca
   assert.equal(copy.gameReview.note, 'I was nervous');
   assert.equal(copy.link.base['gameReview:note'], hashesOf(studentGame)['gameReview:note']);
 });
+
+// ---------- a player's CLAMP and Tactics ----------
+import { insightGames, insightSummary, speedOf, marksIn } from '../src/lib/gameReviewBridge.js';
+
+test('the summary Chess Arcade’s CLAMP and Tactics tabs read a game by', () => {
+  const player = { name: 'Myla Walavalkar', kind: 'student' };
+  const s = insightSummary({
+    moves: ['e4', 'e5', 'Nf3'], date: 1000,
+    meta: { white: 'William Lin', black: 'Myla Walavalkar', whiteElo: '553', result: '1-0', timeControl: 'G/30;d5' },
+  }, player);
+  assert.equal(s.me, 'black', 'the player’s own name says which side');
+  assert.equal(s.res, 'loss');
+  assert.equal(s.opp, 'William Lin');
+  assert.equal(s.oppRating, 553);
+  assert.equal(s.myRating, null);
+  assert.equal(s.san, 'e4 e5 Nf3');
+  assert.equal(s.plies, 3);
+  assert.equal(s.at, 1000);
+  assert.deepEqual([s.speed, s.tc], ['classical', '1800-5']); // Lichess: 25 minutes and over is classical
+  assert.equal(insightSummary({ moves: ['d4'], meta: { color: 'white', result: '1-0' } }, player).res, 'win');
+  assert.equal(insightSummary({ moves: ['d4'], meta: { result: '*' } }, player).res, 'draw');
+});
+
+test('speeds: PGN seconds, US Chess minutes, and over the board when it can’t tell', () => {
+  assert.deepEqual(speedOf('60+0'), { speed: 'bullet', tc: '60-0' });
+  assert.deepEqual(speedOf('180+2'), { speed: 'blitz', tc: '180-2' });
+  assert.deepEqual(speedOf('600+5'), { speed: 'rapid', tc: '600-5' });
+  assert.deepEqual(speedOf('G/90+30'), { speed: 'classical', tc: '5400-30' });
+  assert.deepEqual(speedOf('Game in 60'), { speed: 'classical', tc: '' });
+  assert.deepEqual(speedOf(''), { speed: 'classical', tc: '' });
+});
+
+test('only games with CLAMP letters or tactics on them go to the two tabs', () => {
+  const marked = JSON.stringify({ v: 1, l: [], c: [], m: [], k: [[9, 'L']] });
+  const tac = JSON.stringify({ v: 1, l: [], c: [], m: [], t: [[6, 'fork', 'w', 'p', 'f1b5', '']] });
+  const plain = JSON.stringify({ v: 1, l: [], c: [[2, 'note']], m: [] });
+  assert.deepEqual(marksIn(marked), { clamp: true, tactics: false });
+  assert.deepEqual(marksIn('nope'), { clamp: false, tactics: false });
+  const player = {
+    name: 'Myla', kind: 'self',
+    games: [
+      { id: 'g1aaaaaa', moves: ['e4'], meta: {}, gameReview: { note: '', an: marked } },
+      { id: 'g2aaaaaa', moves: ['d4'], meta: {}, gameReview: { note: '', an: tac } },
+      { id: 'g3aaaaaa', moves: ['c4'], meta: {}, gameReview: { note: 'n', an: plain } },
+      { id: 'g4aaaaaa', moves: [], meta: {}, gameReview: { note: '', an: marked } },
+    ],
+  };
+  const { games, byArcadeId } = insightGames(player);
+  assert.deepEqual(games.map((g) => byArcadeId.get(g.id)), ['g1aaaaaa', 'g2aaaaaa']);
+  assert.equal(games[1].tactics, true);
+  assert.equal(games[0].an, marked);
+});

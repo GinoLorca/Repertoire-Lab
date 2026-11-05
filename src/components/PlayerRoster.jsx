@@ -35,6 +35,7 @@ import { confirmMeta } from '../lib/uscfMatch';
 import { openReview } from './ReviewReader';
 import { reviewsOf, reviewHash } from '../lib/cloud/reviews';
 import { openGameReview } from '../lib/openGameReview';
+import PlayerInsights from './PlayerInsights';
 import { parseDoc, docFromGame, docIsEmpty } from '../lib/analysisDoc';
 import { seedFor } from '../lib/studioSeed';
 import ReviewsInProgress from './ReviewsInProgress';
@@ -418,7 +419,7 @@ function PlayerPage({
   // Opens on the dashboard when there's a US Chess ID — unless the student
   // has sent games not yet seen, which are what the bell brought you for.
   const [tab, setTab] = useState(() => {
-    if (initialTab === 'games' || initialTab === 'dashboard') return initialTab; // from a link
+    if (['games', 'dashboard', 'clamp', 'tactics'].includes(initialTab)) return initialTab; // from a link
     // …or their ChessKid practice from ICN.
     const stats = String(player.profile?.uscf ?? '').replace(/\D/g, '') || player.profile?.icn?.school;
     return stats && !player.games.some((g) => g.link?.unseen) ? 'dashboard' : 'games';
@@ -685,7 +686,37 @@ function PlayerPage({
         <button role="tab" aria-selected={tab === 'games'} className={tab === 'games' ? 'on' : ''} onClick={() => setTab('games')}>
           Games <span className="muted-note">{player.games.length}</span>
         </button>
+        {/* Chess Arcade's CLAMP and Tactics, over this player's games. */}
+        <button
+          role="tab"
+          aria-selected={tab === 'clamp'}
+          className={tab === 'clamp' ? 'on' : ''}
+          title="The CLAMP letters marked on these games in Game Review — the patterns in the mistakes"
+          onClick={() => setTab('clamp')}
+        >
+          <span className="pt-clamp" aria-hidden="true"><i /><i /><i /><i /><i /></span> CLAMP
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'tactics'}
+          className={tab === 'tactics' ? 'on' : ''}
+          title="The tactics marked on these games in Game Review — found, missed, and allowed"
+          onClick={() => setTab('tactics')}
+        >
+          Tactics
+        </button>
       </div>
+
+      {(tab === 'clamp' || tab === 'tactics') && (
+        <PlayerInsights
+          player={player}
+          view={tab}
+          onOpenGame={(gameId, opts) => {
+            const game = player.games.find((g) => g.id === gameId);
+            if (game && onGameReview) onGameReview({ ...lineFor(game), reviewOpts: opts ?? undefined });
+          }}
+        />
+      )}
 
       {tab === 'dashboard' && player.kind === 'student' && (
         <ChessKidPractice player={player} onEditProfile={onEditProfile} />
@@ -1101,7 +1132,7 @@ export default function PlayerRoster({
   }, [routePlayer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // …and tell the address where we are.
   useEffect(() => {
-    const next = openPlayerId ? { id: openPlayerId, tab: tab === 'games' ? 'games' : null } : null;
+    const next = openPlayerId ? { id: openPlayerId, tab: ['games', 'clamp', 'tactics'].includes(tab) ? tab : null } : null;
     if ((next?.id ?? null) !== (routePlayer?.id ?? null) || (next?.tab ?? null) !== (routePlayer?.tab ?? null)) {
       routeSeen.current = next?.id ?? null;
       onPlayerChange?.(next);

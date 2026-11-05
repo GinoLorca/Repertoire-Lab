@@ -189,11 +189,18 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
 
   // A different game: what was being written on the last one is kept, then
   // this one's saved review goes in and it opens.
+  // Where it opens, when it was asked for (a CLAMP or Tactics moment on a
+  // player's page): at a move, and that move's CLAMP letter or tactic.
+  const openOpts = open?.opts ?? null;
+  const openKey = `${caId}|${openOpts ? JSON.stringify(openOpts) : ''}`;
   const openedRef = useRef(null);
+  const openKeyRef = useRef(null);
   useEffect(() => {
     const a = api();
     if (!ready || !a || !caId || !source) return;
-    if (openedRef.current === caId) return;
+    if (openKeyRef.current === openKey) return;
+    openKeyRef.current = openKey;
+    if (openedRef.current === caId) { a.open(arcadeGame(source, caId, { side }), openOpts ?? {}); return; }
     openedRef.current = caId;
     setPlies(0);
     if (saved && (saved.player.kind ?? 'self') === 'self') {
@@ -207,8 +214,8 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
       }
     }
     a.load(caId, records ?? {});
-    a.open(arcadeGame(source, caId, { side }));
-  }, [ready, caId]); // eslint-disable-line react-hooks/exhaustive-deps
+    a.open(arcadeGame(source, caId, { side }), openOpts ?? {});
+  }, [ready, openKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Repertoire Lab's corners in the review, while it has the whole window.
   useEffect(() => {

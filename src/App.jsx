@@ -625,7 +625,7 @@ function AppInner() {
   const sendToReview = (line) => {
     if (!line?.gameId || !line?.playerId) return;
     go(() => {
-      setReviewOn({ playerId: line.playerId, gameId: line.gameId });
+      setReviewOn({ playerId: line.playerId, gameId: line.gameId, ...(line.reviewOpts ? { opts: line.reviewOpts } : {}) });
       setSub('review');
       setView('analysis');
     });
