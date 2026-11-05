@@ -5428,7 +5428,6 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
    its board to it). The top bar already says Analysis. */
 @media (min-width: 1024px) and (pointer: fine) {
   .game-review-view .page-head h1 { display: none; }
-  .game-review-view .gr-bar { flex-wrap: nowrap; }
   .game-review-view .gr-pick { max-width: 250px; flex: 0 1 250px; }
   .game-review-view .gr-title { flex: 1 1 60px; }
   .game-review-view .gr-bar > button { flex: 0 0 auto; white-space: nowrap; }
@@ -5467,6 +5466,9 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .gr-menu-open { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .gr-menu-open .gr-pick { max-width: 100%; flex: 1 1 100%; }
 .gr-menu-bars { align-self: flex-start; }
+.gr-menu-top { display: flex; gap: 6px; flex-wrap: wrap; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.gr-save-who { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.gr-save-who input { flex: 1 1 120px; min-width: 0; }
 /* A dialog opened from the menu (Save game) comes up over the review. */
 .game-review-view .modal-overlay { z-index: 200; }
 .gr-frame { display: block; width: 100%; border: 0; border-radius: 12px; background: #1a3423; }

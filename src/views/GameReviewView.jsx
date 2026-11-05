@@ -21,8 +21,10 @@ import {
   writesReviewLayer, withGameReview,
 } from '../lib/gameReviewBridge';
 import {
-  readPgnFiles, indexGames, openGame, searchGames, gameRecord, alreadyIn,
+  readPgnFiles, indexGames, openGame, searchGames, gameRecord, alreadyIn, sideIn,
 } from '../lib/pgnArchive';
+import { validateLine } from '../lib/pgn';
+import { RESULTS } from '../lib/games';
 import { sideFromNames } from '../lib/pov';
 import { UploadIcon, DownloadIcon, FolderIcon } from '../components/Icons';
 
@@ -78,6 +80,12 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
       && window.matchMedia('(min-width: 1024px) and (pointer: fine)').matches;
   });
   const [menuOpen, setMenuOpen] = useState(false);
+  // Save: when it last saved by hand ("Saved ✓" for a moment), and how many
+  // moves the line on the board has — a fresh board's Save game shows once
+  // there's a move to keep.
+  const [justSaved, setJustSaved] = useState(0);
+  const [plies, setPlies] = useState(0);
+  const [savingMoves, setSavingMoves] = useState(null);
   const setFullKept = (on) => {
     setFull(on);
     try { localStorage.setItem(FULL_KEY, on ? '1' : '0'); } catch { /* not kept: fine */ }
@@ -160,6 +168,8 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
       if (d.type === 'home') setFullKept(false);
       if (d.type === 'menu') setMenuOpen((o) => !o);
       if (d.type === 'tap') setMenuOpen(false);
+      if (d.type === 'node') setPlies(Number(d.plies) || 0);
+      if (d.type === 'save') saveRef.current();
     };
     window.addEventListener('message', onMessage);
     // Closing the app or switching away: what's being typed is saved first.
@@ -185,6 +195,17 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
     if (!ready || !a || !caId || !source) return;
     if (openedRef.current === caId) return;
     openedRef.current = caId;
+    setPlies(0);
+    if (saved && (saved.player.kind ?? 'self') === 'self') {
+      const g = saved.game;
+      const seen = g.reviewSeen ?? {};
+      const latest = {};
+      for (const [C, r] of Object.entries(g.reviews ?? {})) if (!r?.removed) latest[C] = Math.max(latest[C] ?? 0, r?.rev ?? 0);
+      for (const [C, n] of Object.entries(g.coachNews ?? {})) latest[C] = Math.max(latest[C] ?? 0, n?.rev ?? 0);
+      for (const [C, rev] of Object.entries(latest)) {
+        if (rev > (seen[C]?.rev ?? 0)) dispatch({ type: 'markReviewSeen', gameId: g.id, coachUid: C, rev });
+      }
+    }
     a.load(caId, records ?? {});
     a.open(arcadeGame(source, caId, { side }));
   }, [ready, caId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -194,6 +215,76 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
     if (ready) api()?.chrome?.(fullOn);
     if (!fullOn) setMenuOpen(false);
   }, [ready, fullOn]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---------- Save ----------
+  // A saved game keeps what's written on it as you go; Save does it now, and
+  // sends it to a linked student now (a review of their own game otherwise
+  // goes when you leave it). A game not saved yet — pasted, or played on a
+  // fresh board — asks whose it is.
+  const blank = Boolean(temp?.blank);
+  const owner = saved?.player;
+  const toStudent = owner?.kind === 'student' && Boolean(owner.profile?.linkedUid);
+  const saveLabel = saved ? (justSaved ? 'Saved ✓' : 'Save')
+    : temp && (!blank || plies > 0) ? 'Save game' : null;
+  const saveTitle = saved
+    ? `Everything here is kept on this game in ${owner?.name ?? 'your Games'} as you go${toStudent ? ` — Save sends it to ${owner.name} now` : ''}`
+    : 'Keep this game, and its notes, in your Games or a student’s';
+  const saveNow = () => {
+    if (saved) {
+      api()?.flush();
+      pull({ publish: true });
+      // A review of a student's own game written before (another visit) but
+      // never sent: it goes now.
+      const { player, game } = saved;
+      const review = game.review;
+      if (!layerDirty.current && writesReviewLayer(game, player) && review?.body
+        && (review.savedAt ?? 0) < (review.editedAt ?? 0)) {
+        dispatch({
+          type: 'setGameReview', playerId: player.id, gameId: game.id, body: review.body, publish: true,
+        });
+      }
+      setJustSaved(Date.now());
+      return;
+    }
+    if (temp) {
+      api()?.flush();
+      setSavingMoves(blank ? validateLine(api()?.line?.() ?? []).moves : null);
+      setMenuOpen(false);
+      setSaving(true);
+    }
+  };
+  const saveRef = useRef(saveNow);
+  saveRef.current = saveNow;
+  useEffect(() => {
+    if (!justSaved) return undefined;
+    const t = setTimeout(() => setJustSaved(0), 2500);
+    return () => clearTimeout(t);
+  }, [justSaved]);
+  useEffect(() => {
+    if (!ready) return;
+    api()?.saveState?.(fullOn && saveLabel ? { label: saveLabel, title: saveTitle, done: Boolean(justSaved) } : null);
+  }, [ready, fullOn, saveLabel, saveTitle, justSaved]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---------- Reset board ----------
+  // A fresh board at the start, to play out a game and save it. Always asked
+  // first — a stray tap shouldn't close a game.
+  const resetBoard = () => {
+    const unsaved = temp && (!blank || plies > 0);
+    if (caId && !window.confirm(unsaved
+      ? 'Reset the board? This game isn’t saved — its moves and notes will be gone.'
+      : 'Reset the board? The game on it closes — everything saved on it stays saved.')) return;
+    leaveGame();
+    setMenuOpen(false);
+    setList(null);
+    setError(null);
+    setPasteOpen(false);
+    setPlies(0);
+    onOpen({
+      temp: {
+        id: tempArcadeId(), blank: true, game: { name: 'New game', moves: [], meta: {} }, records: null,
+      },
+    });
+  };
 
   // The game's review changed somewhere else — another device, the student —
   // while it's open here: it goes in, and the review opens again at the same move.
@@ -333,13 +424,14 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
       ))}
     </select>
   );
-  const saveButton = temp && (
-    <button
-      className="small primary"
-      title="Keep this game, and everything written in its review, in your Games or a student’s"
-      onClick={() => setSaving(true)}
-    >
-      <DownloadIcon size={14} /> Save game
+  const saveButton = saveLabel && (
+    <button className={`small${saved ? '' : ' primary'}`} title={saveTitle} onClick={saveNow}>
+      <DownloadIcon size={14} /> {saveLabel}
+    </button>
+  );
+  const resetButton = (
+    <button className="small" title="A fresh board at the start — asked first" onClick={resetBoard}>
+      ↺ Reset board
     </button>
   );
   const pastePanel = pasteOpen && (
@@ -405,6 +497,7 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
           ))}
         </div>
         <div className="gr-bar">
+          {resetButton}
           {pasteToggle}
           {uploadButton}
           {picker}
@@ -456,6 +549,7 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
         {/* The corner menu: Game Review's button in the review opens it. */}
         {fullOn && menuOpen && (
           <div className="gr-menu" role="dialog" aria-label="Game Review">
+            <div className="gr-menu-top">{resetButton}{saveButton}</div>
             <div className="gr-menu-label">Analysis</div>
             <div className="mode-tabs gr-menu-modes">
               {TABS.map(([tab, label, tip]) => (
@@ -475,7 +569,6 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
               {pasteToggle}
               {uploadButton}
               {picker}
-              {saveButton}
             </div>
             {pastePanel}
             {errorLine}
@@ -490,12 +583,17 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
       {saving && temp && (
         <SaveGame
           temp={temp}
+          moves={savingMoves}
           state={state}
           onClose={() => setSaving(false)}
           onSave={(playerId, record) => {
             api()?.flush();
             const now = cleanRecords(api()?.records(caId));
-            const kept = now && !sameRecords(now, temp.records) ? { ...now, at: Date.now() } : temp.records;
+            let kept = now && !sameRecords(now, temp.records) ? { ...now, at: Date.now() } : temp.records;
+            // A fresh board's moves become the game's own: its Notes card comes
+            // along, but what was drawn or written on its moves was on side
+            // lines, which the saved game doesn't have.
+            if (blank) kept = kept?.note?.trim() ? { note: kept.note, an: '', at: Date.now() } : null;
             const player = state.players.find((p) => p.id === playerId);
             const existing = player?.games?.find((g) => alreadyIn({ games: [g] }, record));
             if (existing) {
@@ -522,8 +620,12 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
 
 // Whose game a pasted one is: a section of yours, or a student's.
 function SaveGame({
-  temp, state, onClose, onSave,
+  temp, moves, state, onClose, onSave,
 }) {
+  const blank = Boolean(temp.blank);
+  const [white, setWhite] = useState('');
+  const [black, setBlack] = useState('');
+  const [result, setResult] = useState('');
   const guess = state.players.find((p) => {
     const m = temp.game.meta ?? {};
     return [p.name, p.profile?.chesscom, p.profile?.lichess].filter(Boolean)
@@ -531,7 +633,22 @@ function SaveGame({
   });
   const [playerId, setPlayerId] = useState(guess?.id ?? state.players[0]?.id ?? '');
   const section = state.players.find((p) => p.id === playerId);
-  const record = section ? gameRecord(temp.item, temp.entry, section) : null;
+  const freshRecord = () => {
+    if (!moves?.length) return null;
+    const w = white.trim();
+    const b = black.trim();
+    return {
+      name: `${w || 'White'} vs ${b || 'Black'}`,
+      moves,
+      comments: {},
+      badges: {},
+      date: Date.now(),
+      meta: {
+        white: w, black: b, result, color: sideIn(section, w, b), eventType: 'otb', date: new Date().toISOString().slice(0, 10),
+      },
+    };
+  };
+  const record = !section ? null : blank ? freshRecord() : gameRecord(temp.item, temp.entry, section);
   const own = state.players.filter((p) => (p.kind ?? 'self') === 'self');
   const students = state.players.filter((p) => p.kind === 'student');
 
@@ -544,7 +661,11 @@ function SaveGame({
         ) : (
           <>
             <p className="hint">
-              {temp.game.name} — and everything written in its review. Whose game is it?
+              {blank
+                ? (moves?.length
+                  ? `The ${moves.length === 1 ? 'move' : `${moves.length} moves`} on the board, and the Notes card. Whose game is it?`
+                  : 'There are no moves on the board yet — play some first.')
+                : `${temp.game.name} — and everything written in its review. Whose game is it?`}
             </p>
             <select value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
               {own.length > 0 && (
@@ -558,7 +679,17 @@ function SaveGame({
                 </optgroup>
               )}
             </select>
-            {section && !record && (
+            {blank && (
+              <div className="gr-save-who">
+                <input type="text" placeholder="White" aria-label="White" value={white} onChange={(e) => setWhite(e.target.value)} />
+                <input type="text" placeholder="Black" aria-label="Black" value={black} onChange={(e) => setBlack(e.target.value)} />
+                <select aria-label="Result" value={result} onChange={(e) => setResult(e.target.value)}>
+                  <option value="">Result…</option>
+                  {RESULTS.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+            )}
+            {section && !record && !blank && (
               <p className="hint">Games start from the normal position — this one is set up from a position, so it can’t be saved as a game.</p>
             )}
           </>

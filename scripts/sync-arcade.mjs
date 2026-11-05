@@ -87,7 +87,18 @@ const BRIDGE = String.raw`
       '#settings-overlay .field:has(#spotify-client-id-input)'];
     const css = document.createElement('style');
     css.textContent = HIDE.map((s)=> (s.indexOf('html')===0 ? s : 'html.rl-embed '+s)).join(', ')+' { display:none !important; }'
-      + ' #rl-menu { position:fixed; left:16px; bottom:16px; z-index:40; }'
+      + ' #rl-menu { position:fixed; left:16px; bottom:16px; z-index:40; display:flex; gap:8px; align-items:center; }'
+      + ' #rl-save-pill.rl-done { color:var(--good); border-color:var(--good); }'
+      // Highlighted side lines (yellow, neon green, blue): a highlighter pen rather than a solid box: about 70%,
+      // soft edges that fade in and out unevenly, a slightly lopsided stroke — as if marked by hand.
+      + ' html.rl-embed .hv-movelist .hv-var.hv-hl > .hv-var-line, html.rl-embed .hv-movelist .hv-nest.hv-hl {'
+      + ' background: linear-gradient(100deg, transparent .4%, color-mix(in srgb, var(--hl) 62%, transparent) 2.2%,'
+      + ' color-mix(in srgb, var(--hl) 70%, transparent) 5%, color-mix(in srgb, var(--hl) 64%, transparent) 38%,'
+      + ' color-mix(in srgb, var(--hl) 70%, transparent) 71%, color-mix(in srgb, var(--hl) 60%, transparent) 95.5%, transparent 99.4%),'
+      + ' linear-gradient(181deg, transparent 0%, color-mix(in srgb, var(--hl) 22%, transparent) 9%, transparent 24%,'
+      + ' transparent 80%, color-mix(in srgb, var(--hl) 18%, transparent) 94%, transparent 100%) !important;'
+      + ' border-radius: .9em .35em 1.05em .3em / .5em .95em .4em 1.1em !important; padding: 2px 8px !important;'
+      + ' -webkit-box-decoration-break: clone; box-decoration-break: clone; }'
       // with the whole window, the way back to Game History keeps its place, unseen: the layout is Chess Arcade's to the pixel
       + ' html.rl-embed.rl-chrome #view-play-history .back-link { visibility:hidden !important; pointer-events:none !important; }';
     document.head.appendChild(css);
@@ -106,12 +117,21 @@ const BRIDGE = String.raw`
     pill.title = 'Switch to Engine, Compare lines, Board Editor or Studio, or open another game';
     pill.innerHTML = '<span>Game Review</span><span class="friends-chevron">&#9650;</span>';
     menu.appendChild(pill);
+    // Save, beside it: a game that isn't saved yet (pasted, or played on a fresh board), or Save on one
+    // that is (it's kept as you go; Save sends it to the student now). Repertoire Lab says which (saveState).
+    const savePill = document.createElement('button');
+    savePill.type = 'button';
+    savePill.className = 'friends-tab';
+    savePill.id = 'rl-save-pill';
+    savePill.style.display = 'none';
+    menu.appendChild(savePill);
     document.body.appendChild(menu);
     const chromeOn = ()=> document.documentElement.classList.contains('rl-chrome');
     document.addEventListener('click', (e)=>{
       if(!chromeOn() || !e.target || !e.target.closest) return;
       if(e.target.closest('#home-fab')){ e.preventDefault(); e.stopImmediatePropagation(); tell('home'); return; }
-      if(e.target.closest('#rl-menu-pill')){ e.preventDefault(); e.stopImmediatePropagation(); tell('menu'); }
+      if(e.target.closest('#rl-menu-pill')){ e.preventDefault(); e.stopImmediatePropagation(); tell('menu'); return; }
+      if(e.target.closest('#rl-save-pill')){ e.preventDefault(); e.stopImmediatePropagation(); tell('save'); }
     }, true);
     document.addEventListener('pointerdown', (e)=>{
       if(chromeOn() && !(e.target && e.target.closest && e.target.closest('#rl-menu'))) tell('tap');
@@ -134,6 +154,16 @@ const BRIDGE = String.raw`
       return ok;
     };
     const textOf = (id)=> gnNoteText(id) || '';
+    // The line on the board, from the start to the end of the line being looked at: on a fresh board,
+    // the moves played (they're side lines there, the game having none of its own).
+    const playedLine = ()=>{
+      const S = HV_STATE;
+      if(!S || !S.cur) return [];
+      const out = [];
+      for(let n = hvLineEnd(S.cur); n && n.parent; n = n.parent) out.unshift(n.san);
+      return out;
+    };
+    hvOnNode(()=> tell('node', { plies: playedLine().length }));
     window.__rlReview = {
       v: 1,
       // The game's saved note and analysis, as Repertoire Lab keeps them on the game.
@@ -167,6 +197,15 @@ const BRIDGE = String.raw`
         if(home){ home.title = on ? 'Back to Repertoire Lab' : ''; home.setAttribute('aria-label', on ? 'Back to Repertoire Lab' : 'Home'); }
       },
       current(){ return HV_STATE && HV_STATE.game ? String(HV_STATE.game.id) : null; },
+      line(){ return playedLine(); },
+      // The Save button in the corner: null hides it; { label, title, done } shows it.
+      saveState(st){
+        if(!st){ savePill.style.display = 'none'; return; }
+        savePill.style.display = '';
+        savePill.textContent = st.label || 'Save';
+        savePill.title = st.title || '';
+        savePill.classList.toggle('rl-done', !!st.done);
+      },
       // What's being typed or drawn, saved now (leaving the tab, closing the app).
       flush(){
         try{ hvAnnSave(); }catch(e){}

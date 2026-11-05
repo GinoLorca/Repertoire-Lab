@@ -140,10 +140,16 @@ export function applyCoachReviews(state, deliveries, { now, names = {} } = {}) {
       continue;
     }
     players = players.map((pl, i) => (i === at.pi ? nextSection : pl));
-    result(outcome, { name: gameSummary(next) });
+    // A review from Game Review: the student is told their game was analyzed.
+    result(outcome, { name: gameSummary(next), ...(doc.gameReview ? { analyzed: true } : {}) });
   }
   return { state: { ...state, players }, consumed, outcomes };
 }
+
+// Whether a coach's review is from Game Review (lib/gameReviewBridge): what
+// the student is told is "Your game has been analyzed" — or, when they had
+// already seen one from that coach, "Analysis updated".
+export const isGameReviewBody = (body) => typeof body === 'string' && body.includes('"gameReview":{');
 
 // The reviews the student hasn't read yet — the bell, and the dot on a game.
 // Both kinds: a review of their own game, and analysis changed on a game a
@@ -159,6 +165,7 @@ export function unseenReviews(players) {
         if ((r.rev ?? 0) > (seen[C]?.rev ?? 0)) {
           out.push({
             sectionId: section.id, gameId: g.id, coachUid: C, by: r.by ?? '', rev: r.rev, at: r.at ?? r.rev, kind: 'review', name: gameSummary(g),
+            analyzed: isGameReviewBody(r.body), again: (seen[C]?.rev ?? 0) > 0,
           });
         }
       }
@@ -166,6 +173,7 @@ export function unseenReviews(players) {
         if ((n?.rev ?? 0) > (seen[C]?.rev ?? 0)) {
           out.push({
             sectionId: section.id, gameId: g.id, coachUid: C, by: n.by ?? '', rev: n.rev, at: n.at ?? n.rev, kind: 'own', name: gameSummary(g),
+            analyzed: Boolean(n.gr), again: (seen[C]?.rev ?? 0) > 0,
           });
         }
       }
@@ -178,10 +186,18 @@ export function unseenReviews(players) {
 export function reviewsOf(game) {
   const out = [];
   for (const [C, r] of Object.entries(game?.reviews ?? {})) {
-    if (!r?.removed && typeof r?.body === 'string') out.push({ coachUid: C, by: r.by ?? '', rev: r.rev, kind: 'review' });
+    if (!r?.removed && typeof r?.body === 'string') {
+      out.push({
+        coachUid: C, by: r.by ?? '', rev: r.rev, kind: 'review', analyzed: isGameReviewBody(r.body),
+      });
+    }
   }
   for (const [C, n] of Object.entries(game?.coachNews ?? {})) {
-    if (!out.some((x) => x.coachUid === C)) out.push({ coachUid: C, by: n.by ?? '', rev: n.rev, kind: 'own' });
+    if (!out.some((x) => x.coachUid === C)) {
+      out.push({
+        coachUid: C, by: n.by ?? '', rev: n.rev, kind: 'own', analyzed: Boolean(n.gr),
+      });
+    }
   }
   return out.sort((a, b) => b.rev - a.rev);
 }

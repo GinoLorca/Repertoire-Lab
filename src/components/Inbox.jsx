@@ -12,6 +12,7 @@ import { useCloud } from '../lib/cloud/useCloud';
 import { unseenStudentGames, gameSummary } from '../lib/cloud/gameLink';
 import { openPlayerCard } from '../lib/openPlayer';
 import { unseenReviews } from '../lib/cloud/reviews';
+import { openGameReview } from '../lib/openGameReview';
 import { openReview } from './ReviewReader';
 
 const stamp = (t) => {
@@ -211,18 +212,25 @@ export default function Inbox() {
             {reviews.map((r) => (
               <div key={`${r.gameId}:${r.coachUid}`} className="inbox-item unread">
                 <div className="inbox-head">
-                  <strong>{r.by || 'Your coach'}</strong>
+                  {/* From Game Review: said plainly, and opened there. */}
+                  <strong>{r.analyzed ? (r.again ? 'Analysis updated' : 'Your game has been analyzed') : (r.by || 'Your coach')}</strong>
                   <span className="muted-note">
-                    {r.kind === 'own' ? 'added notes to' : 'reviewed'} your game · {new Date(r.at).toLocaleDateString()}
+                    {r.analyzed
+                      ? `${r.by || 'Your coach'} · ${new Date(r.at).toLocaleDateString()}`
+                      : `${r.kind === 'own' ? 'added notes to' : 'reviewed'} your game · ${new Date(r.at).toLocaleDateString()}`}
                   </span>
                 </div>
                 <div className="muted-note">{r.name}</div>
                 <div className="settings-row">
                   <button
                     className="primary small"
-                    onClick={() => { setOpen(false); openReview({ gameId: r.gameId, coachUid: r.coachUid }); }}
+                    onClick={() => {
+                      setOpen(false);
+                      if (r.analyzed) openGameReview({ playerId: r.sectionId, gameId: r.gameId });
+                      else openReview({ gameId: r.gameId, coachUid: r.coachUid });
+                    }}
                   >
-                    Read
+                    {r.analyzed ? 'Open in Game Review' : 'Read'}
                   </button>
                   <button
                     className="small ghost"
@@ -250,16 +258,33 @@ export default function Inbox() {
               if (isLesson(d)) line = lessonLine(d, state?.savedPositions, done);
               // Only changes to positions they already have: say Update, not Add.
               const updateOnly = isLesson(d) && !done && lessonPlan(state?.savedPositions, d).add.length === 0;
+              // Lines for their repertoire: said plainly — a new variation,
+              // then, once added, where it is and a way to practise it.
+              const lines = d.kind !== 'game' && !isAnyLesson(d) ? linesIn(d) : null;
+              const landing = lines && done ? landingOf(state, d) : null;
+              const headline = !lines ? null
+                : done
+                  ? `${lines.count === 1 ? 'A variation has' : `${lines.count} variations have`} been added to your repertoire`
+                  : `${lines.count === 1 ? 'New variation' : `${lines.count} new variations`} for your repertoire`;
               return (
                 <div key={d.id} className={`inbox-item${done ? ' done' : ''}`}>
                   <div className="inbox-head">
-                    <strong>{d.fromName || 'A coach'}</strong>
-                    <span className="muted-note">{stamp(d.sentAt)}</span>
+                    <strong>{headline ?? (d.fromName || 'A coach')}</strong>
+                    <span className="muted-note">{headline ? `${d.fromName || 'Your coach'} · ${stamp(d.sentAt)}` : stamp(d.sentAt)}</span>
                   </div>
                   <div className="muted-note">{line}</div>
                   {d.message && <p className="inbox-message">“{d.message}”</p>}
                   <div className="settings-row">
-                    {done ? (
+                    {done && landing ? (
+                      <>
+                        <button className="primary small" onClick={() => { setOpen(false); openLine({ ...landing, practice: false }); }}>
+                          Go check it out
+                        </button>
+                        <button className="small" onClick={() => { setOpen(false); openLine({ ...landing, practice: true }); }}>
+                          Practice it
+                        </button>
+                      </>
+                    ) : done ? (
                       <span className="practiced-pill">
                         {d.kind === 'game' && 'Adding to your Games…'}
                         {isAnyLesson(d) && `In your Board Editor — Saved positions, “${lessonName(d.lesson)}”`}
@@ -297,4 +322,37 @@ export default function Inbox() {
       )}
     </>
   );
+}
+
+// The lines in a delivery of repertoire: how many, for the headline.
+function linesIn(d) {
+  const openings = Array.isArray(d?.openings) ? d.openings : [];
+  let count = 0;
+  for (const o of openings) for (const c of o.chapters ?? []) count += c.variations?.length ?? 0;
+  return count > 0 ? { count } : null;
+}
+
+// Where those lines are now in the student's repertoire (a delivery keeps its
+// ids on the way in — lib/cloud/share applyDelivery): the first chapter they
+// went into, and the line itself when there's one.
+function landingOf(state, d) {
+  for (const o of d?.openings ?? []) {
+    const opening = state?.openings?.find((x) => x.id === o.id);
+    for (const c of o.chapters ?? []) {
+      const chapter = opening?.chapters?.find((x) => x.id === c.id);
+      if (!chapter) continue;
+      const ids = (c.variations ?? []).map((v) => v.id);
+      const here = ids.filter((id) => chapter.variations?.some((v) => v.id === id));
+      return {
+        openingId: opening.id, chapterId: chapter.id, variationId: here.length === 1 ? here[0] : null,
+      };
+    }
+  }
+  return null;
+}
+
+// App opens it (the chapter, or practice on those lines): asked for the way
+// the other screens are, so the bell needs nothing of App's.
+function openLine(detail) {
+  window.dispatchEvent(new CustomEvent('repertoire-open-line', { detail }));
 }

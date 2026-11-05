@@ -1,4 +1,4 @@
 // Written by scripts/sync-arcade.mjs — run `npm run sync:arcade` to update.
 // Chess Arcade's Game Review, as Repertoire Lab's Game Review tab loads it.
-export const ARCADE_REVIEW_URL = '/arcade/review.cce6ec7f16.html';
+export const ARCADE_REVIEW_URL = '/arcade/review.dfe0ffd498.html';
 export const ARCADE_FROM = "b20c2dd Review: a Game rating row for both players";

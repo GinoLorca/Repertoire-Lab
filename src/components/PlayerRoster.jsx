@@ -34,6 +34,7 @@ import ChessKidPractice, { IcnChip, useIcnRefresh } from './ChessKidPractice';
 import { confirmMeta } from '../lib/uscfMatch';
 import { openReview } from './ReviewReader';
 import { reviewsOf, reviewHash } from '../lib/cloud/reviews';
+import { openGameReview } from '../lib/openGameReview';
 import { parseDoc, docFromGame, docIsEmpty } from '../lib/analysisDoc';
 import { seedFor } from '../lib/studioSeed';
 import ReviewsInProgress from './ReviewsInProgress';
@@ -140,6 +141,17 @@ function reviewActionFor(game, player, players) {
     const list = reviewsOf(game);
     if (!list.length) return null;
     const unseen = list.some((r) => (r.rev ?? 0) > (game.reviewSeen?.[r.coachUid]?.rev ?? 0));
+    // From Game Review: opened there, where the analysis is (opening it
+    // counts as read).
+    if (list[0].analyzed) {
+      return {
+        label: `${list[0].by || 'Coach'}’s analysis`,
+        title: 'Open your coach’s analysis of this game in Game Review',
+        primary: unseen,
+        unseen,
+        onOpen: () => openGameReview({ playerId: player.id, gameId: game.id }),
+      };
+    }
     return {
       label: `${list[0].by || 'Coach'}’s review`,
       title: 'Read the review — the notes, badges and arrows, with the engine alongside',

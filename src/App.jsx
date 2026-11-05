@@ -15,6 +15,7 @@ import PracticeView from './views/PracticeView';
 import GroupsView from './views/GroupsView';
 import AnalysisView from './views/AnalysisView';
 import GameReviewView from './views/GameReviewView';
+import { OPEN_GAME_REVIEW, takeGameReviewRequest, openGameReview } from './lib/openGameReview';
 import GamesView from './views/GamesView';
 import VerifyView from './views/VerifyView';
 import SearchPanel from './views/SearchPanel';
@@ -629,6 +630,14 @@ function AppInner() {
       setView('analysis');
     });
   };
+  // …and from the bell, the toast or a game's own button (lib/openGameReview).
+  const sendToReviewRef = useRef(sendToReview);
+  sendToReviewRef.current = sendToReview;
+  useEffect(() => {
+    const on = () => { const r = takeGameReviewRequest(); if (r) sendToReviewRef.current(r); };
+    window.addEventListener(OPEN_GAME_REVIEW, on);
+    return () => window.removeEventListener(OPEN_GAME_REVIEW, on);
+  }, []);
 
   // "Continue" on a review in progress: the game back in Studio, at the move
   // it was left on.
@@ -743,6 +752,19 @@ function AppInner() {
     return () => window.removeEventListener('repertoire-open-library', on);
   }, []);
   openLibraryRef.current = openLibraryFor;
+  // Lines a coach sent, from the bell (components/Inbox): their chapter, or
+  // practice on them.
+  const openLineRef = useRef(null);
+  openLineRef.current = ({ openingId, chapterId, variationId, practice }) => {
+    if (!openingId || !chapterId) return;
+    if (practice) startPractice(variationId ? { openingId, chapterId, variationId, mode: 'practice' } : { openingId, chapterId });
+    else openChapter(openingId, chapterId);
+  };
+  useEffect(() => {
+    const on = (e) => openLineRef.current?.(e.detail ?? {});
+    window.addEventListener('repertoire-open-line', on);
+    return () => window.removeEventListener('repertoire-open-line', on);
+  }, []);
   const navTo = (v, subTab = null) => {
     // (Analysis from Studio is the analysis board, a board away.)
     if (v === view && (!subTab || subTab === sub) && !(v === 'analysis' && sub === 'studio')) return;
@@ -1030,6 +1052,7 @@ function AppInner() {
 // explanation attached.
 function CoachGamesToast() {
   const { coachApplied, clearCoachApplied } = useCloud();
+  const { state } = useStore();
   useEffect(() => {
     if (!coachApplied.length) return undefined;
     const t = setTimeout(clearCoachApplied, 9000);
@@ -1042,13 +1065,19 @@ function CoachGamesToast() {
   // A review of their own game (lib/cloud/reviews) — one per game, however
   // many versions arrived in the same sync.
   const reviewed = [...new Map(coachApplied
-    .filter((o) => o.outcome === 'reviewed' || o.outcome === 'review-updated')
+    .filter((o) => (o.outcome === 'reviewed' || o.outcome === 'review-updated') && !o.analyzed)
     .map((o) => [`${o.gameId}:${o.fromUid}`, o])).values()];
+  // From Game Review: "Your game has been analyzed", or "Analysis updated"
+  // when the game had been analyzed before — on its own line, with Open.
+  const analyzed = [...new Map(coachApplied
+    .filter((o) => o.analyzed && ['reviewed', 'review-updated', 'applied', 'inserted'].includes(o.outcome))
+    .map((o) => [o.gameId, o])).values()];
   const parts = [];
   if (added.length === 1) parts.push(`added ${added[0].name} to your Games`);
   else if (added.length > 1) parts.push(`added ${added.length} games to your Games`);
-  if (fixed.length === 1) parts.push(`updated ${fixed[0].name}`);
-  else if (fixed.length > 1) parts.push(`updated ${fixed.length} games`);
+  const plainFixed = fixed.filter((o) => !o.analyzed);
+  if (plainFixed.length === 1) parts.push(`updated ${plainFixed[0].name}`);
+  else if (plainFixed.length > 1) parts.push(`updated ${plainFixed.length} games`);
   if (reviewed.length === 1) {
     parts.push(`${reviewed[0].outcome === 'review-updated' ? 'updated the review of' : 'reviewed'} your game ${reviewed[0].name}`);
   } else if (reviewed.length > 1) parts.push(`reviewed ${reviewed.length} of your games`);
@@ -1057,10 +1086,26 @@ function CoachGamesToast() {
   if (refused.length) {
     parts.push(`sent a review of ${refused[0].name} that couldn’t be kept — that games list is full; move some games to another section and ask for it again`);
   }
-  if (!parts.length) return null;
+  if (!parts.length && !analyzed.length) return null;
+  const again = analyzed.length === 1 && analyzed[0].outcome !== 'inserted' && analyzed[0].outcome !== 'reviewed';
+  const sectionOf = (gameId) => state?.players?.find((p) => (p.games ?? []).some((g) => g.id === gameId))?.id;
   return (
     <div className="coach-toast" role="status">
-      <span>{who} {parts.join(' and ')}.</span>
+      {analyzed.length > 0 && (
+        <span>
+          <strong>{analyzed.length > 1 ? `${analyzed.length} of your games have been analyzed` : again ? 'Analysis updated' : 'Your game has been analyzed'}</strong>
+          {analyzed.length === 1 ? ` — ${who}, ${analyzed[0].name}.` : ` — by ${who}.`}
+        </span>
+      )}
+      {analyzed.length > 0 && (
+        <button
+          className="small primary"
+          onClick={() => { openGameReview({ playerId: sectionOf(analyzed[0].gameId), gameId: analyzed[0].gameId }); clearCoachApplied(); }}
+        >
+          Open in Game Review
+        </button>
+      )}
+      {parts.length > 0 && <span>{who} {parts.join(' and ')}.</span>}
       {reviewed.length > 0 && (
         <button
           className="small primary"

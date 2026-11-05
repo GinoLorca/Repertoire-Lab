@@ -384,6 +384,7 @@ export function applyCoachGames(state, deliveries, { studentUid, ledger, now }) 
       const prev = { ...(g.coachPrev ?? {}) };
       let changed = false;
       let analysed = false; // a note, badge, drawing or variation changed
+      let reviewed = false; // …in Game Review (gameReview): "your game has been analyzed"
       for (const [p, value] of Object.entries(patch.set)) {
         const cur = ph(getPath(next, p));
         const to = ph(value);
@@ -403,6 +404,7 @@ export function applyCoachGames(state, deliveries, { studentUid, ledger, now }) 
           h[p] = to;
           changed = true;
           if (ANALYSIS.has(split(p)[0])) analysed = true;
+          if (split(p)[0] === 'gameReview') reviewed = true;
         }
         // Anything else is a field the student changed since the coach last
         // saw it. Theirs stands.
@@ -411,7 +413,12 @@ export function applyCoachGames(state, deliveries, { studentUid, ledger, now }) 
       if (Object.keys(prev).length) next.coachPrev = prev;
       // The student hears about analysis the coach added to a game they
       // typed in, as they do about a review (lib/cloud/reviews).
-      if (analysed) next.coachNews = { ...(g.coachNews ?? {}), [C]: { rev: d.rev, by: cleanName(d.fromName), at: now } };
+      // gr: it was Game Review — the student is told their game was analyzed.
+      if (analysed) {
+        next.coachNews = {
+          ...(g.coachNews ?? {}), [C]: { rev: d.rev, by: cleanName(d.fromName), at: now, ...(reviewed ? { gr: true } : {}) },
+        };
+      }
       // updatedAt deliberately untouched: the student's own later edits must
       // still win a clash between the student's own devices.
       players = players.map((pl, i) => (i === at.pi
@@ -419,7 +426,7 @@ export function applyCoachGames(state, deliveries, { studentUid, ledger, now }) 
         : pl));
       ledgerWrites[d.gameId] = { c: C, r: d.rev, at: now };
       known[d.gameId] = ledgerWrites[d.gameId];
-      result(changed ? 'applied' : 'unchanged', { name: gameSummary(next) });
+      result(changed ? 'applied' : 'unchanged', { name: gameSummary(next), ...(reviewed ? { analyzed: true } : {}) });
       continue;
     }
 
@@ -443,8 +450,9 @@ export function applyCoachGames(state, deliveries, { studentUid, ledger, now }) 
       coach: { [C]: { rev: d.rev, h } },
       updatedAt: d.rev,
     };
+    const grNew = Object.keys(patch.set).some((p) => split(p)[0] === 'gameReview' && !isEmpty(patch.set[p]));
     if (Object.keys(patch.set).some((p) => ANALYSIS.has(split(p)[0]) && !isEmpty(patch.set[p]))) {
-      g.coachNews = { [C]: { rev: d.rev, by: cleanName(d.fromName), at: now } };
+      g.coachNews = { [C]: { rev: d.rev, by: cleanName(d.fromName), at: now, ...(grNew ? { gr: true } : {}) } };
     }
 
     // Into their first own section with room. A student who has none gets
@@ -463,7 +471,7 @@ export function applyCoachGames(state, deliveries, { studentUid, ledger, now }) 
     players = players.map((pl, i) => (i === target ? { ...pl, games: [...(pl.games ?? []), g] } : pl));
     ledgerWrites[d.gameId] = { c: C, r: d.rev, at: now };
     known[d.gameId] = ledgerWrites[d.gameId];
-    result('inserted', { name: gameSummary(g) });
+    result('inserted', { name: gameSummary(g), ...(grNew ? { analyzed: true } : {}) });
   }
 
   // Belt and braces: one game, one place.
