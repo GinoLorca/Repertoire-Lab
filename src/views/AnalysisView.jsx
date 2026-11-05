@@ -30,6 +30,7 @@ import {
 } from '../lib/games';
 import {
   buildPositionIndex, bookMovesAt, matchGameToRepertoire, moveLabel, repertoireSide,
+  bookOpenings, bookName, REPERTOIRE_SOURCES,
 } from '../lib/repertoire';
 import { sideOf, sideFromNames } from '../lib/pov';
 import LegalDots from '../components/LegalDots';
@@ -604,16 +605,19 @@ export default function AnalysisView({
   // ---------- Repertoire awareness ----------
 
   // A student's game (ownerId set when it was sent here — see PlayerRoster's
-  // onAnalyze) checks against their own book, not yours.
+  // onAnalyze) checks against what the board's ⚙ says: by default their own
+  // lines and your whole library together (they're taught yours, and a few
+  // lines sent so far aren't the whole of it), or one of the two, or none.
   const repertoireOwnerId = initialLine?.ownerId ?? null;
   const repertoireOwner = repertoireOwnerId
     ? state.players.find((p) => p.id === repertoireOwnerId)
     : null;
+  const repSource = state.settings.analysisRepertoire ?? 'both';
+  const theirBook = repertoireOwner && repSource !== 'mine' && repSource !== 'none';
+  const bookTitle = bookName(repSource, repertoireOwner?.name);
   const positionIndex = useMemo(
-    () => buildPositionIndex(
-      state.openings.filter((o) => (o.ownerId ?? null) === repertoireOwnerId),
-    ),
-    [state.openings, repertoireOwnerId],
+    () => buildPositionIndex(bookOpenings(state.openings, { studentId: repertoireOwnerId, source: repSource })),
+    [state.openings, repertoireOwnerId, repSource],
   );
   // The repertoire can be walked from here: the normal start, or a position a
   // line was set up from — not just any position one of its lines passes
@@ -2117,6 +2121,24 @@ export default function AnalysisView({
                 ['engineAuto', 'Engine on when the board opens', state.settings.engineAuto !== false],
                 ['soundEnabled', 'Move sounds', soundOn],
               ].map(row)}
+              {/* Which repertoire this board checks moves against. */}
+              <div className="board-menu-head">Repertoire to check</div>
+              <div className="board-menu-group">
+                {REPERTOIRE_SOURCES.map((o) => (
+                  <label key={o.id} className={`board-menu-row${repSource === o.id ? ' on' : ''}`} title={o.hint}>
+                    <input
+                      type="radio"
+                      name="analysis-repertoire"
+                      checked={repSource === o.id}
+                      onChange={() => dispatch({ type: 'setSettings', settings: { analysisRepertoire: o.id } })}
+                    />
+                    {o.label}
+                  </label>
+                ))}
+                {!repertoireOwner && repSource !== 'none' && (
+                  <div className="board-menu-note">Your own games: your repertoire.</div>
+                )}
+              </div>
             </div>
           );
         })()}
@@ -2379,7 +2401,7 @@ export default function AnalysisView({
     <>
     {fromStart && moves.length > 0 && (
       <div className={`panel book-panel-summary${gameMatch.matched ? '' : ' unmatched'}`}>
-        <h3><BookIcon size={16} /> {repertoireOwner ? `${repertoireOwner.name}'s repertoire` : 'Your repertoire'}</h3>
+        <h3><BookIcon size={16} /> {bookTitle}</h3>
         {gameMatch.matched ? (
           <>
             <div className="book-match">
@@ -2406,7 +2428,9 @@ export default function AnalysisView({
           </>
         ) : (
           <div style={{ color: 'var(--muted)', fontSize: 14 }}>
-            This game doesn't match any uploaded opening — pure engine analysis below.
+            {repSource === 'none'
+              ? 'No repertoire is checked — pure engine analysis below. Choose one under ⚙.'
+              : 'This game doesn\'t match any uploaded opening — pure engine analysis below.'}
           </div>
         )}
       </div>
@@ -2602,10 +2626,13 @@ export default function AnalysisView({
     );
   };
   const similarPanel = () => {
-    const whose = repertoireOwner ? `${repertoireOwner.name}'s repertoire` : 'your repertoire';
+    const whose = !theirBook ? 'your repertoire'
+      : repSource === 'student' ? `${repertoireOwner.name}'s repertoire` : `${repertoireOwner.name}'s repertoire or yours`;
     let empty = null;
-    if (positionIndex.size === 0) {
-      empty = `Nothing to compare with yet — ${repertoireOwner ? `${repertoireOwner.name} has` : 'you have'} no repertoire lines.`;
+    if (repSource === 'none') {
+      empty = 'No repertoire is checked on this board — choose one under ⚙ (Repertoire to check).';
+    } else if (positionIndex.size === 0) {
+      empty = `Nothing to compare with yet — ${theirBook && repSource === 'student' ? `${repertoireOwner.name} has` : 'there are'} no repertoire lines.`;
     } else if (similarTooSoon) {
       empty = `Play some moves: the lines in ${whose} that the position resembles show here.`;
     } else if (!similar.length) {
@@ -2618,7 +2645,7 @@ export default function AnalysisView({
         <h3>
           <BookIcon size={13} /> Similar openings
           <span className="spacer" />
-          {repertoireOwner && <span className="depth-tag">{repertoireOwner.name}</span>}
+          {theirBook && <span className="depth-tag">{repSource === 'student' ? repertoireOwner.name : `${repertoireOwner.name} + yours`}</span>}
         </h3>
         {empty && <div style={{ color: 'var(--muted)', fontSize: 14 }}>{empty}</div>}
         {similar.map((sg) => {

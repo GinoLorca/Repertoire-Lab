@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../store';
 import MoveText from '../components/MoveText';
+import ThemeLines from '../components/ThemeLines';
 import { isDue, dueCount, unlearnedCount } from '../lib/srs';
 import {
   StarIcon, TagIcon, ClockIcon, PencilIcon, PlayIcon, CapIcon, FlaskIcon,
@@ -220,6 +221,8 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
   const [openKeys, setOpenKeys] = useState({ __fav: true });
   const [filter, setFilter] = useState('');
   const [fading, setFading] = useState({});
+  // The collection picker: { tag } to add to one, {} for a new one.
+  const [theming, setTheming] = useState(null);
   const labEntries = state.labEntries ?? [];
 
   // 'me' or a student's player id — same split as the Library, so a
@@ -326,6 +329,17 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
           Favorites and themes, gathered from every opening, chapter and variation
         </span>
         <span style={{ flex: 1 }} />
+        {rows.length > 0 && (
+          <button
+            className="primary"
+            title={scopedStudent
+              ? `A theme for ${scopedStudent.name} to remember, on lines from anywhere in their repertoire`
+              : 'A theme on lines from anywhere in your repertoire'}
+            onClick={() => setTheming({})}
+          >
+            + New collection
+          </button>
+        )}
         {tagGroups.length > 0 && (
           <input
             type="text"
@@ -423,11 +437,11 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
           <div className="group-actions">
             <button
               className="small ghost"
-              title="Rename this theme everywhere it's used"
+              title="Rename this theme everywhere it's used in this repertoire"
               onClick={() => {
                 const name = window.prompt(`Rename “${tag}” everywhere:`, tag);
                 if (name?.trim() && name.trim() !== tag) {
-                  dispatch({ type: 'renameTag', from: tag, to: name.trim() });
+                  dispatch({ type: 'renameTag', from: tag, to: name.trim(), ownerId: scope === 'me' ? null : scope });
                 }
               }}
             >
@@ -439,6 +453,13 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
               onClick={() => onPractice({ tag, mode: 'learn', ownerId: scope === 'me' ? null : scope })}
             >
               <CapIcon size={14} /> Learn these
+            </button>
+            <button
+              className="small ghost"
+              title={`Put more lines in “${tag}”`}
+              onClick={() => setTheming({ tag })}
+            >
+              + Add lines
             </button>
           </div>
 
@@ -555,6 +576,15 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
           </div>
         ))}
       </GroupBlock>
+
+      {theming && (
+        <ThemeLines
+          openings={openings}
+          ownerName={scopedStudent?.name}
+          initialTag={theming.tag ?? ''}
+          onClose={() => setTheming(null)}
+        />
+      )}
 
       {untagged > 0 && (
         <div className="muted-note" style={{ marginTop: 14 }}>

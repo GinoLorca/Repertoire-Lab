@@ -162,3 +162,33 @@ export function moveLabel(ply, startFen = START_FEN) {
   // ply = 0-based index of a move from `startFen` (the game's start by default)
   return moveNumberLabel(ply, startFen, '…');
 }
+
+// Which repertoire the analysis board checks a game against (the board's ⚙,
+// and Settings). On a student's game: their lines and yours together — they
+// are taught yours, and a coach analysing needs the whole library, not only
+// the few lines sent so far — or just one of the two, or none at all. On
+// your own game it's yours, or none.
+export const REPERTOIRE_SOURCES = [
+  { id: 'both', label: 'Mine + the student’s', hint: 'the student’s lines first, then your whole library' },
+  { id: 'mine', label: 'My whole library', hint: 'every line of yours, whoever’s game it is' },
+  { id: 'student', label: 'Only the student’s', hint: 'just the lines they have' },
+  { id: 'none', label: 'No repertoire', hint: 'the engine on its own' },
+];
+
+export function bookOpenings(openings, { studentId = null, source = 'both' } = {}) {
+  if (source === 'none') return [];
+  const mine = (openings ?? []).filter((o) => (o.ownerId ?? null) === null);
+  if (!studentId) return mine;
+  const theirs = (openings ?? []).filter((o) => o.ownerId === studentId);
+  if (source === 'mine') return mine;
+  if (source === 'student') return theirs;
+  return [...theirs, ...mine];
+}
+
+// What the board's repertoire panel calls the book it's checking.
+export function bookName(source, studentName) {
+  if (source === 'none') return 'No repertoire';
+  if (!studentName || source === 'mine') return 'Your repertoire';
+  if (source === 'student') return `${studentName}'s repertoire`;
+  return `${studentName}'s + yours`;
+}

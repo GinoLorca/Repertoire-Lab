@@ -15,6 +15,7 @@ import {
   PENS, SHORTCUTS, shortcutKey, formatShortcutKey, isPenShortcut, modifierToken, MODIFIER_ORDER,
   eventKey, keyToken,
 } from '../lib/shortcuts';
+import { REPERTOIRE_SOURCES } from '../lib/repertoire';
 
 // Themes that have both a picture and a pattern underneath it. Bauhaus and
 // Game Boy's picture is the whole wallpaper, so there's nothing to switch to.
@@ -840,6 +841,15 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
           on={s.bookMoves !== false}
           onChange={(v) => set({ bookMoves: v })}
         />
+        <div className="settings-row">
+          <span>On a student’s game, check moves against</span>
+          <select
+            value={s.analysisRepertoire ?? 'both'}
+            onChange={(e) => set({ analysisRepertoire: e.target.value })}
+          >
+            {REPERTOIRE_SOURCES.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </select>
+        </div>
       </Section>
 
       <Section id="keyboard" tab={tab} title="Keyboard" hint="On the analysis board — click a key to rebind it">

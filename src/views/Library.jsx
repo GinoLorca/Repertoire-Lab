@@ -25,6 +25,9 @@ import {
   SendIcon,
 } from '../components/Icons';
 import SendToStudent from '../components/SendToStudent';
+import CurateLines from '../components/CurateLines';
+import { GUIDE_NAME, guidePlan } from '../lib/curate';
+import { fullBackup } from '../lib/backup';
 import { cloudConfigured } from '../lib/cloud/config';
 import { watchAuth } from '../lib/cloud/auth';
 import { loadProfile } from '../lib/cloud/profile';
@@ -403,13 +406,166 @@ function GroupByAuthorModal({ opening, authors, onApply, onClose }) {
   );
 }
 
+// The one-time change to a student's openings, shown before it's made:
+// what each opening has now, what it will have, and that nothing is lost.
+// Nothing changes until "Reorganise" — and a backup is one tap away first.
+function GuidePlanModal({ plan, studentName, canSend, onBackup, onApply, onSend, onClose }) {
+  const [frozen] = useState(plan); // what was shown is what's applied
+  const [picked, setPicked] = useState(() => new Set(plan.map((p) => p.openingId)));
+  const [done, setDone] = useState(null); // the opening ids reorganised
+  useBackGuard(true, onClose);
+  const flip = (id) => setPicked((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  if (done) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+          <h3>Done</h3>
+          <p className="hint">
+            {plural(done.length, 'opening')} now {done.length === 1 ? 'has' : 'have'} one curated
+            chapter, with every line and all of {studentName}’s progress. Add more
+            curated chapters any time with <strong>+ Curated chapter</strong>.
+          </p>
+          <p className="hint">
+            {studentName}’s app takes the new layout the next time you send these openings: the
+            old chapters go there too, and their progress is kept.
+          </p>
+          <div className="modal-actions">
+            <button type="button" onClick={onClose}>Later</button>
+            {canSend && <button type="button" className="primary" onClick={() => onSend(done)}>Send to {studentName} now</button>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal guide-plan-modal" onClick={(e) => e.stopPropagation()}>
+        <h3>Simplify {studentName}’s repertoire</h3>
+        <p className="hint">
+          Each opening keeps its name and every one of its lines, with all of {studentName}’s
+          progress — learned, due dates, stars, themes. Its chapters and courses go: the lines move
+          into one curated chapter, “{GUIDE_NAME}”. Here’s exactly what changes.
+        </p>
+        <div className="guide-plan">
+          {frozen.map((p) => {
+            const byCourse = new Map();
+            for (const c of p.chapters) {
+              const k = c.course ?? '';
+              if (!byCourse.has(k)) byCourse.set(k, []);
+              byCourse.get(k).push(c);
+            }
+            return (
+              <label key={p.openingId} className={`guide-plan-item${picked.has(p.openingId) ? '' : ' off'}`}>
+                <input type="checkbox" checked={picked.has(p.openingId)} onChange={() => flip(p.openingId)} />
+                <div>
+                  <strong>{p.opening}</strong>
+                  <div className="guide-plan-now">
+                    <span className="guide-plan-tag">Now</span>
+                    {p.courses.length > 0 && `${plural(p.courses.length, 'course')} · `}
+                    {plural(p.chapters.length, 'chapter')} · {plural(p.lines, 'line')}
+                  </div>
+                  {p.chapters.length > 0 && (
+                    <ul className="guide-plan-chapters">
+                      {[...byCourse].map(([course, chapters]) => (
+                        <li key={course || '-'}>
+                          {p.courses.length > 0 && <em>{course || 'Not in a course'}: </em>}
+                          {chapters.map((c) => `${c.name} (${c.lines})`).join(', ')}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="guide-plan-after">
+                    <span className="guide-plan-tag">After</span>
+                    1 chapter, “{p.guide}” · {plural(p.lines, 'line')}
+                  </div>
+                  {p.videos.length > 0 && (
+                    <div className="muted-note guide-plan-video">
+                      {p.videos[0]}’s video stays with the guide
+                      {p.videos.length > 1 && `; ${p.videos.slice(1).join(', ')}’s ${p.videos.length > 2 ? 'videos don’t' : 'video doesn’t'} carry over (a chapter has one video)`}.
+                    </div>
+                  )}
+                </div>
+              </label>
+            );
+          })}
+        </div>
+        <p className="hint">
+          Nothing changes until you press <strong>Reorganise</strong>.{' '}
+          <button type="button" className="link" onClick={onBackup}>Save a backup first</button>
+        </p>
+        <div className="modal-actions">
+          <button type="button" onClick={onClose}>Cancel</button>
+          <button
+            type="button"
+            className="primary"
+            disabled={!picked.size}
+            onClick={() => { const ids = frozen.map((p) => p.openingId).filter((id) => picked.has(id)); onApply(ids); setDone(ids); }}
+          >
+            Reorganise {plural(picked.size, 'opening')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// A curated chapter's name: "Quickstarter Guide" unless there's one already.
+function CuratedChapterModal({ opening, studentName, onSubmit, onClose }) {
+  const taken = (n) => opening.chapters.some((c) => c.name.trim().toLowerCase() === n.toLowerCase());
+  const [name, setName] = useState(() => {
+    if (!taken(GUIDE_NAME)) return GUIDE_NAME;
+    let i = 2;
+    while (taken(`${GUIDE_NAME} ${i}`)) i += 1;
+    return `${GUIDE_NAME} ${i}`;
+  });
+  useBackGuard(true, onClose);
+  const go = () => { if (name.trim()) onSubmit(name.trim()); };
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+        <h3>New curated chapter{studentName ? ` for ${studentName}` : ''}</h3>
+        <p className="hint">
+          A chapter you build out of lines from anywhere in your own {opening.name} — other
+          chapters, other courses. Next you pick the lines.
+        </p>
+        <input
+          type="text"
+          autoFocus
+          value={name}
+          placeholder="Chapter name"
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') go(); }}
+        />
+        <div className="modal-actions">
+          <button type="button" onClick={onClose}>Cancel</button>
+          <button type="button" className="primary" disabled={!name.trim()} onClick={go}>Next: pick lines</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ChapterCard({
   opening, chapter, onOpen, onDelete, onMove, onToggleStar, onPractice, groupLabel, drag = null,
 }) {
   const dragBits = dragParts(drag);
-  const { dispatch } = useStore();
+  const { state, dispatch } = useStore();
   const isPhone = useIsPhone();
   const [importing, setImporting] = useState(false);
+  // A student's chapter takes lines from anywhere in your own repertoire.
+  const [curating, setCurating] = useState(false);
+  const student = opening.ownerId ? state.players.find((p) => p.id === opening.ownerId) : null;
+  const curateItem = opening.ownerId && {
+    label: 'Add lines from my repertoire',
+    hint: 'any chapter, any course',
+    icon: '＋',
+    onClick: () => setCurating(true),
+  };
   const [confirming, setConfirming] = useState(false);
   const [menu, setMenu] = useState(null); // { at } — a long press or right-click on the card
   const [filing, setFiling] = useState(false);
@@ -458,6 +614,7 @@ function ChapterCard({
         <h3>{chapter.name}</h3>
         {dragBits.grip}
       </div>
+      {chapter.curated && opening.ownerId && <span className="chapter-curated-chip">Curated</span>}
       <TagChips tags={chapter.tags} max={3} />
       <div className="chapter-meta">
         <span className="counts">
@@ -489,6 +646,7 @@ function ChapterCard({
             <MoreMenu
               title={chapter.name}
               items={[
+                curateItem,
                 { label: 'Add lines (PGN)', icon: <UploadIcon size={16} />, onClick: () => setImporting(true) },
                 {
                   label: 'Export chapter (PGN)',
@@ -518,12 +676,21 @@ function ChapterCard({
         >
           <PlayIcon size={14} /> Practice{due > 0 ? ` (${due})` : ''}
         </button>
+        {opening.ownerId && (
+          <button
+            className="small ghost"
+            title="Add lines from anywhere in your own repertoire — any chapter, any course"
+            onClick={() => setCurating(true)}
+          >
+            ＋ Lines
+          </button>
+        )}
         <button
           className="small ghost"
           title="Add lines to this chapter from a PGN file or pasted moves"
           onClick={() => setImporting(true)}
         >
-          <UploadIcon size={14} /> Add
+          <UploadIcon size={14} /> {opening.ownerId ? 'Import' : 'Add'}
         </button>
         <button
           className="small ghost"
@@ -579,6 +746,7 @@ function ChapterCard({
           { sep: true },
           ...subItems,
           { sep: true },
+          curateItem,
           { label: 'Add lines (PGN)', icon: <UploadIcon size={16} />, onClick: () => setImporting(true) },
           {
             label: 'Export chapter (PGN)',
@@ -595,6 +763,14 @@ function ChapterCard({
       />
     )}
     {filing && <FileAsSubVariation opening={opening} chapter={chapter} onClose={() => setFiling(false)} />}
+    {curating && (
+      <CurateLines
+        opening={opening}
+        chapter={chapter}
+        studentName={student?.name}
+        onClose={() => setCurating(false)}
+      />
+    )}
     </>
   );
 }
@@ -660,6 +836,9 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
   const myOpenings = state.openings.filter((o) => (o.ownerId ?? null) === null);
   const openings = state.openings.filter((o) => (o.ownerId ?? null) === (scope === 'me' ? null : scope));
   const scopedStudent = scope !== 'me' ? students.find((p) => p.id === scope) : null;
+  // A student's openings not yet laid out as curated chapters: what
+  // "Simplify into Quickstarter Guides" would change.
+  const guideFor = scopedStudent ? guidePlan(openings, students) : [];
 
   // Coming back from a chapter: make sure it's actually on screen — expand its
   // opening and the section it sits in, so Back never lands on a closed shelf.
@@ -858,6 +1037,15 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
             <UsersIcon size={15} /> {scopedStudent ? 'Copy from mine' : 'Give to students'}
           </button>
         )}
+        {guideFor.length > 0 && (
+          <button
+            className="ghost"
+            title={`Each of ${scopedStudent.name}'s openings as one curated chapter, “${GUIDE_NAME}”, with every line and all their progress — you see exactly what changes first`}
+            onClick={() => setModal({ kind: 'guidePlan' })}
+          >
+            Simplify into {GUIDE_NAME}s
+          </button>
+        )}
         <button onClick={() => setModal({ kind: 'addOpening' })}>
           + Add Opening{scopedStudent ? ` for ${scopedStudent.name}` : ''}
         </button>
@@ -992,6 +1180,12 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                           onClick: () => setModal({ kind: 'groupByAuthor', openingId: opening.id }),
                         },
                         { sep: true },
+                        opening.ownerId && {
+                          label: 'Add curated chapter',
+                          hint: 'lines from anywhere in your own repertoire',
+                          icon: '＋',
+                          onClick: () => setModal({ kind: 'addCurated', openingId: opening.id }),
+                        },
                         {
                           label: 'Add chapter',
                           icon: '+',
@@ -1155,6 +1349,15 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
                   >
                     + Course
                   </button>
+                  {opening.ownerId && (
+                    <button
+                      className="small primary"
+                      title={`A chapter you build for ${scopedStudent?.name ?? 'this student'} from lines anywhere in your own ${opening.name}`}
+                      onClick={() => setModal({ kind: 'addCurated', openingId: opening.id })}
+                    >
+                      + Curated chapter
+                    </button>
+                  )}
                   <button
                     className="small"
                     title="Add a chapter to this opening"
@@ -1893,6 +2096,39 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
           }}
         />
       )}
+      {modal?.kind === 'addCurated' && (() => {
+        const o = state.openings.find((x) => x.id === modal.openingId);
+        if (!o) return null;
+        return (
+          <CuratedChapterModal
+            opening={o}
+            studentName={scopedStudent?.name}
+            onClose={() => setModal(null)}
+            onSubmit={(name) => {
+              const chapterId = uid();
+              dispatch({ type: 'addChapter', id: chapterId, openingId: o.id, courseId: null, name, curated: true });
+              setModal({ kind: 'curate', openingId: o.id, chapterId });
+            }}
+          />
+        );
+      })()}
+      {modal?.kind === 'guidePlan' && (
+        <GuidePlanModal
+          plan={guideFor}
+          studentName={scopedStudent?.name ?? 'Student'}
+          canSend={!!me}
+          onBackup={() => { const b = fullBackup(state); downloadText(b.name, b.text); }}
+          onClose={() => setModal(null)}
+          onApply={(openingIds) => dispatch({ type: 'reorganiseGuides', openingIds })}
+          onSend={(openingIds) => { setModal(null); setSending(state.openings.filter((o) => openingIds.includes(o.id))); }}
+        />
+      )}
+      {modal?.kind === 'curate' && (() => {
+        const o = state.openings.find((x) => x.id === modal.openingId);
+        const c = o?.chapters.find((x) => x.id === modal.chapterId);
+        if (!c) return null;
+        return <CurateLines opening={o} chapter={c} studentName={scopedStudent?.name} onClose={() => setModal(null)} />;
+      })()}
       {modal?.kind === 'importPgn' && (
         <PgnImport
           chapterName={modal.name}

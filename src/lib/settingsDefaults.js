@@ -39,6 +39,9 @@ export const DEFAULT_SETTINGS = {
   arrowThird: true, // …the third
   engineAuto: true, // start Stockfish as soon as the analysis board opens
   bookMoves: true, // your own lines shown above the engine's on the board
+  // Which repertoire the analysis board checks: on a student's game 'both'
+  // (theirs + your whole library), 'mine', 'student' or 'none'.
+  analysisRepertoire: 'both',
   theme: 'dark', // 'dark' | 'light' | 'auto' (auto follows the time of day)
   // Which palette the whole app wears — one of the themes, or 'custom' for
   // this app's own colours plus whatever's set below. Tournament Felt is what

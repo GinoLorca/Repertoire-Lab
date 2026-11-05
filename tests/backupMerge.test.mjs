@@ -57,6 +57,44 @@ test('"arranged by hand" travels only with its order: a coach\'s arranged openin
 });
 
 
+test('a coach\'s "Quickstarter Guide" arriving: the chapters and courses it emptied go, the student\'s own stay, progress and playlists follow', () => {
+  const student = {
+    openings: [{
+      id: 'o', name: 'Jobava London',
+      courses: [{ id: 'k1', name: 'Midas Ratsma' }, { id: 'k2', name: 'My own notes' }],
+      chapters: [
+        { id: 'c1', name: 'Mainline', courseId: 'k1', variations: [line('a', { learned: true, srs: { level: 2, lastReview: 4 } }), line('b')] },
+        { id: 'c2', name: 'Side', courseId: 'k1', variations: [line('c')] },
+        { id: 'c3', name: 'Mine', courseId: 'k2', variations: [line('m')] },
+        { id: 'c4', name: 'Empty, mine', courseId: null, variations: [] },
+        { id: 'c5', name: 'Half mine', courseId: 'k1', variations: [line('h'), line('mine2')] },
+      ],
+    }],
+    playlists: [{ id: 'p', name: 'Before school', items: [{ openingId: 'o', chapterId: 'c1', variationId: 'a' }, { openingId: 'o', chapterId: 'c3', variationId: 'm' }] }],
+  };
+  const guide = {
+    openings: [{
+      id: 'o', name: 'Jobava London', courses: [],
+      chapters: [{ id: 'g', name: 'Quickstarter Guide', curated: true, courseId: null, variations: [line('a'), line('b'), line('c'), line('h')] }],
+    }],
+  };
+  const merged = mergeBackup(student, guide, { structure: 'incoming' });
+  const o = merged.openings[0];
+  assert.deepEqual(where(merged), { c3: 'm', c4: '', c5: 'mine2', g: 'a b c h' });
+  // k1 still holds the student's own line in c5, so it stays; k2 is theirs
+  assert.deepEqual(o.courses.map((c) => c.id), ['k1', 'k2'], 'a course still holding the student\'s own lines stays');
+  const gone = mergeBackup({ openings: [{ ...student.openings[0], chapters: student.openings[0].chapters.filter((c) => c.id !== 'c5' && c.id !== 'c3') }] }, guide, { structure: 'incoming' });
+  assert.deepEqual(gone.openings[0].courses, [], 'and one it emptied goes');
+  const lone = mergeBackup({ openings: [{ ...student.openings[0], courses: [], chapters: [{ id: 'z', name: 'Z', courseId: 'k9', variations: [line('z')] }] }] }, guide, { structure: 'incoming' });
+  assert.equal(lone.openings[0].chapters[0].courseId, null, 'never left in a course that isn\'t there');
+  assert.equal(o.chapters.find((c) => c.id === 'g').variations[0].srs.level, 2, 'progress kept');
+  assert.deepEqual(merged.playlists[0].items.map((it) => it.chapterId), ['g', 'c3']);
+  // an older delivery with no courses at all leaves the courses alone
+  const old = mergeBackup(student, { openings: [{ id: 'o', name: 'Jobava London', chapters: [{ id: 'c1', name: 'Mainline', courseId: 'k1', variations: [line('a')] }] }] }, { structure: 'incoming' });
+  assert.equal(old.openings[0].courses.length, 2);
+  assert.equal(old.openings[0].chapters.length, 5);
+});
+
 test('a restore keeps whose a saved position is, and what it was recycled from', () => {
   const copy = {
     id: 'cp', name: 'Lucena', fen: '8/8/8/8/8/8/8/8 w - - 0 1', folder: 'Lesson 4', ownerId: 'card-wavy', recycledFrom: 'luc',

@@ -68,7 +68,54 @@ function mergeOpening(a, b, structure = 'local') {
   } else {
     delete merged.freeChapterOrder;
   }
-  return oneHomePerLine(merged, a, b, structure);
+  const settled = oneHomePerLine(merged, a, b, structure);
+  return structure === 'incoming' ? withoutEmptied(settled, a, b) : settled;
+}
+
+// A coach's newer arrangement can leave chapters here with nothing in them:
+// every line they held now lives somewhere else (a curated chapter, say a
+// "Quickstarter Guide"). Those go — but only those: a chapter the coach sent,
+// a chapter that was already empty, or one still holding the student's own
+// lines stays. A course goes with them when it's no longer the coach's and
+// nothing here is in it; a chapter is never left in a course that's gone.
+function withoutEmptied(merged, local, incoming) {
+  const sent = new Set((incoming.chapters ?? []).map((c) => c.id));
+  const had = new Set((local.chapters ?? []).filter((c) => c.variations?.length).map((c) => c.id));
+  let chapters = merged.chapters.filter((c) => sent.has(c.id) || !had.has(c.id) || c.variations.length);
+  if (!Array.isArray(incoming.courses)) {
+    return chapters.length === merged.chapters.length ? merged : { ...merged, chapters };
+  }
+  const courses = [...incoming.courses];
+  for (const course of local.courses ?? []) {
+    if (!courses.some((x) => x.id === course.id) && chapters.some((c) => c.courseId === course.id)) courses.push(course);
+  }
+  const known = new Set(courses.map((c) => c.id));
+  chapters = chapters.map((c) => (c.courseId && !known.has(c.courseId) ? { ...c, courseId: null } : c));
+  return { ...merged, chapters, courses };
+}
+
+// A playlist names a line by its chapter. Wherever a merge has moved a line
+// to another chapter of its opening, its playlist entries follow it there.
+function rehomePlaylists(state) {
+  const homes = new Map(); // `${openingId}|${variationId}` → chapterId
+  const holds = new Set(); // `${chapterId}|${variationId}`
+  for (const o of state.openings ?? []) {
+    for (const c of o.chapters ?? []) {
+      for (const v of c.variations ?? []) {
+        if (!homes.has(`${o.id}|${v.id}`)) homes.set(`${o.id}|${v.id}`, c.id);
+        holds.add(`${c.id}|${v.id}`);
+      }
+    }
+  }
+  const lost = (it) => it?.variationId && !holds.has(`${it.chapterId}|${it.variationId}`)
+    && homes.has(`${it.openingId}|${it.variationId}`);
+  if (!(state.playlists ?? []).some((p) => (p.items ?? []).some(lost))) return state;
+  return {
+    ...state,
+    playlists: state.playlists.map((p) => ((p.items ?? []).some(lost)
+      ? { ...p, items: p.items.map((it) => (lost(it) ? { ...it, chapterId: homes.get(`${it.openingId}|${it.variationId}`) } : it)) }
+      : p)),
+  };
 }
 
 // A line lives in one chapter. Merging chapter by chapter, a line that moved
@@ -131,7 +178,7 @@ const preferIncoming = (a, b) => b ?? a;
 // preference (theme, sound volume, shortcut bindings…), not something a
 // backup from another device should overwrite here.
 export function mergeBackup(state, incoming, { structure = 'local' } = {}) {
-  return {
+  return rehomePlaylists({
     ...state,
     openings: mergeById(state.openings, incoming.openings, (a, b) => mergeOpening(a, b, structure)),
     players: mergeById(state.players ?? [], incoming.players ?? [], mergePlayer),
@@ -142,7 +189,7 @@ export function mergeBackup(state, incoming, { structure = 'local' } = {}) {
     // brought them. Union by id, same as the rest.
     labEntries: mergeById(state.labEntries ?? [], incoming.labEntries ?? [], preferIncoming),
     savedPositions: mergeById(state.savedPositions ?? [], incoming.savedPositions ?? [], preferIncoming),
-  };
+  });
 }
 
 // ---------------------------------------------------------------------------

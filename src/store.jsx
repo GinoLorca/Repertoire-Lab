@@ -11,6 +11,7 @@ import {
 } from './lib/subVariations';
 import { arrangeTop, arrangeFolder, gatherIntoFolder } from './lib/chapterOrder';
 import { sendToChapter } from './lib/chapterTransfer';
+import { curateInto, reorganise } from './lib/curate';
 import { kidArtwork, kidArtForStudents, isKidArt } from './lib/kidArtwork';
 import { cleanGameReview } from './lib/analysisDoc';
 import { parseMarks, withText, withMarks } from './lib/marks';
@@ -719,9 +720,29 @@ function reduce(state, action) {
         section: action.section ?? null,
         subsection: action.section ? (action.subsection ?? null) : null,
         courseId: action.courseId ?? null,
+        ...(action.curated ? { curated: true } : {}),
         variations: [],
       };
       return mapOpening(state, action.openingId, (o) => ({ ...o, chapters: [...o.chapters, chapter] }));
+    }
+    // Curated chapters (lib/curate.js): lines of the coach's own repertoire
+    // copied into a student's chapter, with fresh progress.
+    case 'curateLines': {
+      const { openings, added } = curateInto(state.openings, action, uid);
+      return added ? { ...state, openings } : state;
+    }
+    // The one-time change to students' openings: each one as a single
+    // "Quickstarter Guide". Playlists name a line by its chapter, so they follow.
+    case 'reorganiseGuides': {
+      const { openings, moved } = reorganise(state.openings, { openingIds: action.openingIds ?? null, name: action.name }, uid);
+      if (!moved.size && openings.every((o, i) => o === state.openings[i])) return state;
+      return {
+        ...state,
+        openings,
+        playlists: (state.playlists ?? []).map((pl) => (pl.items.some((it) => moved.has(`${it.chapterId}|${it.variationId}`))
+          ? { ...pl, items: pl.items.map((it) => { const to = moved.get(`${it.chapterId}|${it.variationId}`); return to ? { ...it, chapterId: to } : it; }) }
+          : pl)),
+      };
     }
     // Sub-variations (lib/subVariations.js): a chapter's lines sent to a
     // sub-variation of it, a chapter filed under another, and back out.
@@ -1402,10 +1423,29 @@ function reduce(state, action) {
       return mapChapter(state, action.openingId, action.chapterId, (c) => ({ ...c, starred: !c.starred }));
     case 'toggleOpeningStar':
       return mapOpening(state, action.openingId, (o) => ({ ...o, starred: !o.starred }));
+    // A theme (a collection) handed lines all at once — Collections' picker.
+    case 'tagLines': {
+      const tag = String(action.tag ?? '').trim();
+      const want = new Set((action.items ?? []).map((it) => `${it.chapterId}|${it.variationId}`));
+      if (!tag || !want.size) return state;
+      return {
+        ...state,
+        openings: state.openings.map((o) => (!o.chapters.some((c) => c.variations.some((v) => want.has(`${c.id}|${v.id}`))) ? o : {
+          ...o,
+          chapters: o.chapters.map((c) => (!c.variations.some((v) => want.has(`${c.id}|${v.id}`)) ? c : {
+            ...c,
+            variations: c.variations.map((v) => (want.has(`${c.id}|${v.id}`) && !(v.tags ?? []).includes(tag)
+              ? { ...v, tags: [...(v.tags ?? []), tag] } : v)),
+          })),
+        })),
+      };
+    }
+    // Renamed everywhere — or, given an owner (null for your own), only in
+    // that repertoire: a student's theme is theirs.
     case 'renameTag':
       return {
         ...state,
-        openings: state.openings.map((o) => ({
+        openings: state.openings.map((o) => (action.ownerId !== undefined && (o.ownerId ?? null) !== action.ownerId ? o : {
           ...o,
           tags: (o.tags ?? []).map((t) => (t === action.from ? action.to : t)),
           chapters: o.chapters.map((c) => ({
