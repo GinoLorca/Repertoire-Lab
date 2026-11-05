@@ -149,6 +149,23 @@ html = replaceOnce(
   'Stockfish path',
 );
 html = replaceOnce(html, '\n})();\n</script>', `\n${BRIDGE}\n})();\n</script>`, 'end of the app');
+// Chess Arcade's own "sign in with Repertoire Lab" (its Game History sorting) carries
+// Repertoire Lab's Firebase web key. Inside Repertoire Lab that sign-in is hidden and never
+// used, so the copy goes without it — and a key in a file in the repository is what
+// Netlify's secrets scan refuses to deploy.
+const keyLine = html.match(/var RL_API_KEY = '[^']*';/g) ?? [];
+if (keyLine.length !== 1) throw new Error(`sync-arcade: expected one RL_API_KEY line, found ${keyLine.length}`);
+html = html.replace(keyLine[0], "var RL_API_KEY = '';      // left out of Repertoire Lab's copy (scripts/sync-arcade.mjs)");
+// Nothing that looks like a key, token or private key goes into the repository — a new one
+// in a later Chess Arcade stops the copy here, rather than the deploy on Netlify.
+const SECRETS = [
+  /AIza[0-9A-Za-z_-]{35}/, /AKIA[0-9A-Z]{16}/, /lip_[0-9A-Za-z]{16,}/, /\bsk[-_](?:live|test)?[-_]?[A-Za-z0-9]{20,}/,
+  /gh[pousr]_[A-Za-z0-9]{30,}/, /xox[abpr]-[A-Za-z0-9-]{10,}/, /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
+];
+for (const re of SECRETS) {
+  const m = html.match(re);
+  if (m) throw new Error(`sync-arcade: the copy would contain something that looks like a secret (${m[0].slice(0, 8)}…, matching ${re}) — not written`);
+}
 
 const hash = createHash('sha256').update(html).digest('hex').slice(0, 10);
 const outDir = join(root, 'public', 'arcade');
