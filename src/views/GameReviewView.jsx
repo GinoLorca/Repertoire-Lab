@@ -171,10 +171,6 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
     openedRef.current = caId;
     a.load(caId, records ?? {});
     a.open(arcadeGame(source, caId, { side }));
-    if (roomy() && !full && wrapRef.current) {
-      const y = wrapRef.current.getBoundingClientRect().top + window.scrollY - barHeight() - 4;
-      window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
-    }
   }, [ready, caId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The game's review changed somewhere else — another device, the student —
@@ -185,20 +181,16 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
     if (!sameRecords(cleanRecords(a.records(caId)), records)) a.load(caId, records ?? {});
   }, [records]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The frame takes the rest of the screen. On a desktop, all of it under the
-  // app's top bar — the room Chess Arcade has on its own, which it sizes its
-  // board to — with the heading and import row above it scrolled out of the
-  // way when a game opens (scroll up for them). A phone or an iPad keeps the
-  // frame in what's left under them.
-  const roomy = () => typeof window.matchMedia === 'function'
-    && window.matchMedia('(min-width: 1024px) and (pointer: fine)').matches;
-  const barHeight = () => document.querySelector('.topbar')?.getBoundingClientRect().height ?? 0;
+  // The frame takes the rest of the screen, under the tabs and the import row
+  // — which stay in view, so the other tabs are always one click away. Chess
+  // Arcade sizes its board to the height it's given; on a desktop that row is
+  // kept to one thin line for it (styles.css), and Full screen gives it all.
   useLayoutEffect(() => {
     const fit = () => {
-      const top = wrapRef.current?.getBoundingClientRect().top ?? 0;
+      const box = wrapRef.current?.getBoundingClientRect();
+      const top = box ? box.top + window.scrollY : 0;
       const vh = window.visualViewport?.height ?? window.innerHeight;
-      const room = roomy() ? vh - barHeight() - 8 : vh - Math.max(0, top) - 12;
-      setHeight(Math.max(520, Math.round(room)));
+      setHeight(Math.max(520, Math.round(vh - Math.max(0, top) - 10)));
     };
     fit();
     window.addEventListener('resize', fit);

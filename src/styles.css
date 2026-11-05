@@ -5424,6 +5424,15 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .game-review-view .page-head { margin-bottom: 0; gap: 8px 14px; }
 .game-review-view .page-head h1 { flex: 0 0 auto; min-width: 0; }
 .gr-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex: 1 1 420px; min-width: 0; }
+/* A desktop: one thin row, so the review gets the height (Chess Arcade sizes
+   its board to it). The top bar already says Analysis. */
+@media (min-width: 1024px) and (pointer: fine) {
+  .game-review-view .page-head h1 { display: none; }
+  .game-review-view .gr-bar { flex-wrap: nowrap; }
+  .game-review-view .gr-pick { max-width: 250px; flex: 0 1 250px; }
+  .game-review-view .gr-title { flex: 1 1 60px; }
+  .game-review-view .gr-bar > button { flex: 0 0 auto; white-space: nowrap; }
+}
 .gr-pick { max-width: 320px; min-width: 0; flex: 0 1 auto; }
 .gr-title {
   flex: 1 1 200px; min-width: 0; font-weight: 600; font-size: 14px;
