@@ -5455,7 +5455,7 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .gr-frame-wrap.gr-full { position: fixed; inset: 0; z-index: 150; background: #1a3423; }
 .gr-frame-wrap.gr-full .gr-frame { height: 100%; border-radius: 0; }
 .gr-menu {
-  position: absolute; z-index: 2; left: 16px; bottom: 60px;
+  position: absolute; z-index: 2; right: 16px; bottom: 60px;
   width: min(580px, calc(100vw - 32px)); max-height: calc(100% - 90px); overflow-y: auto;
   display: flex; flex-direction: column; gap: 8px; padding: 12px;
   background: var(--panel); border: 1px solid var(--border); border-radius: 12px;

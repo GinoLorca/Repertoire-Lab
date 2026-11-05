@@ -38,7 +38,9 @@ const TABS = [
 ];
 
 const LIST_MAX = 300;
-const FULL_KEY = 'rl.gameReview.full';
+// "2": iPads open it over the whole window now too, so a choice kept from
+// when they didn't starts over once.
+const FULL_KEY = 'rl.gameReview.full2';
 
 function findGame(players, playerId, gameId) {
   const player = players.find((p) => p.id === playerId);
@@ -66,18 +68,20 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   // Full screen: the review over the whole window, the app's top bar too —
-  // exactly the room Chess Arcade has on its own, which it sizes its board to.
-  // How a desktop opens it (a phone or an iPad opens it in the page); then
-  // whichever was used last on this device. While it's on, Repertoire Lab's
-  // controls are in Chess Arcade's corners: its ⌂ brings the bars back, and a
-  // Game Review button opens the menu below (modes, opening games).
+  // exactly the room Chess Arcade has on its own, which it sizes its board to
+  // (in the page, under the bars, it has less height, so a smaller board and
+  // wider cards). How a desktop or an iPad opens it — anything 700px across
+  // or more; a phone opens it in the page — then whichever was used last on
+  // this device. While it's on, Repertoire Lab's controls are in Chess
+  // Arcade's corners: its ⌂ brings the bars back, and a Game Review button
+  // opens the menu below (modes, opening games).
   const [full, setFull] = useState(() => {
     try {
       const kept = localStorage.getItem(FULL_KEY);
       if (kept === '1' || kept === '0') return kept === '1';
     } catch { /* nothing kept */ }
     return typeof window.matchMedia === 'function'
-      && window.matchMedia('(min-width: 1024px) and (pointer: fine)').matches;
+      && window.matchMedia('(min-width: 700px)').matches;
   });
   const [menuOpen, setMenuOpen] = useState(false);
   // Save: when it last saved by hand ("Saved ✓" for a moment), and how many

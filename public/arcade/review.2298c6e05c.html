@@ -50825,7 +50825,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       '#settings-overlay .field:has(#spotify-client-id-input)'];
     const css = document.createElement('style');
     css.textContent = HIDE.map((s)=> (s.indexOf('html')===0 ? s : 'html.rl-embed '+s)).join(', ')+' { display:none !important; }'
-      + ' #rl-menu { position:fixed; left:16px; bottom:16px; z-index:40; display:flex; gap:8px; align-items:center; }'
+      + ' #rl-menu { position:fixed; right:16px; bottom:16px; z-index:40; display:flex; flex-direction:row-reverse; gap:8px; align-items:center; }'
       + ' #rl-save-pill.rl-done { color:var(--good); border-color:var(--good); }'
       // Highlighted side lines (yellow, neon green, blue): a highlighter pen rather than a solid box: about 70%,
       // soft edges that fade in and out unevenly, a slightly lopsided stroke — as if marked by hand.
@@ -50842,8 +50842,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     document.head.appendChild(css);
     // ---- corners: while the review has the whole window, Repertoire Lab's controls sit where Chess
     // Arcade keeps its own — its home button (top left: back to Repertoire Lab's bars) and a Game
-    // Review button (bottom left, where Chess Arcade shows its Lichess activity: switch modes, open
-    // games), in Chess Arcade's own style for the theme on show. A click on either goes to Repertoire
+    // Review button (bottom right, where Chess Arcade keeps its Friends pill, which its review
+    // leaves clear on a desktop and an iPad — bottom left is the board's own buttons on an iPad:
+    // switch modes, open games), with Save beside it, in Chess Arcade's own style for the theme on show. A click on either goes to Repertoire
     // Lab; so does any other press in the review, to close Repertoire Lab's menu if it's open.
     const menu = document.createElement('div');
     menu.id = 'rl-menu';
