@@ -78,13 +78,44 @@ const BRIDGE = String.raw`
     // notes sync and Game History's opening checks, and its drills' titles and game intro. What
     // stays is what the review looks and sounds like: theme, pieces, squares, arrows, line signs,
     // background, the board's cards, sounds and the tactic sound.
-    const HIDE = ['#home-fab', '#friends-tab', '#view-play-history .back-link', '#hv-groups',
+    const HIDE = ['#friends-tab', '#lichess-activity-widget', 'html.rl-embed:not(.rl-chrome) #view-play-history .back-link', '#hv-groups',
+      // Chess Arcade's home button and the Game Review button: only while the review has the whole
+      // window (Repertoire Lab's own bars are hidden then; see "corners" below)
+      'html.rl-embed:not(.rl-chrome) #home-fab', 'html.rl-embed:not(.rl-chrome) #rl-menu',
       '#settings-overlay .field:has(#glass-row)', '#settings-overlay .field:has(#intro-row)', '#oj-field',
       '#settings-overlay .field:has(#lichess-token-input)', '#gn-field', '#pz-sync-field', '#cc-field', '#rl-field',
       '#settings-overlay .field:has(#spotify-client-id-input)'];
     const css = document.createElement('style');
-    css.textContent = HIDE.map((s)=> 'html.rl-embed '+s).join(', ')+' { display:none !important; }';
+    css.textContent = HIDE.map((s)=> (s.indexOf('html')===0 ? s : 'html.rl-embed '+s)).join(', ')+' { display:none !important; }'
+      + ' #rl-menu { position:fixed; left:16px; bottom:16px; z-index:40; }'
+      // with the whole window, the way back to Game History keeps its place, unseen: the layout is Chess Arcade's to the pixel
+      + ' html.rl-embed.rl-chrome #view-play-history .back-link { visibility:hidden !important; pointer-events:none !important; }';
     document.head.appendChild(css);
+    // ---- corners: while the review has the whole window, Repertoire Lab's controls sit where Chess
+    // Arcade keeps its own — its home button (top left: back to Repertoire Lab's bars) and a Game
+    // Review button (bottom left, where Chess Arcade shows its Lichess activity: switch modes, open
+    // games), in Chess Arcade's own style for the theme on show. A click on either goes to Repertoire
+    // Lab; so does any other press in the review, to close Repertoire Lab's menu if it's open.
+    const menu = document.createElement('div');
+    menu.id = 'rl-menu';
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'friends-tab';
+    pill.id = 'rl-menu-pill';
+    pill.setAttribute('aria-haspopup', 'menu');
+    pill.title = 'Switch to Engine, Compare lines, Board Editor or Studio, or open another game';
+    pill.innerHTML = '<span>Game Review</span><span class="friends-chevron">&#9650;</span>';
+    menu.appendChild(pill);
+    document.body.appendChild(menu);
+    const chromeOn = ()=> document.documentElement.classList.contains('rl-chrome');
+    document.addEventListener('click', (e)=>{
+      if(!chromeOn() || !e.target || !e.target.closest) return;
+      if(e.target.closest('#home-fab')){ e.preventDefault(); e.stopImmediatePropagation(); tell('home'); return; }
+      if(e.target.closest('#rl-menu-pill')){ e.preventDefault(); e.stopImmediatePropagation(); tell('menu'); }
+    }, true);
+    document.addEventListener('pointerdown', (e)=>{
+      if(chromeOn() && !(e.target && e.target.closest && e.target.closest('#rl-menu'))) tell('tap');
+    }, true);
     // The Notes card's line under the note: Repertoire Lab keeps the note (on the game, synced),
     // so never "Connect Lichess to keep them on all your devices". A note this browser couldn't
     // save still says so, as Chess Arcade words it.
@@ -129,6 +160,12 @@ const BRIDGE = String.raw`
         return changed;
       },
       open(game, opts){ hvOpen(game, null, opts || {}); },
+      // Repertoire Lab's corners on (the review has the whole window) or off.
+      chrome(on){
+        document.documentElement.classList.toggle('rl-chrome', !!on);
+        const home = document.getElementById('home-fab');
+        if(home){ home.title = on ? 'Back to Repertoire Lab' : ''; home.setAttribute('aria-label', on ? 'Back to Repertoire Lab' : 'Home'); }
+      },
       current(){ return HV_STATE && HV_STATE.game ? String(HV_STATE.game.id) : null; },
       // What's being typed or drawn, saved now (leaving the tab, closing the app).
       flush(){

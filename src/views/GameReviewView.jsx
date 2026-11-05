@@ -64,13 +64,24 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   // Full screen: the review over the whole window, the app's top bar too —
-  // exactly the room Chess Arcade has on its own. Remembered on this device.
+  // exactly the room Chess Arcade has on its own, which it sizes its board to.
+  // How a desktop opens it (a phone or an iPad opens it in the page); then
+  // whichever was used last on this device. While it's on, Repertoire Lab's
+  // controls are in Chess Arcade's corners: its ⌂ brings the bars back, and a
+  // Game Review button opens the menu below (modes, opening games).
   const [full, setFull] = useState(() => {
-    try { return localStorage.getItem(FULL_KEY) === '1'; } catch { return false; }
+    try {
+      const kept = localStorage.getItem(FULL_KEY);
+      if (kept === '1' || kept === '0') return kept === '1';
+    } catch { /* nothing kept */ }
+    return typeof window.matchMedia === 'function'
+      && window.matchMedia('(min-width: 1024px) and (pointer: fine)').matches;
   });
+  const [menuOpen, setMenuOpen] = useState(false);
   const setFullKept = (on) => {
     setFull(on);
     try { localStorage.setItem(FULL_KEY, on ? '1' : '0'); } catch { /* not kept: fine */ }
+    setMenuOpen(false);
   };
 
   // What's open: one of the games in your sections, or a pasted one.
@@ -84,6 +95,8 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
   );
   const side = saved ? (saved.game.meta?.color || null) : sideFromNames(temp?.game?.meta, state.players);
   const fullOn = full && Boolean(caId);
+  const fullRef = useRef(fullOn);
+  fullRef.current = fullOn;
   useEffect(() => {
     if (!fullOn) return undefined;
     const was = document.body.style.overflow;
@@ -144,6 +157,9 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
       if (!d || d.source !== 'rl-review') return;
       if (d.type === 'ready') setReady(true);
       if (d.type === 'change') pullRef.current();
+      if (d.type === 'home') setFullKept(false);
+      if (d.type === 'menu') setMenuOpen((o) => !o);
+      if (d.type === 'tap') setMenuOpen(false);
     };
     window.addEventListener('message', onMessage);
     // Closing the app or switching away: what's being typed is saved first.
@@ -172,6 +188,12 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
     a.load(caId, records ?? {});
     a.open(arcadeGame(source, caId, { side }));
   }, [ready, caId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Repertoire Lab's corners in the review, while it has the whole window.
+  useEffect(() => {
+    if (ready) api()?.chrome?.(fullOn);
+    if (!fullOn) setMenuOpen(false);
+  }, [ready, fullOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The game's review changed somewhere else — another device, the student —
   // while it's open here: it goes in, and the review opens again at the same move.
@@ -206,6 +228,7 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
   const leaveGame = () => { api()?.flush(); pull({ publish: true }); };
   const openSaved = (playerId, gameId) => {
     leaveGame();
+    setMenuOpen(false);
     setError(null);
     setList(null);
     setPasteOpen(false);
@@ -218,6 +241,7 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
       return;
     }
     leaveGame();
+    setMenuOpen(false);
     setError(null);
     setList(null);
     setPasteOpen(false);
@@ -233,6 +257,7 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
     if (games.length === 1) { openItem(games[0]); return; }
     setQuery('');
     setList({ name, games });
+    if (fullRef.current) setMenuOpen(true);
   };
   const loadPaste = () => {
     if (!pgnText.trim()) return;
@@ -269,8 +294,101 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
     ? `${saved.game.name}${saved.player ? ` · ${saved.player.name}` : ''}`
     : temp ? temp.game.name : '';
 
+  // The pieces that open a game: in the bar above the review, or — while it
+  // has the whole window — in the corner menu.
+  const pasteToggle = (
+    <button className={`small${pasteOpen ? ' primary' : ''}`} onClick={() => setPasteOpen((o) => !o)}>
+      <UploadIcon size={14} /> Paste PGN
+    </button>
+  );
+  const uploadButton = (
+    <button
+      className="small"
+      disabled={busy}
+      title="A .pgn file, or a .zip of them"
+      onClick={() => fileRef.current?.click()}
+    >
+      <FolderIcon size={14} /> {busy ? 'Reading…' : 'Upload a PGN file…'}
+    </button>
+  );
+  const picker = sections.length > 0 && (
+    <select
+      className="gr-pick"
+      aria-label="Open one of your games"
+      value={saved ? `${saved.player.id}|${saved.game.id}` : ''}
+      onChange={(e) => {
+        const [pid, gid] = e.target.value.split('|');
+        if (pid && gid) openSaved(pid, gid);
+      }}
+    >
+      <option value="">Your games and your students’…</option>
+      {sections.map(({ player, games }) => (
+        <optgroup key={player.id} label={player.name}>
+          {games.map((g) => (
+            <option key={g.id} value={`${player.id}|${g.id}`}>
+              {g.name}{dateLabel(g.date) ? ` · ${dateLabel(g.date)}` : ''}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+  const saveButton = temp && (
+    <button
+      className="small primary"
+      title="Keep this game, and everything written in its review, in your Games or a student’s"
+      onClick={() => setSaving(true)}
+    >
+      <DownloadIcon size={14} /> Save game
+    </button>
+  );
+  const pastePanel = pasteOpen && (
+    <div className="pgn-paste-row gr-paste">
+      <textarea
+        rows={3}
+        className="pgn-paste-textarea"
+        placeholder="Paste a PGN — headers and all, or just the moves (1.e4 c6 2.Nc3 d5 …)"
+        value={pgnText}
+        onChange={(e) => { setPgnText(e.target.value); setError(null); }}
+      />
+      <button className="small primary" disabled={!pgnText.trim()} onClick={loadPaste}>Review</button>
+    </div>
+  );
+  const errorLine = error && <p className="muted-note study-error gr-error">{error}</p>;
+  const listPanel = list && (
+    <div className="gr-list">
+      <div className="gr-list-head">
+        <strong>{list.games.length.toLocaleString()} games in {list.name}</strong>
+        <input
+          type="search"
+          placeholder="Find a player, event or date…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <button className="small ghost" aria-label="Close the list" onClick={() => setList(null)}>✕</button>
+      </div>
+      <div className="gr-list-rows">
+        {shown.slice(0, LIST_MAX).map((g) => (
+          <button key={g.id} type="button" className="gr-list-row" onClick={() => openItem(g)}>
+            <span>{g.name}</span>
+            <span className="muted-note">{[g.result, g.event, g.round && `round ${g.round}`, g.date].filter(Boolean).join(' · ')}</span>
+          </button>
+        ))}
+        {shown.length > LIST_MAX && <p className="muted-note">Showing {LIST_MAX} of {shown.length.toLocaleString()} — search to narrow it down.</p>}
+        {shown.length === 0 && <p className="muted-note">No games match that.</p>}
+      </div>
+    </div>
+  );
+
   return (
     <div className="analysis-view game-review-view">
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".pgn,.txt,.zip,application/zip,application/x-zip-compressed,application/x-chess-pgn"
+        hidden
+        onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ''; }}
+      />
       <div className="page-head analysis-head">
         <h1>Analysis</h1>
         <div className="mode-tabs">
@@ -287,112 +405,31 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
           ))}
         </div>
         <div className="gr-bar">
-        <button className={`small${pasteOpen ? ' primary' : ''}`} onClick={() => setPasteOpen((o) => !o)}>
-          <UploadIcon size={14} /> Paste PGN
-        </button>
-        <button
-          className="small"
-          disabled={busy}
-          title="A .pgn file, or a .zip of them"
-          onClick={() => fileRef.current?.click()}
-        >
-          <FolderIcon size={14} /> {busy ? 'Reading…' : 'Upload a PGN file…'}
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".pgn,.txt,.zip,application/zip,application/x-zip-compressed,application/x-chess-pgn"
-          hidden
-          onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ''; }}
-        />
-        {sections.length > 0 && (
-          <select
-            className="gr-pick"
-            aria-label="Open one of your games"
-            value={saved ? `${saved.player.id}|${saved.game.id}` : ''}
-            onChange={(e) => {
-              const [pid, gid] = e.target.value.split('|');
-              if (pid && gid) openSaved(pid, gid);
-            }}
-          >
-            <option value="">Your games and your students’…</option>
-            {sections.map(({ player, games }) => (
-              <optgroup key={player.id} label={player.name}>
-                {games.map((g) => (
-                  <option key={g.id} value={`${player.id}|${g.id}`}>
-                    {g.name}{dateLabel(g.date) ? ` · ${dateLabel(g.date)}` : ''}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        )}
-        {title && (
-          <span className="gr-title" title={title}>
-            {title}
-            {temp && <span className="muted-note"> · not saved</span>}
-          </span>
-        )}
-        {caId && (
-          <button
-            className="small"
-            title="The review over the whole window, like Chess Arcade on its own"
-            onClick={() => setFullKept(true)}
-          >
-            ⤢ Full screen
-          </button>
-        )}
-        {temp && (
-          <button
-            className="small primary"
-            title="Keep this game, and everything written in its review, in your Games or a student’s"
-            onClick={() => setSaving(true)}
-          >
-            <DownloadIcon size={14} /> Save game
-          </button>
-        )}
+          {pasteToggle}
+          {uploadButton}
+          {picker}
+          {title && (
+            <span className="gr-title" title={title}>
+              {title}
+              {temp && <span className="muted-note"> · not saved</span>}
+            </span>
+          )}
+          {caId && (
+            <button
+              className="small"
+              title="The review over the whole window, like Chess Arcade on its own"
+              onClick={() => setFullKept(true)}
+            >
+              ⤢ Full screen
+            </button>
+          )}
+          {saveButton}
         </div>
       </div>
 
-      {pasteOpen && (
-        <div className="pgn-paste-row gr-paste">
-          <textarea
-            rows={3}
-            className="pgn-paste-textarea"
-            placeholder="Paste a PGN — headers and all, or just the moves (1.e4 c6 2.Nc3 d5 …)"
-            value={pgnText}
-            onChange={(e) => { setPgnText(e.target.value); setError(null); }}
-          />
-          <button className="small primary" disabled={!pgnText.trim()} onClick={loadPaste}>Review</button>
-        </div>
-      )}
-
-      {error && <p className="muted-note study-error gr-error">{error}</p>}
-
-      {list && (
-        <div className="gr-list">
-          <div className="gr-list-head">
-            <strong>{list.games.length.toLocaleString()} games in {list.name}</strong>
-            <input
-              type="search"
-              placeholder="Find a player, event or date…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <button className="small ghost" aria-label="Close the list" onClick={() => setList(null)}>✕</button>
-          </div>
-          <div className="gr-list-rows">
-            {shown.slice(0, LIST_MAX).map((g) => (
-              <button key={g.id} type="button" className="gr-list-row" onClick={() => openItem(g)}>
-                <span>{g.name}</span>
-                <span className="muted-note">{[g.result, g.event, g.round && `round ${g.round}`, g.date].filter(Boolean).join(' · ')}</span>
-              </button>
-            ))}
-            {shown.length > LIST_MAX && <p className="muted-note">Showing {LIST_MAX} of {shown.length.toLocaleString()} — search to narrow it down.</p>}
-            {shown.length === 0 && <p className="muted-note">No games match that.</p>}
-          </div>
-        </div>
-      )}
+      {!fullOn && pastePanel}
+      {!fullOn && errorLine}
+      {!fullOn && listPanel}
 
       {!caId && !list && (
         <p className="gr-empty muted-note">
@@ -416,10 +453,37 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
           allow="clipboard-write"
         />
         {!ready && caId && <div className="gr-loading">Loading Game Review…</div>}
-        {fullOn && (
-          <button type="button" className="small gr-exit-full" onClick={() => setFullKept(false)}>
-            ✕ Exit full screen
-          </button>
+        {/* The corner menu: Game Review's button in the review opens it. */}
+        {fullOn && menuOpen && (
+          <div className="gr-menu" role="dialog" aria-label="Game Review">
+            <div className="gr-menu-label">Analysis</div>
+            <div className="mode-tabs gr-menu-modes">
+              {TABS.map(([tab, label, tip]) => (
+                <button
+                  key={tab}
+                  type="button"
+                  className={tab === 'review' ? 'active' : undefined}
+                  title={tip}
+                  onClick={() => { setMenuOpen(false); if (tab !== 'review') onBoard(tab); }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="gr-menu-label">Open a game</div>
+            <div className="gr-menu-open">
+              {pasteToggle}
+              {uploadButton}
+              {picker}
+              {saveButton}
+            </div>
+            {pastePanel}
+            {errorLine}
+            {listPanel}
+            <button type="button" className="small ghost gr-menu-bars" onClick={() => setFullKept(false)}>
+              ⌂ Show Repertoire Lab’s bars
+            </button>
+          </div>
         )}
       </div>
 
