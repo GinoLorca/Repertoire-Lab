@@ -36,6 +36,7 @@ import { openReview } from './ReviewReader';
 import { reviewsOf, reviewHash } from '../lib/cloud/reviews';
 import { openGameReview } from '../lib/openGameReview';
 import PlayerInsights from './PlayerInsights';
+import { PLAYER_TABS } from '../lib/routes';
 import { parseDoc, docFromGame, docIsEmpty } from '../lib/analysisDoc';
 import { seedFor } from '../lib/studioSeed';
 import ReviewsInProgress from './ReviewsInProgress';
@@ -419,7 +420,7 @@ function PlayerPage({
   // Opens on the dashboard when there's a US Chess ID — unless the student
   // has sent games not yet seen, which are what the bell brought you for.
   const [tab, setTab] = useState(() => {
-    if (['games', 'dashboard', 'clamp', 'tactics'].includes(initialTab)) return initialTab; // from a link
+    if (['games', 'dashboard', 'clamp', 'tactics', 'openings'].includes(initialTab)) return initialTab; // from a link
     // …or their ChessKid practice from ICN.
     const stats = String(player.profile?.uscf ?? '').replace(/\D/g, '') || player.profile?.icn?.school;
     return stats && !player.games.some((g) => g.link?.unseen) ? 'dashboard' : 'games';
@@ -686,7 +687,7 @@ function PlayerPage({
         <button role="tab" aria-selected={tab === 'games'} className={tab === 'games' ? 'on' : ''} onClick={() => setTab('games')}>
           Games <span className="muted-note">{player.games.length}</span>
         </button>
-        {/* Chess Arcade's CLAMP and Tactics, over this player's games. */}
+        {/* Chess Arcade's CLAMP, Tactics and Openings, over this player's games. */}
         <button
           role="tab"
           aria-selected={tab === 'clamp'}
@@ -705,9 +706,18 @@ function PlayerPage({
         >
           Tactics
         </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'openings'}
+          className={tab === 'openings' ? 'on' : ''}
+          title="Every game sorted by the openings you pick — which lines they reach, where they leave them, and how those games go"
+          onClick={() => setTab('openings')}
+        >
+          Openings
+        </button>
       </div>
 
-      {(tab === 'clamp' || tab === 'tactics') && (
+      {(tab === 'clamp' || tab === 'tactics' || tab === 'openings') && (
         <PlayerInsights
           player={player}
           view={tab}
@@ -1132,7 +1142,7 @@ export default function PlayerRoster({
   }, [routePlayer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // …and tell the address where we are.
   useEffect(() => {
-    const next = openPlayerId ? { id: openPlayerId, tab: ['games', 'clamp', 'tactics'].includes(tab) ? tab : null } : null;
+    const next = openPlayerId ? { id: openPlayerId, tab: PLAYER_TABS.includes(tab) ? tab : null } : null;
     if ((next?.id ?? null) !== (routePlayer?.id ?? null) || (next?.tab ?? null) !== (routePlayer?.tab ?? null)) {
       routeSeen.current = next?.id ?? null;
       onPlayerChange?.(next);

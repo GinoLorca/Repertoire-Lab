@@ -1181,6 +1181,13 @@ function reduce(state, action) {
       };
       return { ...state, players: [...state.players, player] };
     }
+    // What a player's Openings tab is based on (lib/openingsBasis.js): the
+    // openings picked, White and Black — null goes back to the default.
+    case 'setOpeningsBasis':
+      return mapPlayer(state, action.playerId, (p) => ({
+        ...p,
+        openingsBasis: Array.isArray(action.ids) ? { ids: [...new Set(action.ids)] } : null,
+      }));
     case 'updatePlayer':
       return mapPlayer(state, action.playerId, (p) => ({
         ...p,

@@ -50822,7 +50822,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       'html.rl-embed:not(.rl-chrome) #home-fab', 'html.rl-embed:not(.rl-chrome) #rl-menu',
       '#settings-overlay .field:has(#glass-row)', '#settings-overlay .field:has(#intro-row)', '#oj-field',
       '#settings-overlay .field:has(#lichess-token-input)', '#gn-field', '#pz-sync-field', '#cc-field', '#rl-field',
-      '#settings-overlay .field:has(#spotify-client-id-input)'];
+      '#settings-overlay .field:has(#spotify-client-id-input)',
+      // the Openings tab's "Connect Repertoire Lab": Repertoire Lab hands it the openings to sort by (repertoire)
+      'html.rl-history #gho-connect',
+      // the theme: always Repertoire Lab's own, dark or light as Repertoire Lab is (look)
+      '#settings-overlay .field:has(#skin-row)', '#custom-colors-field'];
     const css = document.createElement('style');
     css.textContent = HIDE.map((s)=> (s.indexOf('html')===0 ? s : 'html.rl-embed '+s)).join(', ')+' { display:none !important; }'
       + ' #rl-menu { position:fixed; right:16px; bottom:16px; z-index:40; display:flex; flex-direction:row-reverse; gap:8px; align-items:center; }'
@@ -50903,6 +50907,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       return out;
     };
     hvOnNode(()=> tell('node', { plies: playedLine().length }));
+    // A link to a Repertoire Lab chapter (the Openings tab's, a line's Learn and Practice) opens it in Repertoire
+    // Lab itself, not in a new tab.
+    document.addEventListener('click', (e)=>{
+      const a = e.target && e.target.closest ? e.target.closest('a[href^="https://repertoirelabs.com/chapter/"]') : null;
+      if(!a) return;
+      const m = /^https:\/\/repertoirelabs\.com\/chapter\/([^/?#]+)\/([^/?#]+)\/?(?:\?([^#]*))?/.exec(a.href);
+      if(!m) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      const q = new URLSearchParams(m[3] || '');
+      tell('openChapter', { openingId: decodeURIComponent(m[1]), chapterId: decodeURIComponent(m[2]), line: q.get('line') || null, go: q.get('go') || null });
+    }, true);
 
     // ---- a player's CLAMP and Tactics (Repertoire Lab's player page): Chess Arcade's own two Game History tabs,
     // over that player's games only — their analysis records, with the summary each tab reads (who had which side,
@@ -50919,12 +50934,20 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       }
       return openGameWas.apply(this, arguments);
     };
+    // The Openings tab: Game History's list is every game of the player's that Repertoire Lab hands over (history),
+    // not only the ones with a note — CLAMP and Tactics keep reading the games with marks, as before.
+    let rlBase = null;
+    const baseWas = ghBaseList;
+    ghBaseList = function(){
+      if(historyOn() && rlBase && GH_UI.view==='openings') return rlBase.slice();
+      return baseWas.apply(this, arguments);
+    };
     const practiceWas = ttPractice;
     ttPractice = function(key){
       if(historyOn()){ try{ window.open('https://lichess.org/training/'+encodeURIComponent(key), '_blank', 'noopener'); }catch(e){} return; }
       return practiceWas.apply(this, arguments);
     };
-    let heightWas = 0;
+    let heightWas = 0, lookSig = '';
     const sayHeight = ()=>{
       if(!historyOn()) return;
       const v = document.getElementById('view-history');
@@ -50966,7 +50989,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       },
       current(){ return HV_STATE && HV_STATE.game ? String(HV_STATE.game.id) : null; },
       line(){ return playedLine(); },
-      // games: [{ id, an, summary }] — that player's, and only theirs; view: 'clamp' | 'tactics'
+      // games: [{ id, an, summary }] — that player's, and only theirs; view: 'clamp' | 'tactics' | 'openings'
+      // (Openings: every game with moves, marked or not)
       history(games, view){
         const want = new Set((games || []).map((g)=> 'an-'+String(g.id)));
         quiet++;
@@ -50981,14 +51005,64 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           gnPersist();
         } finally { quiet--; }
         try{ GN_TAC_MEMO.clear(); }catch(e){}
+        const tab = view === 'tactics' ? 'tactics' : view === 'openings' ? 'openings' : 'clamp';
+        rlBase = tab === 'openings'
+          ? (games || []).filter((g)=> g && g.summary).map((g)=> ghGameFromSummary({ id: String(g.id), g: gnCleanG(g.summary) })).filter((g)=> g.moves)
+          : null;
+        // Game History counts itself loaded once its own list has games (it's Lichess's, here none): the Openings tab's
+        // are those; CLAMP and Tactics go back to reading the games with marks.
+        GH_STATE.games = rlBase ? rlBase.slice() : [];
+        GH_STATE.ids = new Set(GH_STATE.games.map((g)=> g.id));
+        GH_STATE.exhausted = true;
         document.documentElement.classList.add('rl-history');
         document.documentElement.classList.remove('rl-chrome');
         if(currentView!=='history') showView('history');
-        if(GH_UI.view!==view) ghoSetView(view === 'tactics' ? 'tactics' : 'clamp');
+        if(GH_UI.view!==tab) ghoSetView(tab);
         else ghRender();
+        if(rlBase && RP){ try{ rpQueue(); }catch(e){} }
         window.scrollTo(0, 0);
         heightWas = 0;
         setTimeout(sayHeight, 60);
+      },
+      // The repertoire the Openings tab sorts games by: the openings Repertoire Lab picked, in Chess Arcade's own
+      // compact form ({ o:[{ i, n, c:'w'|'b', k:[[courseId, name]], ch:[{ i, n, k, s, ss, l:[[id, name, moves[], fen|null]] }] }] }),
+      // checked the way a copy read from Repertoire Lab is. None: the tab groups games by opening name.
+      repertoire(p){
+        const uid = 'rl-embed';
+        let dec = null;
+        try{
+          if(p && Array.isArray(p.o) && p.o.length) dec = rlDecode(rlEncode({ v:1, uid, email:'', at:Date.now(), o:p.o }), uid);
+        }catch(e){ dec = null; }
+        if(!dec || !dec.o.length){
+          if(RP){ RP = null; RP_RES = new Map(); RP_JOB = null; rpFire('rep'); }
+          if(historyOn()) ghRender();
+          return 0;
+        }
+        if(!RP || RP.h!==dec.h){ rpMake(dec, null); rpFire('rep'); try{ rpQueue(); }catch(e){} }
+        return RP.openings.length;
+      },
+      // Repertoire Lab's theme, dark or light as it is there: { skin, theme:'dark'|'light', colors } (colors: Custom's
+      // own, as Repertoire Lab paints them). Chess Arcade's theme picker is hidden here: the look is Repertoire Lab's.
+      look(o){
+        o = o || {};
+        const SK = ['felt','hustler','bauhaus','gameboy','outerspace','drivethru','rose','chessbook','uptown','custom'];
+        const skin = SK.indexOf(o.skin)>=0 ? o.skin : 'custom';
+        const theme = o.theme==='light' ? 'light' : 'dark';
+        const col = (v)=> typeof v==='string' && /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\)|hsla?\([\d\s.,%deg]+\))$/i.test(v.trim()) ? v.trim() : null;
+        const c = o.colors || {};
+        const colors = skin==='custom' ? { accent:col(c.accent), bg:col(c.bg), surface:col(c.surface), boardLight:col(c.boardLight),
+          boardDark:col(c.boardDark), pieceWhite:col(c.pieceWhite), pieceBlack:col(c.pieceBlack), pieceStroke:null } : null;
+        const sig = skin+'|'+theme+'|'+JSON.stringify(colors);
+        if(sig===lookSig) return false;
+        lookSig = sig;
+        lookPrefs.skin = skin;
+        if(colors) lookPrefs.customColors = colors;
+        document.documentElement.setAttribute('data-theme', theme);
+        applyLookPrefs();
+        try{ saveLookPrefs(); }catch(e){}
+        try{ if(HV_STATE && HV_STATE.game) hvRenderBoard(); }catch(e){}
+        try{ if(historyOn()) ghRender(); }catch(e){}
+        return true;
       },
       // The Save button in the corner: null hides it; { label, title, done } shows it.
       saveState(st){

@@ -16,6 +16,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useStore, uid } from '../store';
 import { ARCADE_REVIEW_URL } from '../lib/arcadeBuild';
+import { useArcadeLook } from '../lib/arcadeLook';
 import {
   arcadeId, tempArcadeId, arcadeGame, cleanRecords, sameRecords, fromArchive, recordsFor,
   writesReviewLayer, withGameReview,
@@ -125,6 +126,8 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
   const api = () => {
     try { return frameRef.current?.contentWindow?.__rlReview ?? null; } catch { return null; }
   };
+  // Repertoire Lab's theme, dark or light as it is here (lib/arcadeLook).
+  useArcadeLook(api, ready);
 
   // What the review holds for the game now, onto the game (or the pasted
   // game, until it's saved): your own copy, or — a student's own game — your

@@ -5547,3 +5547,28 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .board-menu { max-height: min(72vh, 620px); overflow-y: auto; }
 /* Wide enough that each option reads on one line. */
 .board-menu { width: max-content; max-width: min(320px, calc(100vw - 32px)); }
+
+/* A player's Openings tab: what it's based on, and the picker. */
+.basis-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 12px; margin-bottom: 10px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 13.5px;
+}
+.basis-bar-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.basis-bar-list { display: flex; gap: 14px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.basis-bar-list .color-dot, .basis-col-head .color-dot { display: inline-block; vertical-align: -1px; }
+.basis-modal { max-width: 720px; }
+.basis-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0; }
+@media (max-width: 640px) { .basis-cols { grid-template-columns: 1fr; } }
+.basis-col {
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 8px;
+  max-height: min(48vh, 420px); overflow-y: auto;
+}
+.basis-col-head { font-weight: 700; padding: 2px 4px 6px; display: flex; align-items: center; gap: 6px; }
+.basis-group + .basis-group { margin-top: 8px; }
+.basis-group-name { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 4px; }
+.basis-item { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 7px; cursor: pointer; font-size: 13.5px; }
+.basis-item:hover { background: var(--card-hover); }
+.basis-item .basis-name { flex: 1; min-width: 0; }
+.basis-item.on .basis-name { font-weight: 600; }

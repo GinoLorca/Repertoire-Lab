@@ -48,7 +48,7 @@ export const SUB_VIEWS = {
 const PLAYER_VIEWS = new Set(['games', 'coaches']);
 // A person's page's tabs that have an address of their own (the dashboard is
 // the page itself): /coaches/<card>/games, /clamp, /tactics.
-export const PLAYER_TABS = ['games', 'clamp', 'tactics'];
+export const PLAYER_TABS = ['games', 'clamp', 'tactics', 'openings'];
 export const validCardId = (id) => /^[A-Za-z0-9_-]{3,64}$/.test(String(id ?? ''));
 
 // A chapter is addressed by the two ids it actually needs. They're stable for
