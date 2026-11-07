@@ -35,10 +35,12 @@ export default function ChapterView({
   const isPhone = useIsPhone();
   const opening = state.openings.find((o) => o.id === openingId);
   const chapter = opening?.chapters.find((c) => c.id === chapterId);
-  // "Give to a student" on a line — your own repertoire only, and only once
-  // there's a student to give it to (components/GiveToStudent).
+  // "Give to a student" on a line — from your repertoire, or a student's to
+  // another student — once there's someone to give it to
+  // (components/GiveToStudent). `givingIds`: the ticked lines.
   const [givingId, setGivingId] = useState(null);
-  const canGive = !opening?.ownerId && state.players.some((p) => p.kind === 'student');
+  const [givingIds, setGivingIds] = useState(null);
+  const canGive = state.players.some((p) => p.kind === 'student' && p.id !== (opening?.ownerId ?? null));
   const [viewingId, setViewingId] = useState(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState('');
@@ -166,8 +168,8 @@ export default function ChapterView({
         onClick: () => setTransferIds([variation.id]),
       },
       canGive && {
-        label: 'Give to a student…',
-        hint: 'into their repertoire, in the same opening and chapter',
+        label: opening.ownerId ? 'Give to another student…' : 'Give to a student…',
+        hint: 'into their Quickstarter Guide, or the same opening and chapter',
         icon: <UsersIcon size={16} />,
         onClick: () => setGivingId(variation.id),
       },
@@ -560,6 +562,15 @@ export default function ChapterView({
           >
             ⤵ Send to a sub-variation
           </button>
+          {canGive && (
+            <button
+              disabled={chosenIds.length === 0}
+              title={opening.ownerId ? 'Give the ticked lines to another student' : 'Give the ticked lines to a student'}
+              onClick={() => setGivingIds(chosenIds)}
+            >
+              <UsersIcon size={14} /> Give to a student…
+            </button>
+          )}
           <button
             className="danger"
             disabled={chosenIds.length === 0}
@@ -879,6 +890,14 @@ export default function ChapterView({
           chapterId={chapterId}
           variationId={givingId}
           onClose={() => setGivingId(null)}
+        />
+      )}
+      {givingIds && (
+        <GiveToStudent
+          openingId={openingId}
+          chapterId={chapterId}
+          variationIds={givingIds}
+          onClose={() => setGivingIds(null)}
         />
       )}
 

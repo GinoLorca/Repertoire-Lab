@@ -43,9 +43,13 @@ function freshLine(v, newId) {
 
 // The coach's lines, by id, with where each one is (for the picker's "from …").
 export function coachLines(openings) {
+  return linesFrom(openings, (o) => isCoachOwn(o));
+}
+// Lines from any repertoire — yours, or another student's — by id.
+export function linesFrom(openings, keep = () => true) {
   const out = new Map();
   for (const o of openings ?? []) {
-    if (!isCoachOwn(o)) continue;
+    if (!keep(o)) continue;
     for (const c of o.chapters ?? []) {
       const course = (o.courses ?? []).find((x) => x.id === c.courseId) ?? null;
       for (const v of c.variations ?? []) out.set(v.id, { opening: o, course, chapter: c, variation: v });
@@ -54,13 +58,14 @@ export function coachLines(openings) {
   return out;
 }
 
-// Chosen lines of the coach's into a student's chapter. Returns the openings,
-// how many lines went in, and the ones that were already there.
+// Chosen lines into a student's chapter — from your repertoire or another
+// student's, never from theirs. Returns the openings, how many lines went in,
+// and the ones that were already there.
 export function curateInto(openings, { toOpeningId, toChapterId, variationIds }, newId) {
   const target = (openings ?? []).find((o) => o.id === toOpeningId);
   const chapter = target?.chapters?.find((c) => c.id === toChapterId);
   if (!target || !chapter || isCoachOwn(target)) return { openings, added: 0, skipped: [] };
-  const mine = coachLines(openings);
+  const mine = linesFrom(openings, (o) => (o.ownerId ?? null) !== target.ownerId);
   const have = new Set(target.chapters.flatMap((c) => c.variations.map(lineKey)));
   const lines = [];
   const skipped = [];
@@ -81,6 +86,35 @@ export function curateInto(openings, { toOpeningId, toChapterId, variationIds },
     added: lines.length,
     skipped,
   };
+}
+
+// Where a student already has a line: the chapter of theirs holding the same
+// line (name, start and moves) in their opening of that name — or a line of
+// that name in their chapter of that name, which a copy wouldn't add either.
+// Null when they don't.
+export function whereHas(openings, studentId, openingName, chapterName, variation) {
+  const theirs = (openings ?? []).filter((o) => o.ownerId === studentId && sameName(o.name, openingName));
+  const key = lineKey(variation);
+  for (const o of theirs) {
+    const c = (o.chapters ?? []).find((x) => (x.variations ?? []).some((v) => lineKey(v) === key));
+    if (c) return { opening: o, chapter: c };
+  }
+  for (const o of theirs) {
+    const c = (o.chapters ?? []).find((x) => sameName(x.name, chapterName)
+      && (x.variations ?? []).some((v) => sameName(v.name, variation.name)));
+    if (c) return { opening: o, chapter: c };
+  }
+  return null;
+}
+
+// Where a line given to a student lands: their opening of that name, when it
+// has curated chapters (a Quickstarter Guide), goes into one of those —
+// `chapters` lists them, to ask which when there are several. Null: the copy
+// recreates the chapter as it is in yours (copyOpeningsToPlayers).
+export function curatedTarget(openings, studentId, openingName) {
+  const o = (openings ?? []).find((x) => x.ownerId === studentId && sameName(x.name, openingName)
+    && (x.chapters ?? []).some((c) => c.curated));
+  return o ? { opening: o, chapters: o.chapters.filter((c) => c.curated) } : null;
 }
 
 // Whether a student's opening is already laid out as curated chapters only.

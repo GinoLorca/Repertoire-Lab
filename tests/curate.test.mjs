@@ -117,3 +117,28 @@ test('the analysis board checks a student’s game against their lines and the c
   assert.equal(bookName('both', null), 'Your repertoire');
   assert.equal(bookName('none', 'Myla'), 'No repertoire');
 });
+
+test('giving lines: where a student already has one, where it lands, and from another student’s repertoire too', async () => {
+  const { whereHas, curatedTarget } = await import('../src/lib/curate.js');
+  const parker = {
+    id: 'pjl', name: 'Jobava London System', color: 'white', ownerId: 'parker', courses: [],
+    chapters: [{ id: 'pg', name: GUIDE_NAME, curated: true, variations: [line('p1', 'Main', ['d4', 'd5'])] }],
+  };
+  const myla = { ...studentOpening, chapters: [...studentOpening.chapters, { ...guide, variations: [line('m9', 'Myla only', ['d4', 'f5'])] }] };
+  const all = [coach, myla, parker];
+  // Parker has "Main" (d4 d5) in his guide: that's where
+  const w = whereHas(all, 'parker', 'jobava london system', 'Mainline 3.e6', coach.chapters[0].variations[0]);
+  assert.equal(w.chapter.id, 'pg');
+  assert.equal(whereHas(all, 'parker', 'Jobava London System', 'Mainline 3.e6', coach.chapters[0].variations[1]), null);
+  // a curated opening takes given lines into its guide
+  assert.deepEqual(curatedTarget(all, 'parker', 'Jobava London System').chapters.map((c) => c.id), ['pg']);
+  assert.equal(curatedTarget(all, 'zed', 'Jobava London System'), null);
+  assert.equal(curatedTarget([coach, studentOpening], 'myla', 'Jobava London System'), null, 'no curated chapter: the usual copy');
+  // from Myla's guide into Parker's: copied fresh; never from Parker's own
+  const out = curateInto(all, { toOpeningId: 'pjl', toChapterId: 'pg', variationIds: ['m9', 'p1'] }, newId);
+  const pg = out.openings.find((o) => o.id === 'pjl').chapters[0];
+  assert.deepEqual(pg.variations.map((v) => v.name), ['Main', 'Myla only']);
+  assert.equal(out.added, 1);
+  assert.notEqual(pg.variations[1].id, 'm9');
+  assert.equal(pg.variations[1].learned, false);
+});

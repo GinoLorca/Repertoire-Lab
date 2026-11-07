@@ -1008,6 +1008,25 @@ test('sub-variations: re-copying an opening to a student after lines were sent d
   assert.deepEqual(names.sort(), ['Short System', 'Tal Variation']);
 });
 
+test('a line handed on from one student\'s repertoire to another\'s: a fresh copy, and never from the student\'s own', () => {
+  const mac = buildLibrary(new Device('mac', 'Mac'));
+  mac.do({ type: 'addPlayer', id: 'p-myla', name: 'Myla', kind: 'student' });
+  const lines = chapter(mac.state, 'o-caro', 'c-advance').variations.map((x) => x.id);
+  mac.do({ type: 'copyOpeningsToPlayers', playerIds: ['p-myla'], variationIds: [lines[0]] });
+  const mylas = mac.state.openings.find((o) => o.ownerId === 'p-myla');
+  const hers = mylas.chapters[0].variations[0];
+  mac.do({ type: 'copyOpeningsToPlayers', playerIds: ['p-parker'], variationIds: [hers.id] });
+  const parkers = mac.state.openings.find((o) => o.ownerId === 'p-parker' && o.name === 'Caro-Kann');
+  assert.ok(parkers, 'Parker gets the Caro-Kann');
+  assert.deepEqual(parkers.chapters.flatMap((c) => c.variations.map((x) => x.name)), [hers.name]);
+  assert.notEqual(parkers.chapters[0].variations[0].id, hers.id);
+  // Myla's own line handed to Myla: nothing happens
+  const before = mac.state.openings;
+  mac.do({ type: 'copyOpeningsToPlayers', playerIds: ['p-myla'], variationIds: [hers.id] });
+  assert.equal(mac.state.openings.filter((o) => o.ownerId === 'p-myla').length, 1);
+  assert.deepEqual(mac.state.openings.find((o) => o.ownerId === 'p-myla').chapters, before.find((o) => o.ownerId === 'p-myla').chapters);
+});
+
 // ---------- Arranging chapter cards by hand (drag and drop, ▲▼) ----------
 
 // An opening laid out like the user's Caro-Kann: a folder with a

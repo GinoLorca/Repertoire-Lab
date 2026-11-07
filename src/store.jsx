@@ -374,8 +374,9 @@ function reduce(state, action) {
       for (const targetId of action.playerIds) {
         // Only the openings that actually hold a selected line, trimmed to just
         // those lines.
+        // From your repertoire, or another student's — never from theirs.
         const sources = openings
-          .filter((o) => (o.ownerId ?? null) === null)
+          .filter((o) => (o.ownerId ?? null) !== targetId)
           .map((o) => ({
             ...o,
             chapters: o.chapters

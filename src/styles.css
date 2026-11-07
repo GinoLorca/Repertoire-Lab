@@ -5316,10 +5316,15 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .give-where { margin: -2px 0 10px; padding: 0 12px; }
 .give-row { align-items: center; }
 .give-row:disabled { opacity: 0.6; }
+.give-row-wrap { display: flex; align-items: center; gap: 8px; }
+.give-row-wrap > .give-row { flex: 1; min-width: 0; }
 .give-has {
   margin-left: auto; font-size: 12px; font-weight: 700; color: var(--green);
-  border: 1px solid var(--green); border-radius: 20px; padding: 2px 9px;
+  border: 1px solid var(--green); border-radius: 20px; padding: 4px 10px;
+  background: none; cursor: pointer; white-space: nowrap; max-width: 55%;
+  overflow: hidden; text-overflow: ellipsis; min-height: 0; flex: 0 1 auto;
 }
+.give-has:hover { background: color-mix(in srgb, var(--green) 12%, transparent); }
 .give-app { display: flex; align-items: center; gap: 8px; padding: 6px 4px 10px; font-size: 14px; color: var(--muted); }
 .give-empty { padding: 10px 4px; }
 .give-done { padding: 6px 6px 4px; }
@@ -5572,3 +5577,5 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .basis-item:hover { background: var(--card-hover); }
 .basis-item .basis-name { flex: 1; min-width: 0; }
 .basis-item.on .basis-name { font-weight: 600; }
+.curate-from { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.curate-from select { padding: 6px 8px; }

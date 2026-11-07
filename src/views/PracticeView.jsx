@@ -456,7 +456,6 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   const [tagOpen, setTagOpen] = useState(false);
   // "Give to student" on the line being practiced (components/GiveToStudent).
   const [giving, setGiving] = useState(false);
-  const hasStudents = state.players.some((p) => p.kind === 'student');
   // Timed moves: when the clock expires the move plays itself. `deadline` is
   // null whenever the board isn't actually waiting on you.
   const [deadline, setDeadline] = useState(null);
@@ -1453,8 +1452,8 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             <MonitorIcon size={14} /><span className="btn-label"> Send to analysis</span>
           </button>
         )}
-        {/* Your own lines only: a student's repertoire isn't yours to hand on. */}
-        {!current.opening.ownerId && hasStudents && (
+        {/* Yours, or a student's to another student. */}
+        {state.players.some((p) => p.kind === 'student' && p.id !== (current.opening.ownerId ?? null)) && (
           <GiveToStudentButton onClick={() => setGiving(true)} />
         )}
       </div>

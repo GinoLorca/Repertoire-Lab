@@ -20,19 +20,33 @@ export default function CurateLines({ opening, chapter, studentName, onClose, on
   const { state, dispatch } = useStore();
   useBackGuard(true, onClose);
 
-  const mine = state.openings.filter((o) => (o.ownerId ?? null) === null);
-  const matching = mine.filter((o) => sameName(o.name, opening.name));
+  // Where the lines come from: your library, or another student's repertoire
+  // (Myla's Quickstarter Guide into Parker's, say) — never this student's own.
+  const [from, setFrom] = useState(null); // null: yours; else a student's card id
+  const others = state.players.filter((p) => p.kind === 'student' && p.id !== opening.ownerId
+    && state.openings.some((o) => o.ownerId === p.id));
+  const fromName = from ? state.players.find((p) => p.id === from)?.name : null;
+  const pool = state.openings.filter((o) => (o.ownerId ?? null) === from && o.id !== opening.id);
+  const matching = pool.filter((o) => sameName(o.name, opening.name));
   const [showAll, setShowAll] = useState(matching.length === 0);
-  const sources = showAll ? [...matching, ...mine.filter((o) => !matching.includes(o))] : matching;
+  const sources = showAll || !matching.length ? [...matching, ...pool.filter((o) => !matching.includes(o))] : matching;
 
-  // What the student already has anywhere in this opening: shown, not offered.
-  const have = useMemo(
-    () => new Set(opening.chapters.flatMap((c) => c.variations.map(lineKey))),
-    [opening],
-  );
+  // What the student already has anywhere in this opening: shown, not
+  // offered, with the chapter it's in.
+  const have = useMemo(() => {
+    const m = new Map();
+    for (const c of opening.chapters) for (const v of c.variations) if (!m.has(lineKey(v))) m.set(lineKey(v), c);
+    return m;
+  }, [opening]);
   const [selected, setSelected] = useState(() => new Set());
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(() => (matching[0] ? { [`o:${matching[0].id}`]: true } : {}));
+  const switchFrom = (id) => {
+    setFrom(id);
+    const next = state.openings.filter((o) => (o.ownerId ?? null) === id && o.id !== opening.id && sameName(o.name, opening.name));
+    setShowAll(next.length === 0);
+    setOpen(next[0] ? { [`o:${next[0].id}`]: true } : {});
+  };
   const toggleOpen = (key) => setOpen((o) => ({ ...o, [key]: !o[key] }));
 
   const q = query.trim().toLowerCase();
@@ -76,10 +90,12 @@ export default function CurateLines({ opening, chapter, studentName, onClose, on
   // While searching, everything with a hit is open.
   const isOpen = (key) => Boolean(q) || Boolean(open[key]);
 
-  // In the order they sit in your repertoire, whatever order they were ticked.
-  const ordered = sources.flatMap((o) => o.chapters.flatMap((c) => c.variations.map((v) => v.id)))
+  // In the order they sit in their repertoire, whatever order they were
+  // ticked — from every source looked at, not only the one on screen.
+  const everywhere = state.openings.filter((o) => o.id !== opening.id && (o.ownerId ?? null) !== opening.ownerId);
+  const ordered = everywhere.flatMap((o) => o.chapters.flatMap((c) => c.variations.map((v) => v.id)))
     .filter((id) => selected.has(id));
-  const fromChapters = new Set(sources.flatMap((o) => o.chapters
+  const fromChapters = new Set(everywhere.flatMap((o) => o.chapters
     .filter((c) => c.variations.some((v) => selected.has(v.id))).map((c) => c.id))).size;
 
   const add = () => {
@@ -93,7 +109,7 @@ export default function CurateLines({ opening, chapter, studentName, onClose, on
       <div className="modal share-modal curate-modal" onClick={(e) => e.stopPropagation()}>
         <h3>Lines for “{chapter.name}”</h3>
         <p className="hint">
-          Pick lines from anywhere in your {matching.length ? opening.name : 'repertoire'} — any
+          Pick lines from anywhere in {fromName ? `${fromName}’s` : 'your'} {matching.length ? opening.name : 'repertoire'} — any
           course, any chapter. They’re copied into {studentName ? `${studentName}’s` : 'the'} chapter
           with their moves, notes and arrows, and fresh progress. Editing either copy never touches
           the other.
@@ -105,17 +121,26 @@ export default function CurateLines({ opening, chapter, studentName, onClose, on
             placeholder="Search lines, chapters or moves"
             onChange={(e) => setQuery(e.target.value)}
           />
-          {matching.length > 0 && mine.length > matching.length && (
+          {others.length > 0 && (
+            <label className="curate-from">
+              From
+              <select value={from ?? ''} onChange={(e) => switchFrom(e.target.value || null)}>
+                <option value="">My library</option>
+                {others.map((p) => <option key={p.id} value={p.id}>{p.name}’s</option>)}
+              </select>
+            </label>
+          )}
+          {matching.length > 0 && pool.length > matching.length && (
             <label className="curate-all">
               <input type="checkbox" checked={showAll} onChange={() => setShowAll(!showAll)} />
-              All my openings
+              {fromName ? `All ${fromName}’s openings` : 'All my openings'}
             </label>
           )}
         </div>
         <div className="share-list share-tree curate-tree">
           {tree.length === 0 && (
             <p className="muted-note curate-empty">
-              {q ? 'Nothing matches that.' : `There are no lines in your own ${opening.name} yet.`}
+              {q ? 'Nothing matches that.' : `There are no lines in ${fromName ? `${fromName}’s` : 'your'} repertoire yet.`}
             </p>
           )}
           {tree.map(({ o, groups, count }) => {
@@ -142,20 +167,24 @@ export default function CurateLines({ opening, chapter, studentName, onClose, on
                           <span className="muted-note">{lines.length}</span>
                         </div>
                         {isOpen(cKey) && lines.map((v) => {
-                          const there = have.has(lineKey(v));
+                          const there = have.get(lineKey(v)) ?? null;
                           return (
                             <label key={v.id} className={`tree-row tree-line${there ? ' is-there' : ''}`}>
                               <input
                                 type="checkbox"
-                                disabled={there}
-                                checked={there || selected.has(v.id)}
+                                disabled={Boolean(there)}
+                                checked={Boolean(there) || selected.has(v.id)}
                                 onChange={() => setMany([v.id], !selected.has(v.id))}
                               />
                               <span className="tree-name">
                                 {v.name}
                                 <span className="curate-moves">{preview(v)}</span>
                               </span>
-                              {there && <span className="muted-note">already there</span>}
+                              {there && (
+                                <span className="muted-note" title={`${studentName ?? 'They'} already have this line, in ${there.name}`}>
+                                  {there.id === chapter.id ? 'already here' : `already in ${there.name}`}
+                                </span>
+                              )}
                             </label>
                           );
                         })}
