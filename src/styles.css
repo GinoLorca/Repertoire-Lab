@@ -914,8 +914,32 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .viewer-panel {
   background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
   padding: 20px; display: flex; gap: 20px; max-width: 950px; width: 100%;
-  max-height: 92vh;
+  /* 100%: never taller than the overlay. On an iPhone 92vh can be taller than
+     what's actually on screen, with the browser's bars showing. */
+  max-height: min(92vh, 100%); position: relative; overflow-y: auto;
 }
+/* A line's preview: an X that's always there. It sits on a shell around the
+   panel, outside what scrolls, so it stays put in every browser. */
+.viewer-shell {
+  position: relative; display: flex; width: 100%; max-width: 950px; min-height: 0;
+  max-height: min(92vh, 100%);
+}
+.viewer-shell > .viewer-panel { max-height: none; min-height: 0; }
+.viewer-x {
+  position: absolute; top: 8px; right: 8px; z-index: 3;
+  width: 36px; height: 36px; min-width: 0; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: var(--panel); border: 1px solid var(--border); color: var(--text);
+}
+@media (pointer: coarse) {
+  .viewer-x::after { content: ''; position: absolute; inset: -4px; }
+}
+.viewer-line:not(.stacked) .viewer-side > .viewer-title:first-child { padding-right: 26px; }
+/* Stacked, the panel leaves a strip at the top so the X stays clear of the board. */
+.viewer-shell:has(> .stacked) .viewer-x { top: 4px; right: 6px; }
+.viewer-line.stacked { padding-top: 44px; }
+.viewer-line.stacked .viewer-side { flex: none; }
+.viewer-line.stacked .viewer-moves { flex: none; }
 .viewer-board { flex: 0 0 auto; }
 .viewer-side { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
 /* Too narrow for board and list side by side (a phone, a phone on its side,

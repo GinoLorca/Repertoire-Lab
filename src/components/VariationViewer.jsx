@@ -16,7 +16,7 @@ import { useStore } from '../store';
 import { isTouchCapable } from './Board';
 import ArrowProfileLabel from './ArrowProfileLabel';
 import {
-  TagIcon, ShareIcon, StarIcon, CommentIcon, SkipStartIcon, SkipEndIcon, PrevIcon, NextIcon,
+  TagIcon, ShareIcon, StarIcon, CommentIcon, SkipStartIcon, SkipEndIcon, PrevIcon, NextIcon, CloseIcon,
 } from './Icons';
 
 function moveLabel(moves, ply, startFen) {
@@ -116,11 +116,33 @@ export default function VariationViewer({
     return () => window.removeEventListener('keydown', onKey);
   }, [fens.length, onClose, onPrevVariation, onNextVariation]);
 
-  const boardWidth = Math.min(560, window.innerWidth - 140);
+  // Follow the screen: a phone turned on its side has to lay out again.
+  const [, onResized] = useState(0);
+  useEffect(() => {
+    const again = () => onResized((n) => n + 1);
+    window.addEventListener('resize', again);
+    return () => window.removeEventListener('resize', again);
+  }, []);
+  // No room for board and notes side by side (a phone, either way up; an iPad
+  // upright): one above the other, and the whole panel scrolls, so nothing is
+  // ever cut off out of reach. 940: the full-size board, the notes' 240 and the gaps.
+  const stacked = window.innerWidth < 940 || window.innerHeight < 600;
+  const boardWidth = Math.max(200, Math.min(560, window.innerWidth - 140, window.innerHeight - 120));
 
   return (
     <div className="viewer-overlay" onClick={onClose}>
-      <div className="viewer-panel" onClick={(e) => e.stopPropagation()}>
+      <div className="viewer-shell">
+      {/* Outside the part that scrolls, so it's always on screen. */}
+      <button
+        type="button"
+        className="viewer-x"
+        aria-label="Close"
+        title="Close"
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+      >
+        <CloseIcon size={18} />
+      </button>
+      <div className={`viewer-panel viewer-line${stacked ? ' stacked' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div
           className="viewer-board"
           onTouchStart={(e) => { touchRef.current = e.touches[0].clientX; }}
@@ -333,6 +355,7 @@ export default function VariationViewer({
             <button className="primary" onClick={onClose}>Close</button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

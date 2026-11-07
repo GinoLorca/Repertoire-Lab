@@ -53,6 +53,12 @@ export const ClockIcon = (p) => (
   </Icon>
 );
 
+export const CloseIcon = (p) => (
+  <Icon {...p}>
+    <path d="M6 6 18 18M18 6 6 18" />
+  </Icon>
+);
+
 export const CheckIcon = (p) => (
   <Icon {...p}>
     <path d="M4.5 12.5 9.5 17.5 19.5 6.5" />
