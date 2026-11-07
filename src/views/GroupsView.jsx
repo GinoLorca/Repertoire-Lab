@@ -580,6 +580,7 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
       {theming && (
         <ThemeLines
           openings={openings}
+          ownerId={scope === 'me' ? null : scope}
           ownerName={scopedStudent?.name}
           initialTag={theming.tag ?? ''}
           onClose={() => setTheming(null)}

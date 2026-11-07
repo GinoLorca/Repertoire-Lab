@@ -1785,7 +1785,8 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
         <TagEditor
           title={shown.name}
           tags={shown.tags}
-          suggestions={allTags(state)}
+          suggestions={allTags(state, { ownerId: current.opening.ownerId ?? null })}
+          whose={current.opening.ownerId ? state.players.find((p) => p.id === current.opening.ownerId)?.name ?? 'this student' : null}
           onClose={() => setTagOpen(false)}
           onChange={(tags) => dispatch({
             type: 'setVariationTags',

@@ -1059,7 +1059,8 @@ export default function ChapterView({
           <TagEditor
             title={target.name}
             tags={target.tags}
-            suggestions={allTags(state)}
+            suggestions={allTags(state, { ownerId: opening.ownerId ?? null })}
+            whose={opening.ownerId ? state.players.find((p) => p.id === opening.ownerId)?.name ?? 'this student' : null}
             onClose={() => setTagging(null)}
             onChange={(tags) => dispatch(tagging.kind === 'chapter'
               ? { type: 'setChapterTags', openingId, chapterId, tags }

@@ -2001,7 +2001,8 @@ export default function Library({ onOpenChapter, onPractice, revealChapterId, in
           <TagEditor
             title={opening.name}
             tags={opening.tags}
-            suggestions={allTags(state)}
+            suggestions={allTags(state, { ownerId: opening.ownerId ?? null })}
+            whose={opening.ownerId ? state.players.find((p) => p.id === opening.ownerId)?.name ?? 'this student' : null}
             onClose={() => setModal(null)}
             onChange={(tags) => dispatch({ type: 'setOpeningTags', openingId: opening.id, tags })}
           />

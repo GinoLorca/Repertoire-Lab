@@ -14,7 +14,9 @@ const preview = (v, plies = 8) => {
     + (moves.length > plies ? ' …' : '');
 };
 
-export default function ThemeLines({ openings, ownerName, initialTag = '', onClose }) {
+export default function ThemeLines({
+  openings, ownerId = null, ownerName, initialTag = '', onClose,
+}) {
   const { state, dispatch } = useStore();
   useBackGuard(true, onClose);
   const [tag, setTag] = useState(initialTag);
@@ -30,7 +32,8 @@ export default function ThemeLines({ openings, ownerName, initialTag = '', onClo
   });
   const fixed = Boolean(initialTag);
   const name = tag.trim();
-  const suggestions = useMemo(() => allTags(state), [state]);
+  // That repertoire's own themes only — a student's are kept apart from yours.
+  const suggestions = useMemo(() => allTags(state, { ownerId }), [state, ownerId]);
 
   // In the theme already — the line, its chapter or its opening carries it.
   const inIt = (o, c, v) => Boolean(name) && [o.tags, c.tags, v.tags].some((t) => (t ?? []).includes(name));

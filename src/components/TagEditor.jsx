@@ -1,21 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useBackGuard } from '../lib/backGuard';
 
-// Every tag currently in use anywhere, for autocomplete.
-export function allTags(state) {
-  const set = new Set();
-  for (const o of state.openings) {
-    (o.tags ?? []).forEach((t) => set.add(t));
-    for (const c of o.chapters) {
-      (c.tags ?? []).forEach((t) => set.add(t));
-      for (const v of c.variations) (v.tags ?? []).forEach((t) => set.add(t));
-    }
-  }
-  for (const p of state.players ?? []) {
-    for (const g of p.games) (g.tags ?? []).forEach((t) => set.add(t));
-  }
-  return [...set].sort((a, b) => a.localeCompare(b));
-}
+// The themes in use, for autocomplete (lib/themes.js).
+export { allTags } from '../lib/themes';
 
 export function TagChips({ tags, onClick, max }) {
   if (!tags?.length) return null;
@@ -37,7 +24,11 @@ export function TagChips({ tags, onClick, max }) {
 }
 
 // Small popover for adding/removing tags on one item.
-export default function TagEditor({ title, tags, suggestions, onChange, onClose }) {
+// `whose`: a student's name when the item is in their repertoire — the
+// suggestions are then their themes only.
+export default function TagEditor({
+  title, tags, suggestions, onChange, onClose, whose = null,
+}) {
   const [draft, setDraft] = useState('');
   const inputRef = useRef(null);
   const current = tags ?? [];
@@ -71,8 +62,18 @@ export default function TagEditor({ title, tags, suggestions, onChange, onClose 
       <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
         <h3>Themes — {title}</h3>
         <p className="hint">
-          Themes group anything across your repertoire — “bishop trapping plan”, “needs work”,
-          “tournament prep”. You can then search or practice a whole theme at once.
+          {whose ? (
+            <>
+              Themes group lines across {whose}’s repertoire — “bishop trapping plan”, “traps to
+              remember”. They show in {whose}’s Collections, to learn and practice a whole theme at
+              once. Only {whose}’s themes are listed here; yours stay in yours.
+            </>
+          ) : (
+            <>
+              Themes group anything across your repertoire — “bishop trapping plan”, “needs work”,
+              “tournament prep”. You can then search or practice a whole theme at once.
+            </>
+          )}
         </p>
 
         <div className="tag-current">
