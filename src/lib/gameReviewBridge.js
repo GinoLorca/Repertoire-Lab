@@ -101,11 +101,12 @@ export function arcadeGame(src, id, { side } = {}) {
   return game;
 }
 
-// What's kept on a game: both texts and when they were written ({ note, an,
-// at }), or null when there's nothing.
+// What's kept on a game: its texts and when they were written ({ note, an,
+// lr?, at } — lr: a Larry Review pasted in), or null when there's nothing.
 export const cleanRecords = (rec) => cleanGameReview(rec);
 
-export const sameRecords = (a, b) => (a?.note ?? '') === (b?.note ?? '') && (a?.an ?? '') === (b?.an ?? '');
+export const sameRecords = (a, b) => (a?.note ?? '') === (b?.note ?? '') && (a?.an ?? '') === (b?.an ?? '')
+  && (a?.lr ?? '') === (b?.lr ?? '');
 
 // Whether a game has anything from Game Review on it, for the game lists.
 export const hasGameReview = (game) => Boolean(cleanRecords(game?.gameReview));

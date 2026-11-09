@@ -1027,6 +1027,19 @@ test('a line handed on from one student\'s repertoire to another\'s: a fresh cop
   assert.deepEqual(mac.state.openings.find((o) => o.ownerId === 'p-myla').chapters, before.find((o) => o.ownerId === 'p-myla').chapters);
 });
 
+test('a Larry Review pasted in Game Review is kept on the game, and its removal too', () => {
+  const mac = buildLibrary(new Device('mac', 'Mac'));
+  mac.do({ type: 'addPlayer', id: 'p-me', name: 'Me', kind: 'self' });
+  mac.do({ type: 'addGame', playerId: 'p-me', game: { id: 'glrgame1', name: 'A vs B', moves: ['e4', 'e5'], meta: {} } });
+  const game = () => mac.state.players.find((p) => p.id === 'p-me').games.find((g) => g.id === 'glrgame1');
+  mac.do({ type: 'setGameReviewRecords', playerId: 'p-me', gameId: 'glrgame1', records: { note: '', an: '', lr: '1...e5 was fine.', at: 3 } });
+  assert.equal(game().gameReview.lr, '1...e5 was fine.');
+  mac.do({ type: 'setGameReviewRecords', playerId: 'p-me', gameId: 'glrgame1', records: { note: 'mine', an: '', lr: '1...e5 was fine.', at: 4 } });
+  assert.equal(game().gameReview.note, 'mine');
+  mac.do({ type: 'setGameReviewRecords', playerId: 'p-me', gameId: 'glrgame1', records: { note: 'mine', an: '', lr: '', at: 5 } });
+  assert.equal(game().gameReview.lr, undefined, 'removed');
+});
+
 // ---------- Arranging chapter cards by hand (drag and drop, ▲▼) ----------
 
 // An opening laid out like the user's Caro-Kann: a folder with a

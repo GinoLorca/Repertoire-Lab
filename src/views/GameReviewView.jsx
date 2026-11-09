@@ -604,10 +604,14 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
             api()?.flush();
             const now = cleanRecords(api()?.records(caId));
             let kept = now && !sameRecords(now, temp.records) ? { ...now, at: Date.now() } : temp.records;
-            // A fresh board's moves become the game's own: its Notes card comes
-            // along, but what was drawn or written on its moves was on side
-            // lines, which the saved game doesn't have.
-            if (blank) kept = kept?.note?.trim() ? { note: kept.note, an: '', at: Date.now() } : null;
+            // A fresh board's moves become the game's own: its Notes card (and
+            // a Larry Review) comes along, but what was drawn or written on its
+            // moves was on side lines, which the saved game doesn't have.
+            if (blank) {
+              kept = kept?.note?.trim() || kept?.lr?.trim()
+                ? { note: kept.note ?? '', an: '', ...(kept.lr?.trim() ? { lr: kept.lr } : {}), at: Date.now() }
+                : null;
+            }
             const player = state.players.find((p) => p.id === playerId);
             const existing = player?.games?.find((g) => alreadyIn({ games: [g] }, record));
             if (existing) {

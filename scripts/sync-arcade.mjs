@@ -224,8 +224,8 @@ const BRIDGE = String.raw`
     try{ new ResizeObserver(sayHeight).observe(document.getElementById('view-history')); }catch(e){}
     window.__rlReview = {
       v: 1,
-      // The game's saved note and analysis, as Repertoire Lab keeps them on the game.
-      records(gid){ gid = String(gid); return { note: textOf(gid), an: textOf('an-'+gid) }; },
+      // The game's saved note, analysis and Larry's review, as Repertoire Lab keeps them on the game.
+      records(gid){ gid = String(gid); return { note: textOf(gid), an: textOf('an-'+gid), lr: textOf('lr-'+gid) }; },
       // Puts them in before the game opens (or while it's open: it opens again, at the same move).
       load(gid, rec){
         gid = String(gid);
@@ -233,7 +233,8 @@ const BRIDGE = String.raw`
         let changed = false;
         quiet++;
         try{
-          [[gid, rec.note], ['an-'+gid, rec.an]].forEach(([id, t])=>{
+          // the note, the analysis, and Larry's review (the notes card's Larry Review tab)
+          [[gid, rec.note], ['an-'+gid, rec.an], ['lr-'+gid, rec.lr]].forEach(([id, t])=>{
             t = typeof t==='string' ? t : '';
             if(textOf(id)===t) return;
             gnSetNote(id, t, null);
@@ -242,7 +243,7 @@ const BRIDGE = String.raw`
         } finally { quiet--; }
         if(changed){
           const open = HV_STATE && HV_STATE.game && String(HV_STATE.game.id)===gid;
-          if(open){ try{ hvAnnRefresh(); }catch(e){} try{ gnRefreshFields(); }catch(e){} }
+          if(open){ try{ hvAnnRefresh(); }catch(e){} try{ gnRefreshFields(); }catch(e){} try{ if(typeof hvLrDraw==='function') hvLrDraw(); }catch(e){} }
           else HV_TREES.delete(gid);
         }
         return changed;

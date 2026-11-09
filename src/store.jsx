@@ -1023,7 +1023,8 @@ function reduce(state, action) {
           if (g.id !== action.gameId) return g;
           const rec = cleanGameReview(action.records);
           const was = g.gameReview ?? null;
-          if ((rec?.note ?? '') === (was?.note ?? '') && (rec?.an ?? '') === (was?.an ?? '')) return g;
+          if ((rec?.note ?? '') === (was?.note ?? '') && (rec?.an ?? '') === (was?.an ?? '')
+            && (rec?.lr ?? '') === (was?.lr ?? '')) return g;
           const next = { ...g };
           if (rec) next.gameReview = rec; else delete next.gameReview;
           return next;

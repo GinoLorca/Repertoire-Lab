@@ -242,7 +242,7 @@ export function nextRev(now, sentRev = 0, studentRev = 0) {
 // Patches on the wire
 // ---------------------------------------------------------------------------
 
-const PATH_RE = /^(name|date|moves|tree|meta:[a-zA-Z]{1,20}|comments:(?:-1|\d{1,4})|badges:\d{1,4}|annotations:[^\u0000]{1,120}|gameReview:(?:note|an|at))$/;
+const PATH_RE = /^(name|date|moves|tree|meta:[a-zA-Z]{1,20}|comments:(?:-1|\d{1,4})|badges:\d{1,4}|annotations:[^\u0000]{1,120}|gameReview:(?:note|an|lr|at))$/;
 const POISON = new Set(['__proto__', 'constructor', 'prototype']);
 export const MAX_PATCH = 900000;
 

@@ -5308,6 +5308,36 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .hv-movelist{ --hl-a:.35; --hl-tx:var(--ink); }
   @supports (color:hsl(from red h s l)){ .hv-movelist{ --hl-tx:hsl(from var(--ink) 0 0 clamp(0, (l - 50)*100 + 50, 100)); } }
   .hv-movelist .hv-var-line{ position:relative; z-index:0; }
+  /* Notes | Larry Review (hvLr*): the two titles are the switch; the one not shown is quieter */
+  .hv-lr-tab{ border:0; background:none; padding:0; margin:0 auto 0 14px; cursor:pointer; color:var(--ink-soft); }
+  .hv-lr-tab[hidden]{ display:none; }
+  .hv-lr-tab.has-lr::after{ content:''; display:inline-block; width:6px; height:6px; margin-left:5px; border-radius:50%; background:var(--brass); vertical-align:2px; }
+  #hv-pane-notes.is-lr #hv-note-label{ color:var(--ink-soft); cursor:pointer; }
+  #hv-pane-notes.is-lr .hv-lr-tab{ color:var(--ink); }
+  #hv-pane-notes.is-lr .hv-lr-tab{ text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:5px; }
+  #hv-pane-notes.is-lr :is(#hv-note, #hv-note-status, .nb-bar, .nb-wrap){ display:none !important; }
+  #hv-pane-notes:not(.is-lr) .hv-lr{ display:none; }
+  .hv-lr{ display:flex; flex-direction:column; gap:8px; margin-top:6px; }
+  .hv-lr-in{ width:100%; box-sizing:border-box; min-height:140px; resize:vertical; font-size:13.5px; line-height:1.5; }
+  .hv-lr-in[hidden], .hv-lr-text[hidden], .hv-lr-acts [hidden]{ display:none; }
+  .hv-lr-text{ font-size:14.5px; line-height:1.55; color:var(--ink); overflow-wrap:anywhere; }
+  .hv-lr-text > *{ margin:0; }
+  .hv-lr-text > .hv-lr-gap{ margin-top:10px; }
+  .hv-lr-title{ font-weight:800; font-size:16px; }
+  .hv-lr-h{ font-size:15px; font-weight:800; }
+  .hv-lr-text > .hv-lr-h.hv-lr-gap{ margin-top:16px; }
+  .hv-lr-k{ font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--ink-soft); }
+  .hv-lr-li{ padding-left:14px; text-indent:-14px; }
+  .hv-lr-li::before{ content:'\2022'; display:inline-block; width:14px; text-indent:0; color:var(--ink-soft); }
+  /* three columns: the notes card has a height of its own, so the review scrolls inside it and its buttons stay in view */
+  .hv-notes-card #hv-pane-notes.is-lr > .hv-lr{ flex:1 1 auto; min-height:0; }
+  .hv-notes-card #hv-pane-notes.is-lr .hv-lr-text{ flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding-right:6px; }
+  .hv-notes-card #hv-pane-notes.is-lr .hv-lr-in{ flex:1 1 auto; }
+  .hv-lr-acts{ flex:none; }
+  .hv-lr-row{ display:grid; grid-template-columns:repeat(auto-fit, minmax(70px, 1fr)); gap:2px 12px; padding:3px 0; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
+  .hv-lr-acts{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 16px; }
+  .hv-lr-del{ color:var(--bad); }
+  @media (pointer:coarse){ .hv-lr-acts .btn-link, .hv-lr-tab{ min-height:44px; } }
   .hv-movelist .hv-hl-ink, .hv-movelist .hv-nest.hv-hl{ padding:2px 6px; color:var(--hl-tx); -webkit-box-decoration-break:clone; box-decoration-break:clone; }
   .hv-movelist .hv-nest.hv-hl{ padding:2px 4px; }
   .hv-hl-st{ position:absolute; z-index:-1; background:var(--hl); opacity:var(--hl-a); filter:blur(.6px); border-radius:1.5px; pointer-events:none; }
@@ -7706,6 +7736,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <button class="toggle active" data-val="default">Default</button>
         <button class="toggle" data-val="sequential">Sequential</button>
         <button class="toggle" data-val="strategic">Strategic</button>
+        <button class="toggle" data-val="gamereview">Game Review</button>
       </div>
       <div class="field-hint" id="anno-profile-hint">The color of the arrows and highlights you draw on a board.</div>
     </div>
@@ -8690,9 +8721,21 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <div class="hv-pane hv-pane-review" role="tabpanel" id="hv-pane-review" aria-labelledby="hv-tab-review"></div>
         <div class="hv-pane hv-pane-explorer" role="tabpanel" id="hv-pane-explorer" aria-labelledby="hv-tab-explorer"></div>
         <div class="hv-pane hv-pane-notes" role="tabpanel" id="hv-pane-notes" aria-labelledby="hv-tab-notes">
-          <div class="hv-notes-head"><label class="field-label" id="hv-note-label" for="hv-note">Notes</label><button class="hv-fold" id="hv-fold-notes" type="button" aria-expanded="true" aria-controls="hv-note"><span class="hv-fold-chev" aria-hidden="true"></span></button></div>
+          <div class="hv-notes-head"><label class="field-label" id="hv-note-label" for="hv-note">Notes</label><button class="field-label hv-lr-tab" id="hv-lr-tab" type="button" aria-pressed="false" aria-controls="hv-lr-wrap" title="Larry's review of this game: paste it here, and every move in it takes the board there">Larry Review</button><button class="hv-fold" id="hv-fold-notes" type="button" aria-expanded="true" aria-controls="hv-note"><span class="hv-fold-chev" aria-hidden="true"></span></button></div>
           <div class="text-input gn-ta hv-note" id="hv-note" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true" aria-labelledby="hv-note-label" data-placeholder="Your analysis: key moments, mistakes, plans, what to try next time."></div>
           <div class="gn-status" id="hv-note-status" aria-live="polite"></div>
+          <!-- Larry's review (hvLr*): pasted once, then shown as text, every move in it a link (HV_MV_EDS) -->
+          <div class="hv-lr" id="hv-lr-wrap">
+            <textarea class="text-input hv-lr-in" id="hv-lr-in" rows="7" spellcheck="false" aria-label="Larry's review" placeholder="Paste Larry's review here. Every move he writes becomes a link: click it and the board goes there."></textarea>
+            <div class="hv-lr-text" id="hv-lr" role="region" aria-label="Larry's review" hidden></div>
+            <div class="hv-lr-acts">
+              <button type="button" class="btn-link" id="hv-lr-save" hidden>Save</button>
+              <button type="button" class="btn-link" id="hv-lr-cancel" hidden>Cancel</button>
+              <button type="button" class="btn-link" id="hv-lr-edit" hidden>Edit</button>
+              <button type="button" class="btn-link hv-lr-del" id="hv-lr-del" hidden>Remove</button>
+              <span class="gn-status hv-lr-msg" id="hv-lr-msg" aria-live="polite"></span>
+            </div>
+          </div>
         </div>
       </div>
       <!-- Under three columns (hvPlaceTabs, 2026-11-02) the side panels are two tabbed cards: the one
@@ -11867,22 +11910,35 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     {key:'c', color:'#e8b339'}
   ];
   const DEFAULT_PEN_COLOR = '#2ecc71';
-  const heldPenKeys = new Set();
+  // The Game Review profile's pen keys (the user, 2026-11-08): hold a color's first letter while you draw. Z, F and C
+  // still work as in Default. Colors from ANNO_SEQ_COLORS.
+  const ANNO_REVIEW_KEYS = [
+    {key:'r', color:'#e5534b', name:'red'}, {key:'o', color:'#f97316', name:'orange'}, {key:'y', color:'#e8b339', name:'yellow'},
+    {key:'g', color:'#2ecc71', name:'green'}, {key:'b', color:'#3b9cff', name:'blue'}, {key:'p', color:'#8b5cf6', name:'purple'}
+  ];
+  function penKeysNow(){ return annoProfile()==='gamereview' ? ANNO_REVIEW_KEYS.concat(PEN_KEYS.filter(p=> p.key!=='r')) : PEN_KEYS; }
+  // Every letter held right now, and the ones a mark was drawn with since they went down (a key that is also a
+  // shortcut, the review's B, does its other job on release only when nothing was drawn with it).
+  const heldPenKeys = new Set(), penKeysUsed = new Set();
   document.addEventListener('keydown', (e)=>{
-    const k = e.key.toLowerCase();
-    if(PEN_KEYS.some(p=>p.key===k)) heldPenKeys.add(k);
+    const k = String(e.key || '').toLowerCase();
+    if(k.length!==1 || k<'a' || k>'z') return;
+    if(!heldPenKeys.has(k)) penKeysUsed.delete(k);
+    heldPenKeys.add(k);
   });
-  document.addEventListener('keyup', (e)=>{ heldPenKeys.delete(e.key.toLowerCase()); });
+  document.addEventListener('keyup', (e)=>{ heldPenKeys.delete(String(e.key || '').toLowerCase()); });
   window.addEventListener('blur', ()=> heldPenKeys.clear());
+  function penKeyWasUsed(k){ return penKeysUsed.has(k); }
   function currentPenColor(){
-    for(const p of PEN_KEYS){ if(heldPenKeys.has(p.key)) return p.color; }
+    for(const p of penKeysNow()){ if(heldPenKeys.has(p.key)) return p.color; }
     return DEFAULT_PEN_COLOR;
   }
-  // The held pen key's color, or null when no pen key is held.
-  function heldPenColor(){
-    for(const p of PEN_KEYS){ if(heldPenKeys.has(p.key)) return p.color; }
+  // The held pen key ({key, color}), or null when no pen key is held.
+  function heldPenKey(){
+    for(const p of penKeysNow()){ if(heldPenKeys.has(p.key)) return p; }
     return null;
   }
+  function heldPenColor(){ const p = heldPenKey(); return p ? p.color : null; }
 
   /* ---- arrow color profiles ----
      A profile decides the color of the marks the USER draws without a pen
@@ -11927,12 +11983,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   const ANNO_PROFILES = {
     default:    { label:'Default' },
     sequential: { label:'Sequential' },
-    strategic:  { label:'Strategic' }
+    strategic:  { label:'Strategic' },
+    gamereview: { label:'Game Review' }
   };
   // Click order of the label in each board's hint row. A fourth profile is planned
   // but not designed yet: it gets an entry here and in ANNO_PROFILES when it
   // is built. Until then any other stored id behaves exactly like Default.
-  const ANNO_PROFILE_ORDER = ['default','sequential','strategic'];
+  const ANNO_PROFILE_ORDER = ['default','sequential','strategic','gamereview'];
+  // The profiles that work out a mark's color for you (Game Review is Default with more pen keys)
+  function annoDerived(){ const p = annoProfile(); return p==='sequential' || p==='strategic'; }
   // The two darkest colors get a light halo instead of the usual dark one,
   // or they sink into dark squares (Hustler, Outer Space, Game Boy, Felt).
   const ANNO_LIGHT_HALO = ['#8b5a2b','#1a1a1a'];
@@ -12110,12 +12169,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(id==='sequential') return head+' '+ANNO_SEQ_COLORS.slice(0,4).map(annoDot).join('')+'&#8230;';
     if(id==='strategic') return head+' '+annoDot(ANNO_STRATEGIC.w)+'W '+annoDot(ANNO_STRATEGIC.b)+'B '
       +annoDot(ANNO_STRATEGIC.wx)+annoDot(ANNO_STRATEGIC.bx)+'x';
+    if(id==='gamereview') return head+' '+ANNO_REVIEW_KEYS.map(p=> annoDot(p.color)).join('');
     return head;
   }
   function annoLabelTitle(id){
     if(id==='sequential') return 'Arrow colors follow the order you draw them on this position: '
       +ANNO_SEQ_NAMES.map((n,i)=> (i+1)+' '+n).join(', ')+', then green again. A highlight takes the color of the arrow before it. Click for Strategic.';
-    if(id==='strategic') return 'Arrow colors follow the side: W = White green, B = Black blue, x = a capture, White red, Black yellow. A highlight takes the color of the arrow before it. Click for Default.';
+    if(id==='strategic') return 'Arrow colors follow the side: W = White green, B = Black blue, x = a capture, White red, Black yellow. A highlight takes the color of the arrow before it. Click for Game Review.';
+    if(id==='gamereview') return 'Hold a color\'s first letter while you draw: '+ANNO_REVIEW_KEYS.map(p=> p.key.toUpperCase()+' '+p.name).join(', ')+'. No letter: green. Click for Default.';
     return 'Arrows use the pen color (hold Z, R, F or C to pick one). Click for Sequential: colors in the order you draw.';
   }
   // A strip of dots that must not break across lines.
@@ -12127,6 +12188,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(id==='strategic') return 'Colors follow the side that moves: <span class="anno-dots">White '+annoDot(ANNO_STRATEGIC.w)+'</span>, <span class="anno-dots">Black '+annoDot(ANNO_STRATEGIC.b)
       +'</span>, <span class="anno-dots">a White capture '+annoDot(ANNO_STRATEGIC.wx)+'</span>, <span class="anno-dots">a Black capture '+annoDot(ANNO_STRATEGIC.bx)
       +'</span>. A piece keeps its side all along the line you draw, and two arrows from one square are two ideas for the same piece. A highlight takes the color of the arrow before it.'+tail;
+    if(id==='gamereview') return 'Hold a color&#8217;s first letter while you draw an arrow or highlight a square: '
+      +ANNO_REVIEW_KEYS.map(p=> '<span class="anno-dots">'+annoDot(p.color)+' '+p.key.toUpperCase()+' '+p.name+'</span>').join(', ')
+      +'. No letter: green. Z, F and C still pick green, blue and yellow. On the review board B tapped on its own still plays the engine&#8217;s best move. Sneaky Checks keeps its own colors: there they are the answer.';
     // Where the label is: its tips line sits above some boards and below
     // others; Sneaky Checks has none, Game History only with a profile on.
     return 'The pen color: green, or hold Z, R, F or C while you draw for green, red, blue or yellow. You can also switch by clicking &#8220;Arrows&#8221; in the tips line above or below most boards.';
@@ -12402,7 +12466,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // `marks` - a right button's release, or a held finger's lift.
     function applyMark(marks, fromIdx, toIdx){
       const forced = (typeof forceColor==='function' ? forceColor() : forceColor);
-      const held = forced ? null : heldPenColor();
+      const hk = forced ? null : heldPenKey(), held = hk ? hk.color : null;
+      if(hk) penKeysUsed.add(hk.key);
       const color = forced || held || DEFAULT_PEN_COLOR;   // the same color as ever
       // A forced color is the drill's, so it is stored plain like the
       // app's own marks and no profile touches it. Anything else is a user
@@ -12411,7 +12476,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       // Redrawing a mark removes it when it is the same mark. In Default
       // that means the same color, as always; with a profile on, a keyless
       // mark only matches a keyless one (its shown color is derived).
-      const prof = user && !marks.noProfile && annoProfile()!=='default';
+      const prof = user && !marks.noProfile && annoDerived();
       const sameAs = (exColor, exAuto)=> (prof && typeof exAuto==='boolean')
         ? (exAuto===auto && exColor===color) : exColor===color;
       if(toIdx===fromIdx){
@@ -27743,7 +27808,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(typeof GN==='object' && GN && (GH_FILTERS.notes || GH_STATE.offline)){
       let added = false;
       Object.values(GN.notes).forEach(n=>{
-        if(!(n.text || n.conflict) || !n.g || ccIsId(n.id) || gnIsMeta(n.id) || GH_STATE.ids.has(n.id)) return;
+        if(!(n.text || n.conflict) || !n.g || ccIsId(n.id) || gnIsMeta(n.id) || gnIsLr(n.id) || GH_STATE.ids.has(n.id)) return;
         // your analysis on a game not loaded (CLAMP marks too: its row's letters show them): that game (once, if it has a note too)
         if(gnIsAn(n.id)){ const gid = n.id.slice(3); if((!n.conflict && !gnHasAnn(gid) && !gnClampOf(gid).length) || ccIsId(gid) || GH_STATE.ids.has(gid) || GN.notes[gid] || out.some(x=> x.id===gid)) return; n = Object.assign({}, n, { id:gid }); }
         else if(out.some(x=> x.id===n.id)) return;
@@ -29722,7 +29787,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(ghCcUp()) ccGames().forEach(g=>{ if(rpCounted(g)) out.push(g); });
     if(typeof GN==='object' && GN && GN.notes){
       Object.values(GN.notes).forEach(n=>{
-        if(!n || !n.g || gnIsMeta(n.id) || gnIsAn(n.id) || (ccIsId(n.id) ? ghCcUp() && ccHas(n.id) : GH_STATE.ids.has(n.id))) return;
+        if(!n || !n.g || gnIsMeta(n.id) || gnIsAn(n.id) || gnIsLr(n.id) || (ccIsId(n.id) ? ghCcUp() && ccHas(n.id) : GH_STATE.ids.has(n.id))) return;
         let g = GH_STATE.extras.get(n.id);
         if(!g){ try{ g = ghGameFromSummary(n); }catch(e){ g = null; } }
         if(g && rpCounted(g)) out.push(g);
@@ -41449,6 +41514,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hvSay('Engine');
     return true;
   }
+  // In the Game Review arrow profile B is also the blue pen: the best move waits for B's release, and comes only when
+  // nothing was drawn while it was held.
+  var hvBWait = false;
+  document.addEventListener('keyup', (e)=>{
+    if(!hvBWait || String(e.key || '').toLowerCase()!=='b') return;
+    hvBWait = false;
+    if(!penKeyWasUsed('b') && HV_STATE && hvViewActive() && !pxPlaying()) hvPlayBest();
+  });
+  window.addEventListener('blur', ()=>{ hvBWait = false; });
   document.addEventListener('keydown', (e)=>{
     if(!HV_STATE || !hvViewActive()) return;
     if(document.querySelector('.modal-overlay.active')) return;   // Settings or a dialog has the keys
@@ -41482,7 +41556,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     else if(k==='e' || k==='E'){ e.preventDefault(); if(!e.repeat && !hvEKeyTab()) hvToggleHide(); }
     // B plays the best move (2026-11-02: it was Space, which is now held for Space + right-click, a square's CLAMP
     // box: hvSpace). Held down, it plays one.
-    else if(k==='b' || k==='B'){ e.preventDefault(); if(!e.repeat) hvPlayBest(); }
+    else if(k==='b' || k==='B'){ e.preventDefault(); if(!e.repeat){ if(annoProfile()==='gamereview') hvBWait = true; else hvPlayBest(); } }
     // T marks a tactic on the move on the board, or edits the one there (2026-11-03)
     else if(k==='t' || k==='T'){ e.preventDefault(); if(!e.repeat) hvTacKey(); }
     else if(k==='Escape'){ e.preventDefault(); if(HV_STATE.game._practice) pxBack(); else if(HV_STATE.game._puzzle) pzaReturn(); else showView('history'); }
@@ -44488,12 +44562,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // what a note can belong to: a Lichess game (8 characters), a chess.com one (cc-<n>, daily
   // cc-d<n>) or an opening (op-<hash>, gnOpId)
-  function gnIdOk(id){ return /^(?:\w{8}|cc-d?\d{1,15}|op-[0-9a-f]{8}|an-(?:\w{8}|cc-d?\d{1,15})|g[pq]-[0-9a-f]{8})$/.test(String(id || '')); }
+  function gnIdOk(id){ return /^(?:\w{8}|cc-d?\d{1,15}|op-[0-9a-f]{8}|(?:an|lr)-(?:\w{8}|cc-d?\d{1,15})|g[pq]-[0-9a-f]{8})$/.test(String(id || '')); }
   function gnIsOp(id){ return /^op-[0-9a-f]{8}$/.test(String(id || '')); }
   function gnIsGp(id){ return /^gp-[0-9a-f]{8}$/.test(String(id || '')); }
   // a record that isn't a game's (an opening's note, a group, a group's note): never listed as a game
   function gnIsMeta(id){ return /^(?:op|gp|gq)-[0-9a-f]{8}$/.test(String(id || '')); }
   function gnIsAn(id){ return /^an-(?:\w{8}|cc-d?\d{1,15})$/.test(String(id || '')); }
+  // Larry's review of a game (2026-11-08, hvLr*): its own record, a game's but never listed as one. An older build
+  // reads its chapter as not its own and leaves it alone (gnParseChapter: gnIdOk).
+  function gnIsLr(id){ return /^lr-(?:\w{8}|cc-d?\d{1,15})$/.test(String(id || '')); }
   function gnHasAnn(gid){ return !!gnAnnSummary(gid); }      // (a record with only b:[] in it is none; nor one with only CLAMP marks: the row's letters show those)
   // "2 comments \u00b7 1 badge \u00b7 1 side line \u00b7 arrows" for a game's saved analysis ('' when none)
   function gnAnnSummary(gid){
@@ -44944,7 +45021,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(gnIsOp(n.id)) return (n.id+' \u00b7 Opening \u00b7 '+((n.g && n.g.opening) || '?')).slice(0, 100);
     if(gnIsMeta(n.id)) return (n.id+' \u00b7 '+(gnIsGp(n.id) ? 'Group' : 'Group notes')+' \u00b7 '+((n.g && n.g.opening) || '?')).slice(0, 100);
     const g = n.g || {}, fam = gnFamilyOf(g);
-    return (n.id+' \u00b7 '+(gnIsAn(n.id) ? 'Analysis \u00b7 ' : '')+'vs '+(g.opp || '?')+(fam ? ' \u00b7 '+fam : '')).slice(0, 100);
+    return (n.id+' \u00b7 '+(gnIsAn(n.id) ? 'Analysis \u00b7 ' : gnIsLr(n.id) ? 'Larry review \u00b7 ' : '')+'vs '+(g.opp || '?')+(fam ? ' \u00b7 '+fam : '')).slice(0, 100);
   }
   function gnReadable(t){
     let r = nbPlain(String(t||'')).replace(/\r/g, '').replace(/\{/g, '(').replace(/\}/g, ')').replace(/\[%/g, '[ %').replace(/\n[ \t]*(\n[ \t]*)+/g, '\n');
@@ -44975,7 +45052,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const rd = !n.text ? '(deleted)' : (gnIsGp(n.id) ? 'A group of games in Chess Arcade: '+((n.g && n.g.opening) || '') : gnReadable(n.text));
       return t.join('\n')+'\n\n{ '+gnMeta(n)+'\n'+rd+' } '+(mv ? mv+' ' : '')+'*';
     }
-    const an = gnIsAn(n.id), gid = an ? n.id.slice(3) : n.id;      // an analysis record: its game's tags
+    const an = gnIsAn(n.id), gid = an || gnIsLr(n.id) ? n.id.slice(3) : n.id;      // an analysis record or Larry's review: its game's tags
     const cc = ccIsId(gid);      // a chess.com game's note: its chess.com page, your chess.com name
     const mine = cc ? ((ghCcUp() && ccName()) || 'Me') : (GH_STATE.username || GN.sync.user || 'Me'), opp = g.opp || '?';
     const pad = x=> String(x).padStart(2, '0');
@@ -47613,7 +47690,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
 
   nbMount(document.getElementById('hv-note'), { context:'review', barHost:document.querySelector('#hv-pane-notes .hv-notes-head') });
   nbMount(document.getElementById('gn-text'), { context:'popup' });
-  document.getElementById('hv-note-label').addEventListener('click', (e)=>{ e.preventDefault(); hvUnfoldNotes(); nbFocus(nbReviewEd()); });
+  document.getElementById('hv-note-label').addEventListener('click', (e)=>{ e.preventDefault(); hvLrShow(false); hvUnfoldNotes(); nbFocus(nbReviewEd()); });
 
   /* ---- Editing: the editor over the list, and the review's Notes field.
      Both autosave; a textarea the user is typing in is never overwritten
@@ -47713,6 +47790,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hvOpxFields().forEach(F=>{ gnFieldRefresh(F); gnRenderField(F); });
     if(ghgF){ gnFieldRefresh(ghgF); gnRenderField(ghgF); }
     if(GH_LC && GH_LC.F) gnFieldRefresh(GH_LC.F);      // the line card's idea (a field you're typing in is left alone)
+    if(typeof hvLrDraw==='function') hvLrDraw();        // Larry's review, from another device (not while you edit it)
     hvAnnRefresh();
     ghClampBoxSync();             // an open CLAMP box's list
   }
@@ -48115,7 +48193,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
      its color as a link (an alternative you made yellow stays yellow): those pieces are
      in hv-mv-own / hv-mv-alt-own, only underlined. A word link (nbWl*, any words you linked to
      a move) is drawn the same way and comes first; a move written inside one is that link. ---- */
-  var HV_MV_EDS = ['hv-note', 'hv-opx-fam', 'hv-opx-var'];
+  var HV_MV_EDS = ['hv-note', 'hv-opx-fam', 'hv-opx-var', 'hv-lr'];
   var hvMvLinks = [], hvMvTimer = 0;
   var HV_MV_SAN = /^(?:O-O-O|O-O|0-0-0|0-0|[KQRBN][a-h]?[1-8]?x?[a-h][1-8](?:=?[QRBN])?|[a-h](?:x[a-h])?[1-8](?:=?[QRBN])?)[+#]?[!?]{0,2}/;
   var HV_MV_NUM = /(\d{1,3})[ \t]*(\.\.\.|\u2026|\.)[ \t]*/g;
@@ -48342,6 +48420,131 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     });
     // the same note against another game, or the game's lines changed
     hvOnGame(()=> hvMvSoon());
+  })();
+
+  /* ---- Larry's review (2026-11-08, the user: "paste this analysis into the field, and all the move orders are linkable ...
+     I go through analysis on ChatGPT, and then I have to go back through different windows"). Larry is the ChatGPT coach the
+     user reviews games with. His reply is pasted once and kept with the game as an lr-<game> record, synced like a note; it
+     shows beside the board as text only (never HTML), every move in it a link like Notes' (HV_MV_EDS: the same reading, the
+     same click). The first line is his title, "1. Opening ..." lines are headings, a line in capitals is a label, a line with
+     tabs is a row of a table, the rest are paragraphs. In the notes card as Notes | Larry Review. ---- */
+  var hvLr = { editing:false, gid:null };
+  const HV_LR_VIEW = 'wavyChessPrepNotesView';
+  function hvLrId(){
+    const S = HV_STATE, g = S && S.game;
+    if(!g || g._puzzle || g._practice) return null;
+    const id = 'lr-'+String(g.id);
+    return gnIsLr(id) ? id : null;
+  }
+  function hvLrNorm(t){
+    return String(t || '').replace(/\r\n?/g, '\n').replace(/[\u00a0\u2007\u202f]/g, ' ').replace(/[\u200b\u2060\ufeff]/g, '')
+      .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+  // A line's inline marks, as ChatGPT's copy button writes them (Markdown): **bold** and __bold__ kept bold, *italic*
+  // italic, `code` and [text](link) as their text, \* and the like as the character. Text nodes only, never HTML.
+  var HV_LR_INL = /\\([\\`*_{}\[\]()#+\-.!|>~])|\*\*(.+?)\*\*|__(.+?)__|`([^`]+)`|\[([^\]]+)\]\([^)\s]*\)|(^|[^\w*])\*(?!\s)([^*]+?)\*(?!\w)/g;
+  function hvLrInline(el, s){
+    const re = new RegExp(HV_LR_INL.source, 'g'), add = (t)=> el.appendChild(document.createTextNode(t));
+    let at = 0, m;
+    while((m = re.exec(s))){
+      if(m.index > at) add(s.slice(at, m.index));
+      if(m[1]) add(m[1]);
+      else if(m[2] || m[3]){ const b = document.createElement('strong'); b.textContent = (m[2] || m[3]).replace(/\\(.)/g, '$1'); el.appendChild(b); }
+      else if(m[4]) add(m[4]);
+      else if(m[5]) add(m[5]);
+      else { if(m[6]) add(m[6]); const i = document.createElement('em'); i.textContent = m[7]; el.appendChild(i); }
+      at = re.lastIndex;
+    }
+    if(at < s.length) add(s.slice(at));
+    return el;
+  }
+  // His reply as blocks: plain text as ChatGPT's page shows it, or the Markdown its copy button gives. The first line his
+  // title; "#" lines and "1. Opening ..." lines headings; a line in capitals a label; a table's rows ("|" or tabs); "-"
+  // bullets; the rest paragraphs. Rules, code fences and pictures are left out.
+  function hvLrBlocks(box, text){
+    box.textContent = '';
+    let first = true, gap = false;
+    const cellsRow = (cells)=>{
+      // its cells with a space between, so a move in one isn't run into the next
+      const el = hvEl('div', 'hv-lr-row');
+      cells.forEach((c, i)=>{ if(i) el.appendChild(document.createTextNode(' ')); el.appendChild(hvLrInline(hvEl('span', 'hv-lr-cell'), c.trim())); });
+      return el;
+    };
+    text.split('\n').forEach(raw=>{
+      let line = raw.trim().replace(/^>\s?/, '');
+      if(!line || /^(```|~~~)/.test(line) || /^([-*_])(\s*\1){2,}$/.test(line) || /^!\[[^\]]*\]\([^)]*\)$/.test(line)){ gap = true; return; }
+      let el;
+      const hm = /^(#{1,6})\s+(.*)$/.exec(line);
+      if(hm) line = hm[2].replace(/\s#+$/, '');
+      if(/^\|.*\|$/.test(line) || (/\|/.test(line) && /^\|/.test(line))){
+        if(/^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/.test(line)) return;      // the line under a table's head
+        el = cellsRow(line.replace(/^\|/, '').replace(/\|$/, '').split('|'));
+      }
+      else if(raw.indexOf('\t')>=0) el = cellsRow(raw.split('\t'));
+      else if(first) el = hvLrInline(hvEl('div', 'hv-lr-title'), line);
+      else if(hm || (/^\d{1,2}\.\s+[A-Z][a-z]/.test(line) && !HV_MV_SAN.test(line.replace(/^\d{1,2}\.\s+/, '')))) el = hvLrInline(hvEl('h4', 'hv-lr-h'), line);
+      else if(/^[-*+]\s+/.test(line)) el = hvLrInline(hvEl('p', 'hv-lr-p hv-lr-li'), line.replace(/^[-*+]\s+/, ''));
+      else if(line.length > 3 && /[A-Z]/.test(line) && !/[a-z]/.test(line) && !/[*_`]/.test(line)) el = hvEl('div', 'hv-lr-k', line);
+      else el = hvLrInline(hvEl('p', 'hv-lr-p'), line);
+      if(gap && !first) el.classList.add('hv-lr-gap');
+      gap = false; first = false;
+      box.appendChild(el);
+    });
+  }
+  function hvLrDraw(){
+    const $ = (id)=> document.getElementById(id), id = hvLrId(), tab = $('hv-lr-tab');
+    if(!tab) return;
+    tab.hidden = !id;
+    if(!id){ hvLrShow(false, true); return; }
+    const t = gnNoteText(id), inp = $('hv-lr-in'), view = $('hv-lr');
+    tab.classList.toggle('has-lr', !!t);
+    if(hvLr.gid!==id){ hvLr.gid = id; hvLr.editing = false; inp.value = ''; $('hv-lr-msg').textContent = ''; }
+    const edit = hvLr.editing || !t;
+    inp.hidden = !edit; view.hidden = edit;
+    if(!edit && view._t!==t){ hvLrBlocks(view, t); view._t = t; hvMvSoon(); }
+    if(edit) view._t = null;
+    $('hv-lr-edit').hidden = $('hv-lr-del').hidden = edit;
+    $('hv-lr-cancel').hidden = !hvLr.editing || !t;
+    $('hv-lr-save').hidden = !edit || !inp.value.trim();
+  }
+  function hvLrShow(on, quiet){
+    const pane = document.getElementById('hv-pane-notes'), tab = document.getElementById('hv-lr-tab');
+    on = !!on && !tab.hidden;
+    pane.classList.toggle('is-lr', on);
+    tab.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if(!quiet) try{ localStorage.setItem(HV_LR_VIEW, on ? 'larry' : 'notes'); }catch(e){}
+    if(on) hvLrDraw();
+    hvMvSoon();
+  }
+  function hvLrSave(){
+    const id = hvLrId(), inp = document.getElementById('hv-lr-in'), msg = document.getElementById('hv-lr-msg');
+    if(!id) return;
+    let t = hvLrNorm(inp.value);
+    msg.textContent = '';
+    if(t.length > GN_MAX){ t = t.slice(0, GN_MAX); msg.textContent = 'Longer than '+GN_MAX.toLocaleString('en-US')+' characters: the end of it wasn\'t kept.'; }
+    if(!t) return;
+    gnSetNote(id, t, HV_STATE.game);
+    hvLr.editing = false;
+    inp.value = '';
+    hvLrDraw();
+  }
+  (function hvLrWire(){
+    const $ = (id)=> document.getElementById(id), inp = $('hv-lr-in');
+    $('hv-lr-tab').addEventListener('click', ()=>{ hvUnfoldNotes(); hvLrShow(true); });
+    // a paste into the empty box is kept at once; a paste while editing waits for Save
+    inp.addEventListener('paste', ()=> setTimeout(()=>{ if(!hvLr.editing && inp.value.trim()) hvLrSave(); else hvLrDraw(); }, 0));
+    inp.addEventListener('input', ()=>{ $('hv-lr-save').hidden = !inp.value.trim(); });
+    $('hv-lr-save').addEventListener('click', hvLrSave);
+    $('hv-lr-edit').addEventListener('click', ()=>{ const id = hvLrId(); if(!id) return; hvLr.editing = true; inp.value = gnNoteText(id); hvLrDraw(); try{ inp.focus(); }catch(e){} });
+    $('hv-lr-cancel').addEventListener('click', ()=>{ hvLr.editing = false; inp.value = ''; hvLrDraw(); });
+    $('hv-lr-del').addEventListener('click', ()=>{
+      const id = hvLrId();
+      if(!id || !confirm('Remove Larry\'s review of this game?')) return;
+      gnSetNote(id, '', HV_STATE.game);
+      hvLr.editing = false; inp.value = '';
+      hvLrDraw();
+    });
+    hvOnGame(()=>{ hvLrDraw(); let v = ''; try{ v = localStorage.getItem(HV_LR_VIEW) || ''; }catch(e){} hvLrShow(v==='larry', true); });
   })();
 
   /* ---- Your analysis on the board, kept with the game: comments on moves (right-click a
@@ -51213,8 +51416,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     try{ new ResizeObserver(sayHeight).observe(document.getElementById('view-history')); }catch(e){}
     window.__rlReview = {
       v: 1,
-      // The game's saved note and analysis, as Repertoire Lab keeps them on the game.
-      records(gid){ gid = String(gid); return { note: textOf(gid), an: textOf('an-'+gid) }; },
+      // The game's saved note, analysis and Larry's review, as Repertoire Lab keeps them on the game.
+      records(gid){ gid = String(gid); return { note: textOf(gid), an: textOf('an-'+gid), lr: textOf('lr-'+gid) }; },
       // Puts them in before the game opens (or while it's open: it opens again, at the same move).
       load(gid, rec){
         gid = String(gid);
@@ -51222,7 +51425,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         let changed = false;
         quiet++;
         try{
-          [[gid, rec.note], ['an-'+gid, rec.an]].forEach(([id, t])=>{
+          // the note, the analysis, and Larry's review (the notes card's Larry Review tab)
+          [[gid, rec.note], ['an-'+gid, rec.an], ['lr-'+gid, rec.lr]].forEach(([id, t])=>{
             t = typeof t==='string' ? t : '';
             if(textOf(id)===t) return;
             gnSetNote(id, t, null);
@@ -51231,7 +51435,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         } finally { quiet--; }
         if(changed){
           const open = HV_STATE && HV_STATE.game && String(HV_STATE.game.id)===gid;
-          if(open){ try{ hvAnnRefresh(); }catch(e){} try{ gnRefreshFields(); }catch(e){} }
+          if(open){ try{ hvAnnRefresh(); }catch(e){} try{ gnRefreshFields(); }catch(e){} try{ if(typeof hvLrDraw==='function') hvLrDraw(); }catch(e){} }
           else HV_TREES.delete(gid);
         }
         return changed;

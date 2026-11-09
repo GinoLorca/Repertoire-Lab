@@ -164,6 +164,9 @@ test('a game the coach typed in: its Game Review goes to the student field by fi
   assert.equal(parsePatch(JSON.stringify(bad)), null);
   const long = { from: { 'gameReview:an': '∅' }, set: { 'gameReview:an': 'x'.repeat(MAX_TEXT + 1) } };
   assert.equal(parsePatch(JSON.stringify(long)), null);
+  // a Larry Review travels the same way
+  const larry = { from: { 'gameReview:lr': '∅' }, set: { 'gameReview:lr': '12...f6 was the turning point.' } };
+  assert.ok(parsePatch(JSON.stringify(larry)));
   const other = { from: { 'gameReview:who': '∅' }, set: { 'gameReview:who': 'x' } };
   assert.equal(parsePatch(JSON.stringify(other)), null);
   // The coach's mirror of a student's game copies it across.
@@ -234,4 +237,14 @@ test('only games with CLAMP letters or tactics on them go to the two tabs', () =
   assert.deepEqual(games.map((g) => byArcadeId.get(g.id)), ['g1aaaaaa', 'g2aaaaaa']);
   assert.equal(games[1].tactics, true);
   assert.equal(games[0].an, marked);
+});
+
+test('a Larry Review pasted in Game Review is kept on the game, compared, and shared like the note', async () => {
+  const { cleanRecords, sameRecords, hasGameReview } = await import('../src/lib/gameReviewBridge.js');
+  const lr = '# Larry\n12...f6 was the turning point.';
+  assert.deepEqual(cleanRecords({ note: '', an: '', lr, at: 5 }), { note: '', an: '', lr, at: 5 });
+  assert.deepEqual(cleanRecords({ note: 'n', an: '' }), { note: 'n', an: '' }, 'none: no lr key');
+  assert.equal(sameRecords({ note: 'n', an: '' }, { note: 'n', an: '', lr }), false);
+  assert.equal(sameRecords({ note: 'n', an: '', lr }, { note: 'n', an: '', lr }), true);
+  assert.equal(hasGameReview({ gameReview: { note: '', an: '', lr } }), true);
 });

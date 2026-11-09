@@ -13,7 +13,7 @@
 //     moments?: [moment],           Before & After moments (lib/moments), only
 //                                   when there are any — so a document without
 //                                   reads, and hashes, as it always did
-//     gameReview?: { note, an, at } } what the coach wrote in Game Review
+//     gameReview?: { note, an, lr?, at } } what the coach wrote in Game Review
 //                                   (lib/gameReviewBridge), the same way: only
 //                                   when there is some
 //
@@ -57,8 +57,12 @@ export function cleanGameReview(raw) {
   if (!isObj(raw)) return null;
   const note = typeof raw.note === 'string' ? raw.note.slice(0, GAME_REVIEW_MAX) : '';
   const an = typeof raw.an === 'string' ? raw.an.slice(0, GAME_REVIEW_MAX) : '';
-  if (!note.trim() && !an.trim()) return null;
+  // Larry Review: a review pasted into Game Review's notes card, its moves links
+  // (Chess Arcade's lr-<game> record); kept only when there is one.
+  const lr = typeof raw.lr === 'string' ? raw.lr.slice(0, GAME_REVIEW_MAX) : '';
+  if (!note.trim() && !an.trim() && !lr.trim()) return null;
   const out = { note, an };
+  if (lr.trim()) out.lr = lr;
   if (typeof raw.at === 'number' && Number.isFinite(raw.at) && raw.at > 0) out.at = Math.round(raw.at);
   return out;
 }
