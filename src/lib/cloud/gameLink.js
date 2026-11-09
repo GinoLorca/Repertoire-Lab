@@ -52,8 +52,9 @@ export const SHARED_META = [
 // Keyed maps travel one key at a time — a comment on move 14 is its own
 // field — so two people annotating different moves never collide.
 // gameReview is what Game Review (Chess Arcade's review, lib/gameReviewBridge)
-// wrote on the game: its Notes card (note), the analysis on its board (an)
-// and when (at) — the note and the analysis each their own field.
+// wrote on the game: its Notes card (note), the analysis on its board (an),
+// a Larry Review (lr), any other record Chess Arcade keeps for a game (a short
+// name of its own) and when (at) — each its own field.
 export const SHARED_MAPS = ['comments', 'badges', 'annotations', 'gameReview'];
 
 // Never sent, and never overwritten by the other side: each person's own
@@ -242,7 +243,7 @@ export function nextRev(now, sentRev = 0, studentRev = 0) {
 // Patches on the wire
 // ---------------------------------------------------------------------------
 
-const PATH_RE = /^(name|date|moves|tree|meta:[a-zA-Z]{1,20}|comments:(?:-1|\d{1,4})|badges:\d{1,4}|annotations:[^\u0000]{1,120}|gameReview:(?:note|an|lr|at))$/;
+const PATH_RE = /^(name|date|moves|tree|meta:[a-zA-Z]{1,20}|comments:(?:-1|\d{1,4})|badges:\d{1,4}|annotations:[^\u0000]{1,120}|gameReview:(?:note|[a-z]{2,3}))$/;
 const POISON = new Set(['__proto__', 'constructor', 'prototype']);
 export const MAX_PATCH = 900000;
 

@@ -13,7 +13,7 @@ import { arrangeTop, arrangeFolder, gatherIntoFolder } from './lib/chapterOrder'
 import { sendToChapter } from './lib/chapterTransfer';
 import { curateInto, reorganise } from './lib/curate';
 import { kidArtwork, kidArtForStudents, isKidArt } from './lib/kidArtwork';
-import { cleanGameReview } from './lib/analysisDoc';
+import { cleanGameReview, sameGameReview } from './lib/analysisDoc';
 import { parseMarks, withText, withMarks } from './lib/marks';
 import { canonicalStartFen, fen4 } from './lib/startPos';
 import {
@@ -1023,8 +1023,7 @@ function reduce(state, action) {
           if (g.id !== action.gameId) return g;
           const rec = cleanGameReview(action.records);
           const was = g.gameReview ?? null;
-          if ((rec?.note ?? '') === (was?.note ?? '') && (rec?.an ?? '') === (was?.an ?? '')
-            && (rec?.lr ?? '') === (was?.lr ?? '')) return g;
+          if (sameGameReview(rec, was)) return g;
           const next = { ...g };
           if (rec) next.gameReview = rec; else delete next.gameReview;
           return next;

@@ -10,15 +10,16 @@
 //     analysis under that id, and only takes ids of its own shape: eight word
 //     characters. One with an underscore, so it is never taken for a Lichess
 //     game (Share would offer a lichess.org link to it).
-//   · What Repertoire Lab keeps on the game: game.gameReview = { note, an },
-//     the two texts Chess Arcade saves for it — the Notes card, and the
-//     analysis on the board (comments, side lines, arrows and squares,
-//     badges, CLAMP letters and their squares, tactics, highlights) as the one
-//     JSON record Chess Arcade writes. Kept exactly as written, never taken
-//     apart, so nothing Chess Arcade adds later is lost on the way through.
+//   · What Repertoire Lab keeps on the game: game.gameReview = { note, an, … },
+//     the texts Chess Arcade saves for it — the Notes card; the analysis on
+//     the board (comments, side lines, arrows and squares, badges, CLAMP
+//     letters and their squares, tactics, highlights) as the one JSON record
+//     Chess Arcade writes; a Larry Review; and any record it keeps for a game
+//     later. Kept exactly as written, never taken apart, so nothing Chess
+//     Arcade adds later is lost on the way through.
 import { START_FEN } from './startPos';
 import {
-  cleanGameReview, parseDoc, docFromGame, serializeDoc,
+  cleanGameReview, sameGameReview, parseDoc, docFromGame, serializeDoc,
 } from './analysisDoc';
 
 // Chess Arcade's own limit on one note (GN_MAX): a longer text it would cut.
@@ -102,11 +103,12 @@ export function arcadeGame(src, id, { side } = {}) {
 }
 
 // What's kept on a game: its texts and when they were written ({ note, an,
-// lr?, at } — lr: a Larry Review pasted in), or null when there's nothing.
+// lr?, …, at } — lr: a Larry Review pasted in; any other kind of record
+// Chess Arcade keeps for a game comes along the same way), or null when
+// there's nothing.
 export const cleanRecords = (rec) => cleanGameReview(rec);
 
-export const sameRecords = (a, b) => (a?.note ?? '') === (b?.note ?? '') && (a?.an ?? '') === (b?.an ?? '')
-  && (a?.lr ?? '') === (b?.lr ?? '');
+export const sameRecords = (a, b) => sameGameReview(a, b);
 
 // Whether a game has anything from Game Review on it, for the game lists.
 export const hasGameReview = (game) => Boolean(cleanRecords(game?.gameReview));

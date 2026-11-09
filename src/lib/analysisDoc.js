@@ -13,7 +13,7 @@
 //     moments?: [moment],           Before & After moments (lib/moments), only
 //                                   when there are any — so a document without
 //                                   reads, and hashes, as it always did
-//     gameReview?: { note, an, lr?, at } } what the coach wrote in Game Review
+//     gameReview?: { note, an, lr?, …, at } } what the coach wrote in Game Review
 //                                   (lib/gameReviewBridge), the same way: only
 //                                   when there is some
 //
@@ -50,21 +50,36 @@ const FEN_KEY = /^[1-8pnbrqkPNBRQK/]{15,90} [wb] (?:[KQkq]{1,4}|-) (?:[a-h][36]|
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const text = (v) => (typeof v === 'string' ? v.slice(0, MAX_NOTE) : '');
 
-// Game Review's two texts (Chess Arcade's note limit, lib/gameReviewBridge's
-// MAX_TEXT) and when they were written; null when there's nothing.
-const GAME_REVIEW_MAX = 10000;
+// What Game Review wrote on a game, as Chess Arcade keeps it: the Notes card
+// (note), and each of its other records for the game, by the short name
+// Chess Arcade files it under ('<kind>-<game>'): an, the analysis on the
+// board; lr, a Larry Review pasted in; and whatever kind it adds next, kept
+// the same way with nothing here to change. 'at' is when they were written.
+const GAME_REVIEW_MAX = 10000; // Chess Arcade's limit on one note (lib/gameReviewBridge's MAX_TEXT)
+const GAME_REVIEW_KINDS = 12; // past note and an: a game can't be made to carry any number
+export const isReviewKind = (k) => k === 'note' || (/^[a-z]{2,3}$/.test(k) && k !== 'at');
+const reviewText = (v) => (typeof v === 'string' ? v.slice(0, GAME_REVIEW_MAX) : '');
+
+// Its texts and when (note and an always there; another kind only when it has
+// something in it); null when there's nothing.
 export function cleanGameReview(raw) {
   if (!isObj(raw)) return null;
-  const note = typeof raw.note === 'string' ? raw.note.slice(0, GAME_REVIEW_MAX) : '';
-  const an = typeof raw.an === 'string' ? raw.an.slice(0, GAME_REVIEW_MAX) : '';
-  // Larry Review: a review pasted into Game Review's notes card, its moves links
-  // (Chess Arcade's lr-<game> record); kept only when there is one.
-  const lr = typeof raw.lr === 'string' ? raw.lr.slice(0, GAME_REVIEW_MAX) : '';
-  if (!note.trim() && !an.trim() && !lr.trim()) return null;
+  const note = reviewText(raw.note);
+  const an = reviewText(raw.an);
+  const more = Object.keys(raw).filter((k) => k !== 'note' && k !== 'an' && isReviewKind(k) && reviewText(raw[k]).trim())
+    .sort().slice(0, GAME_REVIEW_KINDS);
+  if (!note.trim() && !an.trim() && !more.length) return null;
   const out = { note, an };
-  if (lr.trim()) out.lr = lr;
+  for (const k of more) out[k] = reviewText(raw[k]);
   if (typeof raw.at === 'number' && Number.isFinite(raw.at) && raw.at > 0) out.at = Math.round(raw.at);
   return out;
+}
+
+// The same texts, whenever they were written.
+export function sameGameReview(a, b) {
+  const kinds = new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})].filter(isReviewKind));
+  for (const k of kinds) if (reviewText(a?.[k]) !== reviewText(b?.[k])) return false;
+  return true;
 }
 
 export const serializeDoc = (doc) => stableStringify(doc);

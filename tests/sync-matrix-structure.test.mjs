@@ -49,7 +49,7 @@ import { parseMarks, withText, withMarks } from '../src/lib/marks.js';
 import { canonicalStartFen, fen4 } from '../src/lib/startPos.js';
 import { sendToChapter } from '../src/lib/chapterTransfer.js';
 import { kidArtwork, kidArtForStudents, isKidArt } from '../src/lib/kidArtwork.js';
-import { cleanGameReview } from '../src/lib/analysisDoc.js';
+import { cleanGameReview, sameGameReview } from '../src/lib/analysisDoc.js';
 import { curateInto, reorganise } from '../src/lib/curate.js';
 
 // ---------------------------------------------------------------------------
@@ -73,9 +73,9 @@ const { reducer, emptyState } = (() => {
     'return { reducer, emptyState };',
   ].join('\n');
   // eslint-disable-next-line no-new-func
-  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', 'canonicalStartFen', 'fen4', 'sendToChapter', 'kidArtwork', 'kidArtForStudents', 'isKidArt', 'cleanGameReview', 'curateInto', 'reorganise', body)(
+  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', 'canonicalStartFen', 'fen4', 'sendToChapter', 'kidArtwork', 'kidArtForStudents', 'isKidArt', 'cleanGameReview', 'sameGameReview', 'curateInto', 'reorganise', body)(
     DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, sendLines, makeSub, leaveFolder, withFolderMates, arrangeTop, arrangeFolder, gatherIntoFolder, parseMarks, withText, withMarks, canonicalStartFen, fen4,
-    sendToChapter, kidArtwork, kidArtForStudents, isKidArt, cleanGameReview, curateInto, reorganise,
+    sendToChapter, kidArtwork, kidArtForStudents, isKidArt, cleanGameReview, sameGameReview, curateInto, reorganise,
   );
 })();
 
@@ -1038,6 +1038,12 @@ test('a Larry Review pasted in Game Review is kept on the game, and its removal 
   assert.equal(game().gameReview.note, 'mine');
   mac.do({ type: 'setGameReviewRecords', playerId: 'p-me', gameId: 'glrgame1', records: { note: 'mine', an: '', lr: '', at: 5 } });
   assert.equal(game().gameReview.lr, undefined, 'removed');
+  // a kind of record Chess Arcade adds later is kept the same way, with nothing here for it
+  mac.do({ type: 'setGameReviewRecords', playerId: 'p-me', gameId: 'glrgame1', records: { note: 'mine', an: '', xy: 'next idea', at: 6 } });
+  assert.equal(game().gameReview.xy, 'next idea');
+  const before = game();
+  mac.do({ type: 'setGameReviewRecords', playerId: 'p-me', gameId: 'glrgame1', records: { note: 'mine', an: '', xy: 'next idea', at: 7 } });
+  assert.equal(game(), before, 'the same texts: nothing changes');
 });
 
 // ---------- Arranging chapter cards by hand (drag and drop, ▲▼) ----------

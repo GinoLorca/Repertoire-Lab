@@ -11,7 +11,8 @@
     "build": "npm run lint && vite build && node scripts/precache.mjs",
     "preview": "vite preview",
     "zip": "npm run build && node scripts/zip-site.mjs",
-    "sync:arcade": "node scripts/sync-arcade.mjs"
+    "sync:arcade": "node scripts/sync-arcade.mjs",
+    "check:arcade": "node --import ./tests/resolve.mjs scripts/check-arcade.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.116.0",

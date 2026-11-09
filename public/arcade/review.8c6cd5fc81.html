@@ -51356,6 +51356,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       return ok;
     };
     const textOf = (id)=> gnNoteText(id) || '';
+    // The kinds of record Chess Arcade keeps for a game besides its note: '<kind>-<game>' (an, lr, …).
+    const KIND = /^[a-z]{2,3}$/;
+    const kindsOf = (gid)=>{
+      const tail = '-'+gid, out = [];
+      Object.keys((typeof GN==='object' && GN && GN.notes) || {}).forEach(id=>{
+        if(id.length > tail.length && id.endsWith(tail)){ const k = id.slice(0, -tail.length); if(KIND.test(k) && k!=='at') out.push(k); }
+      });
+      return out;
+    };
     // The line on the board, from the start to the end of the line being looked at: on a fresh board,
     // the moves played (they're side lines there, the game having none of its own).
     const playedLine = ()=>{
@@ -51416,8 +51425,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     try{ new ResizeObserver(sayHeight).observe(document.getElementById('view-history')); }catch(e){}
     window.__rlReview = {
       v: 1,
-      // The game's saved note, analysis and Larry's review, as Repertoire Lab keeps them on the game.
-      records(gid){ gid = String(gid); return { note: textOf(gid), an: textOf('an-'+gid), lr: textOf('lr-'+gid) }; },
+      // Everything Chess Arcade keeps for the game, as Repertoire Lab keeps it on the game: the note,
+      // and each '<kind>-<game>' record (an: the analysis, lr: Larry's review, and any kind added later).
+      records(gid){
+        gid = String(gid);
+        const out = { note: textOf(gid), an: textOf('an-'+gid) };
+        kindsOf(gid).forEach(k=>{ const t = textOf(k+'-'+gid); if(t) out[k] = t; });
+        return out;
+      },
       // Puts them in before the game opens (or while it's open: it opens again, at the same move).
       load(gid, rec){
         gid = String(gid);
@@ -51425,9 +51440,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         let changed = false;
         quiet++;
         try{
-          // the note, the analysis, and Larry's review (the notes card's Larry Review tab)
-          [[gid, rec.note], ['an-'+gid, rec.an], ['lr-'+gid, rec.lr]].forEach(([id, t])=>{
-            t = typeof t==='string' ? t : '';
+          // every kind the game has, here or in Repertoire Lab: one Repertoire Lab doesn't have is cleared
+          const kinds = new Set(['note', 'an'].concat(kindsOf(gid), Object.keys(rec).filter(k=> KIND.test(k) && k!=='at')));
+          kinds.forEach(k=>{
+            const id = k==='note' ? gid : k+'-'+gid;
+            const t = typeof rec[k]==='string' ? rec[k] : '';
             if(textOf(id)===t) return;
             gnSetNote(id, t, null);
             changed = true;
@@ -51536,6 +51553,54 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       flush(){
         try{ hvAnnSave(); }catch(e){}
         try{ if(hvNote) gnFieldSave(hvNote); }catch(e){}
+      },
+      // What this bridge uses of Chess Arcade that this Chess Arcade doesn't have (scripts/check-arcade.mjs).
+      // (Each name is read: only one that's gone throws, whatever it holds.)
+      missing(){
+        const gone = [];
+        try{ void GH_STATE; }catch(e){ gone.push('GH_STATE'); }
+        try{ void GH_UI; }catch(e){ gone.push('GH_UI'); }
+        try{ void GN; }catch(e){ gone.push('GN'); }
+        try{ void GN_TAC_MEMO; }catch(e){ gone.push('GN_TAC_MEMO'); }
+        try{ void HV_STATE; }catch(e){ gone.push('HV_STATE'); }
+        try{ void HV_TREES; }catch(e){ gone.push('HV_TREES'); }
+        try{ void RP; }catch(e){ gone.push('RP'); }
+        try{ void RP_JOB; }catch(e){ gone.push('RP_JOB'); }
+        try{ void RP_RES; }catch(e){ gone.push('RP_RES'); }
+        try{ void applyLookPrefs; }catch(e){ gone.push('applyLookPrefs'); }
+        try{ void currentView; }catch(e){ gone.push('currentView'); }
+        try{ void ghBaseList; }catch(e){ gone.push('ghBaseList'); }
+        try{ void ghGameFromSummary; }catch(e){ gone.push('ghGameFromSummary'); }
+        try{ void ghOpenGame; }catch(e){ gone.push('ghOpenGame'); }
+        try{ void ghRender; }catch(e){ gone.push('ghRender'); }
+        try{ void ghoSetView; }catch(e){ gone.push('ghoSetView'); }
+        try{ void gnCleanG; }catch(e){ gone.push('gnCleanG'); }
+        try{ void gnFieldSave; }catch(e){ gone.push('gnFieldSave'); }
+        try{ void gnIsAn; }catch(e){ gone.push('gnIsAn'); }
+        try{ void gnNoteText; }catch(e){ gone.push('gnNoteText'); }
+        try{ void gnPersist; }catch(e){ gone.push('gnPersist'); }
+        try{ void gnRefreshFields; }catch(e){ gone.push('gnRefreshFields'); }
+        try{ void gnSetNote; }catch(e){ gone.push('gnSetNote'); }
+        try{ void gnStatusText; }catch(e){ gone.push('gnStatusText'); }
+        try{ void gnStore; }catch(e){ gone.push('gnStore'); }
+        try{ void hvAnnRefresh; }catch(e){ gone.push('hvAnnRefresh'); }
+        try{ void hvAnnSave; }catch(e){ gone.push('hvAnnSave'); }
+        try{ void hvLineEnd; }catch(e){ gone.push('hvLineEnd'); }
+        try{ void hvLrDraw; }catch(e){ gone.push('hvLrDraw'); }
+        try{ void hvNote; }catch(e){ gone.push('hvNote'); }
+        try{ void hvOnNode; }catch(e){ gone.push('hvOnNode'); }
+        try{ void hvOpen; }catch(e){ gone.push('hvOpen'); }
+        try{ void hvRenderBoard; }catch(e){ gone.push('hvRenderBoard'); }
+        try{ void lookPrefs; }catch(e){ gone.push('lookPrefs'); }
+        try{ void rlDecode; }catch(e){ gone.push('rlDecode'); }
+        try{ void rlEncode; }catch(e){ gone.push('rlEncode'); }
+        try{ void rpFire; }catch(e){ gone.push('rpFire'); }
+        try{ void rpMake; }catch(e){ gone.push('rpMake'); }
+        try{ void rpQueue; }catch(e){ gone.push('rpQueue'); }
+        try{ void saveLookPrefs; }catch(e){ gone.push('saveLookPrefs'); }
+        try{ void showView; }catch(e){ gone.push('showView'); }
+        try{ void ttPractice; }catch(e){ gone.push('ttPractice'); }
+        return gone.concat(["home-fab","view-history"].filter((id)=> !document.getElementById(id)).map((id)=> '#'+id));
       },
     };
     tell('ready');

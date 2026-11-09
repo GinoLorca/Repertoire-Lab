@@ -1,0 +1,123 @@
+# Keeps Repertoire Lab's copy of Chess Arcade's Game Review up to date on its own.
+#
+# Every hour, and whenever it's run by hand (Actions → Sync Chess Arcade → Run workflow):
+# Chess Arcade's latest index.html from GitHub, through scripts/sync-arcade.mjs (which already
+# refuses a copy whose code doesn't parse, that it can't fit the bridge into, or that has
+# anything like a key in it). When the copy changed, it has to pass everything — the tests,
+# the build, and scripts/check-arcade.mjs in a real browser — before it's committed to main,
+# which Netlify then deploys like any other commit. If anything fails, nothing is committed:
+# the app keeps the copy it has, the run shows red, and GitHub emails the repository's owner —
+# once: the same two versions (Chess Arcade's and Repertoire Lab's) aren't tried again until
+# either has a new commit, so a copy that can't go out doesn't fail every hour.
+name: Sync Chess Arcade
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+  # For Chess Arcade to ask straight after a push, if that's ever set up (a token there).
+  repository_dispatch:
+    types: [chess-arcade-updated]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-arcade
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: repertoire-lab
+      - uses: actions/checkout@v4
+        with:
+          repository: GinoLorca/chess-arcade
+          path: chess-arcade
+          fetch-depth: 1
+          # Chess Arcade is public; if it's ever made private, a CHESS_ARCADE_TOKEN secret that can read it.
+          token: ${{ secrets.CHESS_ARCADE_TOKEN || github.token }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Which versions
+        id: v
+        run: echo "key=sync-arcade-failed-$(git -C chess-arcade rev-parse HEAD)-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+      - name: Tried these already, and they failed?
+        id: tried
+        uses: actions/cache/restore@v4
+        with:
+          path: .sync-arcade-failed
+          key: ${{ steps.v.outputs.key }}
+          lookup-only: true
+
+      # The sync needs nothing installed: a run with nothing new ends here, in seconds.
+      - name: Copy Chess Arcade's Game Review
+        if: steps.tried.outputs.cache-hit != 'true'
+        working-directory: repertoire-lab
+        run: node scripts/sync-arcade.mjs
+      - name: Anything new?
+        if: steps.tried.outputs.cache-hit != 'true'
+        id: changed
+        working-directory: repertoire-lab
+        run: |
+          if [ -n "$(git status --porcelain -- public/arcade)" ]; then
+            echo "new=1" >> "$GITHUB_OUTPUT"
+            echo "A new copy: $(grep ARCADE_FROM src/lib/arcadeBuild.js)"
+          else
+            echo "Chess Arcade's Game Review hasn't changed."
+          fi
+
+      - name: Install
+        if: steps.changed.outputs.new
+        working-directory: repertoire-lab
+        run: npm ci
+      - name: Tests
+        if: steps.changed.outputs.new
+        working-directory: repertoire-lab
+        run: npm test
+      - name: Build
+        if: steps.changed.outputs.new
+        working-directory: repertoire-lab
+        run: npm run build
+      - name: Browser check
+        if: steps.changed.outputs.new
+        working-directory: repertoire-lab
+        run: |
+          # Playwright on its own, so the app's own packages stay exactly as locked.
+          npm i --prefix "$RUNNER_TEMP/pw" --no-save --no-audit --no-fund playwright@1.56.1
+          "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium
+          NODE_PATH="$RUNNER_TEMP/pw/node_modules" npm run check:arcade
+
+      - name: Commit
+        if: steps.changed.outputs.new
+        working-directory: repertoire-lab
+        run: |
+          from="$(git -C ../chess-arcade log -1 --format='%h %s')"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A public/arcade src/lib/arcadeBuild.js
+          git commit -m "Game Review: Chess Arcade's latest" -m "From Chess Arcade ${from}. Synced, tested and checked in a browser by .github/workflows/sync-arcade.yml."
+          # What was checked is what goes out: if main moved on meanwhile, the next run starts from it.
+          git fetch origin main
+          if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD~1)" ]; then
+            echo "::notice::main moved on while this was being checked — the next run picks Chess Arcade up from there."
+            exit 0
+          fi
+          git push origin HEAD:main
+
+      # A failure is remembered for these two versions (see the top).
+      - name: Remember it failed
+        if: failure()
+        run: mkdir -p .sync-arcade-failed && date -u > .sync-arcade-failed/at
+      - if: failure()
+        uses: actions/cache/save@v4
+        with:
+          path: .sync-arcade-failed
+          key: ${{ steps.v.outputs.key }}

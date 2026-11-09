@@ -167,8 +167,16 @@ test('a game the coach typed in: its Game Review goes to the student field by fi
   // a Larry Review travels the same way
   const larry = { from: { 'gameReview:lr': '∅' }, set: { 'gameReview:lr': '12...f6 was the turning point.' } };
   assert.ok(parsePatch(JSON.stringify(larry)));
-  const other = { from: { 'gameReview:who': '∅' }, set: { 'gameReview:who': 'x' } };
-  assert.equal(parsePatch(JSON.stringify(other)), null);
+  // …and so does a kind of record Chess Arcade adds later (a short name of its own)…
+  const later = { from: { 'gameReview:xy': '∅' }, set: { 'gameReview:xy': 'something new' } };
+  assert.ok(parsePatch(JSON.stringify(later)));
+  // …but nothing else under gameReview.
+  for (const key of ['notes', 'Note', 'x', '__proto__', 'lr2']) {
+    const other = { from: { [`gameReview:${key}`]: '∅' }, set: { [`gameReview:${key}`]: 'x' } };
+    assert.equal(parsePatch(JSON.stringify(other)), null, key);
+  }
+  const notText = { from: { 'gameReview:xy': '∅' }, set: { 'gameReview:xy': 5 } };
+  assert.equal(parsePatch(JSON.stringify(notText)), null);
   // The coach's mirror of a student's game copies it across.
   assert.deepEqual(sharedCopy(coachGame).gameReview, coachGame.gameReview);
 });
@@ -247,4 +255,24 @@ test('a Larry Review pasted in Game Review is kept on the game, compared, and sh
   assert.equal(sameRecords({ note: 'n', an: '' }, { note: 'n', an: '', lr }), false);
   assert.equal(sameRecords({ note: 'n', an: '', lr }, { note: 'n', an: '', lr }), true);
   assert.equal(hasGameReview({ gameReview: { note: '', an: '', lr } }), true);
+});
+
+test('any record Chess Arcade keeps for a game is kept, compared and cleaned the same way, with no code for it', async () => {
+  const { cleanRecords, sameRecords, hasGameReview } = await import('../src/lib/gameReviewBridge.js');
+  // a kind Repertoire Lab has never heard of
+  assert.deepEqual(cleanRecords({ note: '', an: '', xy: 'new', at: 9 }), { note: '', an: '', xy: 'new', at: 9 });
+  assert.equal(hasGameReview({ gameReview: { xy: 'new' } }), true);
+  assert.equal(sameRecords({ note: 'n', an: '' }, { note: 'n', an: '', xy: 'new' }), false);
+  assert.equal(sameRecords({ note: 'n', an: '', xy: 'new', at: 1 }, { note: 'n', an: '', xy: 'new', at: 2 }), true, 'when is not what');
+  assert.equal(sameRecords({ note: 'n', an: '', xy: '' }, { note: 'n', an: '' }), true, 'empty is none');
+  // empty kinds dropped; only short lowercase names; texts cut to Chess Arcade's limit
+  const c = cleanRecords({
+    note: 'n', an: '', xy: '  ', Bad: 'x', long: 'x', __proto__: { lr: 'no' }, lr: 'y'.repeat(MAX_TEXT + 5), at: 3,
+  });
+  assert.deepEqual(Object.keys(c).sort(), ['an', 'at', 'lr', 'note']);
+  assert.equal(c.lr.length, MAX_TEXT);
+  // not without limit: a dozen kinds past the note and the analysis
+  const many = Object.fromEntries('abcdefghijklmnopqrst'.split('').map((ch) => [`k${ch}`, 'x']));
+  assert.equal(Object.keys(cleanRecords({ note: 'n', ...many })).length, 2 + 12);
+  assert.equal(cleanRecords({ note: '', an: '', at: 4 }), null);
 });

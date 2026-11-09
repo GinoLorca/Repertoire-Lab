@@ -27,6 +27,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
+import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -61,6 +62,22 @@ function replaceOnce(html, find, replace, what) {
   }
   return html.slice(0, at) + replace + html.slice(at + find.length);
 }
+
+// Every name in Chess Arcade's own code the bridge below uses. Most of those calls sit in
+// try/catch, so a Chess Arcade that renamed one would break a part of Game Review quietly:
+// the copy answers __rlReview.missing() with any it no longer has, and scripts/check-arcade.mjs
+// refuses a copy that names one. tests/arcadeSync.test.mjs keeps this list up to date with
+// the bridge.
+const USES = [
+  'GH_STATE', 'GH_UI', 'GN', 'GN_TAC_MEMO', 'HV_STATE', 'HV_TREES', 'RP', 'RP_JOB', 'RP_RES',
+  'applyLookPrefs', 'currentView', 'ghBaseList', 'ghGameFromSummary', 'ghOpenGame', 'ghRender',
+  'ghoSetView', 'gnCleanG', 'gnFieldSave', 'gnIsAn', 'gnNoteText', 'gnPersist', 'gnRefreshFields',
+  'gnSetNote', 'gnStatusText', 'gnStore', 'hvAnnRefresh', 'hvAnnSave', 'hvLineEnd', 'hvLrDraw',
+  'hvNote', 'hvOnNode', 'hvOpen', 'hvRenderBoard', 'lookPrefs', 'rlDecode', 'rlEncode', 'rpFire',
+  'rpMake', 'rpQueue', 'saveLookPrefs', 'showView', 'ttPractice',
+];
+// …and the parts of its page it reaches for.
+const USES_IDS = ['home-fab', 'view-history'];
 
 // Inside the app's own closure, so it can reach the review's functions and
 // its notes store by name. Everything it touches is listed here, in one
@@ -164,6 +181,15 @@ const BRIDGE = String.raw`
       return ok;
     };
     const textOf = (id)=> gnNoteText(id) || '';
+    // The kinds of record Chess Arcade keeps for a game besides its note: '<kind>-<game>' (an, lr, …).
+    const KIND = /^[a-z]{2,3}$/;
+    const kindsOf = (gid)=>{
+      const tail = '-'+gid, out = [];
+      Object.keys((typeof GN==='object' && GN && GN.notes) || {}).forEach(id=>{
+        if(id.length > tail.length && id.endsWith(tail)){ const k = id.slice(0, -tail.length); if(KIND.test(k) && k!=='at') out.push(k); }
+      });
+      return out;
+    };
     // The line on the board, from the start to the end of the line being looked at: on a fresh board,
     // the moves played (they're side lines there, the game having none of its own).
     const playedLine = ()=>{
@@ -224,8 +250,14 @@ const BRIDGE = String.raw`
     try{ new ResizeObserver(sayHeight).observe(document.getElementById('view-history')); }catch(e){}
     window.__rlReview = {
       v: 1,
-      // The game's saved note, analysis and Larry's review, as Repertoire Lab keeps them on the game.
-      records(gid){ gid = String(gid); return { note: textOf(gid), an: textOf('an-'+gid), lr: textOf('lr-'+gid) }; },
+      // Everything Chess Arcade keeps for the game, as Repertoire Lab keeps it on the game: the note,
+      // and each '<kind>-<game>' record (an: the analysis, lr: Larry's review, and any kind added later).
+      records(gid){
+        gid = String(gid);
+        const out = { note: textOf(gid), an: textOf('an-'+gid) };
+        kindsOf(gid).forEach(k=>{ const t = textOf(k+'-'+gid); if(t) out[k] = t; });
+        return out;
+      },
       // Puts them in before the game opens (or while it's open: it opens again, at the same move).
       load(gid, rec){
         gid = String(gid);
@@ -233,9 +265,11 @@ const BRIDGE = String.raw`
         let changed = false;
         quiet++;
         try{
-          // the note, the analysis, and Larry's review (the notes card's Larry Review tab)
-          [[gid, rec.note], ['an-'+gid, rec.an], ['lr-'+gid, rec.lr]].forEach(([id, t])=>{
-            t = typeof t==='string' ? t : '';
+          // every kind the game has, here or in Repertoire Lab: one Repertoire Lab doesn't have is cleared
+          const kinds = new Set(['note', 'an'].concat(kindsOf(gid), Object.keys(rec).filter(k=> KIND.test(k) && k!=='at')));
+          kinds.forEach(k=>{
+            const id = k==='note' ? gid : k+'-'+gid;
+            const t = typeof rec[k]==='string' ? rec[k] : '';
             if(textOf(id)===t) return;
             gnSetNote(id, t, null);
             changed = true;
@@ -345,6 +379,13 @@ const BRIDGE = String.raw`
         try{ hvAnnSave(); }catch(e){}
         try{ if(hvNote) gnFieldSave(hvNote); }catch(e){}
       },
+      // What this bridge uses of Chess Arcade that this Chess Arcade doesn't have (scripts/check-arcade.mjs).
+      // (Each name is read: only one that's gone throws, whatever it holds.)
+      missing(){
+        const gone = [];
+        ${USES.map((n) => `try{ void ${n}; }catch(e){ gone.push('${n}'); }`).join('\n        ')}
+        return gone.concat(${JSON.stringify(USES_IDS)}.filter((id)=> !document.getElementById(id)).map((id)=> '#'+id));
+      },
     };
     tell('ready');
   })();
@@ -375,6 +416,19 @@ const SECRETS = [
 for (const re of SECRETS) {
   const m = html.match(re);
   if (m) throw new Error(`sync-arcade: the copy would contain something that looks like a secret (${m[0].slice(0, 8)}…, matching ${re}) — not written`);
+}
+// The copy's code has to parse: one slip in it (a name declared twice, say) and Game Review
+// is a blank page in Repertoire Lab. Compiled here, never run. Chess Arcade is one plain
+// <script>; anything else (JSON, a module) is left to the browser check.
+const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)([^>]*)>([\s\S]*?)<\/script>/g)]
+  .filter(([, attrs]) => !/\btype=/i.test(attrs) || /\btype=["']?(?:text|application)\/javascript/i.test(attrs));
+if (!scripts.length) throw new Error('sync-arcade: no code found in the copy — not written');
+for (const [, , code] of scripts) {
+  try {
+    new vm.Script(code, { filename: 'chess-arcade-copy.js' }); // eslint-disable-line no-new
+  } catch (err) {
+    throw new Error(`sync-arcade: the copy's code doesn't parse (${err.message}) — not written`);
+  }
 }
 
 const hash = createHash('sha256').update(html).digest('hex').slice(0, 10);
