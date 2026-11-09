@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../store';
 import SendToStudent from './SendToStudent';
-import { buildPositionIndex, moveLabel } from '../lib/repertoire';
+import { buildPositionIndex, moveLabel, bookOpenings } from '../lib/repertoire';
 import {
   categoryOf, categoryOptions, playerRecord, resultFor, EVENT_TYPES, OFFBEAT, tidyEvent,
 } from '../lib/games';
@@ -37,6 +37,7 @@ import { reviewsOf, reviewHash } from '../lib/cloud/reviews';
 import { openGameReview } from '../lib/openGameReview';
 import PlayerInsights from './PlayerInsights';
 import { PLAYER_TABS } from '../lib/routes';
+import { lineFor as lineToOpen } from '../lib/curate';
 import { parseDoc, docFromGame, docIsEmpty } from '../lib/analysisDoc';
 import { seedFor } from '../lib/studioSeed';
 import ReviewsInProgress from './ReviewsInProgress';
@@ -285,12 +286,30 @@ function GameRow({
           {category.label}
           {category.auto ? '' : ' (manual)'}
         </span>
-        {match?.variation && (
-          <span className="muted-note">
-            {match.transposed ? 'transposed into' : 'follows'} <strong>{match.variation.name}</strong>
-            {` · ${match.bookPly} moves deep`}
-          </span>
-        )}
+        {match?.variation && (() => {
+          // The line it follows, to learn or practice: a student's own copy
+          // when they have it (lib/curate lineFor, here lineToOpen), yours otherwise.
+          const student = state.players.find((p) => p.id === playerId)?.kind === 'student' ? playerId : null;
+          const to = lineToOpen(state.openings, student, match.opening, match.chapter, match.variation);
+          const open = (how) => window.dispatchEvent(new CustomEvent('repertoire-open-line', { detail: { ...to, [how]: true } }));
+          return (
+            <span className="muted-note game-line">
+              {match.transposed ? 'transposed into' : 'follows'}{' '}
+              <button
+                type="button"
+                className="link game-line-name"
+                title={`Learn “${match.variation.name}”`}
+                onClick={(e) => { e.stopPropagation(); open('learn'); }}
+              >
+                {match.variation.name}
+              </button>
+              {` · ${match.bookPly} moves deep · `}
+              <button type="button" className="link" title="Practice this line" onClick={(e) => { e.stopPropagation(); open('practice'); }}>
+                Practice
+              </button>
+            </span>
+          );
+        })()}
         {m.flags?.length > 0 && (
           <span className="flag-picker">
             {m.flags.map((f) => (
@@ -455,15 +474,21 @@ function PlayerPage({
   const [query, setQuery] = useState('');
   const [taggingGameId, setTaggingGameId] = useState(null);
 
-  // A student's own book, not yours — so their games are matched (and
-  // Analyze pulls up) against what you've actually taught them.
+  // A student's own book, not yours — what you've actually taught them, and
+  // what's offered to send.
   const myOpenings = useMemo(
     () => state.openings.filter(
       (o) => (o.ownerId ?? null) === (player.kind === 'student' ? player.id : null),
     ),
     [state.openings, player.kind, player.id],
   );
-  const index = useMemo(() => buildPositionIndex(myOpenings), [myOpenings]);
+  // Their games are matched the way the analysis board checks them ("Repertoire
+  // to check": by default their lines and your whole library), so a game's
+  // line is named — and opens in Learn — on every card, yours or a student's.
+  const repSource = state.settings?.analysisRepertoire ?? 'both';
+  const index = useMemo(() => buildPositionIndex(bookOpenings(state.openings, {
+    studentId: player.kind === 'student' ? player.id : null, source: repSource,
+  })), [state.openings, player.kind, player.id, repSource]);
   // What's on offer to send: the lines built for this student, and the coach's
   // own repertoire — a coach teaching their own openings shouldn't have to
   // copy them into the student's file first just to send them.
@@ -1277,10 +1302,9 @@ export default function PlayerRoster({
       )}
 
       {players.map((player) => {
-        const myOpenings = state.openings.filter(
-          (o) => (o.ownerId ?? null) === (kind === 'student' ? player.id : null),
-        );
-        const index = buildPositionIndex(myOpenings);
+        const index = buildPositionIndex(bookOpenings(state.openings, {
+          studentId: kind === 'student' ? player.id : null, source: state.settings?.analysisRepertoire ?? 'both',
+        }));
         const record = playerRecord(player.games);
         const cats = new Set(player.games.map((g) => categoryOf(g, index, state).id));
         const offbeat = player.games.filter((g) => categoryOf(g, index, state).id === OFFBEAT).length;

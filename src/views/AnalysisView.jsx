@@ -33,6 +33,7 @@ import {
   bookOpenings, bookName, REPERTOIRE_SOURCES,
 } from '../lib/repertoire';
 import { sideOf, sideFromNames } from '../lib/pov';
+import { lineFor } from '../lib/curate';
 import LegalDots from '../components/LegalDots';
 import PromotionPicker from '../components/PromotionPicker';
 import BoardEditor from '../components/BoardEditor';
@@ -657,6 +658,13 @@ export default function AnalysisView({
       );
     }
   }, [initialLine, initialLab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The line it follows, opened in Learn or Practice.
+  const openMatchedLine = (how) => {
+    if (!gameMatch.matched) return;
+    const to = lineFor(state.openings, repertoireOwnerId, gameMatch.opening, gameMatch.chapter, gameMatch.variation);
+    window.dispatchEvent(new CustomEvent('repertoire-open-line', { detail: { ...to, [how]: true } }));
+  };
 
   // Which of your uploaded lines does this game follow, and where did it leave book?
   const gameMatch = useMemo(
@@ -2405,8 +2413,22 @@ export default function AnalysisView({
         {gameMatch.matched ? (
           <>
             <div className="book-match">
-              <strong>{gameMatch.opening.name}</strong> — {gameMatch.variation.name}
+              <strong>{gameMatch.opening.name}</strong> —{' '}
+              {/* The line, to learn or practice: a student's own copy when
+                  they have it (lib/curate lineFor), yours otherwise. */}
+              <button
+                type="button"
+                className="link book-line-link"
+                title={`Learn “${gameMatch.variation.name}”`}
+                onClick={() => openMatchedLine('learn')}
+              >
+                {gameMatch.variation.name}
+              </button>
               <span className="depth-tag"> ({gameMatch.chapter.name})</span>
+              <span className="book-line-acts">
+                <button type="button" className="link" onClick={() => openMatchedLine('learn')}>Learn</button>
+                <button type="button" className="link" onClick={() => openMatchedLine('practice')}>Practice</button>
+              </span>
             </div>
             <div className="sub" style={{ color: 'var(--muted)', fontSize: 13.5, marginTop: 4 }}>
               {gameMatch.exhausted

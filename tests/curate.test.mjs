@@ -142,3 +142,15 @@ test('giving lines: where a student already has one, where it lands, and from an
   assert.notEqual(pg.variations[1].id, 'm9');
   assert.equal(pg.variations[1].learned, false);
 });
+
+test('a game’s identified line opens in the player’s own copy when they have it, else yours', async () => {
+  const { lineFor } = await import('../src/lib/curate.js');
+  const all = [coach, studentOpening];
+  const [o, c] = [coach, coach.chapters[0]];
+  // Myla has "Main" (d4 d5): hers
+  assert.deepEqual(lineFor(all, 'myla', o, c, c.variations[0]), { openingId: 'sjl', chapterId: 'sch1', variationId: 's1' });
+  // she hasn't got "Side": yours
+  assert.deepEqual(lineFor(all, 'myla', o, c, c.variations[1]), { openingId: 'jl', chapterId: 'ch1', variationId: 'v2' });
+  // your own card: yours
+  assert.deepEqual(lineFor(all, null, o, c, c.variations[0]), { openingId: 'jl', chapterId: 'ch1', variationId: 'v1' });
+});

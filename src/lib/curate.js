@@ -107,6 +107,25 @@ export function whereHas(openings, studentId, openingName, chapterName, variatio
   return null;
 }
 
+// The line to open for a player, from a match in your repertoire: on a
+// student's card their own copy of it (the same name, start and moves —
+// their opening of that name first), so their Learn and Practice count;
+// yours when they haven't got it, and on your own card.
+export function lineFor(openings, playerId, opening, chapter, variation) {
+  const mine = { openingId: opening.id, chapterId: chapter.id, variationId: variation.id };
+  if (!playerId || (opening.ownerId ?? null) === playerId) return mine;
+  const key = lineKey(variation);
+  const theirs = (openings ?? []).filter((o) => o.ownerId === playerId)
+    .sort((a, b) => Number(!sameName(a.name, opening.name)) - Number(!sameName(b.name, opening.name)));
+  for (const o of theirs) {
+    for (const c of o.chapters ?? []) {
+      const v = (c.variations ?? []).find((x) => lineKey(x) === key);
+      if (v) return { openingId: o.id, chapterId: c.id, variationId: v.id };
+    }
+  }
+  return mine;
+}
+
 // Where a line given to a student lands: their opening of that name, when it
 // has curated chapters (a Quickstarter Guide), goes into one of those —
 // `chapters` lists them, to ask which when there are several. Null: the copy

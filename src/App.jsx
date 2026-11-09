@@ -755,9 +755,12 @@ function AppInner() {
   // Lines a coach sent, from the bell (components/Inbox): their chapter, or
   // practice on them.
   const openLineRef = useRef(null);
-  openLineRef.current = ({ openingId, chapterId, variationId, practice }) => {
+  // `learn`: that line in Learn mode (a game's identified line, from its
+  // card or the analysis board).
+  openLineRef.current = ({ openingId, chapterId, variationId, practice, learn }) => {
     if (!openingId || !chapterId) return;
-    if (practice) startPractice(variationId ? { openingId, chapterId, variationId, mode: 'practice' } : { openingId, chapterId });
+    if (learn && variationId) startPractice({ openingId, chapterId, variationId, mode: 'learn' });
+    else if (practice) startPractice(variationId ? { openingId, chapterId, variationId, mode: 'practice' } : { openingId, chapterId });
     else openChapter(openingId, chapterId);
   };
   useEffect(() => {
