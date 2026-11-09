@@ -4226,7 +4226,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .gho-opp-t::before{ content:"\25B8"; display:inline-block; width:1.1em; color:var(--ink-soft); transition:transform .15s ease; }
   .gho-opp.is-open .gho-opp-t::before{ transform:rotate(90deg); }
   .gho-opp-r{ font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--ink-soft); }
-  .gho-opp-what{ font-size:12.5px; line-height:1.35; overflow-wrap:anywhere; padding-left:1.1em; }
+  .gho-opp-what{ font-size:12.5px; line-height:1.35; overflow-wrap:anywhere; padding-left:1.1em; display:flex; flex-wrap:wrap; gap:3px 18px; }
+  .gho-opp-w{ display:inline-flex; flex-wrap:wrap; align-items:baseline; gap:2px 10px; }
+  .gho-opp-g .gho-gap-l{ margin-left:2px; }
   .gho-opp-go .gho-gap-d{ padding-left:1.1em; }
   .gho-opp-games{ list-style:none; margin:2px 0 0 1.1em; padding:0; display:flex; flex-direction:column; gap:2px; }
   .gho-opp-g{ display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 12px; font-size:12.5px; line-height:1.35; padding:4px 0; border-top:1px dashed var(--line); }
@@ -32735,7 +32737,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const at = (L.who==='you' || L.who==='opp') && L.atPly!=null ? L.atPly : null;
       acts.push({ t:at!=null ? 'Review from '+rpMoveText(at, L.played) : 'Review', go:()=> ghOpenGame(last.g, at!=null ? { at:{ ply:at + 1 } } : undefined) });
       const l = rpLineFor(last.r);
-      if(l) acts.push({ t:'Learn', line:l, mode:'learn' });
+      if(l){ acts.push({ t:'Learn', line:l, mode:'learn' }); acts.push({ t:'Practice', line:l, mode:'practice' }); }   // always both (2026-11-09)
       const vs = ghoOppOf(last.g), named = vs && (t.left || '').indexOf(vs)>=0;
       F.push({ tag:last===newest ? 'Latest game' : 'Latest in your openings', text:[(vs && !named ? 'vs '+vs+': ' : '')+t.name+(t.sub || '')+'. ', [t.depth, t.left].filter(Boolean).join(' ')], acts });
     }
@@ -33154,11 +33156,19 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     return Array.from(m.values()).map(o=>{
       o.list.sort((a, b)=> b.at - a.at);
       o.m = ghoMetrics(o.list); o.last = o.list[0].at;
+      // what was played, with the line to learn and practice when the game identifies one
       const what = new Map();
-      o.list.forEach(e=>{ const w = ghoGameWhat(e); what.set(w, (what.get(w) || 0) + 1); });
-      o.what = Array.from(what.entries()).sort((a, b)=> b[1] - a[1] || a[0].localeCompare(b[0]));
+      o.list.forEach(e=>{ const w = ghoGameWhat(e), x = what.get(w) || { w, n:0, line:null }; x.n++; if(!x.line) x.line = rpLineFor(e.r) || null; what.set(w, x); });
+      o.what = Array.from(what.values()).sort((a, b)=> b.n - a.n || a.w.localeCompare(b.w));
       return o;
     }).sort((a, b)=> b.list.length - a.list.length || b.last - a.last || a.name.localeCompare(b.name));
+  }
+  // Learn and Practice for a line, as links (Repertoire Lab opens them on the line)
+  function ghoLineLinks(el, l){
+    const a = ghEl('a', 'gho-gap-l', 'Learn'), p = ghEl('a', 'gho-gap-l', 'Practice');
+    a.target = p.target = '_blank'; a.rel = p.rel = 'noopener';
+    rlLineLinks(l, a, p);
+    el.appendChild(a); el.appendChild(p);
   }
   function ghoDrawOpps(model){
     const box = document.getElementById('gho-opps');
@@ -33178,14 +33188,26 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(o.rating!=null) t.appendChild(ghEl('span', 'gho-opp-r', ' '+o.rating));
       b.appendChild(t);
       b.appendChild(ghEl('span', 'gho-gap-d', ghoN(o.list.length, 'game')+' \u00b7 you scored '+ghoPts(o.m)+' \u00b7 last '+ghFormatDate(o.last)));
-      b.appendChild(ghEl('span', 'gho-opp-what', o.what.slice(0, 3).map(w=> w[0]+(w[1] > 1 ? ' \u00d7'+w[1] : '')).join(' \u00b7 ')+(o.what.length > 3 ? ' \u00b7 \u2026' : '')));
       li.appendChild(b);
+      // what was played: each line identified links to Learn and Practice (2026-11-09, the user: "always link to
+      // practice ... when identifying one")
+      const wl = ghEl('div', 'gho-opp-what');
+      o.what.slice(0, open ? o.what.length : 3).forEach(w=>{
+        const it = ghEl('span', 'gho-opp-w');
+        it.appendChild(document.createTextNode(w.w+(w.n > 1 ? ' \u00d7'+w.n : '')));
+        if(w.line) ghoLineLinks(it, w.line);
+        wl.appendChild(it);
+      });
+      if(!open && o.what.length > 3) wl.appendChild(ghEl('span', 'gho-opp-w', '\u2026'));
+      li.appendChild(wl);
       if(open){
         const gl = ghEl('ul', 'gho-opp-games');
         o.list.forEach((e, i)=>{
           const gi = ghEl('li', 'gho-opp-g');
           const res = e.res==='win' ? 'you won' : e.res==='loss' ? 'you lost' : 'drawn';
           gi.appendChild(ghEl('span', 'gho-opp-gt', [ghFormatDate(e.at), 'you had '+(e.color==='white' ? 'White' : 'Black'), res, ghoGameWhat(e), ghoGameLeft(e)].filter(Boolean).join(' \u00b7 ')));
+          const gl2 = rpLineFor(e.r);
+          if(gl2) ghoLineLinks(gi, gl2);
           const rv = ghEl('button', 'gho-gap-l gho-gap-more', 'Review');
           rv.type = 'button'; rv.dataset.oppk = o.k; rv.dataset.oppi = String(i);
           rv.title = 'Open this game';

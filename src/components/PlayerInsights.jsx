@@ -56,11 +56,16 @@ export default function PlayerInsights({ player, view, onOpenGame }) {
         const gameId = live.current.byArcadeId.get(d.gid);
         if (gameId) openRef.current?.(gameId, d.opts ?? null);
       }
-      // A chapter in the Openings tab: there, in the Library (Practice on a line: practice).
+      // A chapter in the Openings tab: there, in the Library; a line's Learn
+      // or Practice: that line, in Learn or Practice.
       if (d.type === 'openChapter' && d.openingId && d.chapterId) {
         window.dispatchEvent(new CustomEvent('repertoire-open-line', {
           detail: {
-            openingId: d.openingId, chapterId: d.chapterId, variationId: d.line ?? null, practice: d.go === 'practice',
+            openingId: d.openingId,
+            chapterId: d.chapterId,
+            variationId: d.line ?? null,
+            practice: d.go === 'practice',
+            learn: d.go === 'learn' && Boolean(d.line),
           },
         }));
       }
