@@ -846,6 +846,12 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 .chapter-meta .counts strong { color: var(--text); }
 .due-pill { color: var(--green); font-weight: 700; display: flex; align-items: center; gap: 4px; }
+/* A chapter (or folder) with a video in it, under the title — like Chessable's camcorder. */
+.chapter-video-mark {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
+  color: var(--muted); font-size: 13.5px; font-weight: 600;
+}
+.chapter-video-mark svg { flex: none; }
 .progress-track {
   height: 7px; background: var(--track); border-radius: 6px; overflow: hidden;
 }

@@ -23,6 +23,7 @@ import {
   UsersIcon,
   FolderIcon,
   SendIcon,
+  VideoIcon,
 } from '../components/Icons';
 import SendToStudent from '../components/SendToStudent';
 import CurateLines from '../components/CurateLines';
@@ -169,6 +170,27 @@ function tallyChapters(chapters) {
   );
 }
 
+// A chapter with a video says so on its card, the way Chessable marks one: a
+// camcorder under the title. A folder says how many of its chapters have one.
+// Not shown while chapter videos are turned off in Settings.
+const VIDEO_FROM = { youtube: 'a YouTube video', vimeo: 'a Vimeo video', file: 'an uploaded video', 'file-url': 'a video link' };
+function VideoMark({ chapters }) {
+  const { state } = useStore();
+  if (state.settings.showChapterVideos === false) return null;
+  const withVideo = chapters.filter((c) => c.video);
+  if (!withVideo.length) return null;
+  const one = chapters.length === 1;
+  const label = one ? 'Video' : `${withVideo.length} video${withVideo.length === 1 ? '' : 's'}`;
+  const title = one
+    ? `This chapter has ${VIDEO_FROM[withVideo[0].video.kind] ?? 'a video'}`
+    : `${withVideo.length} of the ${chapters.length} chapters here have a video`;
+  return (
+    <span className="chapter-video-mark" title={title} aria-label={title}>
+      <VideoIcon size={15} /> {label}
+    </span>
+  );
+}
+
 // A section / sub-section shown as a box in the same grid as chapter cards.
 // Clicking it opens the group to reveal what's inside.
 function FolderCard({
@@ -202,6 +224,7 @@ function FolderCard({
           {chips.map((c) => <span key={c} className="sub-chip">{c}</span>)}
         </div>
       )}
+      <VideoMark chapters={chapters} />
       <div className="chapter-meta">
         <span className="counts">
           {green && <CheckIcon size={14} className="done-tick" />}
@@ -616,6 +639,7 @@ function ChapterCard({
       </div>
       {chapter.curated && opening.ownerId && <span className="chapter-curated-chip">Curated</span>}
       <TagChips tags={chapter.tags} max={3} />
+      <VideoMark chapters={[chapter]} />
       <div className="chapter-meta">
         <span className="counts">
           {green && <CheckIcon size={14} className="done-tick" />}
