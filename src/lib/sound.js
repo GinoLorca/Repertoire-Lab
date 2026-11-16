@@ -264,6 +264,7 @@ export const SKIN_SOUNDS = {
 };
 
 let soundSkin = null;
+const CHECK_ALONE_SKINS = new Set(['cards']);
 
 // Called wherever the theme is applied, so the board starts sounding like the
 // theme it's wearing.
@@ -333,6 +334,13 @@ export function playMoveSound(san) {
   // picking just one.
   const isCapture = san.includes('x');
   const isCheck = san.endsWith('+');
+  // A theme whose check is a full recording (Court Cards: the user's own,
+  // 2026-11-15) plays it ALONE: layered under the recorded move or capture it
+  // couldn't be heard. As Chess Arcade does (CHECK_ALONE_SKINS).
+  if (isCheck && CHECK_ALONE_SKINS.has(soundSkin)) {
+    playCustom('check').then((done) => { if (!done) synth(san); });
+    return;
+  }
   // A promotion is a move that also becomes a queen; it gets the same
   // layered treatment as check rather than replacing the move's own voice.
   if (san.includes('=')) playCustom('promote');
