@@ -43,11 +43,15 @@ export const DEFAULT_PIECE_LIGHT = '#ffffff';
 export const DEFAULT_PIECE_DARK = '#000000';
 
 // react-chessboard's customPieces map: { wP: ({ squareWidth }) => node, ... }
+// data-pc names the piece on its own box, the one place a theme can reach it
+// wherever it's drawn: on a square (inside react-chessboard's [data-piece]),
+// in the promotion picker, and in the drag ghost, which react-chessboard draws
+// without a [data-piece] around it. Court Cards prints its suits there.
 export function makePieces(light = DEFAULT_PIECE_LIGHT, dark = DEFAULT_PIECE_DARK) {
   const pieces = {};
   for (const [code, tree] of Object.entries(TREES)) {
     pieces[code] = ({ squareWidth }) => (
-      <span style={{ width: squareWidth, height: squareWidth, display: 'block' }}>
+      <span data-pc={code} style={{ width: squareWidth, height: squareWidth, display: 'block' }}>
         {render(tree, light, dark)}
       </span>
     );

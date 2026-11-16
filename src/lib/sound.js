@@ -194,7 +194,7 @@ export const SKIN_SOUNDS = {
     move: '/sounds/themes/hustler/move.mp3',
     capture: '/sounds/themes/hustler/capture.mp3',
   },
-  // Drive-Thru, Rose, Chess Book and Uptown Express were made with full sets, synthesized
+  // Drive-Thru, Rose, Chess Book, Uptown Express and Court Cards were made with full sets, synthesized
   // for these themes rather than recorded (some since replaced by the user's
   // own recordings, noted below). Their win fanfare marks a finished line
   // here, the nearest thing this app has to winning. Correct and wrong stay
@@ -245,6 +245,20 @@ export const SKIN_SOUNDS = {
     promote: '/sounds/themes/uptown/promote.mp3',
     sessionStart: '/sounds/themes/uptown/standclear.mp3',
     complete: '/sounds/themes/uptown/departure.mp3',
+  },
+  // Court Cards: the card table, synthesized for the theme. A card laid down,
+  // a slap with a chip on the trick, two cards dealt, poker's knock on the
+  // table for check, the showdown, a card flicked over for promotion, a riffle
+  // and bridge to open a session, and the winnings stacked for a finished line.
+  cards: {
+    move: '/sounds/themes/cards/move.mp3',
+    capture: '/sounds/themes/cards/capture.mp3',
+    castle: '/sounds/themes/cards/castle.mp3',
+    check: '/sounds/themes/cards/check.mp3',
+    checkmate: '/sounds/themes/cards/checkmate.mp3',
+    promote: '/sounds/themes/cards/promote.mp3',
+    sessionStart: '/sounds/themes/cards/matchStart.mp3',
+    complete: '/sounds/themes/cards/win.mp3',
   },
 };
 

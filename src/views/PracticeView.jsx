@@ -15,7 +15,7 @@ import MoveNote, { noteFor } from '../components/MoveNote';
 import MoveTimer from '../components/MoveTimer';
 import LegalDots from '../components/LegalDots';
 import PromotionPicker from '../components/PromotionPicker';
-import { lastMoveOf, NOTE_HIGHLIGHT_STYLE } from '../lib/legalMoves';
+import { lastMoveOf, NOTE_HIGHLIGHT_STYLE, PICKED_STYLE } from '../lib/legalMoves';
 import { badgeAt } from '../lib/badges';
 import BoardArrows from '../components/BoardArrows';
 import { marksAt } from '../lib/studyText';
@@ -1521,7 +1521,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
                     },
                   }
                   : (pickedSquare
-                    ? { ...squares, [pickedSquare]: { background: 'rgba(59, 156, 255, 0.5)' } }
+                    ? { ...squares, [pickedSquare]: { ...PICKED_STYLE } }
                     : squares);
               if (!noteHighlight) return base;
               return {

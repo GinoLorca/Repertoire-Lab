@@ -63,6 +63,11 @@ export const NOTE_HIGHLIGHT_STYLE = {
   animation: 'note-highlight-pulse 1.1s ease-out',
 };
 
+// The square of a piece picked up with a tap or a click, waiting for where it
+// goes. A theme can repaint it (--picked-wash, any background): Court Cards'
+// blue card backs would swallow the blue.
+export const PICKED_STYLE = { background: 'var(--picked-wash, rgba(59, 156, 255, 0.5))' };
+
 // A red glow under the king in check, in the style chess.com uses.
 export const CHECK_STYLE = {
   background: 'var(--check-glow, radial-gradient(circle at center, rgba(226, 74, 74, 0.95) 12%, rgba(226, 74, 74, 0.55) 46%, transparent 72%))',

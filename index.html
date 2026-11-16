@@ -19,6 +19,20 @@
     </style>
   </head>
   <body>
+    <!-- Court Cards' laminate: the soft diagonal glint on its pieces (styles.css, [data-pc]). Out of the way at 0 x 0,
+         not display:none, where a gradient wouldn't paint. Corner to corner of the pieces' own 45 x 45 box, in
+         numbers: a percentage here would be of this 0 x 0 box, and paint every piece in the last stop. Nothing else
+         refers to it. -->
+    <svg id="cc-defs" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+      <linearGradient id="cc-lam-w" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="45" y2="45">
+        <stop offset="0" stop-color="#f6efdf"/><stop offset=".3" stop-color="#fbf8ef"/><stop offset=".4" stop-color="#ffffff"/>
+        <stop offset=".47" stop-color="#fffdf7"/><stop offset=".6" stop-color="#f7f1e3"/><stop offset="1" stop-color="#ece3cf"/>
+      </linearGradient>
+      <linearGradient id="cc-lam-b" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="45" y2="45">
+        <stop offset="0" stop-color="#2c2f40"/><stop offset=".33" stop-color="#1c1e2a"/><stop offset=".42" stop-color="#3b3f55"/>
+        <stop offset=".5" stop-color="#1e202d"/><stop offset="1" stop-color="#101119"/>
+      </linearGradient>
+    </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

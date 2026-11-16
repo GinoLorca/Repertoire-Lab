@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Chess } from 'chess.js';
 import Board from './Board';
 import { lineFens } from '../lib/pgn';
-import { lastMoveOf } from '../lib/legalMoves';
+import { lastMoveOf, PICKED_STYLE } from '../lib/legalMoves';
 import { useBackGuard } from '../lib/backGuard';
 import {
   mergeVariations, moveNumberAt, isWhiteAt, runToNextBranch, treeMove, treeTargets, startGroups,
@@ -74,7 +74,7 @@ export default function TreeBrowser({
   // Where the picked piece can go and stay in the chapter.
   const squareStyles = useMemo(() => {
     if (!picked) return undefined;
-    const out = { [picked]: { background: 'rgba(59, 156, 255, 0.5)' } };
+    const out = { [picked]: { ...PICKED_STYLE } };
     for (const sq of treeTargets(Chess, node, fen, picked)) {
       out[sq] = { boxShadow: 'inset 0 0 0 4px rgba(46, 204, 113, 0.85)' };
     }

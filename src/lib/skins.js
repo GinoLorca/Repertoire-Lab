@@ -429,10 +429,39 @@ export const SKINS = {
       pieceLight: 'var(--ux-pl, #fafaf6)', pieceDark: '#131416',
     },
   },
+
+  // Court Cards: a fine printed deck, built for Chess Arcade in November 2026
+  // and brought straight over. The blue deck by day, the red deck in gold foil
+  // after dark; its gold accent after dark gets the dark-text fix in
+  // styles.css. The piece inks are var()s for the same reason as Uptown's:
+  // styles.css gives White a laminated ivory and Black a laminated black with
+  // gilt detail lines (--cc-pl, --cc-pd on [data-pc]); anywhere those can't
+  // reach (a piece drawn as a picture) the plain colour after the comma shows.
+  cards: {
+    id: 'cards',
+    name: 'Court Cards',
+    blurb: 'A fine printed deck: linen card stock, court red and a blue card-back board. The red deck in gold foil after dark.',
+    light: {
+      '--bg': '#ece5d6', '--panel': '#fdfbf6', '--card': '#f4eee2', '--card-hover': '#ece4d4',
+      '--border': '#ddd2c0', '--text': '#1c1b22', '--muted': '#5a5560',
+      '--accent': '#a3182e', '--accent-dim': '#8c1426',
+      '--green': '#2a7a4f', '--red': '#b3332b', '--amber': '#b0641a', '--track': '#ddd2c0',
+      boardLight: '#f3ede0', boardDark: '#5a73a1',
+      pieceLight: 'var(--cc-pl, #fbf7ec)', pieceDark: 'var(--cc-pd, #1b1c27)',
+    },
+    dark: {
+      '--bg': '#0e1018', '--panel': '#171a24', '--card': '#1f2330', '--card-hover': '#282d3c',
+      '--border': '#2d3243', '--text': '#f0ebe0', '--muted': '#aaa4b2',
+      '--accent': '#dcb664', '--accent-dim': '#8a6a2a',
+      '--green': '#5cc08a', '--red': '#ec6d6d', '--amber': '#e7a650', '--track': '#2d3243',
+      boardLight: '#e2d9c6', boardDark: '#ab4547',
+      pieceLight: 'var(--cc-pl, #f6f1e4)', pieceDark: 'var(--cc-pd, #181923)',
+    },
+  },
 };
 
 // The order they're offered in — Chess Arcade's own, with Custom last.
-export const SKIN_ORDER = ['felt', 'hustler', 'bauhaus', 'gameboy', 'outerspace', 'drivethru', 'rose', 'chessbook', 'uptown'];
+export const SKIN_ORDER = ['felt', 'hustler', 'bauhaus', 'gameboy', 'outerspace', 'drivethru', 'rose', 'chessbook', 'uptown', 'cards'];
 
 export const CUSTOM_SKIN = {
   id: 'custom',

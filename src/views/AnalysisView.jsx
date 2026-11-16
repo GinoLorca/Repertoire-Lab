@@ -38,7 +38,7 @@ import LegalDots from '../components/LegalDots';
 import PromotionPicker from '../components/PromotionPicker';
 import BoardEditor from '../components/BoardEditor';
 import GameFlagPicker from '../components/GameFlagPicker';
-import { lastMoveOf, NOTE_HIGHLIGHT_STYLE } from '../lib/legalMoves';
+import { lastMoveOf, NOTE_HIGHLIGHT_STYLE, PICKED_STYLE } from '../lib/legalMoves';
 import { useBackGuard } from '../lib/backGuard';
 import { parseStudyUrl, fetchStudyPgn } from '../lib/lichess';
 import { pgnTextToEntries } from '../lib/pgnImport';
@@ -1324,7 +1324,7 @@ export default function AnalysisView({
   // shows every square it can legally reach.
   const squareStyles = useMemo(() => {
     const styles = {};
-    if (picked) styles[picked] = { background: 'rgba(59, 156, 255, 0.5)' };
+    if (picked) styles[picked] = { ...PICKED_STYLE };
     for (const [sq, color] of Object.entries(marks.squares)) styles[sq] = squareMarkStyle(color, arrowProfile);
     if (drawFrom) styles[drawFrom] = { background: `${drawColor}88` };
     // A note's move reference was clicked — glow that square on top of

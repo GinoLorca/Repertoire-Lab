@@ -347,7 +347,7 @@ const BRIDGE = String.raw`
       // own, as Repertoire Lab paints them). Chess Arcade's theme picker is hidden here: the look is Repertoire Lab's.
       look(o){
         o = o || {};
-        const SK = ['felt','hustler','bauhaus','gameboy','outerspace','drivethru','rose','chessbook','uptown','custom'];
+        const SK = ['felt','hustler','bauhaus','gameboy','outerspace','drivethru','rose','chessbook','uptown','cards','custom'];
         const skin = SK.indexOf(o.skin)>=0 ? o.skin : 'custom';
         const theme = o.theme==='light' ? 'light' : 'dark';
         const col = (v)=> typeof v==='string' && /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\)|hsla?\([\d\s.,%deg]+\))$/i.test(v.trim()) ? v.trim() : null;
