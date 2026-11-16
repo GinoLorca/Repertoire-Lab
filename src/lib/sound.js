@@ -246,10 +246,11 @@ export const SKIN_SOUNDS = {
     sessionStart: '/sounds/themes/uptown/standclear.mp3',
     complete: '/sounds/themes/uptown/departure.mp3',
   },
-  // Court Cards: the card table, synthesized for the theme. A card laid down,
-  // a slap with a chip on the trick, two cards dealt, poker's knock on the
-  // table for check, the showdown, a card flicked over for promotion, a riffle
-  // and bridge to open a session, and the winnings stacked for a finished line.
+  // Court Cards: move, capture, castle, check and checkmate are the user's own
+  // playing-card recordings (2026-11-15), the same files as Chess Arcade's,
+  // levelled to the sounds they replaced. Synthesized for the theme: a card
+  // flicked over for promotion, a riffle and bridge to open a session, and the
+  // winnings stacked for a finished line.
   cards: {
     move: '/sounds/themes/cards/move.mp3',
     capture: '/sounds/themes/cards/capture.mp3',
