@@ -5761,7 +5761,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
      never the review, notes, prep or phase cards (a position played out here isn't one of your games) */
   #view-play-history.is-px :is(#hv-opx, #hv-prep, #hpf, #hv-tab-notes, #hv-notes-card, #hv-com-card){ display:none !important; }
   #view-play-history.is-px:not(.hv-tabbed) #hv-tab-review{ display:none !important; }      /* (tabbed: the Game review tab, the header alone) */
-  #view-play-history.is-px-play :is(#hv-engine, #hv-tab-explorer){ display:none !important; }
+  #view-play-history.is-px-play :is(#hv-engine, #hv-tab-explorer, #hv-tab-similar){ display:none !important; }
   #view-play-history.is-px-play .hv-eval{ visibility:hidden; }          /* kept for its room: the board doesn't move when Analyze shows it */
   /* the row wraps where it can't hold the button too (a phone): it takes a line of its own under the arrows */
   #hv-controls{ flex-wrap:wrap; row-gap:8px; }
@@ -5797,6 +5797,40 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .hv-eng-pill.is-b{ background:#2b2b2b; color:#f4f4f4; }
   .hv-eng-pill-wait{ background:var(--surface-2); color:var(--ink-soft); }
   .hv-eng-pv{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* Book moves (hvRenderBook): your repertoire's moves from here, tinted in its green, above the engine's */
+  .hv-eng-book{ display:flex; flex-direction:column; gap:2px; margin:0 0 6px; padding:0 0 6px; border-bottom:1px solid var(--line); }
+  .hv-eng-book[hidden]{ display:none; }
+  .hv-book-line{ background:color-mix(in srgb, var(--good) 9%, transparent); }
+  .hv-book-line:hover:not(:disabled){ background:color-mix(in srgb, var(--good) 17%, transparent) !important; }
+  .hv-book-pill{ background:transparent; color:var(--good); box-shadow:none; letter-spacing:.08em; font-size:11.5px; }
+  .hv-book-line .hv-eng-pv strong{ font-weight:800; }
+  .hv-book-line .hv-book-from{ color:var(--ink-soft); }
+  /* Similar openings (sm*): Repertoire Lab's panel, in this card's own type */
+  .hv-pane-similar.active{ display:flex; flex-direction:column; gap:10px; }
+  .sm-head{ display:flex; align-items:baseline; gap:8px; font-weight:800; font-size:14px; }
+  .sm-whose{ margin-left:auto; font-weight:600; font-size:12px; color:var(--ink-soft); }
+  .sm-empty{ color:var(--ink-soft); font-size:13.5px; line-height:1.45; margin:0; }
+  .sm-item{ border:1px solid var(--line); border-radius:8px; padding:9px 10px; display:flex; flex-direction:column; gap:5px; font-size:13.5px; line-height:1.4; }
+  .sm-item.tier-same, .sm-item.tier-move{ border-color:color-mix(in srgb, var(--good) 45%, var(--line)); }
+  .sm-top{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .sm-tier{ font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--good); }
+  .sm-item:not(.tier-same):not(.tier-move) .sm-tier{ color:var(--ink-soft); }
+  .sm-after{ font-size:12px; color:var(--ink-soft); }
+  .sm-where{ color:var(--ink-soft); font-size:12.5px; }
+  .sm-diffs{ margin:0; padding-left:18px; color:var(--ink); font-size:13px; }
+  .sm-diffs li{ margin:1px 0; }
+  .sm-move{ font:inherit; font-weight:800; color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:4px; padding:0 6px; cursor:pointer; }
+  .sm-move:hover{ border-color:var(--ink-soft); }
+  .sm-move.off{ cursor:default; opacity:.55; font-weight:600; }
+  .sm-check{ display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink-soft); }
+  .sm-check strong{ color:var(--ink); }
+  .sm-grade{ flex:none; min-width:20px; height:20px; padding:0 4px; box-sizing:border-box; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:11px; }
+  .sm-acts{ display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center; font-size:12.5px; }
+  .sm-acts .sm-rl{ color:var(--ink-soft); }
+  .sm-compare{ display:flex; gap:12px; flex-wrap:wrap; margin-top:4px; }
+  .sm-compare figure{ margin:0; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11.5px; color:var(--ink-soft); }
+  .sm-compare .plaque-board{ --tsq:13px; box-shadow:none; }
+  .sm-compare .sq.sm-diff{ box-shadow:inset 0 0 0 2px var(--brass, #c9a227); }
   :root[data-skin="bauhaus"] :is(.hv-eng-pill, .hv-icon-btn, .hv-eng-line, .hv-switch-track, .hv-switch-knob){ border-radius:0; }
   /* E: one quiet line where the engine lines were */
   .hv-eng-hidden{ display:flex; align-items:center; flex-wrap:wrap; gap:4px 12px; min-height:26px; font-size:12.5px; line-height:1.35; color:var(--ink-soft); }
@@ -5974,7 +6008,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
        gaps; on the Explorer, 260 = 240 + 20 gaps from what its 45% leaves), never under its head and
        two lines; its words scroll inside. */
     #hv-com-card{ max-height:max(84px, calc(100vh - 520px)); max-height:max(84px, calc(100dvh - 520px)); }
-    #view-play-history.hv-tabbed .hv-side:has(#hv-card2 > #hv-pane-explorer.active) #hv-com-card{ max-height:max(84px, calc((100vh - 70px) * .55 - 260px)); max-height:max(84px, calc((100dvh - 70px) * .55 - 260px)); }
+    #view-play-history.hv-tabbed .hv-side:has(#hv-card2 > :is(#hv-pane-explorer, #hv-pane-similar).active) #hv-com-card{ max-height:max(84px, calc((100vh - 70px) * .55 - 260px)); max-height:max(84px, calc((100dvh - 70px) * .55 - 260px)); }
     /* clear of the home and settings buttons in the corners */
     .wrap.play-mode .hv-boardcol > .back-link{ margin-left:max(0px, calc(44px - var(--fab-gutter))); }
     #hv-row-top{ padding-left:max(12px, calc(56px - var(--fab-gutter))); }
@@ -9285,6 +9319,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           <div class="hv-eng-status" id="hv-eng-status" aria-live="polite"></div>
           <button class="hv-icon-btn" id="hv-eng-arrow" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="hv-arrow-pop" aria-label="Engine arrows" title="Engine arrows: best (1), 2nd best (2), 3rd best (3) &#183; E hides the suggested moves &#183; B plays the best move"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.19 5.24 L10.50 2.52 L13.50 2.52 L13.81 5.24 A7.0 7.0 0 0 1 15.50 5.94 L17.64 4.23 L19.77 6.36 L18.06 8.50 A7.0 7.0 0 0 1 18.76 10.19 L21.48 10.50 L21.48 13.50 L18.76 13.81 A7.0 7.0 0 0 1 18.06 15.50 L19.77 17.64 L17.64 19.77 L15.50 18.06 A7.0 7.0 0 0 1 13.81 18.76 L13.50 21.48 L10.50 21.48 L10.19 18.76 A7.0 7.0 0 0 1 8.50 18.06 L6.36 19.77 L4.23 17.64 L5.94 15.50 A7.0 7.0 0 0 1 5.24 13.81 L2.52 13.50 L2.52 10.50 L5.24 10.19 A7.0 7.0 0 0 1 5.94 8.50 L4.23 6.36 L6.36 4.23 L8.50 5.94 A7.0 7.0 0 0 1 10.19 5.24 Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.9"/></svg></button>
         </div>
+        <!-- your repertoire's own moves from here, above Stockfish's (hvRenderBook) -->
+        <div class="hv-eng-book" id="hv-eng-book" hidden></div>
         <div class="hv-eng-lines" id="hv-eng-lines"></div>
         <!-- E hides the suggested moves (arrows and lines); the eval bar and
              the depth keep going. Show is for touch. -->
@@ -9300,6 +9336,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           <button class="hv-tab" role="tab" type="button" id="hv-tab-moves" aria-controls="hv-pane-moves" aria-selected="true" aria-keyshortcuts="5" title="Moves (5)">Moves</button>
           <button class="hv-tab" role="tab" type="button" id="hv-tab-review" aria-controls="hv-pane-review" aria-selected="false" tabindex="-1" aria-keyshortcuts="4" title="Review (4)"><span class="hv-tab-name" id="hv-tab-review-name">Review</span></button>
           <button class="hv-tab" role="tab" type="button" id="hv-tab-explorer" aria-controls="hv-pane-explorer" aria-selected="false" tabindex="-1" aria-keyshortcuts="7" title="Explorer (7)">Explorer</button>
+          <button class="hv-tab hv-tab-gone" role="tab" type="button" id="hv-tab-similar" aria-controls="hv-pane-similar" aria-selected="false" tabindex="-1" aria-keyshortcuts="8" title="Similar openings (8)">Similar</button>
           <button class="hv-tab" role="tab" type="button" id="hv-tab-notes" aria-controls="hv-pane-notes" aria-selected="false" tabindex="-1" aria-keyshortcuts="6" title="Notes (6)">Notes</button>
         </div>
         <div class="hv-pane hv-pane-moves active" role="tabpanel" id="hv-pane-moves" aria-labelledby="hv-tab-moves">
@@ -9307,6 +9344,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         </div>
         <div class="hv-pane hv-pane-review" role="tabpanel" id="hv-pane-review" aria-labelledby="hv-tab-review"></div>
         <div class="hv-pane hv-pane-explorer" role="tabpanel" id="hv-pane-explorer" aria-labelledby="hv-tab-explorer"></div>
+        <!-- Similar openings (sm*): the lines in your repertoire this position resembles -->
+        <div class="hv-pane hv-pane-similar" role="tabpanel" id="hv-pane-similar" aria-labelledby="hv-tab-similar"></div>
         <div class="hv-pane hv-pane-notes" role="tabpanel" id="hv-pane-notes" aria-labelledby="hv-tab-notes">
           <div class="hv-notes-head"><label class="field-label" id="hv-note-label" for="hv-note">Notes</label><button class="field-label hv-lr-tab" id="hv-lr-tab" type="button" aria-pressed="false" aria-controls="hv-lr-wrap" title="Larry's review of this game: paste it here, and every move in it takes the board there">Larry Review</button><button class="hv-fold" id="hv-fold-notes" type="button" aria-expanded="true" aria-controls="hv-note"><span class="hv-fold-chev" aria-hidden="true"></span></button></div>
           <div class="text-input gn-ta hv-note" id="hv-note" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true" aria-labelledby="hv-note-label" data-placeholder="Your analysis: key moments, mistakes, plans, what to try next time."></div>
@@ -38267,8 +38306,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // ---- prefs: engine switch, engine arrows (best, 2nd, 3rd), suggested moves
   //      hidden (E: the arrows and lines, never the eval), last tab, explorer database ----
   const HV_PREFS_KEY = 'wavyChessPrepReviewPrefs';
-  const HV_TABS = ['moves', 'review', 'explorer', 'notes'];
-  const HV_TABS1 = ['review', 'moves', 'notes'], HV_TABS2 = ['engine', 'explorer'];      // the two cards under three columns
+  const HV_TABS = ['moves', 'review', 'explorer', 'similar', 'notes'];
+  const HV_TABS1 = ['review', 'moves', 'notes'], HV_TABS2 = ['engine', 'explorer', 'similar'];      // the two cards under three columns
   const HV_CARDS = ['head', 'phase', 'notes', 'comment', 'engine', 'tabs'];     // the cards around the board (Settings)
   const hvPrefs = (function(){
     // v2 (2026-11-02): the phase card is off unless turned on in Settings (it was on); fold: the
@@ -40288,9 +40327,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // (on top, where it was) and above the comment card. Each tab is there while what it shows is on
   // (Settings: Analysis board cards; a puzzle or a played-out position): the Game review tab holds the header (head) and the
   // review's results (tabs), Moves and Explorer are the tabs card's, Notes and Engine their own.
-  const HV_TAB_KEYS = { review:'4', moves:'5', notes:'6', explorer:'7', engine:'E' };
+  const HV_TAB_KEYS = { review:'4', moves:'5', notes:'6', explorer:'7', similar:'8', engine:'E' };
   function hvTabName(t){ return t==='review' ? (hvTabbed() ? 'Game review' : 'Review') : t.charAt(0).toUpperCase()+t.slice(1); }
-  function hvTabTitle(t){ return hvTabName(t)+' ('+HV_TAB_KEYS[t]+')'; }
+  function hvTabTitle(t){ return (t==='similar' ? 'Similar openings' : hvTabName(t))+' ('+HV_TAB_KEYS[t]+')'; }
   function hvResOff(){ return !hvPrefs.cards.tabs || !!(HV_STATE && HV_STATE.game._practice); }      // the review's results not in the Game review tab
   function hvTabOn(t){
     if(t==='review') return !!hvPrefs.cards.head || !hvResOff();
@@ -40298,6 +40337,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(t==='notes') return !hvNotesOff();
     if(t==='engine') return !!hvPrefs.cards.engine && !pxPlaying();       // (while a position is played out: no engine, no explorer)
     if(t==='explorer') return !!hvPrefs.cards.tabs && !pxPlaying();
+    if(t==='similar') return !!hvPrefs.cards.tabs && !pxPlaying() && !!RP;     // only with a repertoire to compare with
     return false;
   }
   // the tab a card shows: the one picked, or while that's off the first of its own that's on (null: none, the card hides)
@@ -40320,11 +40360,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         $('hv-pane-engine').appendChild(eng);
         tl2.appendChild($('hv-tab-explorer'));
         card2.appendChild($('hv-pane-explorer'));
+        tl2.appendChild($('hv-tab-similar'));
+        card2.appendChild($('hv-pane-similar'));
       } else {
         rcol.insertBefore(head, rcol.firstElementChild);
         tl1.insertBefore($('hv-tab-review'), $('hv-tab-moves').nextSibling);
         tl1.insertBefore($('hv-tab-explorer'), $('hv-tab-review').nextSibling);
         tabs.insertBefore($('hv-pane-explorer'), rp.nextSibling);
+        tl1.insertBefore($('hv-tab-similar'), $('hv-tab-explorer').nextSibling);
+        tabs.insertBefore($('hv-pane-similar'), $('hv-pane-explorer').nextSibling);
         col.insertBefore(eng, card2);
         col.insertBefore(tabs, card2);
       }
@@ -40342,6 +40386,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const t2 = hvTabbed(), tabs = document.getElementById('hv-tabs'), card2 = document.getElementById('hv-card2');
     tabs.classList.toggle('hv-card-off', !t2 && !hvPrefs.cards.tabs);
     HV_TABS1.concat(HV_TABS2).forEach(t=> document.getElementById('hv-tab-'+t).classList.toggle('hv-tab-gone', t2 && !hvTabOn(t)));
+    // Similar is there only with a repertoire, in the three columns too; gone, its tab gives way to Moves
+    if(!t2){
+      document.getElementById('hv-tab-similar').classList.toggle('hv-tab-gone', !hvTabOn('similar'));
+      if(hvTab==='similar' && !hvTabOn('similar') && HV_STATE) hvSetTab('moves');
+    }
     tabs.classList.toggle('hv-tabs-none', t2 && !hvShownTab(1));
     card2.classList.toggle('hv-tabs-none', t2 && !hvShownTab(2));
     document.getElementById('hv-pane-review').classList.toggle('hv-res-off', t2 && hvResOff());
@@ -40360,7 +40409,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(hvTabbed()){
       const v = [], a = hvShownTab(1);
       if(a && !(a==='review' && hvResOff())) v.push(a);          // the Game review tab holding the header alone: no review on screen
-      if(hvShownTab(2)==='explorer') v.push('explorer');
+      const b = hvShownTab(2);
+      if(b==='explorer' || b==='similar') v.push(b);
       return v;
     }
     const v = hvPrefs.cards.tabs ? [hvTab] : [];          // the tabs card turned off: none of its panes is on screen (the explorer asks nothing)
@@ -40372,6 +40422,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function hvSetTab(name, opts){
     if(hvTabbed()) return hvSetTabT(name, opts);
     if(HV_TABS.indexOf(name)<0) name = 'moves';
+    if(name==='similar' && !hvTabOn('similar')) name = 'moves';
     const px = !!(HV_STATE && HV_STATE.game._practice);
     if(px && !pxTabOk(name)) name = 'moves';
     if(name==='notes' && hvNotesOff() && !(opts && opts.save)) hvTabAway = 'notes';
@@ -40397,6 +40448,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function hvSetTabT(name, opts){
     const px = !!(HV_STATE && HV_STATE.game._practice), two = HV_TABS2.indexOf(name)>=0;
     if(!two && HV_TABS1.indexOf(name)<0) name = 'moves';
+    if(name==='similar' && !hvTabOn('similar')) name = 'engine';
     if(HV_TABS1.indexOf(hvTab)<0) hvTab = 'moves';       // a tab of the three columns' (the Explorer, given back by pxDrop): card 1 on Moves
     if(px && !two && name!=='moves' && name!=='review') name = 'moves';
     if(name==='notes' && hvNotesOff() && !(opts && opts.save)) hvTabAway = 'notes';
@@ -41861,11 +41913,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(info) hve._ls.forEach(cb=>{ try{ cb(info); }catch(e){} });
     }
   }
+  // Stockfish, for the live engine and Similar openings' own (smEngine)
+  function hvSfUrl(){ return new URL('/stockfish/stockfish-nnue-16-single.js', document.baseURI); }
   const HVE_LOAD_MS = 600000;
   function hveBoot(){
     if(hve.state==='loading' || hve.state==='ready') return;
     let w;
-    try{ w = new Worker(new URL('/stockfish/stockfish-nnue-16-single.js', document.baseURI)); }
+    try{ w = new Worker(hvSfUrl()); }
     catch(e){ hveDrop('failed'); return; }
     hve.worker = w;
     hve._uciok = false;
@@ -42001,7 +42055,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     ar.disabled = !S.std || !hvPrefs.engine;
     if(ar.disabled && hvMenu && hvMenu.kind==='arrows') hvMenuClose();
     const st = document.getElementById('hv-eng-status');
-    const txt = hvEngineStatus();
+    const nBook = hvRenderBook();
+    let txt = hvEngineStatus();
+    // with book moves here, the status says so (short: the engine's header is narrow)
+    const sfDepth = nBook ? /^Stockfish 16(?: \u00b7 depth (\d+))?$/.exec(txt) : null;
+    if(sfDepth) txt = 'Book move'+(sfDepth[1] ? ' \u00b7 depth '+sfDepth[1] : '');
+    else if(nBook && !hvPrefs.engine) txt = 'Book move \u00b7 engine off';
     // announced when the engine's state changes, not at every new depth
     const deepening = S.std && hvPrefs.engine && hve.state==='ready' && hve.owner==='live' && !hvTerminal(S.cur);
     st.setAttribute('aria-live', deepening ? 'off' : 'polite');
@@ -42078,6 +42137,74 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const n = hvPlay(HV_STATE.cur, b.dataset.uci);
     if(n){ hvGoNode(n, { sound:true }); hvRevealBoard(); }
   });
+  /* ---- Book moves (2026-11-17): your repertoire's own moves from the position on the board, above
+     Stockfish's, the way Repertoire Lab's analysis board shows them. From the repertoire's index (RP,
+     rpBuild): the openings of the side to move first, then the other side's (what they have ready for
+     this move). Each move once, with the first line it's in; a tap plays it. They need no engine; they
+     go with the suggested moves when those are hidden (E). Nothing without a repertoire. ---- */
+  var HV_BOOK = { R:null, key:null, rows:[] };
+  function hvBookAt(node){
+    if(!RP || !node || !node.state) return [];
+    if(!RP.built){
+      const R = RP;
+      rpBuild().then((ok)=>{ if(ok && RP===R && HV_STATE) hvRenderEngineNow(); });
+      return [];
+    }
+    if(HV_BOOK.R===RP && HV_BOOK.key===node.fen4) return HV_BOOK.rows;
+    const k = rpKey(node.state), mine = node.state.turn==='w' ? 'white' : 'black';
+    const rows = [], seen = new Set();
+    [mine, mine==='white' ? 'black' : 'white'].forEach(color=>{
+      const side = RP.side[color], hs = side && side.idx ? side.idx.get(k) || [] : [];
+      hs.forEach(h=>{
+        const raw = h.l.moves[h.ply];
+        if(!raw) return;
+        const mv = rpSanToMove(node.state, raw);
+        if(!mv) return;
+        const san = pzMoveToSAN(node.state, mv, pzApplyMoveRaw(node.state, mv));
+        if(seen.has(san)) return;
+        seen.add(san);
+        rows.push({ san, mv, o:h.o, c:h.c, l:h.l });
+      });
+    });
+    HV_BOOK = { R:RP, key:node.fen4, rows:rows.slice(0, 8) };
+    return HV_BOOK.rows;
+  }
+  // the rows, rebuilt only when the position or the repertoire changes; how many are shown
+  function hvRenderBook(){
+    const S = HV_STATE, box = document.getElementById('hv-eng-book');
+    if(!box) return 0;
+    const rows = S && S.std && !hvPrefs.hide && !hvTerminal(S.cur) ? hvBookAt(S.cur) : [];
+    box.hidden = !rows.length;
+    const sig = rows.length ? S.cur.fen4+'|'+rows.map(r=> r.san+'/'+r.l.id).join(',') : '';
+    if(box._sig===sig) return rows.length;
+    const fIn = !!(document.activeElement && box.contains(document.activeElement));
+    box._sig = sig;
+    box.textContent = '';
+    rows.forEach((r, i)=>{
+      const b = hvEl('button', 'hv-eng-line hv-book-line');
+      b.type = 'button';
+      b.dataset.i = String(i);
+      b.dataset.fen4 = S.cur.fen4;
+      const pv = hvEl('span', 'hv-eng-pv');
+      pv.appendChild(hvEl('strong', '', r.san));
+      pv.appendChild(hvEl('span', 'hv-book-from', ' \u2014 '+r.o.name+': '+r.l.name));
+      b.append(hvEl('span', 'hv-eng-pill hv-book-pill', 'BOOK'), pv);
+      b.title = r.san+' \u2014 '+r.o.name+' \u203a '+r.c.name+' \u203a '+r.l.name;
+      b.setAttribute('aria-label', 'Book move '+r.san+', in '+r.o.name+': '+r.l.name+'. Play it.');
+      box.appendChild(b);
+    });
+    if(fIn && box.firstElementChild) try{ box.firstElementChild.focus({ preventScroll:true }); }catch(e){}
+    return rows.length;
+  }
+  document.getElementById('hv-eng-book').addEventListener('click', (e)=>{
+    const b = e.target.closest('.hv-book-line'), S = HV_STATE;
+    if(!b || !S || b.dataset.fen4!==S.cur.fen4) return;
+    const r = HV_BOOK.rows[+b.dataset.i];
+    const n = r && hvPlay(S.cur, r.mv);
+    if(n){ hvGoNode(n, { sound:true }); hvRevealBoard(); }
+  });
+  // the repertoire was read, refreshed, toggled or signed out: the rows follow
+  rpOnChange(()=>{ HV_BOOK = { R:null, key:null, rows:[] }; if(HV_STATE) hvRenderEngineNow(); });
   function hvEngLine(k){
     const S = HV_STATE;
     if(!S || !hvPrefs.engine || !S.std || hvTerminal(S.cur)) return null;
@@ -42379,6 +42506,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hvFire(hvPaneLs, hvTab);
     if(hvNotesPinned() && hvTab!=='notes' && !hvNotesOff()) hvFire(hvPaneLs, 'notes');
     if(hvTabbed() && hvPaneShown('explorer')) hvFire(hvPaneLs, 'explorer');       // card 2 on the Explorer
+    if(hvTabbed() && hvPaneShown('similar')) hvFire(hvPaneLs, 'similar');         // or on Similar openings
   }
   document.getElementById('hv-start').addEventListener('click', ()=>{ if(HV_STATE) hvGoNode(HV_STATE.root); });
   document.getElementById('hv-prev').addEventListener('click', ()=> hvStep(-1));
@@ -42432,8 +42560,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // 4, 5, 6 or 7 (0 for any other key), the same way: the tabs' keys
   function hvTabKeyOf(e){
-    if(e.key==='4' || e.key==='5' || e.key==='6' || e.key==='7') return Number(e.key);
-    const m = /^(?:Digit|Numpad)([4567])$/.exec(e.code || '');
+    if(e.key==='4' || e.key==='5' || e.key==='6' || e.key==='7' || e.key==='8') return Number(e.key);
+    const m = /^(?:Digit|Numpad)([45678])$/.exec(e.code || '');
     return m && e.key && e.key.length===1 ? Number(m[1]) : 0;
   }
   // ---- keys 4 / 5 / 6 / 7: the tabs (2026-11-02) ----
@@ -42442,7 +42570,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // Moves / Explorer tab, 4 also opening the folded header card and 6 the folded Notes card
   // (brought into view, never focused). The keys stay where they were (the arrows still step).
   function hvTabKey(n){
-    const t = ['review', 'moves', 'notes', 'explorer'][n-4], name = hvTabName(t);
+    const t = ['review', 'moves', 'notes', 'explorer', 'similar'][n-4], name = t==='similar' ? 'Similar openings' : hvTabName(t);
     if(hvTabbed()){
       if(!hvTabOn(t)){ hvSay(name+' isn\u2019t shown here'); return; }
       hvSetTab(t, { save:true });
@@ -42464,7 +42592,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // E with card 2 on the Explorer (under three columns): back to the Engine, the suggested moves as they were
   function hvEKeyTab(){
-    if(!hvTabbed() || hvShownTab(2)!=='explorer' || !hvTabOn('engine')) return false;
+    if(!hvTabbed() || (hvShownTab(2)!=='explorer' && hvShownTab(2)!=='similar') || !hvTabOn('engine')) return false;
     hvSetTab('engine', { save:true });
     hvSay('Engine');
     return true;
@@ -44218,6 +44346,454 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hvRenderMoveList();
   });
   /* ---- end of review prep ---- */
+
+  /* ---- Similar openings (sm*, 2026-11-17): the lines in your repertoire whose positions most resemble the one on
+     the board, for when a game has left your book, or reached a book position by a road the book doesn't take.
+     Repertoire Lab's Similar openings (its lib/similarOpenings.js), rule for rule, over this repertoire (RP, both
+     sides' openings). Three kinds of match, closest first, and nothing looser: same (this very position is in a line:
+     a transposition, any move order; or one move from one), pawns (every pawn on the same square; a few pieces
+     elsewhere), pawn (one pawn not yet pushed as far as the line has it). Material must be the same. Each piece out of
+     place costs 1, or 1/2 if it's one move from its square in the line; one gone where the line hasn't sent it yet costs 1
+     (the line is behind the board). A pawn pushed further than the line's is no match. Castling counts as one, the
+     other side to move as one too. Past SM_MAX_COST nothing is offered. A line's first few moves are left out, where
+     every position looks alike, and so is the board's until it's that far in. Each suggestion's move is then tried
+     here by a Stockfish of its own (smEngine), so the Engine card's lines carry on: graded as the review grades. ---- */
+  const SM_MAX_COST = 3, SM_MAX_COST_PAWN = 2, SM_MIN_PLY = 6, SM_MAX_RANK = 3, SM_MAX_DIFFS = 3;
+  const SM_FILES = 'abcdefgh';
+  const SM_PIECE = { p:'pawn', n:'knight', b:'bishop', r:'rook', q:'queen', k:'king' };
+  const SM_HOME = { N:[57, 62], B:[58, 61], R:[56, 63], Q:[59], K:[60], n:[1, 6], b:[2, 5], r:[0, 7], q:[3], k:[4] };   // squares in FEN order (a8 = 0)
+  const SM_TIER = { same:'Same position', move:'One move away', pawns:'Same pawns', pawn:'One pawn to push' };
+  const SM_SAYS = { best:'the best move', excellent:'excellent', good:'good', inaccuracy:'an inaccuracy', mistake:'a mistake', blunder:'a blunder' };
+  const SM_START4 = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
+  var SM = { R:null, idx:null, at:null, list:[], compare:null, checks:new Map(), checkSeq:0, checkT:0 };
+  function smSquare(i){ return SM_FILES[i % 8]+(8 - Math.floor(i/8)); }
+  function smAtHome(ch, i){ return (SM_HOME[ch] || []).indexOf(i) >= 0; }
+  function smParse(key){
+    const f = key.split(' '), board = new Array(64).fill(null);
+    let i = 0;
+    for(const ch of f[0]){ if(ch==='/') continue; if(ch >= '1' && ch <= '8') i += Number(ch); else { board[i] = ch; i++; } }
+    return { board, turn:f[1] || 'w', castling:f[2] || '-' };
+  }
+  function smMaterial(board){
+    const n = {};
+    board.forEach(p=>{ if(p) n[p] = (n[p] || 0) + 1; });
+    return Object.keys(n).sort().map(p=> p+n[p]).join('');
+  }
+  // every position in the repertoire, once (both sides' openings), grouped by material
+  function smIndex(){
+    if(!RP || !RP.built) return null;
+    if(SM.R===RP && SM.idx) return SM.idx;
+    const pos = new Map();
+    ['white', 'black'].forEach(c=>{
+      const ix = RP.side[c] && RP.side[c].idx;
+      if(ix) ix.forEach((hs, key)=>{ const a = pos.get(key); if(a) hs.forEach(h=> a.push(h)); else pos.set(key, hs.slice()); });
+    });
+    const byMat = new Map();
+    pos.forEach((hits, key)=>{
+      const p = smParse(key), e = { key, board:p.board, turn:p.turn, hits, minPly:Math.min.apply(null, hits.map(h=> h.ply)) };
+      const m = smMaterial(p.board);
+      if(byMat.has(m)) byMat.get(m).push(e); else byMat.set(m, [e]);
+    });
+    SM.R = RP; SM.idx = { pos, byMat }; SM.at = null;
+    return SM.idx;
+  }
+  // can the piece on from reach to in one move on this board (geometry and what stands in the way; no checks)
+  function smOneMove(board, from, to){
+    const piece = board[from];
+    if(!piece || from===to) return false;
+    const target = board[to];
+    if(target && (target===target.toUpperCase())===(piece===piece.toUpperCase())) return false;
+    const fr = Math.floor(from/8), fc = from % 8, tr = Math.floor(to/8), tc = to % 8, dr = tr - fr, dc = tc - fc;
+    const t = piece.toLowerCase();
+    if(t==='n') return (Math.abs(dr)===1 && Math.abs(dc)===2) || (Math.abs(dr)===2 && Math.abs(dc)===1);
+    if(t==='k') return Math.max(Math.abs(dr), Math.abs(dc))===1;
+    const straight = dr===0 || dc===0, diagonal = Math.abs(dr)===Math.abs(dc);
+    if(t==='r' && !straight) return false;
+    if(t==='b' && !diagonal) return false;
+    if(t==='q' && !straight && !diagonal) return false;
+    if(t==='p') return false;
+    const sr = Math.sign(dr), sc = Math.sign(dc);
+    for(let r = fr + sr, c = fc + sc; r!==tr || c!==tc; r += sr, c += sc) if(board[r*8 + c]) return false;
+    return true;
+  }
+  // the cheapest pairing of a (squares here) with b (squares in the line), for pieces of one kind: never more than a few
+  function smPairUp(a, b, cost){
+    if(a.length <= 1) return a.length ? { total:cost(a[0], b[0]), pairs:[[a[0], b[0]]] } : { total:0, pairs:[] };
+    let best = null;
+    const permute = (rest, chosen)=>{
+      if(!rest.length){
+        const pairs = a.map((x, i)=> [x, chosen[i]]), total = pairs.reduce((s, xy)=> s + cost(xy[0], xy[1]), 0);
+        if(!best || total < best.total) best = { total, pairs };
+        return;
+      }
+      rest.forEach((y, i)=> permute(rest.slice(0, i).concat(rest.slice(i + 1)), chosen.concat([y])));
+    };
+    permute(b, []);
+    return best;
+  }
+  const SM_CASTLES = [
+    { color:'w', side:'short', king:[60, 62], rook:[63, 61] }, { color:'w', side:'long', king:[60, 58], rook:[56, 59] },
+    { color:'b', side:'short', king:[4, 6], rook:[7, 5] }, { color:'b', side:'long', king:[4, 2], rook:[0, 3] },
+  ];
+  // how the board differs from a position in a line: { pawnDiffs, cost, diffs }, or null when it isn't close
+  function smCompare(here, line){
+    const diffs = [];
+    let pawnDiffs = 0, cost = 0;
+    for(const white of [true, false]){
+      const color = white ? 'w' : 'b';
+      for(const t of ['p', 'n', 'b', 'r', 'q', 'k']){
+        const ch = white ? t.toUpperCase() : t, a = [], b = [];
+        for(let i = 0; i < 64; i++){
+          if(here.board[i]===ch && line.board[i]!==ch) a.push(i);
+          if(line.board[i]===ch && here.board[i]!==ch) b.push(i);
+        }
+        if(!a.length) continue;
+        if(t==='p'){
+          if(a.length > 1 || a[0] % 8 !== b[0] % 8) return null;          // one pawn, on its own file…
+          if(white ? a[0] < b[0] : a[0] > b[0]) return null;             // …not yet as far on as in the line
+          pawnDiffs++; cost += 0.5;
+          diffs.push({ kind:'pawn', color, here:a[0], line:b[0] });
+          continue;
+        }
+        const price = (x, y)=> (smAtHome(ch, y) && !smAtHome(ch, x)) ? 1 : (smOneMove(here.board, x, y) ? 0.5 : 1);
+        const pu = smPairUp(a, b, price);
+        cost += pu.total;
+        pu.pairs.forEach(xy=>{
+          const x = xy[0], y = xy[1];
+          diffs.push({ kind:'piece', color, type:t, here:x, line:y, near:price(x, y)===0.5, ahead:smAtHome(ch, y) && !smAtHome(ch, x), home:smAtHome(ch, x) });
+        });
+      }
+    }
+    if(pawnDiffs > 1) return null;
+    // a king and rook that moved as one castling are one difference
+    for(const c of SM_CASTLES){
+      for(const v of [[c.king[0], c.king[1], c.rook[0], c.rook[1], false], [c.king[1], c.king[0], c.rook[1], c.rook[0], true]]){
+        const k = diffs.findIndex(d=> d.kind==='piece' && d.color===c.color && d.type==='k' && d.here===v[0] && d.line===v[1]);
+        const r = diffs.findIndex(d=> d.kind==='piece' && d.color===c.color && d.type==='r' && d.here===v[2] && d.line===v[3]);
+        if(k < 0 || r < 0) continue;
+        const pc = (d)=> (d.near && !d.ahead ? 0.5 : 1);
+        cost -= pc(diffs[k]) + pc(diffs[r]) - 1;
+        const castle = { kind:'castle', color:c.color, side:c.side, castledHere:v[4] };
+        diffs.splice(Math.max(k, r), 1);
+        diffs.splice(Math.min(k, r), 1, castle);
+      }
+    }
+    if(here.turn!==line.turn){ cost += 1; diffs.push({ kind:'turn', here:here.turn, line:line.turn }); }
+    return { pawnDiffs, cost, diffs };
+  }
+  function smSide(c){ return c==='w' ? 'White' : 'Black'; }
+  function smDescribe(d){
+    if(d.kind==='pawn') return smSide(d.color)+'’s '+SM_FILES[d.here % 8]+'-pawn is still on '+smSquare(d.here)+' (the line has it on '+smSquare(d.line)+')';
+    if(d.kind==='piece'){
+      const pc = smSide(d.color)+'’s '+SM_PIECE[d.type], near = d.near ? ', one move away' : '';
+      if(d.ahead) return pc+' is already on '+smSquare(d.here)+' (still on '+smSquare(d.line)+' in the line)';
+      if(d.home) return pc+' is still on '+smSquare(d.here)+' (the line has it on '+smSquare(d.line)+near+')';
+      return pc+' is on '+smSquare(d.here)+' (the line has it on '+smSquare(d.line)+near+')';
+    }
+    if(d.kind==='castle') return d.castledHere ? smSide(d.color)+' has castled '+d.side+' here (not yet in the line)'
+      : smSide(d.color)+' hasn’t castled yet here (the line castles '+d.side+')';
+    if(d.kind==='turn') return smSide(d.here)+' to move here ('+smSide(d.line)+' in the line)';
+    return '';
+  }
+  // "after 5…Nf6": where a line is at that position
+  function smAfter(l, ply){
+    if(ply <= 0) return 'at the start';
+    const a = ply + (l.off || 0), san = String(l.moves[ply - 1]).replace(/[+#!?]+$/, '');
+    return 'after '+(a % 2 ? Math.ceil(a/2)+'.' : (a/2)+'…')+san;
+  }
+  // the next move played from here, labelled from where the board is: "5.d4", "5…Nf6"
+  function smMoveLabel(node, san){
+    const a = node.ply + (node.off || 0);
+    return (a % 2 ? Math.ceil(a/2)+'…' : (a/2 + 1)+'.')+san;
+  }
+  // the line's next moves from its position, most-played first, and whether each can be played on the board
+  function smNext(hits, state){
+    const count = new Map();
+    hits.forEach(h=>{ const s = h.l.moves[h.ply]; if(s){ const k = s.replace(/[+#!?]+$/, ''); count.set(k, (count.get(k) || 0) + 1); } });
+    return [...count.entries()].sort((a, b)=> b[1] - a[1]).slice(0, 3).map(e=>{
+      const mv = state ? rpSanToMove(state, e[0]) : null;
+      return { san: mv ? pzMoveToSAN(state, mv, pzApplyMoveRaw(state, mv)) : e[0], raw:e[0], lines:e[1], legal:!!mv, mv };
+    });
+  }
+  // up to three suggestions for the review's position, each from a line of its own, closest first
+  function smFind(node, opts){
+    const I = smIndex();
+    if(!I || !node || !node.state) return [];
+    const key = rpKey(node.state), here = smParse(key), state = node.state;
+    const early = opts.gamePly!=null && opts.gamePly < SM_MIN_PLY, found = [];
+    const exact = I.pos.get(key);
+    if(exact){
+      found.push({ entry:{ key, board:here.board, turn:here.turn, hits:exact, minPly:Math.min.apply(null, exact.map(h=> h.ply)) }, tier:'same', cost:0, diffs:[] });
+    } else {
+      // one move away: a move from here that lands in a line (never a guess)
+      pzAllLegalMoves(state).forEach(mv=>{
+        const nx = pzApplyMoveRaw(state, mv), to = rpKey(nx), hits = I.pos.get(to);
+        if(!hits) return;
+        const p = smParse(to), san = pzMoveToSAN(state, mv, nx);
+        found.push({ entry:{ key:to, board:p.board, turn:p.turn, hits, minPly:Math.min.apply(null, hits.map(h=> h.ply)), st:nx }, tier:'move', cost:0.5, diffs:[],
+          via:{ san, label:smMoveLabel(node, san), lines:hits.length, mv } });
+      });
+    }
+    if(!early){
+      (I.byMat.get(smMaterial(here.board)) || []).forEach(e=>{
+        if(e.key===key || e.minPly < SM_MIN_PLY) return;
+        const c = smCompare(here, e);
+        if(!c) return;
+        if(c.diffs.filter(d=> d.ahead).length > 1) return;                       // the line is a stage behind
+        if(c.diffs.filter(d=> d.kind!=='turn').length > SM_MAX_DIFFS) return;    // not "almost" any more
+        const tier = c.pawnDiffs ? 'pawn' : (c.cost===0 ? 'same' : 'pawns');
+        if(c.pawnDiffs ? c.cost > SM_MAX_COST_PAWN + 1 : c.cost > SM_MAX_COST) return;
+        if(found.some(f=> f.entry.key===e.key)) return;
+        found.push({ entry:e, tier, cost:c.cost, diffs:c.diffs });
+      });
+    }
+    // this very position first, then one move away, then by closeness: a line with something to say ahead of one without
+    found.forEach(f=>{
+      f.next = f.via ? [{ san:f.via.san, lines:f.via.lines, legal:true, mv:f.via.mv }] : smNext(f.entry.hits, state);
+      const own = !opts.side || f.entry.hits.some(h=> h.o.color===opts.side);
+      const goesOn = f.via || f.entry.hits.some(h=> h.l.moves[h.ply]);
+      f.rank = (f.tier==='same' && !f.diffs.length ? -2 : 0) + (f.tier==='move' ? -1 : 0) + f.cost
+        + (goesOn ? 0 : 0.5) + (f.next.some(m=> m.legal) ? 0 : 0.5) + (own ? 0 : 1);
+    });
+    found.sort((a, b)=> a.rank - b.rank || (b.entry.minPly - a.entry.minPly));
+    const shown = new Set(), out = [];
+    for(const f of found){
+      if(out.length >= 3 || f.rank > SM_MAX_RANK) break;
+      const ls = f.entry.hits.map(h=> h.l);
+      if(ls.some(l=> shown.has(l))) continue;
+      ls.forEach(l=> shown.add(l));
+      // named by the line from the side being played, going on with the most-played move, the shortest of those
+      const lineNext = smNext(f.entry.hits, f.via ? f.entry.st : state);
+      const mine = (h)=> (opts.side && h.o.color===opts.side ? 0 : 1);
+      const pick = f.entry.hits.slice()
+        .filter(h=> !lineNext.length || String(h.l.moves[h.ply] || '').replace(/[+#!?]+$/, '')===lineNext[0].raw)
+        .sort((a, b)=> mine(a) - mine(b) || a.l.moves.length - b.l.moves.length)[0] || f.entry.hits[0];
+      out.push({ tier:f.tier, key:f.entry.key, o:pick.o, c:pick.c, l:pick.l, ply:pick.ply, after:smAfter(pick.l, pick.ply),
+        cost:f.cost, diffs:f.diffs, lines:new Set(ls.map(l=> l.id)).size, next:f.next, via:f.via || null, then:f.via ? lineNext : [] });
+    }
+    return out;
+  }
+
+  // ---- the Stockfish check: a Stockfish of its own, while the tab is on screen ----
+  var SM_ENG = null;
+  function smEngine(){
+    if(SM_ENG) return SM_ENG;
+    let w;
+    try{ w = new Worker(hvSfUrl()); }catch(e){ return null; }
+    const E = { w, q:[], cur:null, dead:false };
+    E.ready = new Promise((res, rej)=>{ E.ok = res; E.t = setTimeout(()=> rej(new Error('slow')), 90000); });
+    E.ready.catch(()=>{});
+    w.onmessage = (e)=>{
+      const line = String(e.data);
+      if(line==='uciok'){ w.postMessage('isready'); return; }
+      if(line==='readyok'){ if(E.ok){ clearTimeout(E.t); E.ok(); E.ok = null; } return; }
+      const J = E.cur;
+      if(!J) return;
+      if(line.indexOf('info ')===0 && line.indexOf(' score ')>=0){
+        const mp = / multipv (\d+)/.exec(line);
+        if(mp && mp[1]!=='1') return;
+        const sc = / score (cp|mate) (-?\d+)/.exec(line);
+        if(sc) J.score = sc[1]==='mate' ? (Number(sc[2]) > 0 ? 1000 : -1000) : Number(sc[2]);
+        return;
+      }
+      if(line.indexOf('bestmove')===0){ E.cur = null; J.res(J.score); smEngNext(E); }
+    };
+    w.onerror = (e)=>{ try{ e.preventDefault(); }catch(x){} if(SM_ENG===E) smEngQuit(); };
+    w.postMessage('uci');
+    SM_ENG = E;
+    return E;
+  }
+  function smEngNext(E){
+    if(E.dead || E.cur || !E.q.length) return;
+    E.cur = E.q.shift();
+    E.w.postMessage('position fen '+E.cur.fen);
+    E.w.postMessage('go depth 14');
+  }
+  // the score of a position for the side to move (a mate as 1000, as the review counts one)
+  function smScore(E, fen){
+    return E.ready.then(()=> new Promise((res, rej)=>{
+      if(E.dead){ rej(new Error('quit')); return; }
+      E.q.push({ fen, res, rej, score:0 });
+      smEngNext(E);
+    }));
+  }
+  function smEngQuit(){
+    const E = SM_ENG;
+    SM_ENG = null;
+    if(!E) return;
+    E.dead = true;
+    try{ E.w.postMessage('quit'); E.w.terminate(); }catch(e){}
+    if(E.cur) try{ E.cur.rej(new Error('quit')); }catch(e){}
+    E.q.splice(0).forEach(j=>{ try{ j.rej(new Error('quit')); }catch(e){} });
+  }
+  function smGrade(loss){ return loss <= 10 ? 'best' : loss <= 30 ? 'excellent' : loss <= 60 ? 'good' : loss <= 100 ? 'inaccuracy' : loss <= 300 ? 'mistake' : 'blunder'; }
+  // each move played here, graded as the review grades a move: its score against the position's own, the mover's side
+  async function smCheck(key, node, moves){
+    const my = ++SM.checkSeq, E = smEngine();
+    if(!E){ SM.checks.set(key, { failed:true, moves:{} }); smRender(); return; }
+    E.q.splice(0).forEach(j=>{ try{ j.rej(new Error('dropped')); }catch(e){} });
+    if(E.cur) try{ E.w.postMessage('stop'); }catch(e){}          // an earlier position's search: its answer is dropped
+    let late = 0;
+    const out = {};
+    const run = (async ()=>{
+      const best = await smScore(E, node.fen);
+      for(const m of moves){
+        if(my!==SM.checkSeq) return false;
+        const after = pzApplyMoveRaw(node.state, m.mv);
+        let mine;
+        if(!pzAllLegalMoves(after).length) mine = pzIsInCheck(after, after.turn) ? 1000 : 0;
+        else mine = -(await smScore(E, pzStateToFEN(after, node.ply + 1)));
+        const loss = Math.max(0, best - mine);
+        out[m.san] = { loss, grade:smGrade(loss) };
+      }
+      return true;
+    })();
+    const r = await Promise.race([run, new Promise(res=>{ late = setTimeout(()=> res('late'), 30000); })]).catch(()=> null);
+    clearTimeout(late);
+    if(my!==SM.checkSeq) return;
+    if(r==='late') smEngQuit();                  // stuck: a fresh engine next time
+    SM.checks.set(key, r===true ? { moves:out, failed:false } : { moves:{}, failed:true });
+    if(SM.checks.size > 60) SM.checks.delete(SM.checks.keys().next().value);
+    smRender();
+  }
+
+  // ---- the panel ----
+  function smEl(tag, cls, text){ return hvEl(tag, cls, text); }
+  function smMoveBtn(m){
+    const b = smEl(m.legal ? 'button' : 'span', 'sm-move'+(m.legal ? '' : ' off'), m.label || m.san);
+    if(m.legal){ b.type = 'button'; b.title = 'Play it on the board'; b._mv = m.mv; }
+    else b.title = 'Can’t be played in this position';
+    return b;
+  }
+  function smBoard(key, flip, marks){
+    const st = hvStateFromFen(key+' 0 1'), box = smEl('div', 'plaque-board');
+    box.setAttribute('aria-hidden', 'true');
+    spBuildThumb(box, st.board, flip);
+    [...box.children].forEach((sq, i)=>{
+      const r = flip ? Math.floor(i/8) : 7 - Math.floor(i/8), c = flip ? 7 - (i % 8) : i % 8;
+      if(marks.has((7 - r)*8 + c)) sq.classList.add('sm-diff');          // FEN order: a8 = 0
+    });
+    return box;
+  }
+  function smDiffSquares(a, b){
+    const A = smParse(a).board, B = smParse(b).board, out = new Set();
+    for(let i = 0; i < 64; i++) if(A[i]!==B[i]) out.add(i);
+    return out;
+  }
+  function smCheckRow(san, ck){
+    if(!san) return null;
+    const row = smEl('div', 'sm-check');
+    if(!ck){ row.textContent = 'Checking '+san+' with Stockfish…'; return row; }
+    const got = ck.moves[san];
+    if(!got){ if(!ck.failed) return null; row.textContent = 'Stockfish couldn’t check '+san+' just now.'; return row; }
+    const b = HR_BY_ID[got.grade];
+    const dot = smEl('span', 'sm-grade', b ? b.symbol || '•' : '');
+    if(b) dot.style.background = b.color;
+    dot.setAttribute('aria-hidden', 'true');
+    const t = smEl('span', '');
+    t.append('Stockfish here: ', smEl('strong', '', san), ' is '+SM_SAYS[got.grade]+(got.loss > 10 ? ' ('+(got.loss/100).toFixed(2)+' short of its best)' : ''));
+    row.append(dot, t);
+    return row;
+  }
+  // whose lines these are: Repertoire Lab's Game Review names them (RP.label on the card, RP.whose in a sentence); here, yours
+  function smWhose(){ return RP && RP.whose ? RP.whose : 'your repertoire'; }
+  function smRender(){
+    const pane = document.getElementById('hv-pane-similar'), S = HV_STATE;
+    if(!pane) return;
+    if(!S || !hvPaneShown('similar')){ clearTimeout(SM.checkT); smEngQuit(); return; }
+    const node = S.cur, head = smEl('div', 'sm-head');
+    head.appendChild(smEl('span', '', 'Similar openings'));
+    if(RP && RP.label) head.appendChild(smEl('span', 'sm-whose', RP.label));
+    const kids = [head], say = (t)=> kids.push(smEl('p', 'sm-empty', t));
+    const fromStart = !!(S.root && S.root.fen4===SM_START4), gamePly = fromStart ? node.ply : null;
+    let list = [];
+    if(!RP) say('Connect Repertoire Lab in Settings: the lines in your repertoire that a position resembles show here.');
+    else if(!S.std) say('Similar openings work for standard chess games only.');
+    else if(!RP.built){ say('Reading your repertoire…'); const R = RP; rpBuild().then(ok=>{ if(ok && RP===R) smRender(); }); }
+    else if(fromStart && node.ply===0) say('Play some moves: the lines in '+smWhose()+' that the position resembles show here.');
+    else {
+      if(!SM.at || SM.at.R!==RP || SM.at.key!==node.fen4) SM.at = { R:RP, key:node.fen4, list:smFind(node, { gamePly, side:S.me || null }) };
+      list = SM.at.list;
+      if(!list.length) say(fromStart && node.ply < SM_MIN_PLY ? 'A few moves in, every opening looks alike: play on and the closest lines show here.'
+        : 'Nothing in '+smWhose()+' is close to this position.');
+    }
+    // Stockfish's word on each suggestion's move here (up to three)
+    const sans = [], movesToCheck = [];
+    list.forEach(sg=>{ const m = sg.via || sg.next.find(x=> x.legal); if(m && sans.indexOf(m.san)<0 && sans.length < 3){ sans.push(m.san); movesToCheck.push({ san:m.san, mv:m.mv }); } });
+    const ckey = sans.length ? node.fen4+'|'+sans.join(' ') : null, ck = ckey ? SM.checks.get(ckey) : null;
+    if(ckey && !ck && SM.pending!==ckey){
+      SM.pending = ckey;
+      clearTimeout(SM.checkT);
+      SM.checkT = setTimeout(()=>{ if(HV_STATE && HV_STATE.cur===node && hvPaneShown('similar')) smCheck(ckey, node, movesToCheck).finally(()=>{ if(SM.pending===ckey) SM.pending = null; }); else SM.pending = null; }, 500);
+    }
+    list.forEach(sg=>{
+      const it = smEl('div', 'sm-item tier-'+sg.tier), top = smEl('div', 'sm-top');
+      top.append(smEl('span', 'sm-tier', SM_TIER[sg.tier]), smEl('span', 'sm-after', sg.after));
+      const name = smEl('div', 'sm-name');
+      const side = sg.o.color==='white' || sg.o.color==='black' ? ', as '+sg.o.color.charAt(0).toUpperCase()+sg.o.color.slice(1) : '';
+      name.append(smEl('strong', '', sg.o.name), ' — '+sg.l.name+' ', smEl('span', 'sm-where', '('+sg.c.name+side+')'+(sg.lines > 1 ? ' · in '+sg.lines+' lines' : '')));
+      it.append(top, name);
+      if(sg.via){
+        const v = smEl('div', 'sm-via');
+        v.append(smMoveBtn({ san:sg.via.san, label:sg.via.label, legal:true, mv:sg.via.mv }), ' reaches it'+(sg.then.length ? ', and the line goes on '+sg.then.map(m=> m.san).join(' or ') : '')+'.');
+        it.appendChild(v);
+      }
+      if(sg.diffs.length){
+        const ul = smEl('ul', 'sm-diffs');
+        sg.diffs.forEach(d=> ul.appendChild(smEl('li', '', smDescribe(d))));
+        it.appendChild(ul);
+      }
+      if(!sg.via){
+        const nx = smEl('div', 'sm-next');
+        if(sg.next.length){ nx.append('The line goes on '); sg.next.forEach((m, i)=>{ if(i) nx.append(' or '); nx.appendChild(smMoveBtn(m)); }); }
+        else nx.textContent = 'The line ends here.';
+        it.appendChild(nx);
+      }
+      const checked = sg.via ? sg.via.san : (sg.next.find(m=> m.legal) || {}).san;
+      const cr = smCheckRow(checked, ck);
+      if(cr) it.appendChild(cr);
+      const acts = smEl('div', 'sm-acts'), cmp = smEl('button', 'btn-link', SM.compare===sg.key ? 'Hide boards' : 'Compare boards');
+      cmp.type = 'button'; cmp.dataset.cmp = sg.key;
+      acts.appendChild(cmp);
+      if(sg.l.id && sg.l.openingId && sg.l.chapterId){
+        const learn = smEl('a', 'btn-link', 'Learn'), pr = smEl('a', 'btn-link', 'Practice');
+        learn.target = pr.target = '_blank'; learn.rel = pr.rel = 'noopener';
+        rlLineLinks(sg.l, learn, pr);
+        acts.append(smEl('span', 'sm-rl', 'In Repertoire Lab:'), learn, pr);
+      }
+      it.appendChild(acts);
+      if(SM.compare===sg.key){
+        const fl = !!S.flipped, marks = smDiffSquares(node.fen4, sg.key), wrap = smEl('div', 'sm-compare');
+        [[node.fen4, 'This board'], [sg.key, 'The line, '+sg.after]].forEach(x=>{
+          const fig = smEl('figure', '');
+          fig.append(smBoard(x[0], fl, marks), smEl('figcaption', '', x[1]));
+          wrap.appendChild(fig);
+        });
+        it.appendChild(wrap);
+      }
+      kids.push(it);
+    });
+    const fa = document.activeElement, focusCmp = fa && pane.contains(fa) && fa.dataset ? fa.dataset.cmp : null;
+    pane.replaceChildren.apply(pane, kids);
+    if(focusCmp){ const b = pane.querySelector('[data-cmp="'+focusCmp+'"]'); if(b) try{ b.focus({ preventScroll:true }); }catch(e){} }
+  }
+  document.getElementById('hv-pane-similar').addEventListener('click', (e)=>{
+    const S = HV_STATE;
+    if(!S) return;
+    const mv = e.target.closest('.sm-move');
+    if(mv && mv._mv){
+      const n = hvPlay(S.cur, mv._mv);
+      if(n){ hvGoNode(n, { sound:true }); hvRevealBoard(); }
+      return;
+    }
+    const cmp = e.target.closest('[data-cmp]');
+    if(cmp){ SM.compare = SM.compare===cmp.dataset.cmp ? null : cmp.dataset.cmp; smRender(); }
+  });
+  hvOnNode(()=>{ if(hvPaneShown('similar')) smRender(); });
+  hvOnPane((name)=>{ if(name==='similar') smRender(); else if(!hvPaneShown('similar')) smRender(); });
+  // a repertoire read, refreshed, toggled or signed out: the tab comes or goes, the lines follow
+  rpOnChange(()=>{ SM.R = null; SM.idx = null; SM.at = null; if(HV_STATE){ hvSyncTabs(); smRender(); } });
+  /* ---- end of Similar openings ---- */
 
   // Every drill's "how to annotate this board" hint row (.anno-hint) gets a
   // small collapse toggle -- one shared, persisted preference across all of
@@ -51436,7 +52012,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function pxPlaying(){ return !!(PX && HV_STATE && HV_STATE.game._practice===PX && PX.phase!=='analysis'); }
   // the board takes no move while the engine thinks or it isn't your turn on the move shown
   function pxWaits(){ return pxPlaying() && (PX.thinking || HV_STATE.cur.state.turn!==PX.color); }
-  function pxTabOk(t){ return t==='moves' || (t==='explorer' && !pxPlaying()); }
+  function pxTabOk(t){ return t==='moves' || ((t==='explorer' || t==='similar') && !pxPlaying()); }
   function pxElo(){ return PX_ELOS[Number(document.getElementById('hv-px-elo').value)] || 1500; }
   function pxEloShow(){
     const r = document.getElementById('hv-px-elo'), v = String(pxElo());
@@ -51565,7 +52141,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     P.phase = 'play'; P.end = null;
     if(hve.state==='failed') hveBoot();          // the retry the failure text promises
     pxModeClass();
-    if(hvTab==='explorer') hvSetTab('moves');
+    if(hvTab==='explorer' || hvTab==='similar') hvSetTab('moves');
   }
   function pxEnd(S){ return S.main.length ? S.main[S.main.length - 1] : S.root; }
   // everything after node goes: the game ends there
@@ -52521,8 +53097,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       // The repertoire the Openings tab sorts games by: the openings Repertoire Lab picked, in Chess Arcade's own
       // compact form ({ o:[{ i, n, c:'w'|'b', k:[[courseId, name]], ch:[{ i, n, k, s, ss, l:[[id, name, moves[], fen|null]] }] }] }),
       // checked the way a copy read from Repertoire Lab is. None: the tab groups games by opening name.
-      repertoire(p){
+      // Also Game Review's: its book moves, review prep and Similar openings check the game against it.
+      // o: { label, whose }: what Chess Arcade calls it on its cards ("Joseph's + yours") and in a sentence
+      // ("Joseph's repertoire or yours"); none, "your repertoire".
+      repertoire(p, o){
         const uid = 'rl-embed';
+        const name = (v)=> typeof v==='string' && v.trim() ? v.trim().slice(0, 80) : null;
+        const label = name(o && o.label), whose = name(o && o.whose);
         let dec = null;
         try{
           if(p && Array.isArray(p.o) && p.o.length) dec = rlDecode(rlEncode({ v:1, uid, email:'', at:Date.now(), o:p.o }), uid);
@@ -52532,7 +53113,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           if(historyOn()) ghRender();
           return 0;
         }
-        if(!RP || RP.h!==dec.h){ rpMake(dec, null); rpFire('rep'); try{ rpQueue(); }catch(e){} }
+        if(!RP || RP.h!==dec.h){ rpMake(dec, null); RP.label = label; RP.whose = whose; rpFire('rep'); try{ rpQueue(); }catch(e){} }
+        else if(RP.label!==label || RP.whose!==whose){ RP.label = label; RP.whose = whose; rpFire('rep'); }
         return RP.openings.length;
       },
       // Repertoire Lab's theme, dark or light as it is there: { skin, theme:'dark'|'light', colors } (colors: Custom's

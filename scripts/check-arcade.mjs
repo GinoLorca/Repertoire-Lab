@@ -14,6 +14,8 @@
 //   · a game opens, and a note typed in its Notes card is saved and reported
 //   · Repertoire Lab's theme, dark and light, is the one it wears
 //   · a repertoire goes in, and CLAMP, Tactics and Openings each open
+//   · with it, the review shows its book moves above the engine's, and its
+//     Similar openings tab finds the line the game is in, named whose it is
 //   · the corner buttons and flush() take what they're given
 //   · Stockfish is where the copy looks for it
 //
@@ -174,7 +176,8 @@ try {
     id: 'o-ruy', name: 'Ruy Lopez', color: 'white', courses: [],
     chapters: [{ id: 'c-main', name: 'Main line', variations: [{ id: 'v-main', name: 'Closed', moves: ['e4', 'e5', 'Nf3', 'Nc6', 'Bb5', 'a6', 'Ba4', 'Nf6', 'O-O', 'Be7'] }] }],
   };
-  const count = await frame.evaluate((p) => window.__rlReview.repertoire(p), arcadeRepertoire([opening], ['o-ruy']));
+  const named = { label: 'Check’s + yours', whose: 'Check’s repertoire or yours' };
+  const count = await frame.evaluate(({ p, o }) => window.__rlReview.repertoire(p, o), { p: arcadeRepertoire([opening], ['o-ruy']), o: named });
   ok(count === 1, `a repertoire goes in (${count} opening)`);
   const { games } = openingsGames(player);
   for (const view of ['clamp', 'tactics', 'openings']) {
@@ -190,6 +193,34 @@ try {
   await frame.evaluate((g) => window.__rlReview.open(g, {}), game);
   await frame.waitForFunction((gid) => window.__rlReview.current() === gid, gid, { timeout: 20000 }).catch(() => {});
   ok(await page.evaluate(() => window.__msgs.some((m) => m.type === 'height')), 'it tells Repertoire Lab its height');
+
+  // ---- the repertoire in the review: book moves, and Similar openings ----
+  // (stepping with the review's own Start and Next buttons, #hv-start and #hv-next)
+  const step = async (plies) => {
+    await frame.evaluate(() => document.getElementById('hv-start')?.click());
+    for (let i = 0; i < plies; i += 1) await frame.evaluate(() => document.getElementById('hv-next')?.click());
+    await page.waitForTimeout(600);
+  };
+  await step(0);
+  const book = await frame.waitForFunction(() => [...document.querySelectorAll('#hv-eng-book .hv-book-line')]
+    .map((b) => b.textContent.replace(/\s+/g, ' ')).join(' | ') || null, null, { timeout: 15000 }).then((h) => h.jsonValue(), () => '');
+  ok(/BOOK\s*e4\s*— Ruy Lopez: Closed/.test(book), `the repertoire’s moves are above the engine’s (${book || 'none'})`);
+  const tabOn = await frame.evaluate(() => {
+    const t = document.getElementById('hv-tab-similar');
+    if (!t || t.classList.contains('hv-tab-gone')) return false;
+    t.click();
+    return true;
+  });
+  ok(tabOn, 'with a repertoire, there’s a Similar openings tab (#hv-tab-similar)');
+  await step(6);
+  const sim = await frame.waitForFunction(() => {
+    const p = document.getElementById('hv-pane-similar');
+    return p && /Same position/i.test(p.textContent) ? p.textContent.replace(/\s+/g, ' ') : null;
+  }, null, { timeout: 15000 }).then((h) => h.jsonValue(), () => '');
+  ok(/Ruy Lopez/.test(sim) && /Closed/.test(sim) && /Ba4/.test(sim), `Similar openings finds the line the game is in (${sim.slice(0, 90) || 'nothing'})`);
+  ok(sim.includes(named.label), 'and names whose lines they are');
+  const learn = await frame.evaluate(() => [...document.querySelectorAll('#hv-pane-similar a')].map((a) => a.href).find((h) => /go=learn/.test(h)) || '');
+  ok(/\/chapter\/o-ruy\/c-main\?line=v-main&go=learn$/.test(learn), 'its Learn link opens that very line in Repertoire Lab');
 
   await page.waitForTimeout(500);
   ok(errors.length === 0, `nothing thrown${errors.length ? `:\n       ${errors.slice(0, 8).join('\n       ')}` : ''}`);

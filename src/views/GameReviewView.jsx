@@ -17,6 +17,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import { useStore, uid } from '../store';
 import { ARCADE_REVIEW_URL } from '../lib/arcadeBuild';
 import { useArcadeLook } from '../lib/arcadeLook';
+import { reviewRepertoire } from '../lib/openingsBasis';
 import {
   arcadeId, tempArcadeId, arcadeGame, cleanRecords, sameRecords, fromArchive, recordsFor,
   writesReviewLayer, withGameReview,
@@ -129,6 +130,21 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
   // Repertoire Lab's theme, dark or light as it is here (lib/arcadeLook).
   useArcadeLook(api, ready);
 
+  // The repertoire the review checks this game against — its book moves, the
+  // review prep and Similar openings (lib/openingsBasis reviewRepertoire): the
+  // one the analysis board checks for whose game it is. In before the game
+  // opens (this runs ahead of the effect that opens it), and again whenever
+  // the openings, the game's owner or Repertoire to check change.
+  const repSource = state.settings.analysisRepertoire ?? 'both';
+  const repOwner = saved?.player ?? null;
+  const reviewRep = useMemo(
+    () => reviewRepertoire(state.openings, repOwner, repSource),
+    [state.openings, repOwner?.id, repOwner?.kind, repOwner?.name, repSource], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  useEffect(() => {
+    if (ready) api()?.repertoire?.(reviewRep.plain, { label: reviewRep.label, whose: reviewRep.whose });
+  }, [ready, reviewRep]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // What the review holds for the game now, onto the game (or the pasted
   // game, until it's saved): your own copy, or — a student's own game — your
   // review of it, sent to them when you leave the game (publish).
@@ -177,6 +193,19 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
       if (d.type === 'tap') setMenuOpen(false);
       if (d.type === 'node') setPlies(Number(d.plies) || 0);
       if (d.type === 'save') saveRef.current();
+      // Learn or Practice on a repertoire line (the review prep, Similar
+      // openings): that line, here in Repertoire Lab.
+      if (d.type === 'openChapter' && d.openingId && d.chapterId) {
+        window.dispatchEvent(new CustomEvent('repertoire-open-line', {
+          detail: {
+            openingId: d.openingId,
+            chapterId: d.chapterId,
+            variationId: d.line ?? null,
+            practice: d.go === 'practice',
+            learn: d.go === 'learn' && Boolean(d.line),
+          },
+        }));
+      }
     };
     window.addEventListener('message', onMessage);
     // Closing the app or switching away: what's being typed is saved first.

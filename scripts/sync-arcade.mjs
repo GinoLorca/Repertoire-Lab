@@ -329,8 +329,13 @@ const BRIDGE = String.raw`
       // The repertoire the Openings tab sorts games by: the openings Repertoire Lab picked, in Chess Arcade's own
       // compact form ({ o:[{ i, n, c:'w'|'b', k:[[courseId, name]], ch:[{ i, n, k, s, ss, l:[[id, name, moves[], fen|null]] }] }] }),
       // checked the way a copy read from Repertoire Lab is. None: the tab groups games by opening name.
-      repertoire(p){
+      // Also Game Review's: its book moves, review prep and Similar openings check the game against it.
+      // o: { label, whose }: what Chess Arcade calls it on its cards ("Joseph's + yours") and in a sentence
+      // ("Joseph's repertoire or yours"); none, "your repertoire".
+      repertoire(p, o){
         const uid = 'rl-embed';
+        const name = (v)=> typeof v==='string' && v.trim() ? v.trim().slice(0, 80) : null;
+        const label = name(o && o.label), whose = name(o && o.whose);
         let dec = null;
         try{
           if(p && Array.isArray(p.o) && p.o.length) dec = rlDecode(rlEncode({ v:1, uid, email:'', at:Date.now(), o:p.o }), uid);
@@ -340,7 +345,8 @@ const BRIDGE = String.raw`
           if(historyOn()) ghRender();
           return 0;
         }
-        if(!RP || RP.h!==dec.h){ rpMake(dec, null); rpFire('rep'); try{ rpQueue(); }catch(e){} }
+        if(!RP || RP.h!==dec.h){ rpMake(dec, null); RP.label = label; RP.whose = whose; rpFire('rep'); try{ rpQueue(); }catch(e){} }
+        else if(RP.label!==label || RP.whose!==whose){ RP.label = label; RP.whose = whose; rpFire('rep'); }
         return RP.openings.length;
       },
       // Repertoire Lab's theme, dark or light as it is there: { skin, theme:'dark'|'light', colors } (colors: Custom's

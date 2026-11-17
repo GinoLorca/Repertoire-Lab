@@ -14,6 +14,7 @@
 //     History reads (who had which side, the result, the speed, the moves).
 import { arcadeId, recordsFor, insightSummary } from './gameReviewBridge';
 import { START_FEN, fen4 } from './startPos';
+import { bookOpenings, bookName } from './repertoire';
 
 const norm = (s) => String(s ?? '').trim().toLowerCase();
 const mineOf = (o) => (o.ownerId ?? null) === null;
@@ -52,12 +53,12 @@ export function ownerLabel(opening, players) {
 // Chess Arcade's compact repertoire: { o:[{ i, n, c, k, ch:[{ i, n, k, s, ss, l }] }] },
 // a line being [id, name, moves[], startFen|null]. An opening from a
 // student's library is named for them, so it reads apart from yours.
-export function arcadeRepertoire(openings, ids, players = []) {
+export function arcadeRepertoire(openings, ids, players = [], { named = true } = {}) {
   const out = [];
   for (const id of ids ?? []) {
     const o = (openings ?? []).find((x) => x.id === id);
     if (!o) continue;
-    const who = ownerLabel(o, players);
+    const who = named ? ownerLabel(o, players) : '';
     const name = String(o.name ?? '').trim() || 'Untitled';
     const op = {
       i: o.id,
@@ -77,6 +78,25 @@ export function arcadeRepertoire(openings, ids, players = []) {
     out.push(op);
   }
   return { o: out };
+}
+
+// What Game Review checks a game against — its book moves, review prep and
+// Similar openings, in Chess Arcade: the repertoire the analysis board checks
+// for whose game it is (Settings → Repertoire to check, lib/repertoire's
+// bookOpenings). On a student's game their lines and yours, by default; on
+// yours (or a game not saved yet), yours. In Chess Arcade's form, the openings
+// under their own names (the card says whose they are), with what to call
+// them on a card ("Joseph's + yours") and in a sentence.
+export function reviewRepertoire(openings, owner, source = 'both') {
+  const student = owner?.kind === 'student' ? owner : null;
+  const list = bookOpenings(openings, { studentId: student?.id ?? null, source });
+  const whose = !student || source === 'mine' ? 'your repertoire'
+    : source === 'student' ? `${student.name}'s repertoire` : `${student.name}'s repertoire or yours`;
+  return {
+    plain: arcadeRepertoire(list, list.map((o) => o.id), [], { named: false }),
+    label: student ? bookName(source, student.name) : null,
+    whose,
+  };
 }
 
 // Every game of the player's with moves — marked in Game Review or not.

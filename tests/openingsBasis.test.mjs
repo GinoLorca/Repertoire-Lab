@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  defaultBasis, basisFor, arcadeRepertoire, openingsGames, basisSummary,
+  defaultBasis, basisFor, arcadeRepertoire, openingsGames, basisSummary, reviewRepertoire,
 } from '../src/lib/openingsBasis.js';
 
 const line = (id, moves, extra = {}) => ({ id, name: id, moves: moves.split(' '), ...extra });
@@ -61,3 +61,30 @@ test('every game with moves goes to the tab, marked or not; not a game set up fr
   assert.equal(byArcadeId.get(games[1].id), 'g4');
   assert.equal(games[0].an, '');
 });
+
+test('Game Review checks a game against what the analysis board would: a student’s lines and yours, under their own names', () => {
+  const ids = (r) => r.plain.o.map((o) => o.i);
+  // a student's game: theirs first, then your whole library; named as they are, the card says whose
+  const both = reviewRepertoire(openings, players[0]);
+  assert.deepEqual(ids(both), ['sjl', 'jl', 'ck', 'kid']);
+  assert.equal(both.plain.o[0].n, 'jobava london system');
+  assert.equal(both.label, "Myla's + yours");
+  assert.equal(both.whose, "Myla's repertoire or yours");
+  // Repertoire to check: only theirs, only yours, none
+  const theirs = reviewRepertoire(openings, players[0], 'student');
+  assert.deepEqual(ids(theirs), ['sjl']);
+  assert.equal(theirs.whose, "Myla's repertoire");
+  assert.deepEqual(ids(reviewRepertoire(openings, players[0], 'mine')), ['jl', 'ck', 'kid']);
+  assert.equal(reviewRepertoire(openings, players[0], 'mine').whose, 'your repertoire');
+  assert.deepEqual(reviewRepertoire(openings, players[0], 'none').plain.o, []);
+  // your own game, or one not saved yet: yours, nobody else's
+  for (const owner of [players[2], null]) {
+    const r = reviewRepertoire(openings, owner);
+    assert.deepEqual(ids(r), ['jl', 'ck', 'kid']);
+    assert.equal(r.label, null);
+    assert.equal(r.whose, 'your repertoire');
+  }
+  // a line keeps its own ids: Learn and Practice open that very line
+  assert.deepEqual(both.plain.o[0].ch[0].l[0].slice(0, 3), ['sv1', 'sv1', ['d4', 'd5', 'Nc3']]);
+});
+
