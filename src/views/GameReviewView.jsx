@@ -16,7 +16,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useStore, uid } from '../store';
 import { ARCADE_REVIEW_URL } from '../lib/arcadeBuild';
-import { useArcadeLook } from '../lib/arcadeLook';
+import { useArcadeLook, onArcadeArrows } from '../lib/arcadeLook';
 import { reviewRepertoire } from '../lib/openingsBasis';
 import {
   arcadeId, tempArcadeId, arcadeGame, cleanRecords, sameRecords, fromArchive, recordsFor,
@@ -57,6 +57,8 @@ const dateLabel = (d) => {
 
 export default function GameReviewView({ open, onOpen, onBoard }) {
   const { state, dispatch } = useStore();
+  const settingsRef = useRef(state.settings);
+  settingsRef.current = state.settings;
   const frameRef = useRef(null);
   const wrapRef = useRef(null);
   const fileRef = useRef(null);
@@ -76,8 +78,11 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
   // or more; a phone opens it in the page — then whichever was used last on
   // this device. While it's on, Repertoire Lab's controls are in Chess
   // Arcade's corners: its ⌂ brings the bars back, and a Game Review button
-  // opens the menu below (modes, opening games).
+  // opens the menu below (modes, opening games). A game sent here (Send to
+  // Game Review, a CLAMP or Tactics moment, the bell) opens full screen, on
+  // any device, every time.
   const [full, setFull] = useState(() => {
+    if (open?.sent) return true;
     try {
       const kept = localStorage.getItem(FULL_KEY);
       if (kept === '1' || kept === '0') return kept === '1';
@@ -97,6 +102,8 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
     try { localStorage.setItem(FULL_KEY, on ? '1' : '0'); } catch { /* not kept: fine */ }
     setMenuOpen(false);
   };
+  const sentAt = open?.sent ?? null;
+  useEffect(() => { if (sentAt) setFull(true); }, [sentAt]);
 
   // What's open: one of the games in your sections, or a pasted one.
   const saved = open?.gameId ? findGame(state.players, open.playerId, open.gameId) : null;
@@ -193,6 +200,8 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
       if (d.type === 'tap') setMenuOpen(false);
       if (d.type === 'node') setPlies(Number(d.plies) || 0);
       if (d.type === 'save') saveRef.current();
+      // An arrow colour profile picked in the review: Repertoire Lab's setting too.
+      onArcadeArrows(d, dispatch, settingsRef.current);
       // Learn or Practice on a repertoire line (the review prep, Similar
       // openings): that line, here in Repertoire Lab.
       if (d.type === 'openChapter' && d.openingId && d.chapterId) {

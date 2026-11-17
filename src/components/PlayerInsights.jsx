@@ -18,11 +18,13 @@ import { insightGames } from '../lib/gameReviewBridge';
 import {
   basisFor, arcadeRepertoire, openingsGames, basisSummary,
 } from '../lib/openingsBasis';
-import { useArcadeLook } from '../lib/arcadeLook';
+import { useArcadeLook, onArcadeArrows } from '../lib/arcadeLook';
 import OpeningsBasisPicker from './OpeningsBasisPicker';
 
 export default function PlayerInsights({ player, view, onOpenGame }) {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
+  const settingsRef = useRef(state.settings);
+  settingsRef.current = state.settings;
   const frameRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [height, setHeight] = useState(900);
@@ -58,6 +60,7 @@ export default function PlayerInsights({ player, view, onOpenGame }) {
       }
       // A chapter in the Openings tab: there, in the Library; a line's Learn
       // or Practice: that line, in Learn or Practice.
+      onArcadeArrows(d, dispatch, settingsRef.current);
       if (d.type === 'openChapter' && d.openingId && d.chapterId) {
         window.dispatchEvent(new CustomEvent('repertoire-open-line', {
           detail: {

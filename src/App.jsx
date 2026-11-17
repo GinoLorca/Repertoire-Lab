@@ -621,11 +621,13 @@ function AppInner() {
   const analyzeInStudio = (line) => analyze(line, { studio: true });
 
   // "Send to Game Review" on a saved game: Chess Arcade's review of it, on
-  // the analysis screen's Game Review tab.
+  // the analysis screen's Game Review tab — full screen, every time (`sent`).
   const sendToReview = (line) => {
     if (!line?.gameId || !line?.playerId) return;
     go(() => {
-      setReviewOn({ playerId: line.playerId, gameId: line.gameId, ...(line.reviewOpts ? { opts: line.reviewOpts } : {}) });
+      setReviewOn({
+        playerId: line.playerId, gameId: line.gameId, sent: Date.now(), ...(line.reviewOpts ? { opts: line.reviewOpts } : {}),
+      });
       setSub('review');
       setView('analysis');
     });

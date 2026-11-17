@@ -12,7 +12,8 @@
 //   · a game's records go in and come back out — note, analysis, a Larry
 //     Review — and one taken away is gone
 //   · a game opens, and a note typed in its Notes card is saved and reported
-//   · Repertoire Lab's theme, dark and light, is the one it wears
+//   · Repertoire Lab's theme, dark and light, is the one it wears, and its
+//     arrow colour profile, set from here and told back when picked in there
 //   · a repertoire goes in, and CLAMP, Tactics and Openings each open
 //   · with it, the review shows its book moves above the engine's, and its
 //     Similar openings tab finds the line the game is in, named whose it is
@@ -159,6 +160,17 @@ try {
     await frame.evaluate((t) => window.__rlReview.look({ skin: 'felt', theme: t }), theme);
     ok(await frame.evaluate(() => document.documentElement.getAttribute('data-theme')) === theme, `it wears Repertoire Lab’s ${theme} theme`);
   }
+
+  // ---- Repertoire Lab's arrow colour profile, both ways ----
+  const took = await frame.evaluate(() => window.__rlReview.arrows?.('gamereview') === true
+    && document.documentElement.getAttribute('data-anno-prof') === 'on');
+  ok(took, 'it takes Repertoire Lab’s arrow colour profile (Game Review)');
+  await page.evaluate(() => { window.__msgs.length = 0; });
+  await frame.evaluate(() => document.querySelector('.anno-profile')?.click());
+  const told = await page.waitForFunction(() => window.__msgs.some((m) => m.type === 'arrowProfile' && m.id === 'default'), null, { timeout: 5000 })
+    .then(() => true, () => false);
+  ok(told, 'and tells Repertoire Lab when one is picked in it');
+  await frame.evaluate(() => window.__rlReview.arrows?.('default'));
 
   // ---- the corner buttons, flush ----
   const corners = await frame.evaluate(() => {

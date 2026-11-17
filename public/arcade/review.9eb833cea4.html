@@ -52948,6 +52948,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(!quiet){ clearTimeout(changeTimer); changeTimer = setTimeout(()=> tell('change', { gid: HV_STATE && HV_STATE.game ? String(HV_STATE.game.id) : null }), 250); }
       return ok;
     };
+    // The arrow colour profile is one setting with Repertoire Lab's (Settings, the "Arrows:" label): one picked in
+    // here (its label, its Settings) is told to Repertoire Lab, which keeps it and hands it back (arrows() below).
+    const setProfile = setAnnoProfile;
+    setAnnoProfile = function(){
+      const was = annoProfile();
+      const r = setProfile.apply(this, arguments);
+      if(!quiet && annoProfile()!==was) tell('arrowProfile', { id: annoProfile() });
+      return r;
+    };
     const textOf = (id)=> gnNoteText(id) || '';
     // The kinds of record Chess Arcade keeps for a game besides its note: '<kind>-<game>' (an, lr, …).
     const KIND = /^[a-z]{2,3}$/;
@@ -53117,6 +53126,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         else if(RP.label!==label || RP.whose!==whose){ RP.label = label; RP.whose = whose; rpFire('rep'); }
         return RP.openings.length;
       },
+      // Repertoire Lab's arrow colour profile ('default' | 'sequential' | 'strategic' | 'gamereview'): the marks
+      // on the boards in here follow it, as Repertoire Lab's own do. Whether it changed.
+      arrows(id){
+        if(typeof id!=='string' || id===annoProfile()) return false;
+        quiet++;
+        try{ setAnnoProfile(id); } finally { quiet--; }
+        return annoProfile()===id;
+      },
       // Repertoire Lab's theme, dark or light as it is there: { skin, theme:'dark'|'light', colors } (colors: Custom's
       // own, as Repertoire Lab paints them). Chess Arcade's theme picker is hidden here: the look is Repertoire Lab's.
       look(o){
@@ -53199,6 +53216,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         try{ void saveLookPrefs; }catch(e){ gone.push('saveLookPrefs'); }
         try{ void showView; }catch(e){ gone.push('showView'); }
         try{ void ttPractice; }catch(e){ gone.push('ttPractice'); }
+        try{ void setAnnoProfile; }catch(e){ gone.push('setAnnoProfile'); }
+        try{ void annoProfile; }catch(e){ gone.push('annoProfile'); }
         return gone.concat(["home-fab","view-history"].filter((id)=> !document.getElementById(id)).map((id)=> '#'+id));
       },
     };

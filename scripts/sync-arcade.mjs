@@ -74,7 +74,7 @@ const USES = [
   'ghoSetView', 'gnCleanG', 'gnFieldSave', 'gnIsAn', 'gnNoteText', 'gnPersist', 'gnRefreshFields',
   'gnSetNote', 'gnStatusText', 'gnStore', 'hvAnnRefresh', 'hvAnnSave', 'hvLineEnd', 'hvLrDraw',
   'hvNote', 'hvOnNode', 'hvOpen', 'hvRenderBoard', 'lookPrefs', 'rlDecode', 'rlEncode', 'rpFire',
-  'rpMake', 'rpQueue', 'saveLookPrefs', 'showView', 'ttPractice',
+  'rpMake', 'rpQueue', 'saveLookPrefs', 'showView', 'ttPractice', 'setAnnoProfile', 'annoProfile',
 ];
 // …and the parts of its page it reaches for.
 const USES_IDS = ['home-fab', 'view-history'];
@@ -179,6 +179,15 @@ const BRIDGE = String.raw`
       const ok = persist.apply(this, arguments);
       if(!quiet){ clearTimeout(changeTimer); changeTimer = setTimeout(()=> tell('change', { gid: HV_STATE && HV_STATE.game ? String(HV_STATE.game.id) : null }), 250); }
       return ok;
+    };
+    // The arrow colour profile is one setting with Repertoire Lab's (Settings, the "Arrows:" label): one picked in
+    // here (its label, its Settings) is told to Repertoire Lab, which keeps it and hands it back (arrows() below).
+    const setProfile = setAnnoProfile;
+    setAnnoProfile = function(){
+      const was = annoProfile();
+      const r = setProfile.apply(this, arguments);
+      if(!quiet && annoProfile()!==was) tell('arrowProfile', { id: annoProfile() });
+      return r;
     };
     const textOf = (id)=> gnNoteText(id) || '';
     // The kinds of record Chess Arcade keeps for a game besides its note: '<kind>-<game>' (an, lr, …).
@@ -348,6 +357,14 @@ const BRIDGE = String.raw`
         if(!RP || RP.h!==dec.h){ rpMake(dec, null); RP.label = label; RP.whose = whose; rpFire('rep'); try{ rpQueue(); }catch(e){} }
         else if(RP.label!==label || RP.whose!==whose){ RP.label = label; RP.whose = whose; rpFire('rep'); }
         return RP.openings.length;
+      },
+      // Repertoire Lab's arrow colour profile ('default' | 'sequential' | 'strategic' | 'gamereview'): the marks
+      // on the boards in here follow it, as Repertoire Lab's own do. Whether it changed.
+      arrows(id){
+        if(typeof id!=='string' || id===annoProfile()) return false;
+        quiet++;
+        try{ setAnnoProfile(id); } finally { quiet--; }
+        return annoProfile()===id;
       },
       // Repertoire Lab's theme, dark or light as it is there: { skin, theme:'dark'|'light', colors } (colors: Custom's
       // own, as Repertoire Lab paints them). Chess Arcade's theme picker is hidden here: the look is Repertoire Lab's.

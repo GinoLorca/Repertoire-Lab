@@ -16,8 +16,12 @@ import BoardArrows from '../components/BoardArrows';
 import ArrowProfileLabel from '../components/ArrowProfileLabel';
 import {
   profileOf, drawArrow as drawProfileArrow, drawSquare as drawProfileSquare, recolorAll, squareMarkStyle,
+  reviewPenColor, isReviewPenKey,
   colorOfNext,
 } from '../lib/arrowProfiles';
+import {
+  watchHeldKeys, heldKeys, markDrawn, onRelease,
+} from '../lib/penHold';
 import { useHoldToDraw } from '../components/useHoldToDraw';
 import CompareView from './CompareView';
 import GameEditor from '../components/GameEditor';
@@ -579,7 +583,7 @@ export default function AnalysisView({
         if (hideSuggestions || !showEngineArrows) settings({ hideSuggestions: false, engineArrows: true, [id]: true });
         else settings({ [id]: !arrowOn[i] });
       };
-      switch (keyMap[keyToken(e)]) {
+      const run = (action) => { switch (action) {
         case 'flipBoard': setOrientation((o) => (o === 'white' ? 'black' : 'white')); break;
         case 'toggleEngine': setEngineOn((v) => !v); break;
         case 'hideSuggestions': settings({ hideSuggestions: !hideSuggestions }); break;
@@ -597,13 +601,24 @@ export default function AnalysisView({
         case 'highlightYellow': pickAlternative(2); break;
         case 'backToMainLine': setHead(lastMainLineAncestor(tree, head)); break;
         default: break;
+      } };
+      const tok = keyToken(e);
+      const action = keyMap[tok];
+      if (!action) return;
+      // A shortcut on one of Game Review's pen letters (B, the eval bar; O,
+      // Engine / Explorer) waits for the key's release, and fires only when
+      // nothing was drawn while it was held (lib/penHold) — Chess Arcade's rule.
+      if (isReviewPenKey(profileOf(state.settings), tok)) {
+        if (!e.repeat) onRelease(tok, () => run(action));
+        return;
       }
+      run(action);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moves.length, ply, lineNodes, showEngineArrows, showEngineLines, showEvalBar, keyMap, head, tree,
-    variationHighlights, clickerMode, mode, hideSuggestions, arrowOn[0], arrowOn[1], arrowOn[2]]);
+    variationHighlights, clickerMode, mode, hideSuggestions, arrowOn[0], arrowOn[1], arrowOn[2], state.settings.arrowProfile]);
 
   // ---------- Repertoire awareness ----------
 
@@ -750,26 +765,12 @@ export default function AnalysisView({
     setAnnotations((all) => recolorAll(all, arrowProfile));
   }, [arrowProfile]);
 
-  // Which pen keys (see lib/shortcuts.js) are currently held down, checked
-  // at the end of a drag rather than a single keydown — so holding one
-  // colours just that one arrow without touching any persistent selection.
-  // Tracked independently of the action shortcuts below: pen keys are meant
-  // to be held through a drag, not fired once.
-  const heldKeysRef = useRef(new Set());
-  useEffect(() => {
-    const isTypingTarget = (e) => ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
-    const onKeyDown = (e) => { if (!isTypingTarget(e)) heldKeysRef.current.add(e.key.toLowerCase()); };
-    const onKeyUp = (e) => heldKeysRef.current.delete(e.key.toLowerCase());
-    const onBlur = () => heldKeysRef.current.clear(); // a held key surviving a tab-switch would get stuck "on"
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    window.addEventListener('blur', onBlur);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-      window.removeEventListener('blur', onBlur);
-    };
-  }, []);
+  // Which pen keys (see lib/shortcuts.js, and Game Review's letters in
+  // lib/arrowProfiles) are held down, checked at the end of a drag rather than
+  // a single keydown — so holding one colours just that one arrow without
+  // touching any persistent selection. Watched once for the whole app
+  // (lib/penHold), which also knows a letter drew, for the shortcuts below.
+  useEffect(watchHeldKeys, []);
 
   // The colour of the pen key held as a drag ends, or null for none — then
   // the arrow is the profile's colour, or the pen picked as the default
@@ -778,13 +779,18 @@ export default function AnalysisView({
   // a pure modifier chord like ⌥ or ⌃⌥ — those are read straight off the
   // release event's own altKey/ctrlKey/etc, which the browser already
   // tracks accurately, rather than through our own key-tracking.
+  // In the Game Review profile a colour's first letter comes first (R, O, Y,
+  // G, B, P, W), then the pens of Settings → Keyboard, as in Chess Arcade.
   const heldPenColor = (e) => {
+    markDrawn();
+    const review = reviewPenColor(arrowProfile, heldKeys());
+    if (review) return review;
     for (const pen of PENS) {
       const key = shortcutKey(state.settings, pen.shortcutId);
       if (!key) continue;
       if (isComboKey(key)) {
         if (e && comboMatchesEvent(key, e)) return pen.value;
-      } else if (heldKeysRef.current.has(key)) {
+      } else if (heldKeys().has(key)) {
         return pen.value;
       }
     }

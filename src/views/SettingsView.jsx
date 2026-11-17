@@ -9,7 +9,7 @@ import { processBackground } from '../lib/background';
 import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
 import { DEFAULT_SQUARE_LIGHT, DEFAULT_SQUARE_DARK } from '../components/Board';
 import {
-  PROFILES, PROFILE_ORDER, SEQUENCE, STRATEGIC, profileOf,
+  PROFILES, PROFILE_ORDER, SEQUENCE, STRATEGIC, REVIEW_PENS, profileOf,
 } from '../lib/arrowProfiles';
 import {
   PENS, SHORTCUTS, shortcutKey, formatShortcutKey, isPenShortcut, modifierToken, MODIFIER_ORDER,
@@ -666,6 +666,7 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
                 {id === 'default' && 'Your pen colour'}
                 {id === 'sequential' && <>{SEQUENCE.slice(0, 5).map((c) => <span key={c} className="pen-dot" style={{ background: c }} />)}… in order</>}
                 {id === 'strategic' && <>{[STRATEGIC.w, STRATEGIC.b, STRATEGIC.wx, STRATEGIC.bx].map((c) => <span key={c} className="pen-dot" style={{ background: c }} />)} by side</>}
+                {id === 'gamereview' && <>{REVIEW_PENS.map((p) => <span key={p.key} className="pen-dot" style={{ background: p.color }} />)} by letter</>}
               </span>
             </button>
           ))}
@@ -689,7 +690,20 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
               arrow before it.
             </>
           )}
-          {arrowProfile !== 'default' && ' Hold a pen key to pick a colour yourself.'}
+          {arrowProfile === 'gamereview' && (
+            <>
+              Chess Arcade’s Game Review pens: hold a colour’s first letter while you draw —{' '}
+              {REVIEW_PENS.map((p, i) => (
+                <React.Fragment key={p.key}>
+                  {i > 0 && ', '}
+                  <strong>{p.key.toUpperCase()}</strong> <span className="pen-dot" style={{ background: p.color }} /> {p.name}
+                </React.Fragment>
+              ))}
+              . No letter: your pen colour; Z, R, F and C (or the keys you gave them) still work. A letter that’s also a
+              shortcut (B, O on the analysis board) does its shortcut when you tap it without drawing.
+            </>
+          )}
+          {(arrowProfile === 'sequential' || arrowProfile === 'strategic') && ' Hold a pen key to pick a colour yourself.'}
           {' '}The colours you see are the ones saved, so a student opening your review sees them too. Tap
           {' '}“Arrows” under the analysis board to switch there.
         </p>

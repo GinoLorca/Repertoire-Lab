@@ -1,12 +1,12 @@
 import React from 'react';
 import { useStore } from '../store';
 import {
-  PROFILES, PROFILE_ORDER, SEQUENCE, SEQUENCE_NAMES, STRATEGIC, nextProfile, profileOf,
+  PROFILES, PROFILE_ORDER, SEQUENCE, SEQUENCE_NAMES, STRATEGIC, REVIEW_PENS, nextProfile, profileOf,
 } from '../lib/arrowProfiles';
 
 // "· Arrows: Sequential ●●●●…" at the end of a board's drawing hint: which
 // arrow colour profile is on (lib/arrowProfiles.js), and a tap goes to the
-// next one — as in Chess Arcade. All three texts sit stacked in one cell with
+// next one — as in Chess Arcade. All four texts sit stacked in one cell with
 // only the active one showing, so the label is always as wide as the widest
 // and switching never re-wraps the line under your finger.
 
@@ -24,8 +24,14 @@ function Text({ id }) {
       </>
     );
   }
+  if (id === 'gamereview') {
+    return <>{head} {REVIEW_PENS.map((p) => <Dot key={p.key} color={p.color} />)}</>;
+  }
   return head;
 }
+
+// "R red, O orange, … W white": Game Review's letters, said.
+export const reviewLetters = () => REVIEW_PENS.map((p) => `${p.key.toUpperCase()} ${p.name}`).join(', ');
 
 export const profileTitle = (id) => {
   if (id === 'sequential') {
@@ -33,6 +39,9 @@ export const profileTitle = (id) => {
   }
   if (id === 'strategic') {
     return 'Arrow colours follow the side: White green, Black blue; a White capture red, a Black capture yellow. A highlight takes the colour of the arrow before it.';
+  }
+  if (id === 'gamereview') {
+    return `Hold a colour’s first letter while you draw: ${reviewLetters()}. No letter: your pen colour.`;
   }
   return 'Arrows use your pen colour.';
 };

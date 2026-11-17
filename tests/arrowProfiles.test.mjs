@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   SEQUENCE, STRATEGIC, profileOf, nextProfile, drawArrow, drawSquare, recolorAll, resolveColors, colorOfNext,
-  colorForPlain, squareMarkStyle, snapshotOf,
+  colorForPlain, squareMarkStyle, snapshotOf, REVIEW_PENS, reviewPens, reviewPenColor, isReviewPenKey, PROFILES,
 } from '../src/lib/arrowProfiles.js';
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -18,11 +18,34 @@ const draw = (profile, fen, steps, start = null) => steps.reduce((m, s) => {
 }, start);
 const colours = (m) => m.arrows.map((a) => `${a[0]}${a[1]}:${a[2]}`);
 
-test('the setting: three profiles, anything else is Default, and a click goes round', () => {
+test('the setting: four profiles, anything else is Default, and a click goes round', () => {
   assert.equal(profileOf({ arrowProfile: 'strategic' }), 'strategic');
-  assert.equal(profileOf({ arrowProfile: 'fourth' }), 'default');
+  assert.equal(profileOf({ arrowProfile: 'gamereview' }), 'gamereview');
+  assert.equal(profileOf({ arrowProfile: 'fifth' }), 'default');
   assert.equal(profileOf({}), 'default');
-  assert.deepEqual(['default', 'sequential', 'strategic'].map(nextProfile), ['sequential', 'strategic', 'default']);
+  assert.deepEqual(['default', 'sequential', 'strategic', 'gamereview'].map(nextProfile), ['sequential', 'strategic', 'gamereview', 'default']);
+  assert.equal(PROFILES.gamereview.label, 'Game Review');
+});
+
+test('Game Review: Chess Arcade’s pen letters, held while drawing; only in that profile', () => {
+  assert.deepEqual(REVIEW_PENS.map((p) => `${p.key}:${p.name}:${p.color}`), [
+    'r:red:#e5534b', 'o:orange:#f97316', 'y:yellow:#e8b339', 'g:green:#2ecc71', 'b:blue:#3b9cff', 'p:purple:#8b5cf6', 'w:white:#ffffff',
+  ]);
+  assert.equal(reviewPenColor('gamereview', new Set(['o'])), '#f97316');
+  assert.equal(reviewPenColor('gamereview', new Set(['shift', 'p'])), '#8b5cf6');
+  assert.equal(reviewPenColor('gamereview', new Set(['z'])), null, 'Default’s own pens are the board’s to read');
+  for (const profile of ['default', 'sequential', 'strategic']) {
+    assert.deepEqual(reviewPens(profile), []);
+    assert.equal(reviewPenColor(profile, new Set(['o', 'g'])), null);
+    assert.equal(isReviewPenKey(profile, 'b'), false);
+  }
+  assert.ok(['r', 'o', 'y', 'g', 'b', 'p', 'w', 'B'].every((k) => isReviewPenKey('gamereview', k)));
+  assert.equal(isReviewPenKey('gamereview', 'e'), false);
+  // nothing worked out for you: a mark is the pen's colour, or the letter held, as in Default
+  const m = draw('gamereview', START, [{ a: 'e2e4' }, { a: 'd2d4', held: '#8b5cf6' }, { sq: 'f7' }]);
+  assert.deepEqual(colours(m), [`e2e4:${GREEN}`, 'd2d4:#8b5cf6']);
+  assert.equal(m.squares.f7, GREEN);
+  assert.deepEqual(squareMarkStyle(BLUE, 'gamereview'), squareMarkStyle(BLUE, 'default'));
 });
 
 test('the position, read from a FEN', () => {

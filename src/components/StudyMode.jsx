@@ -8,6 +8,8 @@ import {
   BookIcon, NextIcon, PrevIcon, SkipStartIcon,
 } from './Icons';
 import { useStore } from '../store';
+import { profileOf, isReviewPenKey } from '../lib/arrowProfiles';
+import { onRelease } from '../lib/penHold';
 import { NOTE_HIGHLIGHT_STYLE } from '../lib/legalMoves';
 import {
   fenAfter, lastMoveAfter, marksAt, noteParts, resolveNote, studySegments,
@@ -34,6 +36,8 @@ export function useStudy({
 }) {
   // A line set up from a position is read, numbered and played from there.
   const lineKey = `${key}|${startFen}`;
+  const { state: store } = useStore();
+  const penB = isReviewPenKey(profileOf(store.settings), 'b');
   const [ply, setPly] = useState(startPly);
   // A line mentioned in a note, played out: { base, path, at, label, refId }.
   const [side, setSide] = useState(null);
@@ -98,12 +102,17 @@ export function useStudy({
       else if (e.key === 'ArrowUp' && onPrevVariation) { e.preventDefault(); onPrevVariation(); }
       else if (e.key === 'ArrowDown' && onNextVariation) { e.preventDefault(); onNextVariation(); }
       else if (e.key === 'Escape') { e.preventDefault(); if (side) setSide(null); else onClose(); }
-      // B opened it; B closes it.
-      else if (e.key === 'b' || e.key === 'B') { e.preventDefault(); onClose(); }
+      // B opened it; B closes it — in the Game Review arrow profile, where B
+      // is also the blue pen, on its release when nothing was drawn (lib/penHold).
+      else if (e.key === 'b' || e.key === 'B') {
+        e.preventDefault();
+        if (!penB) onClose();
+        else if (!e.repeat) onRelease('b', onClose);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [active, step, toEnd, side, onClose, onPrevVariation, onNextVariation]);
+  }, [active, step, toEnd, side, onClose, onPrevVariation, onNextVariation, penB]);
 
   return {
     moves,

@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Chess } from 'chess.js';
 import Board from '../components/Board';
 import { useStore } from '../store';
+import { profileOf, isReviewPenKey } from '../lib/arrowProfiles';
+import { onRelease } from '../lib/penHold';
 import {
   schedule, isDue, dueCount, unlearnedCount, practicedCount, dueLabel,
 } from '../lib/srs';
@@ -1022,12 +1024,17 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
       else if (e.key === 'f' || e.key === 'F') setFlipped((f) => !f);
       else if (e.key === 'k' || e.key === 'K') settings({ checkHighlight: state.settings.checkHighlight === false });
       else if (e.key === 'h' || e.key === 'H') setHintLevel((h) => Math.min(h + 1, 2));
-      else if (e.key === 'b' || e.key === 'B') setBookOpen((o) => !o);
+      // In the Game Review arrow profile B is also the blue pen: the book
+      // opens on its release, and only when nothing was drawn (lib/penHold).
+      else if (e.key === 'b' || e.key === 'B') {
+        if (!isReviewPenKey(profileOf(state.settings), 'b')) setBookOpen((o) => !o);
+        else if (!e.repeat) onRelease('b', () => setBookOpen((o) => !o));
+      }
       else if (e.key === 'l' || e.key === 'L') settings({ practiceList: state.settings.practiceList === false });
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [current, qi, queue?.length, bookOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [current, qi, queue?.length, bookOpen, state.settings.arrowProfile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Run the flight with the Web Animations API so the ghost is removed exactly
   // when it lands — never part way — with a timer only as a safety net.

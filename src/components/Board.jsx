@@ -16,8 +16,9 @@ import {
 } from '../lib/shortcuts';
 import { skinId } from '../lib/skins';
 import {
-  profileOf, drawArrow, drawSquare, applyColors, colorOfNext, squareMarkStyle,
+  profileOf, drawArrow, drawSquare, applyColors, colorOfNext, squareMarkStyle, reviewPenColor,
 } from '../lib/arrowProfiles';
+import { watchHeldKeys, heldKeys, markDrawn } from '../lib/penHold';
 
 export const DEFAULT_SQUARE_LIGHT = '#c6d3e1';
 export const DEFAULT_SQUARE_DARK = '#4a6a8f';
@@ -52,29 +53,19 @@ const dndProps = isTouchCapable
   : {};
 
 // The pen keys held right now (lib/shortcuts — the analysis board's keys,
-// Settings → Shortcuts), watched once for every board on the page: hold one
-// while right-dragging and the arrow, or the highlight, is in that colour.
-const heldKeys = new Set();
-let watchingKeys = false;
-function watchPenKeys() {
-  if (watchingKeys || typeof window === 'undefined') return;
-  watchingKeys = true;
-  const typing = (e) => ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName);
-  // An autofill's keydown can come with no key at all.
-  const name = (e) => String(e.key ?? '').toLowerCase();
-  window.addEventListener('keydown', (e) => { if (!typing(e)) heldKeys.add(name(e)); });
-  window.addEventListener('keyup', (e) => heldKeys.delete(name(e)));
-  // A key let go in another app would otherwise stay "held".
-  window.addEventListener('blur', () => heldKeys.clear());
-}
-
-// The colour of the pen whose key is held as `e` happens — a letter held
-// down, or a modifier chord read off the event itself — or null for none.
+// Settings → Shortcuts — and, in the Game Review arrow profile, a colour's
+// first letter: lib/arrowProfiles), watched once for every board on the page
+// (lib/penHold): hold one while right-dragging and the arrow, or the
+// highlight, is in that colour. Reading it means a mark is being drawn, so the
+// letters held are marked as having drawn (a shortcut on one then doesn't fire).
 function heldPen(settings, e) {
+  markDrawn();
+  const review = reviewPenColor(profileOf(settings), heldKeys());
+  if (review) return review;
   for (const pen of PENS) {
     const key = shortcutKey(settings, pen.shortcutId);
     if (!key) continue;
-    if (isComboKey(key) ? (e && comboMatchesEvent(key, e)) : heldKeys.has(key)) return pen.value;
+    if (isComboKey(key) ? (e && comboMatchesEvent(key, e)) : heldKeys().has(key)) return pen.value;
   }
   return null;
 }
@@ -352,7 +343,7 @@ function DrawableBoard({
   // draws nothing.
   const tapRef = useRef(null);
   const editing = Boolean(marks?.onArrow);
-  useEffect(watchPenKeys, []);
+  useEffect(watchHeldKeys, []);
   const restPen = editing ? (marks.pen ?? defaultPen(settings).value) : defaultPen(settings).value;
   const optsFor = (e) => ({
     held: heldPen(settings, e), pen: restPen, profile, fen: fenOf(position),

@@ -7,6 +7,9 @@
 //   strategic   by side and captures: White green, Black blue, a White
 //               capture red, a Black capture yellow — following the line you
 //               draw arrow by arrow on an imagined copy of the position
+//   gamereview  Default with more pen keys (Chess Arcade's, for its Game
+//               Review): hold a colour's first letter while you draw —
+//               REVIEW_PENS below. Nothing is worked out for you.
 //
 // In both, a highlight takes the colour of the arrow drawn before it (with
 // none yet: Sequential's green, or Strategic's colour for the side to move).
@@ -38,8 +41,33 @@ export const PROFILES = {
   default: { label: 'Default' },
   sequential: { label: 'Sequential' },
   strategic: { label: 'Strategic' },
+  gamereview: { label: 'Game Review' },
 };
-export const PROFILE_ORDER = ['default', 'sequential', 'strategic'];
+export const PROFILE_ORDER = ['default', 'sequential', 'strategic', 'gamereview'];
+
+// Game Review's pen keys: a colour's first letter, held while you draw (the
+// white is see-through, as every arrow is). The pens of Settings → Keyboard
+// (Z, R, F, C unless changed) still work after these. Chess Arcade's own.
+export const REVIEW_PENS = [
+  { key: 'r', color: '#e5534b', name: 'red' },
+  { key: 'o', color: '#f97316', name: 'orange' },
+  { key: 'y', color: '#e8b339', name: 'yellow' },
+  { key: 'g', color: '#2ecc71', name: 'green' },
+  { key: 'b', color: '#3b9cff', name: 'blue' },
+  { key: 'p', color: '#8b5cf6', name: 'purple' },
+  { key: 'w', color: '#ffffff', name: 'white' },
+];
+// The profile's own pen keys — none outside Game Review.
+export const reviewPens = (profile) => (profile === 'gamereview' ? REVIEW_PENS : []);
+// The colour of the Game Review pen whose letter is held (`held`: the keys
+// down, lowercased), or null.
+export function reviewPenColor(profile, held) {
+  for (const p of reviewPens(profile)) if (held?.has(p.key)) return p.color;
+  return null;
+}
+// Whether a key is one of the profile's pen letters — a shortcut on it waits
+// for its release, and fires only when nothing was drawn while it was held.
+export const isReviewPenKey = (profile, key) => reviewPens(profile).some((p) => p.key === String(key ?? '').toLowerCase());
 
 export const profileOf = (settings) => (PROFILE_ORDER.includes(settings?.arrowProfile) ? settings.arrowProfile : 'default');
 export const nextProfile = (id) => PROFILE_ORDER[(PROFILE_ORDER.indexOf(id) + 1) % PROFILE_ORDER.length];

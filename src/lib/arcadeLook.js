@@ -13,9 +13,12 @@
 // Custom, in these colours, rather than in its own default green.
 //
 // Every component that shows Chess Arcade calls useArcadeLook once it's ready.
+// It hands over the arrow colour profile as well (Settings, the "Arrows:"
+// label): one setting for the boards of both.
 import { useEffect } from 'react';
 import { useStore } from '../store';
 import { boardColors } from './theme';
+import { profileOf } from './arrowProfiles';
 
 // A piece ink a theme gives as var(--x, #colour) (Uptown, Court Cards) goes
 // across as the plain colour after the comma: the frame can't see --x.
@@ -54,4 +57,20 @@ export function useArcadeLook(api, ready) {
     watch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-skin', 'data-theme', 'style'] });
     return () => watch.disconnect();
   }, [ready, state.settings]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The arrow colour profile too: one setting for both apps' boards. One
+  // picked inside the frame comes back as its 'arrowProfile' message
+  // (onArcadeArrows), and is kept here.
+  const arrows = profileOf(state.settings);
+  useEffect(() => {
+    if (!ready) return;
+    try { api()?.arrows?.(arrows); } catch { /* frame gone */ }
+  }, [ready, arrows]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+// A frame's message that an arrow colour profile was picked inside it: kept as
+// Repertoire Lab's own setting (and so handed back to every frame).
+export function onArcadeArrows(d, dispatch, settings) {
+  if (d?.type !== 'arrowProfile' || typeof d.id !== 'string') return;
+  const id = profileOf({ arrowProfile: d.id });
+  if (id !== profileOf(settings)) dispatch({ type: 'setSettings', settings: { arrowProfile: id } });
 }
