@@ -6,6 +6,7 @@ import { useStore } from '../store';
 import { checkedKingSquare, CHECK_STYLE, LAST_MOVE_STYLE } from '../lib/legalMoves';
 import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
 import { boardBadgeStyle } from '../lib/badges';
+import { suitSquareStyles } from '../lib/suitMarks';
 import { boardColors } from '../lib/theme';
 import BoardArrows, { cell } from './BoardArrows';
 import { TelestratorLayer } from './Telestrator';
@@ -164,7 +165,7 @@ const NOTATION_STYLE = {
 // change to our renderer could reach it. It's off from here on, so arrows come
 // from one place.
 export default function Board({
-  position, customSquareStyles, lastMove, badge, ownArrows = true, marks = null, telestrator = true, ...rest
+  position, customSquareStyles, lastMove, badge, suitPick = null, ownArrows = true, marks = null, telestrator = true, ...rest
 }) {
   const { state } = useStore();
   // What's right-clicked onto this board (see DrawableBoard): its arrows and
@@ -218,10 +219,14 @@ export default function Board({
     // picked-square highlight) — not against `out`, which by this point
     // already has the plain last-move wash folded in and would make the
     // badge look like it's losing to a decoration it's meant to replace.
+    let badged = null;
     if (markBadge && badge && lastMove?.to) {
       const badgeStyle = boardBadgeStyle(badge);
       const callerStyle = customSquareStyles?.[lastMove.to];
-      if (badgeStyle) out = { ...out, [lastMove.to]: { ...badgeStyle, ...(callerStyle ?? {}) } };
+      if (badgeStyle) {
+        out = { ...out, [lastMove.to]: { ...badgeStyle, ...(callerStyle ?? {}) } };
+        badged = lastMove.to;
+      }
     }
 
     if (markCheck && typeof position === 'string') {
@@ -235,8 +240,22 @@ export default function Board({
     for (const [sq, color] of Object.entries(drawing.squares)) {
       out = { ...out, [sq]: highlightStyle(out?.[sq], color, profile) };
     }
+
+    // Court Cards' suit marks for a pick (lib/suitMarks.js): custom properties
+    // on the picked square and its capture squares, added to whatever those
+    // squares already wear (a last move's gilt edge, a check, a badge), so a
+    // pick restyles those squares alone. Only Court Cards hands one in.
+    if (suitPick) {
+      const marked = suitSquareStyles(suitPick, {
+        orientation: rest.boardOrientation === 'black' ? 'black' : 'white',
+        notation: rest.showBoardNotation !== false,
+        badge: badged,
+      });
+      for (const [sq, add] of Object.entries(marked)) out = { ...out, [sq]: { ...(out?.[sq] ?? {}), ...add } };
+    }
     return out;
-  }, [markCheck, markLast, markBadge, lastMove?.from, lastMove?.to, badge, position, customSquareStyles, drawing.squares, profile]);
+  }, [markCheck, markLast, markBadge, lastMove?.from, lastMove?.to, badge, position, customSquareStyles, drawing.squares, profile,
+    suitPick, rest.boardOrientation, rest.showBoardNotation]);
 
   const sized = typeof rest.boardWidth === 'number';
   const orientation = rest.boardOrientation === 'black' ? 'black' : 'white';

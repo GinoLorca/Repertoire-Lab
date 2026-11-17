@@ -3,6 +3,9 @@ import { Chess } from 'chess.js';
 import Board from './Board';
 import { lineFens } from '../lib/pgn';
 import { lastMoveOf, PICKED_STYLE } from '../lib/legalMoves';
+import { suitPick } from '../lib/suitMarks';
+import { skinId } from '../lib/skins';
+import { useStore } from '../store';
 import { useBackGuard } from '../lib/backGuard';
 import {
   mergeVariations, moveNumberAt, isWhiteAt, runToNextBranch, treeMove, treeTargets, startGroups,
@@ -80,6 +83,15 @@ export default function TreeBrowser({
     }
     return out;
   }, [picked, fen, node]);
+  // Court Cards marks the pick with its piece's suit (lib/suitMarks.js): the
+  // frame and the suit on its square. Its targets here are the chapter's
+  // moves, marked in green, so no pips or corners. Other themes: nothing.
+  const { state } = useStore();
+  const suitedSkin = skinId(state.settings) === 'cards';
+  const cardsPick = useMemo(
+    () => (suitedSkin && picked ? suitPick(new Chess(fen), picked, { captures: false }) : null),
+    [suitedSkin, picked, fen],
+  );
 
   // Down a forced run in one go: everything up to the next real decision.
   const skipAhead = () => {
@@ -132,6 +144,7 @@ export default function TreeBrowser({
             onPromotionCheck={() => false}
             onSquareClick={onSquareClick}
             customSquareStyles={squareStyles}
+            suitPick={cardsPick}
             boardWidth={boardWidth}
           />
           <div className="viewer-controls" style={{ marginTop: 12 }}>

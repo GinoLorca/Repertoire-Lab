@@ -1,12 +1,18 @@
 import React from 'react';
 import { squareCell } from '../lib/legalMoves';
+import { quietPip, suitOf } from '../lib/suitMarks';
 
 // Where a picked piece can go, drawn as an overlay *above* the arrows.
 //
 // These used to be square backgrounds, which put them underneath any arrow on
 // the board: the dot showed through the shaft as a second, offset circle. On
 // top, a dot is always one crisp dot.
-export default function LegalDots({ game, square, boardWidth, orientation }) {
+//
+// Court Cards hands in its pick (`suitPick`, lib/suitMarks.js) and gets the
+// moving piece's suit instead: a pip on each quiet move, here; a capture's
+// corner pips are on the square itself, under the piece (Board). Without it,
+// every other theme, the dots and rings are exactly as they always were.
+export default function LegalDots({ game, square, boardWidth, orientation, suitPick = null }) {
   if (!game || !square || !boardWidth) return null;
   let moves = [];
   try { moves = game.moves({ square, verbose: true }); } catch { return null; }
@@ -16,6 +22,33 @@ export default function LegalDots({ game, square, boardWidth, orientation }) {
   moves = [...new Map(moves.map((mv) => [mv.to, mv])).values()];
 
   const size = boardWidth / 8;
+  const suit = suitOf(suitPick?.code);
+  if (suit) {
+    const quiet = moves.filter((mv) => !mv.captured);
+    if (quiet.length === 0) return null;
+    return (
+      <svg
+        className="legal-dots suited"
+        width={boardWidth}
+        height={boardWidth}
+        viewBox={`0 0 ${boardWidth} ${boardWidth}`}
+        style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 11 }}
+      >
+        <g className={`ld-pips ${suitPick.code[0]}`}>
+          {quiet.map((mv) => {
+            const c = squareCell(mv.to, orientation);
+            const pip = quietPip(suit, size, (c.x + 0.5) * size, (c.y + 0.5) * size);
+            return (
+              <g key={mv.to} transform={pip.transform}>
+                <path className="ld-halo" d={pip.d} strokeWidth={pip.halo} />
+                <path className={pip.star ? 'ld-ink star' : 'ld-ink'} d={pip.d} />
+              </g>
+            );
+          })}
+        </g>
+      </svg>
+    );
+  }
   return (
     <svg
       width={boardWidth}

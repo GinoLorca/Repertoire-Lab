@@ -16,6 +16,8 @@ import MoveTimer from '../components/MoveTimer';
 import LegalDots from '../components/LegalDots';
 import PromotionPicker from '../components/PromotionPicker';
 import { lastMoveOf, NOTE_HIGHLIGHT_STYLE, PICKED_STYLE } from '../lib/legalMoves';
+import { suitPick } from '../lib/suitMarks';
+import { skinId } from '../lib/skins';
 import { badgeAt } from '../lib/badges';
 import BoardArrows from '../components/BoardArrows';
 import { marksAt } from '../lib/studyText';
@@ -658,6 +660,16 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
     if (!reviewing) return null;
     return replay(moves.slice(0, reviewPly), startFenOf(current.variation)).game.fen();
   }, [reviewing, reviewPly, current]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Court Cards marks a pick with its piece's suit (lib/suitMarks.js), while
+  // the pick shows (not while looking back or after a wrong move). Worked out
+  // in that theme only; every other theme draws what it always has.
+  const suitedSkin = skinId(state.settings) === 'cards';
+  const pickShown = !reviewing && !wrongMove ? pickedSquare : null;
+  const cardsPick = useMemo(
+    () => (suitedSkin ? suitPick(game, pickShown, { captures: showLegal }) : null),
+    [suitedSkin, game, pickShown, showLegal],
+  );
 
   // Arm the move clock only while the board is genuinely waiting on you: not
   // while the trainer is replying, not while a wrong move is flying home, and
@@ -1535,6 +1547,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             // that could ever generate a badge here. What a coach pre-edited
             // is what shows; recall itself is never auto-graded.
             badge={badgeAt(current.variation.badges, ply - 1)?.id}
+            suitPick={cardsPick}
             animationDuration={pace.anim}
             boardWidth={boardWidth}
           />
@@ -1562,6 +1575,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
               square={pickedSquare}
               boardWidth={boardWidth}
               orientation={orientation}
+              suitPick={cardsPick}
             />
           )}
           {wrongMove && (

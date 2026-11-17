@@ -39,6 +39,8 @@ import PromotionPicker from '../components/PromotionPicker';
 import BoardEditor from '../components/BoardEditor';
 import GameFlagPicker from '../components/GameFlagPicker';
 import { lastMoveOf, NOTE_HIGHLIGHT_STYLE, PICKED_STYLE } from '../lib/legalMoves';
+import { suitPick } from '../lib/suitMarks';
+import { skinId } from '../lib/skins';
 import { useBackGuard } from '../lib/backGuard';
 import { parseStudyUrl, fetchStudyPgn } from '../lib/lichess';
 import { pgnTextToEntries } from '../lib/pgnImport';
@@ -1320,6 +1322,15 @@ export default function AnalysisView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engineOn, showEngineArrows, hideSuggestions, engineLines, position, arrowOn[0], arrowOn[1], arrowOn[2]]);
 
+  // Court Cards marks a pick with its piece's suit (lib/suitMarks.js): the
+  // picked square, the pips on its moves, the corners on its captures. Worked
+  // out in that theme only; every other theme draws what it always has.
+  const suitedSkin = skinId(state.settings) === 'cards';
+  const cardsPick = useMemo(
+    () => (suitedSkin ? suitPick(position, picked, { captures: showLegal }) : null),
+    [suitedSkin, position, picked, showLegal],
+  );
+
   // Highlighted squares are drawn as translucent overlays; a picked piece also
   // shows every square it can legally reach.
   const squareStyles = useMemo(() => {
@@ -2039,6 +2050,7 @@ export default function AnalysisView({
       customSquareStyles={squareStyles}
       lastMove={lastMove}
       badge={moveBadges[head]}
+      suitPick={cardsPick}
       boardOrientation={orientation}
       boardWidth={boardWidth}
     />
@@ -2073,6 +2085,7 @@ export default function AnalysisView({
         square={picked}
         boardWidth={boardWidth}
         orientation={orientation}
+        suitPick={cardsPick}
       />
     )}
     </div>
