@@ -2,9 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../store';
 import MoveText from '../components/MoveText';
 import ThemeLines from '../components/ThemeLines';
+import CopyCollection from '../components/CopyCollection';
 import { isDue, dueCount, unlearnedCount } from '../lib/srs';
 import {
-  StarIcon, TagIcon, ClockIcon, PencilIcon, PlayIcon, CapIcon, FlaskIcon,
+  StarIcon, TagIcon, ClockIcon, PencilIcon, PlayIcon, CapIcon, FlaskIcon, SendIcon,
 } from '../components/Icons';
 
 // Every variation, with the tags and stars it inherits from its chapter and
@@ -223,6 +224,8 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
   const [fading, setFading] = useState({});
   // The collection picker: { tag } to add to one, {} for a new one.
   const [theming, setTheming] = useState(null);
+  // A collection being copied to another repertoire (components/CopyCollection).
+  const [copying, setCopying] = useState(null);
   const labEntries = state.labEntries ?? [];
 
   // 'me' or a student's player id — same split as the Library, so a
@@ -461,6 +464,15 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
             >
               + Add lines
             </button>
+            <button
+              className="small ghost"
+              title={scopedStudent
+                ? `Copy “${tag}” to your own collections, or another student's`
+                : `Copy “${tag}” to a student's collections`}
+              onClick={() => setCopying({ tag })}
+            >
+              <SendIcon size={14} /> Copy to…
+            </button>
           </div>
 
           <SubList label="Openings" count={openings.length}>
@@ -584,6 +596,15 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
           ownerName={scopedStudent?.name}
           initialTag={theming.tag ?? ''}
           onClose={() => setTheming(null)}
+        />
+      )}
+
+      {copying && (
+        <CopyCollection
+          tag={copying.tag}
+          from={scope === 'me' ? null : scope}
+          onClose={() => setCopying(null)}
+          onShowScope={(to) => { setScope(to); setOpenKeys((k) => ({ ...k, [copying.tag]: true })); }}
         />
       )}
 

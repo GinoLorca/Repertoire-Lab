@@ -23,13 +23,24 @@ function mergeById(localArr, incomingArr, mergeItem) {
 // reviewed the line more recently (a fresher review is a better estimate of
 // where you're really at than an older one, even if its level is lower after
 // a lapse).
-function mergeVariation(a, b) {
+//
+// Themes are the exception for what a coach sends ('incoming'): a student
+// keeps the ones they put on a line themselves, and gains the coach's — a
+// collection the coach copied to them (lib/collectionCopy) arrives as a
+// theme on lines they may have themed already.
+function mergeVariation(a, b, structure = 'local') {
   if (!a) return b;
   if (!b) return a;
   const learned = !!(a.learned || b.learned);
   let srs = a.srs ?? b.srs ?? null;
   if (a.srs && b.srs) srs = (b.srs.lastReview ?? 0) > (a.srs.lastReview ?? 0) ? b.srs : a.srs;
-  return { ...a, ...b, learned, srs };
+  return withBothThemes({ ...a, ...b, learned, srs }, a, b, structure);
+}
+
+// The student's themes and the coach's, once each, the student's first.
+function withBothThemes(merged, a, b, structure) {
+  if (structure !== 'incoming' || !(a.tags?.length)) return merged;
+  return { ...merged, tags: [...new Set([...(a.tags ?? []), ...(b.tags ?? [])])] };
 }
 
 // `structure` says whose arrangement of chapters wins where the two differ:
@@ -38,7 +49,10 @@ function mergeVariation(a, b) {
 function mergeChapter(a, b, structure = 'local') {
   if (!a) return b;
   if (!b) return a;
-  const merged = { ...a, ...b, variations: mergeById(a.variations, b.variations, mergeVariation) };
+  const merged = withBothThemes(
+    { ...a, ...b, variations: mergeById(a.variations, b.variations, (x, y) => mergeVariation(x, y, structure)) },
+    a, b, structure,
+  );
   // Restoring an older file mustn't take a chapter out of the folder it has
   // been filed in since (a sub-variation, or the chapter a folder is of).
   if (structure === 'local') {
@@ -51,11 +65,11 @@ function mergeChapter(a, b, structure = 'local') {
 function mergeOpening(a, b, structure = 'local') {
   if (!a) return b;
   if (!b) return a;
-  const merged = {
+  const merged = withBothThemes({
     ...a,
     ...b,
     chapters: mergeById(a.chapters, b.chapters, (x, y) => mergeChapter(x, y, structure)),
-  };
+  }, a, b, structure);
   // "Arranged by hand" (lib/chapterOrder.js) describes an order, so it only
   // travels with it: a coach's arranged opening arrives in the coach's order;
   // a restored file keeps this device's order, and so its own setting.
@@ -144,7 +158,7 @@ function oneHomePerLine(merged, local, incoming, structure) {
     // whichever is furthest along.
     const localCopy = local.chapters.flatMap((c) => c.variations).find((v) => v.id === id) ?? copies[0];
     const incomingCopy = incoming.chapters.flatMap((c) => c.variations).find((v) => v.id === id) ?? copies[1];
-    keep.set(id, { chapterId: home, line: mergeVariation(localCopy, incomingCopy) });
+    keep.set(id, { chapterId: home, line: mergeVariation(localCopy, incomingCopy, structure) });
   }
   return {
     ...merged,

@@ -51,6 +51,7 @@ import { sendToChapter } from '../src/lib/chapterTransfer.js';
 import { kidArtwork, kidArtForStudents, isKidArt } from '../src/lib/kidArtwork.js';
 import { cleanGameReview, sameGameReview } from '../src/lib/analysisDoc.js';
 import { curateInto, reorganise } from '../src/lib/curate.js';
+import { collectionPlan } from '../src/lib/collectionCopy.js';
 
 // ---------------------------------------------------------------------------
 // The app's own reducer and emptyState, straight from src/store.jsx.
@@ -73,9 +74,9 @@ const { reducer, emptyState } = (() => {
     'return { reducer, emptyState };',
   ].join('\n');
   // eslint-disable-next-line no-new-func
-  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', 'canonicalStartFen', 'fen4', 'sendToChapter', 'kidArtwork', 'kidArtForStudents', 'isKidArt', 'cleanGameReview', 'sameGameReview', 'curateInto', 'reorganise', body)(
+  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', 'canonicalStartFen', 'fen4', 'sendToChapter', 'kidArtwork', 'kidArtForStudents', 'isKidArt', 'cleanGameReview', 'sameGameReview', 'curateInto', 'reorganise', 'collectionPlan', body)(
     DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, sendLines, makeSub, leaveFolder, withFolderMates, arrangeTop, arrangeFolder, gatherIntoFolder, parseMarks, withText, withMarks, canonicalStartFen, fen4,
-    sendToChapter, kidArtwork, kidArtForStudents, isKidArt, cleanGameReview, sameGameReview, curateInto, reorganise,
+    sendToChapter, kidArtwork, kidArtForStudents, isKidArt, cleanGameReview, sameGameReview, curateInto, reorganise, collectionPlan,
   );
 })();
 
@@ -1025,6 +1026,89 @@ test('a line handed on from one student\'s repertoire to another\'s: a fresh cop
   mac.do({ type: 'copyOpeningsToPlayers', playerIds: ['p-myla'], variationIds: [hers.id] });
   assert.equal(mac.state.openings.filter((o) => o.ownerId === 'p-myla').length, 1);
   assert.deepEqual(mac.state.openings.find((o) => o.ownerId === 'p-myla').chapters, before.find((o) => o.ownerId === 'p-myla').chapters);
+});
+
+// A collection copied (lib/collectionCopy): yours to a student's, a student's
+// to yours, one student's to another's.
+function attackCollection(mac) {
+  const [short, tal] = chapter(mac.state, 'o-caro', 'c-advance').variations;
+  mac.do({ type: 'setVariationTags', openingId: 'o-caro', chapterId: 'c-advance', variationId: short.id, tags: ['Attack'] });
+  mac.do({ type: 'setVariationTags', openingId: 'o-caro', chapterId: 'c-advance', variationId: tal.id, tags: ['Attack', 'Sharp'] });
+  mac.do({ type: 'setChapterTags', openingId: 'o-caro', chapterId: 'c-exchange', tags: ['Attack'] });
+  return { short, tal };
+}
+const caroOf = (st, owner) => st.openings.find((o) => (o.ownerId ?? null) === owner && o.name === 'Caro-Kann');
+const linesOf = (o) => o.chapters.flatMap((c) => c.variations.map((v) => ({ chapter: c.name, name: v.name, tags: v.tags ?? [], learned: v.learned, srs: v.srs })));
+
+test('collections: yours to a student — the lines they have join it, the rest are copied in with only this theme, and twice is once', () => {
+  const mac = buildLibrary(new Device('mac', 'Mac'));
+  const { short } = attackCollection(mac);
+  // Parker already has the Short System, with a theme of their own and progress.
+  mac.do({ type: 'copyOpeningsToPlayers', playerIds: ['p-parker'], variationIds: [short.id] });
+  const at = () => { const o = caroOf(mac.state, 'p-parker'); return { openingId: o.id, chapterId: o.chapters[0].id, variationId: o.chapters[0].variations[0].id }; };
+  const theirShort = at().variationId;
+  mac.do({ type: 'setVariationTags', ...at(), tags: ['Mine'] });
+  mac.do({ type: 'recordPractice', ...at(), srs: { due: 9 } });
+  const before = caroOf(mac.state, 'p-parker');
+
+  mac.do({ type: 'copyCollection', tag: 'Attack', from: null, to: 'p-parker' });
+  const after = caroOf(mac.state, 'p-parker');
+  assert.equal(after.id, before.id, 'into their Caro-Kann, not a second one');
+  assert.equal(mac.state.openings.filter((o) => o.ownerId === 'p-parker' && o.name === 'Caro-Kann').length, 1);
+  const got = linesOf(after);
+  assert.deepEqual(got.map((l) => `${l.chapter}/${l.name}`), ['Advance/Short System', 'Advance/Tal Variation', 'Exchange/Carlsbad']);
+  assert.deepEqual(got.map((l) => l.tags), [['Mine', 'Attack'], ['Attack'], ['Attack']], 'their own theme kept; none of the coach\'s others');
+  const theirsNow = after.chapters[0].variations[0];
+  assert.equal(theirsNow.id, theirShort, 'their own line, not a copy');
+  assert.deepEqual([theirsNow.learned, theirsNow.srs], [true, { due: 9 }], 'their progress kept');
+  assert.deepEqual(got.slice(1).map((l) => [l.learned, l.srs]), [[false, null], [false, null]], 'fresh progress on lines added');
+  assert.deepEqual(after.chapters.map((c) => c.tags ?? []), [[], []], 'no chapter theme comes along');
+  // The coach's own lines untouched.
+  assert.deepEqual(chapter(mac.state, 'o-caro', 'c-advance').variations.map((v) => v.tags), [['Attack'], ['Attack', 'Sharp']]);
+
+  const once = mac.state.openings;
+  mac.do({ type: 'copyCollection', tag: 'Attack', from: null, to: 'p-parker' });
+  assert.deepEqual(mac.state.openings, once, 'copying it again changes nothing');
+});
+
+test('collections: only the lines they have, when the rest aren\'t wanted', () => {
+  const mac = buildLibrary(new Device('mac', 'Mac'));
+  const { short } = attackCollection(mac);
+  mac.do({ type: 'copyOpeningsToPlayers', playerIds: ['p-parker'], variationIds: [short.id] });
+  mac.do({ type: 'copyCollection', tag: 'Attack', from: null, to: 'p-parker', addMissing: false });
+  assert.deepEqual(linesOf(caroOf(mac.state, 'p-parker')).map((l) => [l.name, l.tags]), [['Short System', ['Attack']]]);
+});
+
+test('collections: a student\'s to yours and on to another student — no kid cards in yours, the same name joins yours', () => {
+  const mac = buildLibrary(new Device('mac', 'Mac'));
+  mac.do({ type: 'addPlayer', id: 'p-myla', name: 'Myla', kind: 'student' });
+  mac.do({ type: 'setOpeningTags', openingId: 'o-parker-sicilian', tags: ['Dark square bishop'] });
+  // A collection of that name already in yours, on the London.
+  const london = chapter(mac.state, 'o-london', 'c-london-main').variations[0];
+  mac.do({ type: 'setVariationTags', openingId: 'o-london', chapterId: 'c-london-main', variationId: london.id, tags: ['Dark square bishop'] });
+
+  mac.do({ type: 'copyCollection', tag: 'Dark square bishop', from: 'p-parker', to: null });
+  const mine = mac.state.openings.find((o) => (o.ownerId ?? null) === null && o.name === 'Sicilian');
+  assert.ok(mine, 'a Sicilian in your own repertoire');
+  assert.equal(mine.artwork, null, 'no kid card on yours');
+  assert.deepEqual(mine.tags, [], 'the theme on the lines, not the opening');
+  assert.deepEqual(mine.chapters.map((c) => [c.name, c.variations.map((v) => [v.name, v.tags])]), [
+    ['Najdorf', [['6.Be3', ['Dark square bishop']]]],
+    ['Dragon', [['Yugoslav', ['Dark square bishop']]]],
+  ]);
+  assert.deepEqual(chapter(mac.state, 'o-london', 'c-london-main').variations[0].tags, ['Dark square bishop'], 'your London stays in it');
+  // Parker's own untouched.
+  assert.deepEqual(opening(mac.state, 'o-parker-sicilian').tags, ['Dark square bishop']);
+
+  mac.do({ type: 'copyCollection', tag: 'Dark square bishop', from: 'p-parker', to: 'p-myla' });
+  const hers = mac.state.openings.find((o) => o.ownerId === 'p-myla' && o.name === 'Sicilian');
+  assert.ok(hers && hers.artwork, 'Myla\'s Sicilian, with a kid card');
+  assert.equal(linesOf(hers).filter((l) => l.tags.includes('Dark square bishop')).length, 2);
+  assert.equal(mac.state.openings.some((o) => o.ownerId === 'p-myla' && o.name === 'London System'), false, 'only Parker\'s collection, not yours');
+
+  const same = mac.state;
+  mac.do({ type: 'copyCollection', tag: 'Dark square bishop', from: 'p-parker', to: 'p-parker' });
+  assert.equal(mac.state, same, 'to itself: nothing');
 });
 
 test('a Larry Review pasted in Game Review is kept on the game, and its removal too', () => {

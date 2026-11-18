@@ -12,6 +12,7 @@ import {
 import { arrangeTop, arrangeFolder, gatherIntoFolder } from './lib/chapterOrder';
 import { sendToChapter } from './lib/chapterTransfer';
 import { curateInto, reorganise } from './lib/curate';
+import { collectionPlan } from './lib/collectionCopy';
 import { kidArtwork, kidArtForStudents, isKidArt } from './lib/kidArtwork';
 import { cleanGameReview, sameGameReview } from './lib/analysisDoc';
 import { parseMarks, withText, withMarks } from './lib/marks';
@@ -349,13 +350,16 @@ function reduce(state, action) {
       // so editing one repertoire could reach into the other. The two are
       // separate from this moment on — nothing done to either side touches the
       // other again.
+      // `themes: 'none'`: the lines come without their themes (a collection
+      // copied — copyCollection — brings its own and nothing else).
+      const keepThemes = action.themes !== 'none';
       const fresh = (variation) => ({
         ...variation,
         id: uid(),
         moves: [...(variation.moves ?? [])],
         comments: { ...(variation.comments ?? {}) },
         badges: { ...(variation.badges ?? {}) },
-        tags: [...(variation.tags ?? [])],
+        tags: keepThemes ? [...(variation.tags ?? [])] : [],
         learned: false,
         srs: null,
         starred: false,
@@ -363,7 +367,7 @@ function reduce(state, action) {
       const freshChapter = (chapter, courseIds) => ({
         ...chapter,
         id: uid(),
-        tags: [...(chapter.tags ?? [])],
+        tags: keepThemes ? [...(chapter.tags ?? [])] : [],
         courseId: chapter.courseId ? (courseIds.get(chapter.courseId) ?? null) : null,
         variations: chapter.variations.map(fresh),
         starred: false,
@@ -391,18 +395,21 @@ function reduce(state, action) {
 
           const courseIds = new Map();
           if (!existing) {
+            // Into your own library (targetId null: a student's collection
+            // copied to yours), no kid card: your openings' covers are yours.
+            const toMe = targetId == null;
             const courses = (source.courses ?? []).map((c) => {
               const id = uid();
               courseIds.set(c.id, id);
               // Never the coach's own pictures: a kid card for a cover.
-              return { ...c, id, artwork: c.artwork ? kidArtwork(c.name) : null };
+              return { ...c, id, artwork: c.artwork && !toMe ? kidArtwork(c.name) : null };
             });
             openings = [...openings, {
               ...source,
               id: uid(),
               ownerId: targetId,
-              tags: [...(source.tags ?? [])],
-              artwork: kidArtwork(source.name),
+              tags: keepThemes ? [...(source.tags ?? [])] : [],
+              artwork: toMe ? null : kidArtwork(source.name),
               starred: false,
               courses,
               chapters: source.chapters.map((ch) => freshChapter(ch, courseIds)),
@@ -418,7 +425,7 @@ function reduce(state, action) {
             if (match) { courseIds.set(c.id, match.id); continue; }
             const id = uid();
             courseIds.set(c.id, id);
-            addedCourses.push({ ...c, id, artwork: c.artwork ? kidArtwork(c.name) : null });
+            addedCourses.push({ ...c, id, artwork: c.artwork && targetId != null ? kidArtwork(c.name) : null });
           }
 
           // Chapter by chapter: a chapter they don't have arrives whole; one
@@ -458,6 +465,25 @@ function reduce(state, action) {
         }
       }
       return { ...state, openings };
+    }
+    // A collection — a theme on lines (lib/collectionCopy) — from one
+    // repertoire to another (`from`, `to`: a student's card id, or null for
+    // yours). Each of its lines that's there already joins it there; one that
+    // isn't is copied in first when `addMissing` (into the same opening and
+    // chapter, fresh progress, none of its other themes), then joins it.
+    case 'copyCollection': {
+      const tag = String(action.tag ?? '').trim();
+      const from = action.from ?? null;
+      const to = action.to ?? null;
+      if (!tag || from === to) return state;
+      let s = state;
+      const missing = collectionPlan(s.openings, { tag, from, to }).lines.filter((l) => !l.there).map((l) => l.variation.id);
+      if (action.addMissing !== false && missing.length) {
+        s = reduce(s, { type: 'copyOpeningsToPlayers', variationIds: missing, playerIds: [to], themes: 'none' });
+      }
+      const items = collectionPlan(s.openings, { tag, from, to }).lines.filter((l) => l.there)
+        .map((l) => ({ chapterId: l.there.chapter.id, variationId: l.there.variation.id }));
+      return items.length ? reduce(s, { type: 'tagLines', tag, items }) : s;
     }
     case 'importOpeningsForPlayer': {
       const arriving = action.openings.map((o) => {

@@ -131,3 +131,30 @@ test('a study pack carries that student\'s lessons as their own, and nobody else
   }]);
   assert.deepEqual(JSON.parse(pack.text).savedPositions, pack.savedPositions);
 });
+
+test('a coach\'s delivery keeps the themes the student put on a line, chapter or opening, and adds the coach\'s — a restore still takes the file\'s', () => {
+  const student = {
+    openings: [{
+      id: 'o', name: 'Caro-Kann', tags: ['My openings'],
+      chapters: [{ id: 'c1', name: 'Advance', tags: ['Hard'], variations: [line('a', { tags: ['Favourite'], learned: true }), line('b')] }],
+    }],
+  };
+  const sent = {
+    openings: [{
+      id: 'o', name: 'Caro-Kann',
+      chapters: [{ id: 'c1', name: 'Advance', variations: [line('a', { tags: ['Light square bishop'] }), line('b', { tags: ['Light square bishop'] })] }],
+    }],
+  };
+  const merged = mergeBackup(student, sent, { structure: 'incoming' });
+  const [a, b] = merged.openings[0].chapters[0].variations;
+  assert.deepEqual(a.tags, ['Favourite', 'Light square bishop']);
+  assert.equal(a.learned, true);
+  assert.deepEqual(b.tags, ['Light square bishop']);
+  assert.deepEqual(merged.openings[0].chapters[0].tags, ['Hard']);
+  assert.deepEqual(merged.openings[0].tags, ['My openings']);
+  // Sent twice: once each.
+  assert.deepEqual(mergeBackup(merged, sent, { structure: 'incoming' }).openings[0].chapters[0].variations[0].tags, ['Favourite', 'Light square bishop']);
+  // A restored file is what you meant to bring back, themes and all.
+  const restored = mergeBackup(student, sent);
+  assert.deepEqual(restored.openings[0].chapters[0].variations[0].tags, ['Light square bishop']);
+});
