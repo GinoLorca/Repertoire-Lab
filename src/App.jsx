@@ -93,7 +93,13 @@ function AppInner() {
   // The sub-mode inside a section — Analysis's engine/compare/editor, the
   // Settings tab. Lifted up here only so it can be part of the address; each
   // view still owns its own switching.
-  const [sub, setSub] = useState(route.sub ?? null);
+  // Studio is hidden (Game Review does what it did): any way of asking for
+  // it — an old link, the screen the app was last on, a saved Lab entry —
+  // lands on Game Review, and nothing offers it (no Studio tab, Coaches
+  // Corner button, "Send to studio" or Reviews in progress). Its code stays.
+  const noStudio = (s) => (s === 'studio' ? 'review' : s);
+  const [sub, setSubState] = useState(noStudio(route.sub ?? null));
+  const setSub = (s) => setSubState(typeof s === 'function' ? (p) => noStudio(s(p)) : noStudio(s));
   // A saved Board Editor position the address names (/analysis/editor/<id>),
   // so a coach's link opens the editor on that set-up. The editor reports
   // the one it's standing on, so a position picked there is copyable too.
@@ -616,9 +622,6 @@ function AppInner() {
     });
   };
 
-  // Same line, opened straight into Studio's Annotate tab — "Send to
-  // studio" on a saved game, next to the ordinary "Send to analysis board".
-  const analyzeInStudio = (line) => analyze(line, { studio: true });
 
   // "Send to Game Review" on a saved game: Chess Arcade's review of it, on
   // the analysis screen's Game Review tab — full screen, every time (`sent`).
@@ -641,48 +644,15 @@ function AppInner() {
     return () => window.removeEventListener(OPEN_GAME_REVIEW, on);
   }, []);
 
-  // "Continue" on a review in progress: the game back in Studio, at the move
-  // it was left on.
-  const continueReview = ({ player, game, entry }) => analyzeInStudio({
-    name: game.name,
-    moves: game.moves,
-    comments: game.comments,
-    badges: game.badges,
-    annotations: game.annotations,
-    tree: game.tree,
-    variationHighlights: game.variationHighlights,
-    meta: game.meta,
-    date: game.date,
-    ownerId: player.kind === 'student' ? player.id : null,
-    gameId: game.id,
-    playerId: player.id,
-    resumePath: entry.path,
-  });
-
   // Reopen a saved Lab session: its own moves, marks and notes, and no
-  // repertoire line underneath it — on Studio's board if it was saved there.
+  // repertoire line underneath it — on the analysis board (one saved from
+  // Studio, now hidden, too).
   const openLab = (entry) => {
     go(() => {
-      if (entry.coach) {
-        setStudioLine(null);
-        setStudioLab(entry);
-        setSub('studio');
-      } else {
-        setAnalysisLine(null);
-        setAnalysisLab(entry);
-        setSub(null);
-      }
+      setAnalysisLine(null);
+      setAnalysisLab(entry);
+      setSub(null);
       setEditorScope(null);
-      setView('analysis');
-    });
-  };
-
-  // Coaches Corner's Studio button: Studio as it was left — a game, a Lab
-  // entry, or a blank board. Reset board there starts it over.
-  const openStudio = () => {
-    go(() => {
-      setEditorScope(null);
-      setSub('studio');
       setView('analysis');
     });
   };
@@ -980,7 +950,6 @@ function AppInner() {
         {view === 'games' && (
           <GamesView
             onAnalyze={analyze}
-            onGameStudio={analyzeInStudio}
             onGameReview={sendToReview}
             onScan={scanPhoto}
             routePlayer={openPlayerNav}
@@ -990,7 +959,6 @@ function AppInner() {
         {view === 'coaches' && (
           <CoachesView
             onAnalyze={analyze}
-            onGameStudio={analyzeInStudio}
             onGameReview={sendToReview}
             onScan={scanPhoto}
             routePlayer={openPlayerNav}
@@ -998,8 +966,6 @@ function AppInner() {
             onOpenLibrary={openLibraryFor}
             onOpenCollections={openCollectionsFor}
             onOpenLessons={openLessonsFor}
-            onOpenStudio={openStudio}
-            onContinueReview={continueReview}
           />
         )}
         {view === 'settings' && <SettingsView tab={sub} onTabChange={setSub} />}

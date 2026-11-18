@@ -1912,7 +1912,8 @@ export default function AnalysisView({
     ['engine', 'Engine'],
     ['compare', 'Compare lines', 'Put two similar lines side by side and see exactly where they part'],
     ['editor', 'Board Editor'],
-    ['studio', 'Studio', 'Annotate games and lessons for students — a board of its own, kept as you left it'],
+    // Studio is hidden (2026-11-18: Game Review does what it did); its board is
+    // still here behind coachMode, but nothing opens it (App sends it to Game Review).
     // Chess Arcade's game review, on a screen of its own (views/GameReviewView).
     ['review', 'Game Review', 'Chess Arcade’s game review — badges, CLAMP, tactics and notes, saved onto the game'],
   ];

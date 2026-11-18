@@ -182,7 +182,7 @@ function reviewActionFor(game, player, players) {
     const saved = game.review.savedAt ?? 0;
     const same = sent?.ph === reviewHash(game.review.body);
     if (sent?.failed && same) status = 'Too big to send';
-    else if (!same) status = saved > (sent?.savedAt ?? 0) ? 'Sending…' : 'Not sent — save in Studio';
+    else if (!same) status = saved > (sent?.savedAt ?? 0) ? 'Sending…' : 'Not sent yet';
     else if (theirs?.refused && theirs.refused >= (sent.rev ?? 0)) status = 'Their games list is full';
     else if (theirs?.removed) status = 'Removed by them';
     else if (sent.rev && (theirs?.seen ?? 0) >= sent.rev) status = 'Read ✓';
