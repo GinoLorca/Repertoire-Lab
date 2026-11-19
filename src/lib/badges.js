@@ -15,6 +15,8 @@ export const BADGES = [
   { id: 'interesting', symbol: '!?', label: 'Interesting', color: '#9b7fd4', nag: 5 },
   { id: 'inaccuracy', symbol: '?!', label: 'Inaccuracy', color: '#e6a23c', nag: 6 },
   { id: 'mistake', symbol: '?', label: 'Mistake', color: '#e08331', nag: 2 },
+  // Chess Arcade's (Game Review): a chance the move let go by. No PGN glyph of its own.
+  { id: 'miss', symbol: '✕', label: 'Miss', color: '#f07f86', nag: null },
   { id: 'blunder', symbol: '??', label: 'Blunder', color: '#d4504a', nag: 4 },
 ];
 

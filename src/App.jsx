@@ -1,4 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, {
+  useEffect, useMemo, useRef, useState,
+} from 'react';
 import { StoreProvider, useStore } from './store';
 import { CloudProvider, useCloud } from './lib/cloud/useCloud';
 import { GameLinkProvider } from './components/GameLinkProvider';
@@ -1018,14 +1020,31 @@ function AppInner() {
   );
 }
 
+// A coach's Game Review reaches the student a few seconds after each change
+// while they're writing it (GameReviewView): "Your game has been analyzed"
+// once for that game, then not again for a while — the bell keeps one entry
+// a game however many updates came.
+const ANALYZED_QUIET_MS = 10 * 60 * 1000;
+const analyzedToldAt = new Map(); // gameId -> when the note last said so
+
 // The student's side: a quiet note when a linked coach has just put a game in
 // their Games, or corrected one — so a game appearing out of nowhere has an
 // explanation attached.
 function CoachGamesToast() {
   const { coachApplied, clearCoachApplied } = useCloud();
   const { state } = useStore();
+  // Which analyzed games this batch tells of: decided once for it, so the
+  // note stays the same while it's up.
+  const tellAnalyzed = useMemo(() => {
+    const now = Date.now();
+    return new Set(coachApplied
+      .filter((o) => o.analyzed && now - (analyzedToldAt.get(o.gameId) ?? 0) >= ANALYZED_QUIET_MS)
+      .map((o) => o.gameId));
+  }, [coachApplied]);
   useEffect(() => {
     if (!coachApplied.length) return undefined;
+    const now = Date.now();
+    for (const id of tellAnalyzed) analyzedToldAt.set(id, now);
     const t = setTimeout(clearCoachApplied, 9000);
     return () => clearTimeout(t);
   }, [coachApplied, clearCoachApplied]);
@@ -1042,6 +1061,7 @@ function CoachGamesToast() {
   // when the game had been analyzed before — on its own line, with Open.
   const analyzed = [...new Map(coachApplied
     .filter((o) => o.analyzed && ['reviewed', 'review-updated', 'applied', 'inserted'].includes(o.outcome))
+    .filter((o) => tellAnalyzed.has(o.gameId))
     .map((o) => [o.gameId, o])).values()];
   const parts = [];
   if (added.length === 1) parts.push(`added ${added[0].name} to your Games`);

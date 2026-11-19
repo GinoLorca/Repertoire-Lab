@@ -18,8 +18,12 @@ const numFor = (virtualPly, startNumber) => (
 // rather than anything living on an individual move button. Same hex the
 // pens/squares elsewhere already draw in, so a green here means the same
 // thing a green arrow does.
-const HIGHLIGHT_HEX = { green: '#2ecc71', blue: '#3b9cff', yellow: '#e8b339' };
-const highlightStyle = (color) => (color ? {
+// Purple, white and red come from Game Review (Chess Arcade's line colours,
+// lib/reviewOnBoard): shown, not offered in this menu.
+const HIGHLIGHT_HEX = {
+  green: '#2ecc71', blue: '#3b9cff', yellow: '#e8b339', purple: '#8b5cf6', white: '#ffffff', red: '#e5534b',
+};
+const highlightStyle = (color) => (HIGHLIGHT_HEX[color] ? {
   backgroundColor: `${HIGHLIGHT_HEX[color]}2e`,
   borderRadius: 5,
 } : undefined);
@@ -28,12 +32,27 @@ const highlightStyle = (color) => (color ? {
 // number, styled by its role there.
 const Pips = ({ marks }) => (marks ?? []).map((m) => <MomentPip key={`${m.role}${m.n}`} role={m.role} n={m.n} />);
 
+// Game Review's marks on a move (lib/reviewOnBoard): CLAMP letters in their
+// colours — theirs hollow — and a tactic's dot. [{ key, text, color, title,
+// hollow }]; what each says is in its title, and on the move's card.
+const Chips = ({ list }) => (list ?? []).map((c) => (
+  <span
+    key={c.key}
+    className={`mt-chip${c.hollow ? ' hollow' : ''}`}
+    style={c.hollow ? { color: c.color, borderColor: c.color } : { background: c.color }}
+    title={c.title}
+    aria-label={c.title}
+  >
+    {c.text}
+  </span>
+));
+
 // One variation, written the way a book writes it: 3…Bd6 4.e3 Nf6, with any
 // further branches inside it in their own brackets. `startPly` here is
 // already virtual — callers convert once, at the branch point, and this
 // just keeps incrementing it node by node.
 function InlineLine({
-  start, startPly, startNumber, headId, badges, moments, highlights, onGo, onMenu,
+  start, startPly, startNumber, headId, badges, moments, chips, highlights, onGo, onMenu,
 }) {
   const nodes = [start, ...mainLineFrom(start)];
   return (
@@ -54,6 +73,7 @@ function InlineLine({
               {node.san}
               {badges?.[node.id] && <MoveBadge id={badges[node.id]} size={11} />}
               <Pips marks={moments?.[node.id]} />
+              <Chips list={chips?.[node.id]} />
             </button>
             {siblings.map((sib) => (
               <span key={sib.id} className="mt-nested" style={highlightStyle(highlights?.[sib.id])}>
@@ -65,6 +85,7 @@ function InlineLine({
                   headId={headId}
                   badges={badges}
                   moments={moments}
+                  chips={chips}
                   highlights={highlights}
                   onGo={onGo}
                   onMenu={onMenu}
@@ -90,7 +111,7 @@ function InlineLine({
 // table columns stay meaningful — the real first move (Black's) simply
 // lands in the Black column of row one, White's cell left blank.
 export default function MoveTree({
-  root, headId, badges: badgesIn, moments, highlights, onHighlight, onGo, onPromote, onPromoteOne, onDelete,
+  root, headId, badges: badgesIn, moments, chips, highlights, onHighlight, onGo, onPromote, onPromoteOne, onDelete,
   startNumber = 1, startColor = 'w', readOnly = false,
 }) {
   const { state } = useStore();
@@ -158,6 +179,7 @@ export default function MoveTree({
         {node.san}
         {badges?.[node.id] && <MoveBadge id={badges[node.id]} size={12} />}
         <Pips marks={moments?.[node.id]} />
+        <Chips list={chips?.[node.id]} />
       </button>
     );
   };
@@ -195,6 +217,7 @@ export default function MoveTree({
                     headId={headId}
                     badges={badges}
                     moments={moments}
+                    chips={chips}
                     highlights={highlights}
                     onGo={onGo}
                     onMenu={openMenuIfEditable}

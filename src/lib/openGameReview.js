@@ -3,11 +3,18 @@
 // request waits on window, and App (which owns the screens) picks it up.
 //
 //   openGameReview({ playerId, gameId })  — playerId is the game's section
+//   …, reviewOpts: { at }                 — open at a move (the analysis
+//                                            board's Edit in Game Review;
+//                                            lib/reviewOnBoard refOf)
 export const OPEN_GAME_REVIEW = 'repertoire-open-game-review';
 
 export function openGameReview(request) {
   if (!request?.playerId || !request?.gameId) return;
-  window.__repertoireOpenGameReview = { playerId: request.playerId, gameId: request.gameId };
+  window.__repertoireOpenGameReview = {
+    playerId: request.playerId,
+    gameId: request.gameId,
+    ...(request.reviewOpts ? { reviewOpts: request.reviewOpts } : {}),
+  };
   window.dispatchEvent(new Event(OPEN_GAME_REVIEW));
 }
 

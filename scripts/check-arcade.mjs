@@ -12,6 +12,8 @@
 //   · a game's records go in and come back out — note, analysis, a Larry
 //     Review — and one taken away is gone
 //   · a game opens, and a note typed in its Notes card is saved and reported
+//   · an engine review handed in as a record (rv) shows on the game's moves,
+//     comes back out as it went in, and goes when the record does
 //   · Repertoire Lab's theme, dark and light, is the one it wears, and its
 //     arrow colour profile, set from here and told back when picked in there
 //   · a repertoire goes in, and CLAMP, Tactics and Openings each open
@@ -129,7 +131,16 @@ try {
   await frame.evaluate(({ gid, rec }) => window.__rlReview.load(gid, rec), { gid, rec: { note: NOTE, an: '' } });
   back = cleanRecords(await frame.evaluate((gid) => window.__rlReview.records(gid), gid));
   ok(back?.note === NOTE && back?.lr === undefined, 'one taken away is gone');
-  await frame.evaluate(({ gid, rec }) => window.__rlReview.load(gid, rec), { gid, rec: { note: NOTE, an: '', lr: LR } });
+  // The engine's review of the game, as Chess Arcade keeps it (hrSave): its moves' fingerprint (gnFnv), a score
+  // before each move and after the last, a badge a move, accuracy.
+  const sans = player.games[0].moves;
+  let h = 0x811c9dc5;
+  for (const ch of sans.join(' ')) { h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193); }
+  const RV = JSON.stringify({
+    at: Date.now(), n: sans.length, h: (h >>> 0).toString(16).padStart(8, '0'), d: 15,
+    e: '20,25,22,30,28,35,30,40,38,120,110', b: 'kkkksesixm', a: [91.2, 64.5],
+  });
+  await frame.evaluate(({ gid, rec }) => window.__rlReview.load(gid, rec), { gid, rec: { note: NOTE, an: '', lr: LR, rv: RV } });
 
   // ---- a game opens; a note typed is saved and reported ----
   const game = arcadeGame(player.games[0], gid, { side: 'white' });
@@ -137,6 +148,16 @@ try {
   const opened = await frame.waitForFunction((gid) => window.__rlReview.current() === gid, gid, { timeout: 20000 }).then(() => true, () => false);
   ok(opened, 'a game opens (current() is its id)');
   ok(await frame.evaluate(() => Array.isArray(window.__rlReview.line())), 'line() is the line on the board');
+  const badged = await frame.waitForFunction(() => document.querySelectorAll('#hv-movelist .hv-badge').length >= 8, null, { timeout: 8000 })
+    .then(() => true, () => false);
+  ok(badged, 'an engine review handed in (rv) shows its badges on the game’s moves');
+  back = cleanRecords(await frame.evaluate((gid) => window.__rlReview.records(gid), gid));
+  ok(back?.rv === RV, 'and comes back out as it went in');
+  await frame.evaluate(({ gid, rec }) => window.__rlReview.load(gid, rec), { gid, rec: { note: NOTE, an: '', lr: LR } });
+  const gone = await frame.waitForFunction(() => document.querySelectorAll('#hv-movelist .hv-badge').length === 0, null, { timeout: 8000 })
+    .then(() => true, () => false);
+  back = cleanRecords(await frame.evaluate((gid) => window.__rlReview.records(gid), gid));
+  ok(gone && back?.rv === undefined, 'and goes when the record does');
   await page.evaluate(() => { window.__msgs.length = 0; });
   const note = frame.locator('#hv-note');
   let typed = false;

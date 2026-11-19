@@ -39,6 +39,10 @@ const TABS = [
 ];
 
 const LIST_MAX = 300;
+// Your review of a student's own game goes to them this long after you stop
+// changing it, while you're still in it — so they can follow it as it's
+// written, not only once you leave or press Save.
+const PUBLISH_AFTER_MS = 3000;
 // "2": iPads open it over the whole window now too, so a choice kept from
 // when they didn't starts over once.
 const FULL_KEY = 'rl.gameReview.full2';
@@ -155,12 +159,16 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
   // game, until it's saved): your own copy, or — a student's own game — your
   // review of it, sent to them when you leave the game (publish).
   const layerDirty = useRef(null); // { playerId, gameId, body } written but not sent
+  const publishTimer = useRef(0);
   const publishLayer = () => {
+    clearTimeout(publishTimer.current);
     const d = layerDirty.current;
     if (!d) return;
     layerDirty.current = null;
     dispatch({ type: 'setGameReview', ...d, publish: true });
   };
+  const publishRef = useRef(publishLayer);
+  publishRef.current = publishLayer;
   const pull = ({ publish = false } = {}) => {
     const a = api();
     const L = live.current;
@@ -173,6 +181,8 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
           const body = withGameReview(game.review?.body, game, stamped);
           dispatch({ type: 'setGameReview', playerId: player.id, gameId: game.id, body, publish: false });
           layerDirty.current = { playerId: player.id, gameId: game.id, body };
+          clearTimeout(publishTimer.current);
+          publishTimer.current = setTimeout(() => publishRef.current(), PUBLISH_AFTER_MS);
         } else {
           dispatch({
             type: 'setGameReviewRecords', playerId: player.id, gameId: game.id, records: stamped,
@@ -229,7 +239,11 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Leaving the tab: the same, while the frame is still there to ask.
-  useLayoutEffect(() => () => { api()?.flush(); pullRef.current({ publish: true }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => () => {
+    api()?.flush();
+    pullRef.current({ publish: true });
+    clearTimeout(publishTimer.current);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A different game: what was being written on the last one is kept, then
   // this one's saved review goes in and it opens.
@@ -239,6 +253,22 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
   const openKey = `${caId}|${openOpts ? JSON.stringify(openOpts) : ''}`;
   const openedRef = useRef(null);
   const openKeyRef = useRef(null);
+  // A student's own game, open: their coach's review of it is read — and so
+  // is an update to it that arrives while it's open (it shows as it comes).
+  const markSeen = () => {
+    if (!saved || (saved.player.kind ?? 'self') !== 'self') return;
+    const g = saved.game;
+    const seen = g.reviewSeen ?? {};
+    const latest = {};
+    for (const [C, r] of Object.entries(g.reviews ?? {})) if (!r?.removed) latest[C] = Math.max(latest[C] ?? 0, r?.rev ?? 0);
+    for (const [C, n] of Object.entries(g.coachNews ?? {})) latest[C] = Math.max(latest[C] ?? 0, n?.rev ?? 0);
+    for (const [C, rev] of Object.entries(latest)) {
+      if (rev > (seen[C]?.rev ?? 0)) dispatch({ type: 'markReviewSeen', gameId: g.id, coachUid: C, rev });
+    }
+  };
+  useEffect(() => {
+    if (openedRef.current && openedRef.current === caId) markSeen();
+  }, [saved?.game?.reviews, saved?.game?.coachNews]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const a = api();
     if (!ready || !a || !caId || !source) return;
@@ -247,16 +277,7 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
     if (openedRef.current === caId) { a.open(arcadeGame(source, caId, { side }), openOpts ?? {}); return; }
     openedRef.current = caId;
     setPlies(0);
-    if (saved && (saved.player.kind ?? 'self') === 'self') {
-      const g = saved.game;
-      const seen = g.reviewSeen ?? {};
-      const latest = {};
-      for (const [C, r] of Object.entries(g.reviews ?? {})) if (!r?.removed) latest[C] = Math.max(latest[C] ?? 0, r?.rev ?? 0);
-      for (const [C, n] of Object.entries(g.coachNews ?? {})) latest[C] = Math.max(latest[C] ?? 0, n?.rev ?? 0);
-      for (const [C, rev] of Object.entries(latest)) {
-        if (rev > (seen[C]?.rev ?? 0)) dispatch({ type: 'markReviewSeen', gameId: g.id, coachUid: C, rev });
-      }
-    }
+    markSeen();
     a.load(caId, records ?? {});
     a.open(arcadeGame(source, caId, { side }), openOpts ?? {});
   }, [ready, openKey]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -79,3 +79,39 @@ test('a review of the student’s own game from Game Review is analyzed; one fro
   assert.equal(plain.outcomes[0].analyzed, undefined);
   assert.equal(unseenReviews(plain.state.players)[0].analyzed, false);
 });
+
+test('the engine\'s review (rv) and everything else in Game Review reach the student both ways, and show on their analysis board', async () => {
+  const { recordsFor } = await import('../src/lib/gameReviewBridge.js');
+  const { reviewOnBoard, movesSig } = await import('../src/lib/reviewOnBoard.js');
+  const { makeTree } = await import('../src/lib/moveTree.js');
+  const RV = JSON.stringify({ at: 7, n: 4, h: movesSig(MOVES), d: 15, e: '20,30,25,40,35', b: 'kkkm', a: [88.1, 70] });
+  const AN2 = JSON.stringify({ v: 1, l: [[2, 'b1c3']], c: [[2, 'The Caro']], m: [[3, 'Gd5e4', '']], k: [[3, 'C', 'check first']] });
+  const records = { note: 'Look at move 2', an: AN2, lr: '# Larry', rv: RV, at: 9 };
+  const onBoard = (g, player) => reviewOnBoard({ tree: makeTree(MOVES), moves: MOVES, records: recordsFor(g, player), side: 'white' });
+
+  // A game the coach typed in for them: a patch.
+  const cg = linked(game({ gameReview: records }));
+  const typed = applyCoachGames({ players: [], openings: [] }, [delivery(cg, NOW)], { studentUid: S, ledger: { games: {} }, now: NOW });
+  const tg = typed.state.players[0].games[0];
+  assert.equal(tg.gameReview.rv, RV);
+  assert.equal(tg.gameReview.lr, '# Larry');
+  const r1 = onBoard(tg, typed.state.players[0]);
+  assert.equal(Object.values(r1.engineBadges).filter((b) => b === 'mistake').length, 1);
+  assert.deepEqual(r1.accuracy, { white: 88.1, black: 70 });
+  assert.equal(Object.keys(r1.clamp).length, 1);
+
+  // Their own game: the coach's review layer, updated three times while it's written.
+  const own = { id: 'game0001', moves: MOVES, comments: {}, meta: { white: 'Parker', black: 'Sam', color: 'white' } };
+  let state = { players: [{ id: 'mine', kind: 'self', name: 'My games', games: [own] }] };
+  const d = (rev, body) => ({ id: `lr_${C}_game0001_${rev}`, kind: 'game', v: 2, fromUid: C, fromName: 'Gino', gameId: 'game0001', rev, review: body });
+  for (const [i, rev] of [10, 13, 16].entries()) {
+    const body = withGameReview(null, own, { ...records, note: `Look at move 2 (${i})` });
+    state = applyCoachReviews(state, [d(rev, body)], { now: rev + 1, names: { [C]: 'Gino' } }).state;
+  }
+  const mine = state.players[0];
+  assert.equal(unseenReviews(state.players).length, 1, 'one entry in the bell however many updates came');
+  const r2 = onBoard(mine.games[0], mine);
+  assert.equal(r2.note, 'Look at move 2 (2)', 'the newest');
+  assert.equal(Object.keys(r2.engineBadges).length, 4);
+  assert.ok(r2.tree.children[0].children[0].children.some((c) => c.san === 'Nc3'), 'the side line');
+});

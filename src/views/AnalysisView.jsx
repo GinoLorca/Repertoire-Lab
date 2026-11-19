@@ -85,6 +85,11 @@ import { analysisSourceKey } from '../lib/session';
 import { openReview } from '../components/ReviewReader';
 import { holdSends, releaseSends, sendOnce } from '../lib/cloud/sendHold';
 import { cardHasRoom } from '../lib/cloud/reviews';
+import { recordsFor } from '../lib/gameReviewBridge';
+import {
+  reviewOnBoard, chipsOf, refOf, marksWith, TACTIC_COLOR,
+} from '../lib/reviewOnBoard';
+import { openGameReview } from '../lib/openGameReview';
 import {
   BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon,
   FlaskIcon, CommentIcon, TargetIcon, UploadIcon, CheckIcon, HelpIcon, FolderIcon, ResetIcon,
@@ -326,6 +331,65 @@ export default function AnalysisView({
     const owner = state.players.find((p) => p.id === initialLine.playerId);
     return owner?.games.find((g) => g.id === initialLine.gameId) ?? null;
   }, [state.players, initialLine?.gameId, initialLine?.playerId]);
+
+  // The game's Game Review (lib/reviewOnBoard): its side lines on the tree,
+  // its comments, marks, badges, line colours, CLAMP and tactics with the
+  // board's own, the Notes card and a Larry Review beside it. Shown, never
+  // saved as the board's own — it's changed in Game Review (Edit in Game
+  // Review). Live: a review that changes elsewhere (the coach's, arriving)
+  // shows as it comes. Only while the tree's main line is the game's moves.
+  const reviewOwner = useMemo(
+    () => (initialLine?.playerId ? state.players.find((p) => p.id === initialLine.playerId) ?? null : null),
+    [state.players, initialLine?.playerId],
+  );
+  const reviewRecords = useMemo(
+    () => (liveGame && !coachMode ? recordsFor(liveGame, reviewOwner) : null),
+    [liveGame, reviewOwner, coachMode],
+  );
+  const review = useMemo(() => {
+    const gm = liveGame?.moves ?? [];
+    if (!reviewRecords || !gm.length) return null;
+    const trunk = mainLineFrom(tree);
+    if (trunk.length < gm.length || gm.some((m, i) => trunk[i].san !== m)) return null;
+    try {
+      return reviewOnBoard({
+        tree, moves: gm, startFen: liveGame.startFen ?? null, records: reviewRecords, side: liveGame.meta?.color ?? null,
+      });
+    } catch {
+      return null;
+    }
+  }, [tree, reviewRecords, liveGame]);
+  // Its side lines, onto the board's tree (a move already there is followed).
+  useEffect(() => { if (review && review.tree !== tree) setTree(review.tree); }, [review]); // eslint-disable-line react-hooks/exhaustive-deps
+  const reviewChips = useMemo(() => chipsOf(review), [review]);
+  // A move's badge: the board's own, else one set in Game Review, else the engine's.
+  const shownBadges = useMemo(
+    () => (review ? { ...review.engineBadges, ...review.ownBadges, ...moveBadges } : moveBadges),
+    [review, moveBadges],
+  );
+  const shownHighlights = useMemo(
+    () => (review ? { ...review.lineColors, ...variationHighlights } : variationHighlights),
+    [review, variationHighlights],
+  );
+  // What the review says on the move on the board.
+  const reviewHere = useMemo(() => {
+    if (!review) return null;
+    const note = review.notes[head] ?? '';
+    const clamp = review.clamp[head] ?? [];
+    const tactics = review.tactics[head] ?? [];
+    const own = review.ownBadges[head] ?? null;
+    const badge = own ?? review.engineBadges[head] ?? null;
+    if (!note && !clamp.length && !tactics.length && !badge) return null;
+    return {
+      note, clamp, tactics, badge, engine: !own,
+    };
+  }, [review, head]);
+  // The same game in Game Review, at the move on the board.
+  const editInGameReview = () => {
+    if (!initialLine?.gameId || !initialLine?.playerId) return;
+    const at = refOf(tree, head, liveGame?.startFen ?? null);
+    openGameReview({ playerId: initialLine.playerId, gameId: initialLine.gameId, reviewOpts: at ? { at } : null });
+  };
 
   // Board options, shared with the Settings tab.
   const showEvalBar = state.settings.evalBar !== false;
@@ -742,6 +806,8 @@ export default function AnalysisView({
   // ---------- Annotations ----------
 
   const marks = annotations[fen] ?? EMPTY_MARKS;
+  // …and Game Review's on this move, drawn with them (drawing changes the board's own).
+  const shownMarks = useMemo(() => marksWith(marks, review?.marks?.[head]), [marks, review, head]);
 
   const updateMarks = (fn) => setAnnotations((all) => {
     const next = fn(all[fen] ?? EMPTY_MARKS);
@@ -1342,7 +1408,7 @@ export default function AnalysisView({
   const squareStyles = useMemo(() => {
     const styles = {};
     if (picked) styles[picked] = { ...PICKED_STYLE };
-    for (const [sq, color] of Object.entries(marks.squares)) styles[sq] = squareMarkStyle(color, arrowProfile);
+    for (const [sq, color] of Object.entries(shownMarks.squares)) styles[sq] = squareMarkStyle(color, arrowProfile);
     if (drawFrom) styles[drawFrom] = { background: `${drawColor}88` };
     // A note's move reference was clicked — glow that square on top of
     // whatever else is drawn, since it's the most recent, deliberate thing
@@ -1351,7 +1417,7 @@ export default function AnalysisView({
       styles[noteHighlight.square] = { ...styles[noteHighlight.square], ...NOTE_HIGHLIGHT_STYLE };
     }
     return styles;
-  }, [marks.squares, drawFrom, drawColor, picked, position, showLegal, noteHighlight, arrowProfile]);
+  }, [shownMarks.squares, drawFrom, drawColor, picked, position, showLegal, noteHighlight, arrowProfile]);
 
   // ---------- Moves ----------
 
@@ -2056,7 +2122,7 @@ export default function AnalysisView({
       ownArrows={false}
       customSquareStyles={squareStyles}
       lastMove={lastMove}
-      badge={moveBadges[head]}
+      badge={shownBadges[head]}
       suitPick={cardsPick}
       boardOrientation={orientation}
       boardWidth={boardWidth}
@@ -2076,10 +2142,10 @@ export default function AnalysisView({
     <BoardArrows
       arrows={drawFrom && holdTo
         // The arrow a held finger is dragging out, in the colour it will be.
-        ? [...marks.arrows, [drawFrom, holdTo, colorOfNext(marks, drawFrom, holdTo, {
+        ? [...shownMarks.arrows, [drawFrom, holdTo, colorOfNext(marks, drawFrom, holdTo, {
           held: null, pen: drawColor, profile: arrowProfile, fen,
         }) ?? drawColor]]
-        : marks.arrows}
+        : shownMarks.arrows}
       boardWidth={boardWidth}
       orientation={orientation}
       halo={arrowProfile !== 'default'}
@@ -2263,6 +2329,44 @@ export default function AnalysisView({
         />
       </div>
     )}
+    {/* The game's Game Review as a whole: the engine's accuracy, the Notes
+        card, a Larry Review — and the way back to change it. */}
+    {liveGame && !coachMode && (
+      <div className="panel game-review-panel" style={{ maxWidth: boardWidth }}>
+        <div className="game-review-head">
+          <strong>Game Review</strong>
+          {review?.accuracy && (review.accuracy.white != null || review.accuracy.black != null) && (
+            <span className="muted-note game-review-acc">
+              Accuracy
+              {review.accuracy.white != null && ` · White ${review.accuracy.white.toFixed(1)}`}
+              {review.accuracy.black != null && ` · Black ${review.accuracy.black.toFixed(1)}`}
+            </span>
+          )}
+          <span style={{ flex: 1 }} />
+          <button
+            type="button"
+            className="small"
+            title="Open this game in Game Review, at the move on the board, to change its review"
+            onClick={editInGameReview}
+          >
+            <PencilIcon size={13} /> {review ? 'Edit in Game Review' : 'Open in Game Review'}
+          </button>
+        </div>
+        {!review && <p className="muted-note game-review-empty">Nothing from Game Review on this game yet.</p>}
+        {review?.note && (
+          <details className="game-review-part" open>
+            <summary>Notes card</summary>
+            <div className="game-review-text">{review.note}</div>
+          </details>
+        )}
+        {review?.larry && (
+          <details className="game-review-part">
+            <summary>Larry Review</summary>
+            <div className="game-review-text">{review.larry}</div>
+          </details>
+        )}
+      </div>
+    )}
     </>
   );
   // Reset board (App's resetBoard): already fresh — the start, nothing on it,
@@ -2414,6 +2518,51 @@ export default function AnalysisView({
     {currentNote && (
       <div className="side-note">
         <MoveNote key={currentNote.index} {...currentNote} startFen={baseFen} onMoveClick={highlightNoteSquare} />
+      </div>
+    )}
+    {/* What Game Review says on this move: its comment, its badge, CLAMP
+        letters and tactics (lib/reviewOnBoard). Changed in Game Review. */}
+    {reviewHere && (
+      <div className="side-note review-move-note">
+        <div className="review-move-head">
+          <span>Game Review</span>
+          {reviewHere.badge && BADGE_BY_ID[reviewHere.badge] && (
+            <span className="review-move-badge">
+              <MoveBadge id={reviewHere.badge} size={15} />
+              {BADGE_BY_ID[reviewHere.badge].label}
+              {reviewHere.engine && <span className="muted-note"> · engine</span>}
+            </span>
+          )}
+        </div>
+        {reviewHere.note && <p className="review-move-text">{reviewHere.note}</p>}
+        {reviewHere.clamp.map((c) => (
+          <div key={`${c.letter}${c.theirs}`} className="review-move-row">
+            <span
+              className={`mt-chip${c.theirs ? ' hollow' : ''}`}
+              style={c.theirs ? { color: c.color, borderColor: c.color } : { background: c.color }}
+              aria-hidden="true"
+            >
+              {c.letter}
+            </span>
+            <span>
+              <strong>{c.name}</strong>
+              {c.theirs && ` — their slip${c.out === 'p' ? ', you punished it' : c.out === 'm' ? ', you missed it' : ''}`}
+              {c.note && `: ${c.note}`}
+              {c.squares.length > 0 && <span className="muted-note"> ({c.squares.join(', ')})</span>}
+            </span>
+          </div>
+        ))}
+        {reviewHere.tactics.map((t) => (
+          <div key={t.plies.join('-')} className="review-move-row">
+            <span className="mt-chip" style={{ background: TACTIC_COLOR }} aria-hidden="true">T</span>
+            <span>
+              <strong>{t.names.join(', ')}</strong>
+              {' — '}
+              {t.words}
+              {t.note && ` ${t.note}`}
+            </span>
+          </div>
+        ))}
       </div>
     )}
     </>
@@ -3029,9 +3178,10 @@ export default function AnalysisView({
           <MoveTree
             root={tree}
             headId={head}
-            badges={moveBadges}
+            badges={shownBadges}
             moments={marksByMove}
-            highlights={variationHighlights}
+            chips={reviewChips}
+            highlights={shownHighlights}
             onHighlight={assignHighlight}
             startNumber={baseMeta.startNumber}
             startColor={baseMeta.startColor}
@@ -3164,7 +3314,7 @@ export default function AnalysisView({
       case 'notes': return Boolean(liveGame);
       case 'game': return Boolean((initialLine?.meta || initialLine?.subtitle) && moves.length > 0);
       case 'repertoire': return Boolean(fromStart && moves.length > 0);
-      case 'movenote': return Boolean(currentNote);
+      case 'movenote': return Boolean(currentNote || reviewHere);
       case 'moves': return moves.length > 0 || baseFen !== START_FEN;
       case 'moments': return tree.children.length > 0 || moments.length > 0;
       case 'annotate': return Boolean(coachMode);

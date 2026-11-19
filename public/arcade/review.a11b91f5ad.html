@@ -53343,6 +53343,53 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       });
       return out;
     };
+    // The engine's review of a game (its badges, the graph, accuracy): Chess Arcade keeps it on this device only
+    // (hrSave), so on another device, or the student's, the review had to be run again. Here it's one of the game's
+    // records too, 'rv' — the entry hrSave stores, as JSON — kept on the game in Repertoire Lab like the others and
+    // handed back on load. Opening a game, the newer of this device's review and the record's is shown; either
+    // stands only for the same moves (n, h). Chess Arcade's notes take only its own kinds (gnIdOk), so the record
+    // lives here, beside them.
+    const RV = new Map();          // gid -> the 'rv' text Repertoire Lab gave, or that a review here just wrote
+    const rvEntry = (S, R)=>{
+      const r1 = (v)=> v==null || !Number.isFinite(v) ? null : Math.floor(v*10 + 0.5)/10;      // accuracy: 0-100
+      return { at:R.at, n:S.main.length, h:hrSig(S), d:R.d, e:R.ev.map(hrEncScore).join(','),
+        b:R.b.map((id)=> (HR_BY_ID[id] || { code:'.' }).code).join(''), a:[r1(R.acc.white), r1(R.acc.black)] };
+    };
+    const rvParse = (gid, t)=>{
+      let e = null;
+      try{ e = t ? JSON.parse(t) : null; }catch(err){ e = null; }
+      return e && hrValidEntry(gid, e) ? e : null;
+    };
+    // The newest review of the game this device knows: the record's or its own store's, as the record's text.
+    const rvText = (gid)=>{
+      const mine = (()=>{ try{ return hrReadStore().g[gid] || null; }catch(err){ return null; } })();
+      const rec = rvParse(gid, RV.get(gid) || '');
+      const e = rec && (!mine || (rec.at || 0) >= (mine.at || 0)) ? rec : mine;
+      return e ? JSON.stringify(e) : '';
+    };
+    const reviewSaved = hrSave;
+    hrSave = function(S, R){
+      const ok = reviewSaved.apply(this, arguments);
+      try{
+        const gid = S && S.game && S.game.id ? String(S.game.id) : '';
+        const e = gid && R && !R.partial ? rvEntry(S, R) : null;
+        if(e && hrValidEntry(gid, e)){
+          RV.set(gid, JSON.stringify(e));
+          if(!quiet) tell('change', { gid });
+        }
+      }catch(err){}
+      return ok;
+    };
+    const reviewLoaded = hrLoad;
+    hrLoad = function(S){
+      let mine = null;
+      try{ mine = reviewLoaded.apply(this, arguments); }catch(err){ mine = null; }
+      const gid = S && S.game && S.game.id ? String(S.game.id) : '';
+      const e = gid ? rvParse(gid, RV.get(gid) || '') : null;
+      if(!e || e.n!==S.main.length || e.h!==hrSig(S) || (mine && (mine.at || 0) >= e.at)) return mine;
+      return { ev:e.e.split(',').map(hrDecScore), b:e.b.split('').map((c)=> HR_BY_CODE[c] ? HR_BY_CODE[c].id : null),
+        acc:{ white:e.a[0], black:e.a[1] }, at:e.at, d:e.d, partial:false };
+    };
     // The line on the board, from the start to the end of the line being looked at: on a fresh board,
     // the moves played (they're side lines there, the game having none of its own).
     const playedLine = ()=>{
@@ -53409,6 +53456,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         gid = String(gid);
         const out = { note: textOf(gid), an: textOf('an-'+gid) };
         kindsOf(gid).forEach(k=>{ const t = textOf(k+'-'+gid); if(t) out[k] = t; });
+        const rv = rvText(gid);
+        if(rv) out.rv = rv;
         return out;
       },
       // Puts them in before the game opens (or while it's open: it opens again, at the same move).
@@ -53419,7 +53468,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         quiet++;
         try{
           // every kind the game has, here or in Repertoire Lab: one Repertoire Lab doesn't have is cleared
-          const kinds = new Set(['note', 'an'].concat(kindsOf(gid), Object.keys(rec).filter(k=> KIND.test(k) && k!=='at')));
+          const kinds = new Set(['note', 'an'].concat(kindsOf(gid), Object.keys(rec).filter(k=> KIND.test(k) && k!=='at' && k!=='rv')));
           kinds.forEach(k=>{
             const id = k==='note' ? gid : k+'-'+gid;
             const t = typeof rec[k]==='string' ? rec[k] : '';
@@ -53428,12 +53477,22 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
             changed = true;
           });
         } finally { quiet--; }
+        // the engine's review, kept here (RV): a newer one shows on the open game at once, unless one is running
+        const rv = typeof rec.rv==='string' ? rec.rv : '';
+        let rvChanged = false;
+        if((RV.get(gid) || '')!==rv){
+          if(rv) RV.set(gid, rv); else RV.delete(gid);
+          rvChanged = true;
+        }
+        const open = HV_STATE && HV_STATE.game && String(HV_STATE.game.id)===gid;
         if(changed){
-          const open = HV_STATE && HV_STATE.game && String(HV_STATE.game.id)===gid;
           if(open){ try{ hvAnnRefresh(); }catch(e){} try{ gnRefreshFields(); }catch(e){} try{ if(typeof hvLrDraw==='function') hvLrDraw(); }catch(e){} }
           else HV_TREES.delete(gid);
         }
-        return changed;
+        if(rvChanged && open && !hrJob){
+          try{ HV_STATE.review = hrLoad(HV_STATE); hrRenderAll(); hvRedraw(); }catch(e){}
+        }
+        return changed || rvChanged;
       },
       open(game, opts){ hvOpen(game, null, opts || {}); },
       // Repertoire Lab's corners on (the review has the whole window) or off.
@@ -53594,6 +53653,18 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         try{ void ttPractice; }catch(e){ gone.push('ttPractice'); }
         try{ void setAnnoProfile; }catch(e){ gone.push('setAnnoProfile'); }
         try{ void annoProfile; }catch(e){ gone.push('annoProfile'); }
+        try{ void hrSave; }catch(e){ gone.push('hrSave'); }
+        try{ void hrLoad; }catch(e){ gone.push('hrLoad'); }
+        try{ void hrSig; }catch(e){ gone.push('hrSig'); }
+        try{ void hrEncScore; }catch(e){ gone.push('hrEncScore'); }
+        try{ void hrDecScore; }catch(e){ gone.push('hrDecScore'); }
+        try{ void hrValidEntry; }catch(e){ gone.push('hrValidEntry'); }
+        try{ void hrReadStore; }catch(e){ gone.push('hrReadStore'); }
+        try{ void hrJob; }catch(e){ gone.push('hrJob'); }
+        try{ void hrRenderAll; }catch(e){ gone.push('hrRenderAll'); }
+        try{ void hvRedraw; }catch(e){ gone.push('hvRedraw'); }
+        try{ void HR_BY_ID; }catch(e){ gone.push('HR_BY_ID'); }
+        try{ void HR_BY_CODE; }catch(e){ gone.push('HR_BY_CODE'); }
         return gone.concat(["home-fab","view-history"].filter((id)=> !document.getElementById(id)).map((id)=> '#'+id));
       },
     };
