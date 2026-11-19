@@ -8423,6 +8423,159 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   @media (min-width:641px){ .tt-b .tt-lab{ display:none; } }
   @media (pointer:coarse){ .tt-nm{ min-height:44px; } .tt-p{ min-height:44px; } .tt-t .tt-b .tt-n{ display:inline-block; padding:15px 0; margin:-15px 0; } .tt-phl{ gap:0 14px; } .tt-phn{ min-height:44px; } .tt .ct-l{ min-height:44px; display:inline-flex; align-items:center; } }
+  /* ---- Larry Suggestions on the review board (lz*, 2026-11-19): a card on top of the right column (three columns) or
+     the Larry tab of the first tabbed card. Larry's dashed disc is a suggestion not in the game yet: a dashed BORDER in
+     the letter's color (never .clamp-d.is-wait's outline, a filled disc of yours or a ring of theirs). ---- */
+  .lz-d{ box-sizing:border-box; width:18px; height:18px; flex:0 0 auto; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+    font:800 9px/1 "JetBrains Mono",monospace; background:transparent; border:1.5px dashed var(--cw);
+    color:color-mix(in srgb, var(--cw) 68%, var(--ink)); }
+  .lz-d.is-off{ border-color:color-mix(in srgb, var(--ink-soft) 55%, transparent); color:var(--ink-soft); }
+  .lz-d.is-big{ width:22px; height:22px; font-size:10.5px; }
+  .lz-card{ display:flex; flex-direction:column; gap:6px; flex:0 1 auto; min-height:0; padding:11px 12px 6px; overflow:hidden; }
+  .lz-card[hidden]{ display:none; }
+  .lz-head{ display:flex; align-items:center; gap:10px; min-height:22px; flex:0 0 auto; }
+  .lz-head .eyebrow{ white-space:nowrap; margin:0; }
+  .lz-fold{ display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; width:28px; height:28px; margin:-4px -6px -4px auto; padding:0; border:0; border-radius:6px;
+    background:none; color:var(--ink-soft); cursor:pointer; }
+  .lz-fold:hover{ background:var(--surface-2); color:var(--ink); }
+  .lz-fold:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+  .lz-fold .hv-fold-chev{ width:8px; height:8px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:translateY(2px) rotate(-135deg); }
+  .lz-fold[aria-expanded="false"] .hv-fold-chev{ transform:translateY(-2px) rotate(45deg); }
+  #lz-card > #hv-pane-larry{ display:flex; flex-direction:column; gap:6px; flex:1 1 auto; min-height:0; padding:0; overflow:visible; }      /* (the list's rows reach the card's edges) */
+  #lz-card.is-folded > #hv-pane-larry{ display:none; }
+  .lz-prog{ display:block; margin:-1px 0 2px; font-size:12px; line-height:1.45; color:var(--ink-soft); flex:0 0 auto; }
+  .lz-nw{ white-space:nowrap; }
+  .lz-prog b{ color:var(--ink); font-weight:700; }
+  .lz-prog .ct-l{ font-size:12px; }
+  .lz-items{ display:flex; flex-direction:column; min-height:0; overflow-y:auto; margin:0 -12px; padding:0 12px; scrollbar-width:thin; }
+  .lz-it{ display:flex; flex-direction:column; gap:3px; padding:8px 0 9px; border-top:1px solid var(--line); flex:0 0 auto; }
+  .lz-it.lz-cut{ display:none; }
+  .lz-it.is-focus{ margin:0 -12px; padding:9px 12px 11px 11px; background:color-mix(in srgb, var(--cw) 8%, var(--surface)); box-shadow:inset 3px 0 0 var(--cw); }
+  .lz-il1{ display:flex; align-items:center; gap:7px; min-width:0; }
+  .lz-mv{ font-family:"JetBrains Mono",monospace; font-size:12.5px; font-weight:700; color:var(--ink); text-decoration-color:var(--brass-text); white-space:nowrap; }
+  .lz-side{ min-width:0; font-size:12px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lz-side b{ color:var(--ink); font-weight:600; }
+  .lz-is{ margin-left:auto; font-size:12px; font-weight:700; white-space:nowrap; }
+  .lz-it.is-added .lz-is{ color:color-mix(in srgb, var(--good) 62%, var(--ink)); }
+  .lz-it.is-skipped .lz-is, .lz-it.is-had .lz-is{ color:var(--ink-soft); }
+  .lz-undo{ font-size:12px; color:var(--ink-soft); }
+  .lz-it.is-skipped .lz-mv, .lz-it.is-skipped .lz-side{ color:var(--ink-soft); opacity:.8; }
+  .lz-it.is-skipped .lz-mv{ text-decoration-color:color-mix(in srgb, var(--ink-soft) 50%, transparent); }
+  .lz-why{ margin:0; font-size:13px; line-height:1.4; color:var(--ink); }
+  .lz-why b{ font-family:"JetBrains Mono",monospace; font-size:12.5px; font-weight:700; white-space:nowrap; }
+  .lz-facts{ margin:0; font-size:11.5px; line-height:1.4; color:var(--ink-soft); }
+  /* (Game Boy's soft ink on the focused row's tint is under 4.5:1: nearer the ink there, light and dark) */
+  :root[data-skin="gameboy"] .lz-it.is-focus :is(.lz-side, .lz-facts){ color:color-mix(in srgb, var(--ink-soft) 60%, var(--ink)); }
+  .lz-acts{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .lz-acts .btn{ flex:0 0 auto; }
+  .lz-card .btn, #hv-pane-larry .btn{ font-size:12.5px; padding:6px 14px; }
+  .lz-more{ align-self:flex-start; margin:2px 0 4px; padding:6px 0; font-size:12px; flex:0 0 auto; }
+  :root[data-skin="uptown"] :is(.lz-card, #hv-pane-larry) .btn-primary{ padding-top:8px; padding-bottom:5px; background-position:0 2px; }
+  .lz-done{ display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:2px 0 8px; flex:0 0 auto; }
+  .lz-done-t{ font-size:14px; font-weight:800; color:var(--ink); }
+  .lz-done-s{ font-size:12.5px; color:var(--ink-soft); }
+  .lz-next{ margin-top:6px; max-width:100%; white-space:normal; text-align:left; }
+  /* Edit: the review's CLAMP menu rows, inline */
+  .lz-ed{ display:flex; flex-direction:column; gap:7px; margin-top:7px; padding-top:8px; border-top:1px dashed color-mix(in srgb, var(--cw) 45%, var(--line)); }
+  .lz-edl{ font-family:"JetBrains Mono",monospace; font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-soft); }
+  .lz-ed .hv-bdg-grid{ justify-content:start; padding:0; margin:0 0 0 -4px; grid-template-columns:repeat(5, 36px); }
+  .lz-ed .hv-clamp-whorow, .lz-ed .hv-clamp-out{ width:auto; min-width:0; padding:0; }
+  .lz-ed .hv-clamp-whob:disabled{ opacity:.4; cursor:default; }
+  .lz-ed textarea.text-input{ font-family:inherit; font-weight:400; font-size:13px; line-height:1.4; padding:6px 8px; resize:vertical; min-height:3.9em; }
+  .lz-sqs{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; }
+  .lz-sqs .ct-chip{ padding:3px 8px 3px 10px; color:var(--ink); border-color:var(--ink-soft); font-family:"JetBrains Mono",monospace; font-weight:700; cursor:pointer; }
+  .lz-sqs .ct-chip i{ font-style:normal; font-family:inherit; color:var(--ink-soft); margin-left:2px; }
+  .lz-ask{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; font-size:12.5px; color:var(--ink); }
+  .lz-ask .lz-ask-in{ width:4.2em; }
+  .lz-edf{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .lz-edf .lz-acts{ margin-top:2px; }
+  .lz-edn{ font-size:11.5px; color:var(--ink-soft); }
+  .lz-it.is-editing .lz-facts{ display:none; }
+  /* the Larry tab (under three columns): its count, hidden at none */
+  #hv-pane-larry.active{ display:flex; flex-direction:column; gap:6px; }
+  #hv-tabs > #hv-pane-larry .lz-items{ overflow:visible; }
+  #hv-tabs > #hv-pane-larry .lz-prog{ margin:0; font-size:12.5px; }
+  #hv-tabs > #hv-pane-larry .lz-prog .ct-l{ font-size:12.5px; }
+  .lz-tabn{ display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; margin-left:5px; padding:0 4px; box-sizing:border-box;
+    border-radius:8px; background:var(--ink); color:var(--surface); font:800 10px/1 "JetBrains Mono",monospace; vertical-align:1px; }
+  .lz-tabn[hidden]{ display:none; }
+  /* the move list: a waiting suggestion's dashed disc after the move */
+  .lz-mvd{ display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; width:14px; height:14px; margin-left:3px; vertical-align:-2px; border-radius:50%;
+    border:1.3px dashed var(--cw); background:transparent; color:color-mix(in srgb, var(--cw) 68%, var(--ink)); font:800 7.5px/1 "JetBrains Mono",monospace; }
+  /* (on Uptown's solid yellow viewed move a white middle keeps it readable; elsewhere it stays an empty dashed ring:
+     solid means added) */
+  :root[data-skin="uptown"] #view-play-history .hv-movelist .mv-san.mv-viewed .lz-mvd{ background:#fff; color:color-mix(in srgb, var(--cw) 78%, #000); }
+  /* the board: Larry's better move (dashed shaft, solid head) and the square his note names, in the letter's color */
+  .lz-svg{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:4; overflow:visible; }
+  /* three columns: the card keeps room for the engine card and the tabs (at least 4 whole move rows); the tab is unused */
+  @media (min-width:1440px) and (min-height:561px){
+    .hv-sidecol-analysis > .lz-card{ flex:0 1 auto; min-height:110px; max-height:calc(100% - 262px); }
+    .hv-sidecol-analysis > .lz-card.is-folded{ min-height:0; max-height:none; flex:0 0 auto; }
+    /* (the Moves card takes what's left, never squeezing the card for its long list: its basis 0) */
+    .hv-sidecol-analysis:has(> .lz-card:not([hidden])) > #hv-tabs{ flex:1 1 0; min-height:170px; }
+    .hv-sidecol-analysis > .lz-card.is-editing{ max-height:calc(100% - 232px); }
+    .hv-sidecol-analysis:has(> .lz-card.is-editing:not([hidden])) > #hv-tabs{ min-height:150px; }
+    #hv-tab-larry{ display:none; }
+  }
+  /* a phone or a tablet: decided rows keep their 44px Undo target, no more */
+  @media (pointer:coarse){ .lz-it.is-added, .lz-it.is-skipped, .lz-it.is-had{ padding:0; } .lz-it .lz-undo{ min-height:44px; } .lz-prog .ct-l{ min-height:32px; } .lz-sqs .ct-chip{ min-height:36px; } }
+  /* a phone: the facts line keeps Larry's label, the eval and the clock (the phase goes) */
+  @media (max-width:600px){ .lz-facts .lz-ph{ display:none; } }
+  :root[data-skin="bauhaus"] :is(.lz-tabn, .lz-fold){ border-radius:0; }
+  /* ---- the CLAMP tab's Larry Suggestions (lzv*, 2026-11-19): the switch's third button with its count of games to
+     check, the inbox (today's games newest first, earlier ones not finished, Done today) over Larry's dashboard (the
+     Mine cards, fed his flags: dashed = waiting, filled = added as yours, ring = added as theirs) ---- */
+  .ct-sideb.lz-sideb{ display:inline-flex; align-items:center; justify-content:center; }
+  .ct-sideb .lz-sbn{ margin-left:7px; height:17px; min-width:17px; font-size:10.5px; }
+  .ct-sideb .lz-sbn[hidden]{ display:none; }
+  .ct-sideb[aria-pressed="true"] .lz-sbn{ background:var(--surface); color:var(--ink); }
+  .lz-view{ display:flex; flex-direction:column; gap:14px; }
+  .lz-view[hidden]{ display:none; }
+  .lz-top .ct-head{ align-items:baseline; }
+  .lz-top .ct-sub{ margin-top:-6px; }
+  .lz-count{ margin:0; font-size:13.5px; line-height:1.45; color:var(--ink); }
+  .lz-count b{ font-weight:700; }
+  .lz-key{ display:flex; flex-wrap:wrap; gap:6px 18px; padding-top:10px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-soft); }
+  .lz-key span{ display:inline-flex; align-items:center; gap:7px; }
+  .lz-games{ gap:0; padding-top:12px; padding-bottom:4px; }
+  .lz-games > .ct-head{ padding-bottom:6px; }
+  .lz-games > .ct-head.lz-gh2{ padding:14px 0 6px; border-top:1px solid var(--line); }
+  .lz-row{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,180px) minmax(0,280px) auto; align-items:center; gap:6px 16px; padding:11px 0; border-top:1px solid var(--line); }
+  .lz-row-who{ min-width:0; }
+  .lz-row-l1{ display:flex; align-items:center; gap:8px; min-width:0; }
+  .lz-row-l1 .history-result-pill{ flex:0 0 auto; }
+  .lz-opp{ min-width:0; font-size:14.5px; font-weight:700; line-height:1.25; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lz-rt{ font-size:12px; color:var(--ink-soft); white-space:nowrap; }
+  .lz-row-l2{ margin-top:4px; font-size:12px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lz-ls{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; min-width:0; }
+  .lz-lc{ display:inline-flex; align-items:center; gap:5px; font:700 12.5px/1 "JetBrains Mono",monospace; color:var(--ink); }
+  .lz-lc .clamp-d{ width:18px; height:18px; font-size:9px; }
+  .lz-sep{ width:1px; height:16px; background:var(--line); margin:0 -2px; }
+  .lz-none{ font-size:12px; color:var(--ink-soft); font-style:italic; }
+  .lz-st{ font-size:12.5px; line-height:1.35; color:var(--ink-soft); }
+  .lz-st b{ color:var(--ink); font-weight:700; white-space:nowrap; }
+  .lz-row .btn{ font-size:12.5px; padding:6px 14px; }
+  .lz-row.is-done .lz-opp{ font-weight:600; }
+  .lz-done-h{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; width:100%; margin:0; padding:12px 0 10px; border:0; border-top:1px solid var(--line); background:none; cursor:pointer;
+    font:inherit; font-size:13.5px; font-weight:700; color:var(--ink); text-align:left; }
+  .lz-done-h:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  .lz-done-h .lz-chev{ display:inline-block; width:7px; height:7px; margin:0 2px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(-45deg); }
+  .lz-done-h[aria-expanded="true"] .lz-chev{ transform:translateY(-2px) rotate(45deg); }
+  .lz-done-h .lz-dn{ font-weight:400; font-size:12.5px; color:var(--ink-soft); }
+  .lz-all{ margin:0; padding:10px 0 8px; border-top:1px solid var(--line); font-size:12.5px; color:var(--ink-soft); }
+  .lz-src{ margin-top:0; }
+  /* Larry's dashboard: his pattern's letter dashed, his flags' state on the Moments cards */
+  .ct-fig.is-lz{ background:transparent; border:4px dashed var(--cw); box-sizing:border-box; color:color-mix(in srgb, var(--cw) 68%, var(--ink)); }
+  .ct-mnt .lz-mst{ font-weight:600; color:var(--ink); }
+  .ct-mnt.lz-mnt{ font-style:normal; color:var(--ink-soft); }
+  .ct-gx .lz-d, .ct-gl .lz-d, .ct-wrn .lz-d, .ct-chip .lz-d, .ct-bar .lz-d{ width:18px; height:18px; }
+  .gho-fact-tag.is-larry{ background:transparent; box-shadow:inset 0 0 0 1px var(--ink-soft); }
+  @media (max-width:760px){
+    .lz-row{ grid-template-columns:minmax(0,1fr) auto; }
+    .lz-ls, .lz-st{ grid-column:1; }
+    .lz-row > .btn{ grid-column:2; grid-row:1 / span 3; }
+  }
+  @media (pointer:coarse){ .lz-row .btn{ min-height:44px; } .lz-done-h{ min-height:44px; } }
 </style>
 <svg id="cc-defs" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden"><defs><linearGradient id="cc-lam-w" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100%" y2="100%"><stop offset="0" stop-color="#f6efdf"/><stop offset=".3" stop-color="#fbf8ef"/><stop offset=".4" stop-color="#ffffff"/><stop offset=".47" stop-color="#fffdf7"/><stop offset=".6" stop-color="#f7f1e3"/><stop offset="1" stop-color="#ece3cf"/></linearGradient><linearGradient id="cc-lam-b" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100%" y2="100%"><stop offset="0" stop-color="#2c2f40"/><stop offset=".33" stop-color="#1c1e2a"/><stop offset=".42" stop-color="#3b3f55"/><stop offset=".5" stop-color="#1e202d"/><stop offset="1" stop-color="#101119"/></linearGradient><linearGradient id="cc-lam-w45" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="45" y2="45"><stop offset="0" stop-color="#f6efdf"/><stop offset=".3" stop-color="#fbf8ef"/><stop offset=".4" stop-color="#ffffff"/><stop offset=".47" stop-color="#fffdf7"/><stop offset=".6" stop-color="#f7f1e3"/><stop offset="1" stop-color="#ece3cf"/></linearGradient><linearGradient id="cc-lam-b45" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="45" y2="45"><stop offset="0" stop-color="#2c2f40"/><stop offset=".33" stop-color="#1c1e2a"/><stop offset=".42" stop-color="#3b3f55"/><stop offset=".5" stop-color="#1e202d"/><stop offset="1" stop-color="#101119"/></linearGradient><linearGradient id="cc-lam-w100" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="100"><stop offset="0" stop-color="#f6efdf"/><stop offset=".3" stop-color="#fbf8ef"/><stop offset=".4" stop-color="#ffffff"/><stop offset=".47" stop-color="#fffdf7"/><stop offset=".6" stop-color="#f7f1e3"/><stop offset="1" stop-color="#ece3cf"/></linearGradient><linearGradient id="cc-lam-b100" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="100"><stop offset="0" stop-color="#2c2f40"/><stop offset=".33" stop-color="#1c1e2a"/><stop offset=".42" stop-color="#3b3f55"/><stop offset=".5" stop-color="#1e202d"/><stop offset="1" stop-color="#101119"/></linearGradient></defs></svg>
 
@@ -8746,6 +8899,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <button type="button" class="toggle" data-card="phase" aria-pressed="false">Phase of the game</button>
         <button type="button" class="toggle active" data-card="notes" aria-pressed="true">Notes</button>
         <button type="button" class="toggle active" data-card="comment" aria-pressed="true">Comment</button>
+        <button type="button" class="toggle active" data-card="larry" aria-pressed="true">Larry Suggestions</button>
         <button type="button" class="toggle active" data-card="engine" aria-pressed="true">Engine</button>
         <button type="button" class="toggle active" data-card="tabs" aria-pressed="true">Moves &#183; Review &#183; Explorer</button>
       </div>
@@ -8830,6 +8984,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <button class="btn-link" id="gn-sync-now" type="button">Sync now</button>
       </div>
       <div class="field-hint">Your notes, analysis and groups from Game History. With Lichess connected, they sync to your other devices through a private Lichess study.</div>
+      <div class="field-hint lz-set" id="lz-set" hidden></div>
     </div>
 
     <div class="modal-sep"></div>
@@ -9340,7 +9495,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
          Your pattern, your last 24 marked games letter by letter, where the marked moves happen, and every marked move as a
          board. Built in the script (ctRender); nothing here is guessed by the engine. -->
     <section class="ct" id="ct" role="tabpanel" aria-labelledby="gh-site-all" hidden>
-      <div class="ct-side" id="ct-side" role="group" aria-label="Whose slips"><button type="button" class="ct-sideb" data-side="mine" aria-pressed="true">Mine</button><button type="button" class="ct-sideb" data-side="theirs" aria-pressed="false">Theirs</button></div>
+      <div class="ct-side" id="ct-side" role="group" aria-label="Whose slips"><button type="button" class="ct-sideb" data-side="mine" aria-pressed="true">Mine</button><button type="button" class="ct-sideb" data-side="theirs" aria-pressed="false">Theirs</button><button type="button" class="ct-sideb lz-sideb" data-side="larry" aria-pressed="false">Larry Suggestions<span class="gh-badge lz-sbn" aria-hidden="true" hidden></span></button></div>
+      <div class="lz-view" id="lz-view" hidden></div>
       <div class="ct-card ct-empty" id="ct-empty" hidden></div>
       <section class="ct-card ct-pat" id="ct-pat" aria-labelledby="ct-pat-k" hidden></section>
       <section class="ct-card" id="ct-grid" aria-labelledby="ct-grid-h" hidden></section>
@@ -9643,6 +9799,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       <!-- The comment on the move on the board (hvComCard), over the engine card: only while that
            move has one. A region named by its move, never a live one (the move is announced already). -->
       <!-- The tactic on the move on the board (hvTacCard): above the comment card; in one column under the controls -->
+      <!-- Larry Suggestions (lz*): his CLAMP sheet's rows for this game, to add or skip. Three columns: this card; under
+           them its pane moves into the first tabbed card as the Larry tab (lzPlace) -->
+      <section class="hv-card lz-card" id="lz-card" aria-label="Larry Suggestions" hidden>
+        <div class="lz-head"><span class="eyebrow">Larry Suggestions</span><button type="button" class="lz-fold" id="lz-fold" aria-expanded="true" aria-controls="hv-pane-larry" aria-label="Fold Larry Suggestions"><span class="hv-fold-chev" aria-hidden="true"></span></button></div>
+        <div class="hv-pane hv-pane-larry" role="tabpanel" id="hv-pane-larry" aria-labelledby="hv-tab-larry"></div>
+      </section>
       <div class="hv-card hv-tac-card" id="hv-tac-card" role="region" hidden></div>
       <div class="hv-card hv-com-card" id="hv-com-card" role="region" hidden></div>
       <div class="hv-card hv-engine" id="hv-engine">
@@ -9673,6 +9835,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           <button class="hv-tab" role="tab" type="button" id="hv-tab-explorer" aria-controls="hv-pane-explorer" aria-selected="false" tabindex="-1" aria-keyshortcuts="7" title="Explorer (7)">Explorer</button>
           <button class="hv-tab hv-tab-gone" role="tab" type="button" id="hv-tab-similar" aria-controls="hv-pane-similar" aria-selected="false" tabindex="-1" aria-keyshortcuts="8" title="Similar openings (8)">Similar</button>
           <button class="hv-tab" role="tab" type="button" id="hv-tab-notes" aria-controls="hv-pane-notes" aria-selected="false" tabindex="-1" aria-keyshortcuts="6" title="Notes (6)">Notes</button>
+          <button class="hv-tab hv-tab-gone" role="tab" type="button" id="hv-tab-larry" aria-controls="hv-pane-larry" aria-selected="false" tabindex="-1" title="Larry Suggestions">Larry<span class="lz-tabn" id="lz-tabn" aria-hidden="true" hidden></span></button>
         </div>
         <div class="hv-pane hv-pane-moves active" role="tabpanel" id="hv-pane-moves" aria-labelledby="hv-tab-moves">
           <div class="ol-movelist hv-movelist" id="hv-movelist"></div>
@@ -30006,7 +30169,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   function ghFillStep(){
     if(currentView!=='history' || document.hidden || !ghFilling() || GH_STATE.loading) return;
-    if(spSyncRunning || gnSyncRunning || ghFetching){ ghScheduleFill(1500); return; }
+    if(spSyncRunning || gnSyncRunning || ghFetching || lzReq()){ ghScheduleFill(1500); return; }
     ghLoadPage(Math.min(GH_PAGE, GH_FILL_TO - GH_STATE.games.length), true);
   }
   function ghLoadMoreClick(){
@@ -30032,7 +30195,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   function ghShown(){
     rlShown();
-    if(ghCcUp()) ccShown();          // chess.com: the saved copy, then what's due (chesscom SPEC A.6)
+    if(ghCcUp()) ccShown();
+    lzSoon(2000);                    // Larry's suggestions: a fresh copy when the last is 10 minutes old          // chess.com: the saved copy, then what's due (chesscom SPEC A.6)
     // the account check starts before the first draw, so All's chess.com offer waits for it
     const verify = !!GH_STATE.games.length && !!GH_STATE.loadedFor && !!getLichessToken() && String(GH_STATE.username||'').toLowerCase()!==GH_STATE.loadedFor;
     if(verify) ghVerifyAccount();
@@ -33884,6 +34048,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     const cf = ctBriefFact(W, week);            // a CLAMP letter again (2026-11-02)
     if(cf) F.push(cf);
+    const lf = lzBriefFact();                   // Larry's one line (2026-11-19): right after the CLAMP fact, so in the first four
+    if(lf) F.push(lf);
     const tf = ttBriefFact();                   // the one Tactics line (2026-11-03): after the CLAMP fact, else after the first fact
     if(tf && (cf || F.length)) F.push(tf);
     if(rep){
@@ -35260,19 +35426,22 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
      nothing touches nothing (CT.sig, CT.msig); boards fill in as they come on screen. Nothing is guessed by the engine. ---- */
   const CT_DAYS = 30, CT_MIN = 5, CT_LAST = 12, CT_GRID = 24, CT_HALF = 12, CT_MOM_N = 16;
   const CT_PHASES = ['Opening', 'Middlegame', 'Endgame'];
-  var CT = { sig:'', msig:'', m:{ ch:'', b:null, out:'' }, shown:CT_MOM_N, model:null, back:null, y:null, ps:null, psN:0, gx:null, side:ctSideLoad() };     // gx: the grid's sideways scroll (null: never moved)
+  var CT = { sig:'', msig:'', m:{ ch:'', b:null, out:'' }, shown:CT_MOM_N, model:null, back:null, y:null, ps:null, psN:0, gx:null, side:ctSideLoad(), lzDone:false };     // gx: the grid's sideways scroll (null: never moved)
   var CT_DRILL = null;          // filters a CLAMP drill-down set (a letter, losses, a date): put back on return, unless changed since
   var CT_RP = new Map();        // game id -> the review's replay of a marked game (ctReplay)
+  var CT_LRP = new Map();       // the same for the games Larry flagged, up to his flags (Larry's dashboard)
   var CT_IO = null, CT_MS = 0, CT_DFMT = null;
   function ctOn(){ return GH_UI.view==='clamp'; }
   // Mine | Theirs (2026-11-12): the tab reads your marks (k) or the slips of theirs you marked (o), remembered on this device
   // (read while CT itself is made, before any const below it exists: the key is written out)
-  function ctSideLoad(){ try{ return localStorage.getItem('wavyChessPrepClampSide')==='theirs' ? 'theirs' : 'mine'; }catch(e){ return 'mine'; } }
+  // Larry Suggestions (2026-11-19): the third side, Larry's flags (lzv*: the inbox over his dashboard, ctModelL)
+  function ctSideLoad(){ try{ const v = localStorage.getItem('wavyChessPrepClampSide'); return v==='theirs' || v==='larry' ? v : 'mine'; }catch(e){ return 'mine'; } }
   function ctT(){ return CT.side==='theirs'; }
+  function ctL(){ return CT.side==='larry'; }
   // a game's marks for the side shown, as [ply, letter, note?]
   function ctMarks(gid){ return ctT() ? gnClampOOf(gid).map(x=> x[2] ? [x[0], x[1], x[2]] : [x[0], x[1]]) : gnClampOf(gid); }
   function ctSide(v){
-    v = v==='theirs' ? 'theirs' : 'mine';
+    v = v==='theirs' || v==='larry' ? v : 'mine';
     if(CT.side===v) return;
     CT.side = v;
     try{ localStorage.setItem('wavyChessPrepClampSide', v); }catch(e){}
@@ -35281,6 +35450,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     CT.gx = null;
     CT.sig = CT.msig = '';
     ghRender();
+    if(v==='larry') lzSoon(800);              // a fresh copy of Larry's sheet when the last is 10 minutes old
   }
   function ctHas(e, ch){ return e.k.some(x=> x[1]===ch); }
   // games per letter over entries L ({ k }): { C:n, L:n, A:n, M:n, P:n }
@@ -35320,16 +35490,23 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     d.setAttribute('aria-hidden', 'true');
     return d;
   }
+  // a letter's disc for the side shown: filled (yours), a ring (theirs), dashed (Larry's flags)
+  function ctD(md, K){ return md.L ? lzDisc(K.ch) : ctDisc(K, md.T); }
+  // one of Larry's flags as it is in the game now (x: a lzDashMarks entry): filled added or marked as yours, a ring as
+  // theirs, dashed still waiting
+  function ctDL(K, x){ return x[3]==='k' ? ctDisc(K) : x[3]==='o' ? ctDisc(K, true) : lzDisc(K.ch); }
   // a marked game as the review replays it (its moves through the review's resolver: a Chess960 castle or a bad move ends
   // it, as there), kept per game, moves and marks: how far it goes (can), the phases (hpfDivide, standard games only, as
   // the review's phase card), the Black-first offset of a set-up game (off) and, for the boards, the position before each
   // marked move with the move (at). Replayed only up to its last marked move: where the middlegame and the endgame begin
   // up to there doesn't depend on the moves after it (the endgame's rule implies the middlegame's), so a marked move's
   // phase is the same as over the whole game, at a fraction of the work
-  function ctReplay(g){
-    const id = String(g.id), mv = String(g.moves || '').trim(), K = gnClampOf(id).concat(gnClampOOf(id)), upTo = K.reduce((t, x)=> Math.max(t, x[0]), 0);
+  // xp: the moves to replay up to instead of the record's marks (Larry's flags: their own cache)
+  function ctReplay(g, xp){
+    const id = String(g.id), mv = String(g.moves || '').trim(), K = xp ? xp.map(p=> [p]) : gnClampOf(id).concat(gnClampOOf(id)), upTo = K.reduce((t, x)=> Math.max(t, x[0]), 0);
     const key = mv+'|'+(g.variant || '')+'|'+(g.initialFen || '')+'|'+(g._summary ? 1 : 0)+'|'+upTo+'|'+K.map(x=> x[0]).join(',');
-    let r = CT_RP.get(id);
+    const C = xp ? CT_LRP : CT_RP;
+    let r = C.get(id);
     if(r && r.key===key) return r;
     const toks = mv ? mv.split(/\s+/) : [];
     const noStart = !!g._summary && !ghIsStd(g) && !(typeof g.initialFen==='string' && g.initialFen.trim());
@@ -35345,7 +35522,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const std = ghIsStd(g) && !noStart, at = {};
     K.forEach(x=>{ const p = x[0]; if(p >= 1 && p <= moves.length) at[p] = [states[p-1], moves[p-1]]; });
     r = { key, toks, can:moves.length, off:st0.turn==='b' ? 1 : 0, std, d: std && moves.length ? hpfDivide(states) : null, at };
-    CT_RP.set(id, r);
+    C.set(id, r);
     return r;
   }
   function ctBucket(m, k){
@@ -35383,6 +35560,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // loaded yet. This part is quick (no replays): its signature (ctSig) decides whether anything is drawn again (ctModelMoves)
   function ctModel(base){
     const u = ghMe(), f = Object.assign({}, GH_FILTERS, { ck:'' }), now = ghoBriefNow(), from = now - CT_DAYS*86400e3;
+    if(ctL()) return ctModelL(base, u, f, from);
     const all = base.concat(ctExtras(base));
     const scope = all.filter(g=> ghMatch(g, u, f));
     // Not marked yet: your losses of the last 30 days (the Date filter's days when it is shorter) with no letters
@@ -35403,6 +35581,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     let any = G.length > 0, other = false;
     if(!any) any = all.some(g=> ctMarks(String(g.id)).length > 0);
     if(!any && GH_UI.site!=='all') other = ghBaseList('all').some(g=> ctMarks(String(g.id)).length > 0);
+    return Object.assign({ T, scope, G, any, other, loading:!base.length && ghTabBusy(), M:null, loss, lossDate,
+      lossWhen: lossFrom===from ? 'in the last '+CT_DAYS+' days' : f.date==='7' ? 'in the last 7 days' : 'this year' }, ctWin(G, from));
+  }
+  // the windows over marked games G (newest first): the pattern's, the grid's and its halves (Mine, Theirs and Larry's)
+  function ctWin(G, from){
     const byId = new Map(G.map(e=> [String(e.g.id), e]));
     // the pattern's window: the last 30 days with 5+ marked games, else your last 12; before it, the same kind of window
     const in30 = G.filter(e=> e.at >= from), days = in30.length >= CT_MIN;
@@ -35422,20 +35605,36 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const L = GG.filter(e=> ctHas(e, K.ch));
       return { K, n:L.length, score:ctPts(L), a:half ? half.a.filter(e=> ctHas(e, K.ch)).length : 0, b:half ? half.b.filter(e=> ctHas(e, K.ch)).length : 0 };
     });
-    return { T, scope, G, any, other, loading:!base.length && ghTabBusy(), byId, days, W, B, nW, nG, P, GG, half, rows, M:null, loss, lossDate,
-      lossWhen: lossFrom===from ? 'in the last '+CT_DAYS+' days' : f.date==='7' ? 'in the last 7 days' : 'this year' };
+    return { byId, days, W, B, nW, nG, P, GG, half, rows };
+  }
+  // Larry's dashboard: the games he flagged from 2026-11-18 on (his history, and his suggestions study for the days the
+  // history doesn't have yet) that the tab and the Filters keep, each with his flags you haven't skipped (lzDashMarks:
+  // waiting, added, or marked by you already), on your move. The same windows as Mine
+  function ctModelL(base, u, f, from){
+    const H = typeof LZ==='object' && LZ ? lzHistGames() : [], byH = new Map(H.map(x=> [x.id, x]));
+    const marks = (g)=>{ const x = byH.get(String(g.id)); return x && !ghVsComputer(g) ? lzDashMarks(x, g, u) : []; };
+    const scope = base.filter(g=> byH.has(String(g.id)) && !ghVsComputer(g) && ghMatch(g, u, f)), G = [];
+    scope.forEach(g=>{
+      const k = marks(g);
+      if(k.length) G.push({ g, k, q:[], o:null, at:Number(g.createdAt) || 0, res:ghGameResult(g, u), color:ghMyColor(g, u)==='white' ? 'white' : 'black', L:true });
+    });
+    G.sort((a, b)=> b.at - a.at);
+    let any = G.length > 0, other = false;
+    if(!any && H.length) any = base.some(g=> marks(g).length > 0);
+    if(!any && H.length && GH_UI.site!=='all') other = ghBaseList('all').some(g=> marks(g).length > 0);
+    return Object.assign({ T:false, L:true, scope, G, any, other, loading:!base.length && ghTabBusy(), M:null, loss:0, lossDate:String(CT_DAYS), lossWhen:'' }, ctWin(G, from));
   }
   // every marked move: its phase and clock only where the review replays it (standard games, as far as their moves go).
   // The slow part (a replay per marked game, kept in CT_RP): only when the signature changed
   function ctModelMoves(md){
     const M = [];
     md.G.forEach(e=>{
-      const r = e.r = ctReplay(e.g), mine = e.color==='white' ? 'w' : 'b', clock = md.T ? (mine==='w' ? 'b' : 'w') : mine;      // theirs: their clock
+      const r = e.r = ctReplay(e.g, e.L ? e.k.map(x=> x[0]) : null), mine = e.color==='white' ? 'w' : 'b', clock = md.T ? (mine==='w' ? 'b' : 'w') : mine;      // theirs: their clock
       e.k.forEach(x=>{
         const p = x[0], ok = r.std && p <= r.can;
         let ck = null;
         if(ok){ try{ ck = ghbClocks(e.g, p - 1, clock); }catch(err){ ck = null; } }
-        M.push({ e, p, ch:x[1], note:x[2] || '', ph: ok && r.d ? hpfPhaseOf(r.d, p - 1) : null, clk: ck ? { low:!!ck.trouble } : null, out: e.o ? e.o[p] || '' : '' });
+        M.push({ e, p, ch:x[1], note:x[2] || '', ph: ok && r.d ? hpfPhaseOf(r.d, p - 1) : null, clk: ck ? { low:!!ck.trouble } : null, out: e.o ? e.o[p] || '' : '', lz:e.L ? x : null });
       });
     });
     M.sort((a, b)=> b.e.at - a.e.at || b.p - a.p || 'CLAMP'.indexOf(a.ch) - 'CLAMP'.indexOf(b.ch));
@@ -35443,21 +35642,24 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     M.forEach(m=>{ const s = m.e.g.speed || ''; if(sp.indexOf(s) < 0) sp.push(s); });
     Object.assign(md, { M, sp, clkN:M.filter(m=> m.clk).length, phN:M.filter(m=> m.ph!=null).length });
     // the replays kept: every marked game here, and others while there's room (going back to a filter costs nothing)
-    if(CT_RP.size > Math.max(400, 2*md.G.length)) CT_RP.forEach((r, id)=>{ if(!md.byId.has(id)) CT_RP.delete(id); });
+    const C = md.L ? CT_LRP : CT_RP;
+    if(C.size > Math.max(400, 2*md.G.length)) C.forEach((r, id)=>{ if(!md.byId.has(id)) C.delete(id); });
     return md;
   }
   // what the cards are drawn from: the same games (loaded or not), marks (notes too), Filters, tab and hour draw nothing again
   function ctSig(md){
-    return [GH_UI.site, CT.side, JSON.stringify(Object.assign({}, GH_FILTERS, { ck:'' })), Math.floor(ghoBriefNow()/36e5), md.scope.length, md.loss, md.any ? 1 : 0, md.other ? 1 : 0,
+    return [GH_UI.site, CT.side, md.L && typeof LZ==='object' && LZ ? LZ.ver : '', JSON.stringify(Object.assign({}, GH_FILTERS, { ck:'' })), Math.floor(ghoBriefNow()/36e5), md.scope.length, md.loss, md.any ? 1 : 0, md.other ? 1 : 0,
       md.loading ? 1 : 0, md.G.map(e=> e.g.id+'@'+e.at+e.res+(e.g._summary ? 's' : '')+JSON.stringify(e.k)+(e.q.length ? JSON.stringify(e.q) : '')+(e.o ? JSON.stringify(e.o) : '')).join(';')].join('|');
   }
   function ctRender(base){
     const sec = document.getElementById('ct'), t0 = performance.now();
-    const md = ctModel(base);
+    const md = ctModel(base), lv = lzvModel();
     const cnt = document.getElementById('gh-count');
-    const ct = md.loading ? '' : (md.T ? ghoN(md.G.length, 'game')+' with their slips marked' : ghoN(md.G.length, 'marked game'))+' of '+ghoN(md.scope.length, 'game')+' against people';
+    const ct = md.L ? lzvCount(lv) : md.loading ? '' : (md.T ? ghoN(md.G.length, 'game')+' with their slips marked' : ghoN(md.G.length, 'marked game'))+' of '+ghoN(md.scope.length, 'game')+' against people';
     document.querySelectorAll('#ct-side .ct-sideb').forEach(b=>{ const on = b.dataset.side===CT.side; if(b.getAttribute('aria-pressed')!==String(on)) b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     if(cnt.textContent!==ct) cnt.textContent = ct;
+    lzvBadge(lv);
+    lzvDraw(!!md.L, lv);
     const sig = ctSig(md);
     if(sig!==CT.sig || !CT.model){
       const fa = document.activeElement, fid = fa && sec.contains(fa) && fa.dataset ? fa.dataset.fid || '' : '';
@@ -35476,7 +35678,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     ids.forEach(id=>{ document.getElementById(id).hidden = !show; });
     const src = document.getElementById('ct-src');
     src.hidden = !show;
-    src.textContent = md.T ? 'From the slips of theirs you marked by hand, punished or missed as you said it (filled in from your reply\u2019s badge when that was plain). The Filters above apply.'
+    src.textContent = md.L ? 'From Larry\u2019s CLAMP sheet: the moves he flagged since November 18 that you haven\u2019t skipped. The Filters above apply.'
+        +(typeof LZ==='object' && LZ && LZ.herr ? ' Larry\u2019s history couldn\u2019t be read from Lichess just now, so this shows the last copy of it. Chess Arcade will try again.' : '')
+      : md.T ? 'From the slips of theirs you marked by hand, punished or missed as you said it (filled in from your reply\u2019s badge when that was plain). The Filters above apply.'
       : 'From the CLAMP letters you put on your games by hand. Nothing here is guessed by the engine. The Filters above apply.';
     empty.textContent = '';
     empty.hidden = show || md.loading;      // games still loading: the footer says so
@@ -35484,7 +35688,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(empty.hidden) return;
       // nothing marked here: how to mark; or your marks are outside the Filters, or in another site's tab
       const out = md.any && ghActiveCount() > (GH_FILTERS.ck ? 1 : 0), tab = !md.any && md.other;
-      if(md.T){
+      if(md.L){
+        // Larry's: only when his flags are outside the Filters or in the other tab (the inbox above says the rest)
+        if(!out && !tab){ empty.hidden = true; return; }
+        empty.appendChild(ghEl('h3', 'ct-h', out ? 'No games Larry flagged match the Filters' : 'No games Larry flagged in this tab'));
+        empty.appendChild(ghEl('p', 'ct-sub', out ? 'The games Larry flagged are outside the Filters you set.' : 'Larry checks your chess.com games: see them in All.'));
+      }
+      else if(md.T){
         empty.appendChild(ghEl('h3', 'ct-h', out ? 'No games with their slips match the Filters' : tab ? 'No games with their slips in this tab' : 'No slips of theirs marked yet'));
         empty.appendChild(ghEl('p', 'ct-sub', out ? 'Your games with slips of theirs marked are outside the Filters you set.' : tab ? 'Your games with slips of theirs marked are in the other site\u2019s games: see them in All.'
           : 'In a review, right-click one of their moves (press and hold on a phone), set the CLAMP row to Theirs and pick its letters. How often you punish their slips shows here.'));
@@ -35571,14 +35781,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function ctDrawPat(md){
     const box = document.getElementById('ct-pat'), P = md.P, K = CLAMP_BY[P.ch];
     box.textContent = '';
-    const head = ghEl('div', 'ct-head'), h = ghEl('h3', 'ct-k', md.days ? 'Your pattern \u00b7 last '+CT_DAYS+' days' : 'Your pattern \u00b7 your last '+ghoN(md.W.length, 'marked game'));
+    const Lz = !!md.L, head = ghEl('div', 'ct-head');
+    const h = ghEl('h3', 'ct-k', Lz ? (md.days ? 'Larry\u2019s pattern \u00b7 last '+CT_DAYS+' days' : 'Larry\u2019s pattern \u00b7 the last '+ghoN(md.W.length, 'game')+' he flagged')
+      : md.days ? 'Your pattern \u00b7 last '+CT_DAYS+' days' : 'Your pattern \u00b7 your last '+ghoN(md.W.length, 'marked game'));
     h.id = 'ct-pat-k';
-    head.append(h, ghEl('span', 'ct-n', md.days ? ghoN(md.W.length, 'marked game') : 'Fewer than '+CT_MIN+' in the last '+CT_DAYS+' days'));
+    head.append(h, ghEl('span', 'ct-n', md.days ? (Lz ? ghoN(md.W.length, 'game')+' he flagged' : ghoN(md.W.length, 'marked game')) : 'Fewer than '+CT_MIN+' in the last '+CT_DAYS+' days'));
     box.appendChild(head);
-    const two = ghEl('div', 'ct-two'), hero = ghEl('div', 'ct-hero'), fig = ghEl('div', 'ct-fig', K.ch);
-    fig.style.background = K.color;
+    const two = ghEl('div', 'ct-two'), hero = ghEl('div', 'ct-hero'), fig = ghEl('div', 'ct-fig'+(Lz ? ' is-lz' : ''), K.ch);
+    if(Lz) fig.style.setProperty('--cw', K.color); else fig.style.background = K.color;
     fig.setAttribute('aria-hidden', 'true');
-    let vs = (P.tied ? 'Tied for your most repeated letter' : 'Your most repeated letter');
+    let vs = Lz ? (P.tied ? 'Tied for Larry\u2019s most repeated letter' : 'Larry\u2019s most repeated letter') : (P.tied ? 'Tied for your most repeated letter' : 'Your most repeated letter');
     if(P.ofB){
       const a = P.n/P.of, b = P.nB/P.ofB;
       vs += ', '+(Math.abs(a - b) < 1e-9 ? 'same as ' : a > b ? 'up from ' : 'down from ')+P.nB+' of '+P.ofB+(md.days ? ' in the '+CT_DAYS+' days before' : ' before');
@@ -35591,10 +35803,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const a1 = ghEl('button', 'ct-l', nm===1 ? 'See the moment' : 'See the '+nm+' moments'), a2 = ghEl('button', 'ct-l', ao || 'Their games');
     a1.type = a2.type = 'button';
     a1.dataset.act = 'mom'; a1.dataset.ch = P.ch; a1.dataset.fid = 'pat|mom';
-    a1.setAttribute('aria-label', (nm===1 ? 'See the move' : 'See the '+nm+' moves')+' you marked '+K.name);
+    a1.setAttribute('aria-label', (nm===1 ? 'See the move' : 'See the '+nm+' moves')+(Lz ? ' Larry flagged ' : ' you marked ')+K.name);
     a2.dataset.act = 'games'; a2.dataset.ch = P.ch; a2.dataset.win = '1'; a2.dataset.fid = 'pat|games';
     a2.setAttribute('aria-label', ao ? ao+': all your games with '+K.name : 'Their games: your games with '+K.name+(md.days ? ' in the last '+CT_DAYS+' days' : ''));
-    acts.append(a1, a2);
+    acts.appendChild(a1);
+    if(!Lz) acts.appendChild(a2);             // (the Games view's CLAMP filter reads your own marks, not Larry's)
     hero.appendChild(acts);
     two.appendChild(hero);
     // each letter's games in the window (a bar's width: its share of them); a bar opens those games
@@ -35605,8 +35818,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       i.style.width = (md.W.length ? 100*n/md.W.length : 0).toFixed(1)+'%';
       i.style.background = X.color;
       tr.appendChild(i);
-      b.append(ctDisc(X), ghEl('span', 'ct-bar-n', X.short), tr, ghEl('b', '', String(n)));
-      if(n){
+      b.append(ctD(md, X), ghEl('span', 'ct-bar-n', X.short), tr, ghEl('b', '', String(n)));
+      if(n && Lz){
+        // Larry's: a bar opens his moments of that letter
+        b.type = 'button'; b.dataset.act = 'mom'; b.dataset.ch = X.ch; b.dataset.fid = 'bar|'+X.ch;
+        b.setAttribute('aria-label', X.name+': Larry flagged it in '+n+' of '+md.W.length+' games. Show the moments');
+      }
+      else if(n){
         b.type = 'button'; b.dataset.act = 'games'; b.dataset.ch = X.ch; b.dataset.win = '1'; b.dataset.fid = 'bar|'+X.ch;
         const ao = allOf(X.ch);
         b.setAttribute('aria-label', X.name+': '+n+' of '+md.W.length+' games. '+(ao ? 'Show all '+md.nG[X.ch]+' of your games with it' : 'Show them'));
@@ -35629,9 +35847,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function ctDrawGrid(md){
     const box = document.getElementById('ct-grid'), GG = md.GG.slice().reverse(), n = GG.length, u = ghMe(), H = md.half;
     box.textContent = '';
-    const T = md.T, h = ghEl('h3', 'ct-h', T ? (n===1 ? 'Your last game with their slips' : 'Your last '+n+' games with their slips') : n===1 ? 'Your last marked game' : 'Your last '+n+' marked games');
+    const T = md.T, Lz = !!md.L;
+    const h = ghEl('h3', 'ct-h', Lz ? (n===1 ? 'The last game Larry flagged' : 'The last '+n+' games Larry flagged') : T ? (n===1 ? 'Your last game with their slips' : 'Your last '+n+' games with their slips') : n===1 ? 'Your last marked game' : 'Your last '+n+' marked games');
     h.id = 'ct-grid-h';
-    box.append(h, ghEl('p', 'ct-sub', T ? 'One column per game, oldest on the left. A ringed letter: you marked that kind of slip of theirs in the game. A column opens the game at its first marked move.'
+    box.append(h, ghEl('p', 'ct-sub', Lz ? 'One column per game, oldest on the left. A dashed letter: Larry flagged that kind of mistake and it\u2019s waiting for you; filled: it\u2019s in the game as yours; a ring: as theirs. A column opens the game at its first flagged move.'
+      : T ? 'One column per game, oldest on the left. A ringed letter: you marked that kind of slip of theirs in the game. A column opens the game at its first marked move.'
       : 'One column per game, oldest on the left. A filled letter: you marked that kind of mistake in the game. A column opens the game at its first marked move.'));
     const sc = ghEl('div', 'ct-scroll'), g = ghEl('div', 'ct-g');
     g.style.gridTemplateColumns = 'var(--ct-lw) repeat('+n+', minmax(var(--ct-cw), 1fr)) 46px'+(H ? ' 76px' : '')+' 52px';
@@ -35640,9 +35860,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const lab = ghEl('div', 'ct-gc ct-glab');
     lab.appendChild(ghEl('span', 'ct-gh'));
     CLAMP_K.forEach(K=>{
-      const b = ghEl(T ? 'span' : 'button', 'ct-gl');
-      if(!T){ b.type = 'button'; b.dataset.act = 'games'; b.dataset.ch = K.ch; b.dataset.fid = 'gl|'+K.ch; b.setAttribute('aria-label', K.name+': show your games with it'); }
-      b.append(ctDisc(K, T), ghEl('span', 'ct-gl-n', K.short));
+      const b = ghEl(T || Lz ? 'span' : 'button', 'ct-gl');
+      if(!T && !Lz){ b.type = 'button'; b.dataset.act = 'games'; b.dataset.ch = K.ch; b.dataset.fid = 'gl|'+K.ch; b.setAttribute('aria-label', K.name+': show your games with it'); }
+      b.append(ctD(md, K), ghEl('span', 'ct-gl-n', K.short));
       lab.appendChild(b);
     });
     lab.appendChild(ghEl('span', 'ct-gr ct-grl', 'Result'));
@@ -35652,13 +35872,19 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const b = ghEl('button', 'ct-gc ct-gcol'), go = e.k.find(x=> x[0] <= e.r.can), opp = ghOppName(ghPlayers(e.g, u).opp);
       b.type = 'button'; b.dataset.gid = String(e.g.id); b.dataset.fid = 'gc|'+e.g.id;
       b.appendChild(ghEl('span', 'ct-gh'));
-      CLAMP_K.forEach(K=>{ const c = ghEl('span', 'ct-gx'); c.appendChild(ctHas(e, K.ch) ? ctDisc(K, T) : ghEl('span', 'ct-ring')); b.appendChild(c); });
+      CLAMP_K.forEach(K=>{
+        const c = ghEl('span', 'ct-gx');
+        // Larry's: filled when one of his flags of the letter is in the game as yours, a ring as theirs, else dashed
+        const xs = Lz ? e.k.filter(x=> x[1]===K.ch) : null, x = xs && (xs.find(y=> y[3]==='k') || xs.find(y=> y[3]==='o') || xs[0]);
+        c.appendChild(!ctHas(e, K.ch) ? ghEl('span', 'ct-ring') : Lz ? ctDL(K, x) : ctDisc(K, T));
+        b.appendChild(c);
+      });
       const r = ghEl('span', 'ct-gr'), ri = ghEl('i', 'is-'+e.res);
       r.appendChild(ri);
       b.appendChild(r);
       const names = CLAMP_K.filter(K=> ctHas(e, K.ch)).map(K=> K.name).join(', ');
       let t = ctDay(e.at)+': '+ctRes(e.res).toLowerCase()+' against '+opp+'. '+names+'. ';
-      if(go){ b.dataset.ply = String(go[0]); b.dataset.ck = go[1]; t += 'Open the review at '+ghClampLabel(go[0], e.r.toks[go[0]-1], e.r.off); }
+      if(go){ b.dataset.ply = String(go[0]); b.dataset.ck = go[1]; if(Lz) b.dataset.k = go[4]; t += 'Open the review at '+ghClampLabel(go[0], e.r.toks[go[0]-1], e.r.off); }
       else{ b.setAttribute('aria-disabled', 'true'); b.classList.add('is-off'); t += 'The review can\u2019t show its marked moves'; }
       b.setAttribute('aria-label', t);
       b.title = t;
@@ -35680,7 +35906,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     };
     g.appendChild(col('Games', md.rows.map(x=> [String(x.n), x.K.name+': in '+x.n+' of '+n+' games'])));
     if(H) g.appendChild(col('Last '+H.n, md.rows.map(x=>{
-      const k = x.a===x.b ? 'flat' : x.a > x.b ? 'up' : 'down', t = x.K.name+': '+x.a+' of your newest '+H.n+' marked games, '+x.b+' of the '+H.n+' before them';
+      const k = x.a===x.b ? 'flat' : x.a > x.b ? 'up' : 'down', t = x.K.name+': '+x.a+(Lz ? ' of the newest '+H.n+' games Larry flagged, ' : ' of your newest '+H.n+' marked games, ')+x.b+' of the '+H.n+' before them';
       const s = ghEl('span', 'ct-trend is-'+k, (k==='up' ? '\u2191 ' : k==='down' ? '\u2193 ' : '')+x.a+' vs '+x.b);
       s.title = t;
       return [s, t];
@@ -35693,7 +35919,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     dt(''); if(H) dt(''); dt('');
     sc.appendChild(g);
     box.appendChild(sc);
-    box.appendChild(ghEl('p', 'ct-sub ct-foot', (H ? 'Last '+H.n+': your newest '+H.n+' marked games against the '+H.n+' before them. ' : '')+'Scored: your points in the games with that letter. '
+    box.appendChild(ghEl('p', 'ct-sub ct-foot', (H ? 'Last '+H.n+(Lz ? ': the newest '+H.n+' games Larry flagged against the ' : ': your newest '+H.n+' marked games against the ')+H.n+' before them. ' : '')+'Scored: your points in the games with that letter. '
       +'Result: a solid bar won, a thin line drew, an outline lost.'));
     // a narrow screen: opened at the newest games and the totals (the letters stay at the left); drawn again, where you had it
     sc.addEventListener('scroll', ()=>{ CT.gx = { x:sc.scrollLeft, end:sc.scrollLeft >= sc.scrollWidth - sc.clientWidth - 1 }; ctGridDates(sc); }, { passive:true });
@@ -35718,7 +35944,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const h = ghEl('h3', 'ct-h', 'Where they happen');
     h.id = 'ct-where-h';
     const off = M.length - md.phN;
-    box.append(h, ghEl('p', 'ct-sub', (md.T ? 'Their slips you marked, counted.' : 'Your marked moves, counted.')+' An outlined count is where a letter shows up most in its group. Phase: as the review\u2019s phase card divides the game.'
+    box.append(h, ghEl('p', 'ct-sub', (md.L ? 'The moves Larry flagged, counted.' : md.T ? 'Their slips you marked, counted.' : 'Your marked moves, counted.')+' An outlined count is where a letter shows up most in its group. Phase: as the review\u2019s phase card divides the game.'
       +(md.clkN ? ' Low on time: under 10% of '+(md.T ? 'their' : 'your')+' starting time left before the move ('+md.clkN+' of '+ghoN(M.length, 'move')+' had clocks).' : '')
       +(off ? ' '+(off===1 ? '1 move' : off+' moves')+' from Chess960, other variants or set-up games '+(off===1 ? 'isn\u2019t' : 'aren\u2019t')+' in Phase'+(md.clkN ? ' or Clock' : '')+'.' : '')));
     const groups = [['phase', 'Phase', ['0', '1', '2']], ['color', 'Color', ['white', 'black']], ['speed', 'Speed', md.sp]];
@@ -35738,7 +35964,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const tr = ghEl('tr'), th = ghEl('th', 'ct-wr'), sp = ghEl('span', 'ct-wrn');
       tr.style.setProperty('--c', K.color);
       th.scope = 'row';
-      sp.append(ctDisc(K, md.T), document.createTextNode(K.short));
+      sp.append(ctD(md, K), document.createTextNode(K.short));
       th.appendChild(sp);
       tr.appendChild(th);
       const mine = M.filter(m=> m.ch===K.ch);
@@ -35783,7 +36009,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     box.textContent = '';
     const head = ghEl('div', 'ct-mom-h'), ht = ghEl('div', ''), h = ghEl('h3', 'ct-h', 'Moments');
     h.id = 'ct-mom-h';
-    ht.append(h, ghEl('p', 'ct-sub', md.T ? 'Every slip of theirs you marked, newest first: the position before their move, the move drawn in its letter\u2019s color, punished or missed as you said it. A card opens the review at that move.'
+    ht.append(h, ghEl('p', 'ct-sub', md.L ? 'Every move Larry flagged that you haven\u2019t skipped, newest first: the position before it, your move drawn in its letter\u2019s color. A dashed letter is still waiting for you. A card opens the review on that move.'
+      : md.T ? 'Every slip of theirs you marked, newest first: the position before their move, the move drawn in its letter\u2019s color, punished or missed as you said it. A card opens the review at that move.'
       : 'Every move you marked, newest first: the position before it, the move drawn in its letter\u2019s color. A card opens the review at that move.'));
     head.appendChild(ht);
     const chips = ghEl('div', 'ct-chips');
@@ -35792,7 +36019,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const chip = (ch, n)=>{
       const K = CLAMP_BY[ch], b = ghEl('button', 'ct-chip'+(K ? '' : ' is-all'));
       b.type = 'button'; b.dataset.act = 'chip'; b.dataset.ch = ch; b.dataset.fid = 'chip|'+(ch || 'all');
-      if(K) b.append(ctDisc(K, md.T), document.createTextNode(String(n))); else b.textContent = 'All '+n;
+      if(K) b.append(ctD(md, K), document.createTextNode(String(n))); else b.textContent = 'All '+n;
       b.setAttribute('aria-pressed', (ch ? m.ch===ch : !m.ch && !bk && !m.out) ? 'true' : 'false');
       b.setAttribute('aria-label', K ? K.name+': '+(n===1 ? '1 move' : n+' moves') : 'All: '+(n===1 ? '1 move' : n+' moves'));
       chips.appendChild(b);
@@ -35844,18 +36071,31 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     b.dataset.gid = String(g.id); b.dataset.ply = String(x.p); b.dataset.ck = x.ch; b.dataset.fid = 'm|'+g.id+'|'+x.p+'|'+x.ch;
     if(can) b.appendChild(ghEl('span', 'ct-mbd'));          // the board: filled as it comes on screen (ctMomFill)
     else b.append(ghEl('span', 'ph-sr', K.name+': '), ghEl('span', 'ct-moff', 'The review can\u2019t show this move'));     // past a Chess960 castle, say: no board, nothing to open
-    const mv = ghEl('span', 'ct-mmv'), T = !!e.o;
-    mv.append(ctDisc(K, T), ghEl('span', 'ct-mlab', lab));
+    const mv = ghEl('span', 'ct-mmv'), T = !!e.o, Z = x.lz;
+    // Larry's flag (Z: lzDashMarks' entry): its disc says where it stands (dashed waiting, filled yours, ring theirs);
+    // one calm tag only where he and you found the same thing
+    const zs = Z ? (Z[5] ? 'You marked it too' : Z[3]==='w' ? 'Waiting' : Z[3]==='o' ? 'Added as theirs' : 'Added') : '';
+    if(Z) b.dataset.k = Z[4];
+    mv.append(Z ? ctDL(K, Z) : ctDisc(K, T), ghEl('span', 'ct-mlab', lab));
     if(T) mv.appendChild(ghEl('span', 'ct-mout is-'+(x.out || 'n'), x.out==='p' ? 'Punished' : x.out==='m' ? 'Missed' : 'Not said'));
     if(x.ph!=null) mv.appendChild(ghEl('span', 'ct-mph', CT_PHASES[x.ph]));
     b.appendChild(mv);
-    if(x.note) b.appendChild(ghEl('span', 'ct-mnt', '\u201c'+x.note+'\u201d'));
+    if(Z){
+      // (the calm tag where you and he found the same thing: on the note's line, the card's top row stays as Mine's)
+      if(x.note || Z[5]){
+        const nt = ghEl('span', 'ct-mnt lz-mnt');
+        if(Z[5]) nt.appendChild(ghEl('b', 'lz-mst', zs));
+        if(x.note) nt.appendChild(document.createTextNode((Z[5] ? ' \u00b7 ' : '')+'Larry: '+x.note));
+        b.appendChild(nt);
+      }
+    }
+    else if(x.note) b.appendChild(ghEl('span', 'ct-mnt', '\u201c'+x.note+'\u201d'));
     const ft = ghEl('span', 'ct-mft');
     ft.append(ghEl('b', '', ctRes(e.res)), document.createTextNode(' vs '+opp+' \u00b7 '+ctDay(e.at)));
     b.appendChild(ft);
     const sqs = (e.q || []).filter(y=> y[0]===x.p && y[1]===x.ch).map(y=> y[2]);          // its squares: outlined on the board (ctMomFill)
-    if(can) b.setAttribute('aria-label', (T ? 'Their slip, ' : '')+K.name+': '+lab+(sqs.length ? ' on '+sqs.join(', ') : '')+(x.ph!=null ? ', '+CT_PHASES[x.ph].toLowerCase() : '')+'. '
-      +(T ? (x.out==='p' ? 'You punished it. ' : x.out==='m' ? 'You missed it. ' : '') : '')+(x.note ? 'Your note: '+x.note+'. ' : '')
+    if(can) b.setAttribute('aria-label', (T ? 'Their slip, ' : Z ? 'Larry\u2019s flag, ' : '')+K.name+': '+lab+(sqs.length ? ' on '+sqs.join(', ') : '')+(x.ph!=null ? ', '+CT_PHASES[x.ph].toLowerCase() : '')+'. '
+      +(T ? (x.out==='p' ? 'You punished it. ' : x.out==='m' ? 'You missed it. ' : '') : '')+(Z ? zs+'. '+(x.note ? 'Larry: '+x.note+'. ' : '') : x.note ? 'Your note: '+x.note+'. ' : '')
       +ctRes(e.res)+' against '+opp+', '+ctDay(e.at)+'. Open the review at this move');
     return b;
   }
@@ -35867,7 +36107,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(bd.firstChild || !bd.isConnected) return;
       const c = bd.closest('.ct-m'), e = c && CT.model ? CT.model.byId.get(c.dataset.gid) : null, K = c ? CLAMP_BY[c.dataset.ck] : null;
       if(!e || !K) return;
-      const p = Number(c.dataset.ply), x = ctReplay(e.g).at[p], st = x && x[0], mv = x && x[1];
+      const p = Number(c.dataset.ply), x = (e.r || ctReplay(e.g)).at[p], st = x && x[0], mv = x && x[1];
       if(!st || !mv) return;
       const sqs = (e.q || []).filter(y=> y[0]===p && y[1]===K.ch).map(y=> ({ s:y[2], c:K.color, o:1 }));
       try{ bd.appendChild(nbMiniBoard({ fen:pzStateToFEN(st, p - 1), flip:e.color==='black', arrows:[{ f:sq(mv.from), t:sq(mv.to), c:K.color }], squares:sqs, label:'', ply:null, line:null, extra:[] })); }catch(err){}
@@ -35896,8 +36136,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function ctFromBrief(ch){ ghoSetView('clamp'); ctSetMoments(ch, null, true); }
   // the review at a marked move (Go to move: the position before it, then the move played, hvClampGo); back here
   // where you were, the keyboard on what opened it
-  function ctOpen(e, p, ch, fid){
+  // k: one of Larry's flags (his dashboard): a game his suggestions study still has opens on Larry's suggestions with it in
+  // focus; an older one at the move, as any marked move
+  function ctOpen(e, p, ch, fid, k){
     CT.back = { y:window.scrollY, fid };
+    if(e.L && k && typeof LZ==='object' && LZ && LZ.games[String(e.g.id)] && lzOpenGame(String(e.g.id), k)) return;
     ghOpenGame(e.g, { at:{ ply:p - 1 }, clamp:{ ply:p, ch } });
   }
   function ctBack(){
@@ -35979,12 +36222,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const t = e.target.closest('button');
       if(!t || !sec.contains(t)) return;
       if(t.classList.contains('ct-sideb')){ ctSide(t.dataset.side); return; }
+      if(t.dataset.act==='lzrev' || t.dataset.act==='lzdone'){ lzvClick(t); return; }      // Larry's inbox
       const md = CT.model, a = t.dataset.act;
       if(!md) return;
       if(t.classList.contains('ct-gcol') || t.classList.contains('ct-m')){
         const x = md.byId.get(t.dataset.gid);
         if(!x || !t.dataset.ply || t.getAttribute('aria-disabled')==='true') return;      // a game the review can't show at its marks
-        ctOpen(x, Number(t.dataset.ply), t.dataset.ck, t.dataset.fid);
+        ctOpen(x, Number(t.dataset.ply), t.dataset.ck, t.dataset.fid, t.dataset.k);
         return;
       }
       if(a==='mom') ctSetMoments(t.dataset.ch, null, true);
@@ -38682,16 +38926,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   //      hidden (E: the arrows and lines, never the eval), last tab, explorer database ----
   const HV_PREFS_KEY = 'wavyChessPrepReviewPrefs';
   const HV_TABS = ['moves', 'review', 'explorer', 'similar', 'notes'];
-  const HV_TABS1 = ['review', 'moves', 'notes'], HV_TABS2 = ['engine', 'explorer', 'similar'];      // the two cards under three columns
-  const HV_CARDS = ['head', 'phase', 'notes', 'comment', 'engine', 'tabs'];     // the cards around the board (Settings)
+  const HV_TABS1 = ['review', 'moves', 'notes', 'larry'], HV_TABS2 = ['engine', 'explorer', 'similar'];      // the two cards under three columns
+  const HV_CARDS = ['head', 'phase', 'notes', 'comment', 'engine', 'tabs', 'larry'];     // the cards around the board (Settings)
   const hvPrefs = (function(){
     // v2 (2026-11-02): the phase card is off unless turned on in Settings (it was on); fold: the
     // left column's two cards folded to their first lines (three columns). cards.comment (2026-11-02,
     // the comment card over the engine): on, and on for a save from before it (no key)
     // tab1 / tab2 (2026-11-02): the two tabbed cards' tabs under three columns (Game review | Moves |
     // Notes, Engine | Explorer); tab is the three columns' own
-    const p = { v:2, engine:true, arrows:[true, true, true], hide:false, tab:'moves', exDb:'masters', cards:{ head:true, phase:false, notes:true, comment:true, engine:true, tabs:true }, phaseOpen:false,
-      fold:{ head:false, notes:false }, tab1:'moves', tab2:'engine' };
+    const p = { v:2, engine:true, arrows:[true, true, true], hide:false, tab:'moves', exDb:'masters', cards:{ head:true, phase:false, notes:true, comment:true, engine:true, tabs:true, larry:true }, phaseOpen:false,
+      fold:{ head:false, notes:false, larry:false }, tab1:'moves', tab2:'engine' };
     try{
       const raw = JSON.parse(localStorage.getItem(HV_PREFS_KEY) || 'null');
       if(raw && typeof raw==='object'){
@@ -38707,7 +38951,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         // saved before v2, cards.phase was the old default (every save wrote it): off now, once
         if(!(raw.v >= 2)) p.cards.phase = false;
         if(typeof raw.phaseOpen==='boolean') p.phaseOpen = raw.phaseOpen;     // the phase card open (small by default)
-        if(raw.fold && typeof raw.fold==='object') ['head', 'notes'].forEach(k=>{ if(typeof raw.fold[k]==='boolean') p.fold[k] = raw.fold[k]; });
+        if(raw.fold && typeof raw.fold==='object') ['head', 'notes', 'larry'].forEach(k=>{ if(typeof raw.fold[k]==='boolean') p.fold[k] = raw.fold[k]; });
       }
     }catch(e){}
     return p;
@@ -38963,6 +39207,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(typeof hrDecorateBoard==='function'){ try{ hrDecorateBoard(hvBoardEl, n); }catch(e){} }
     if(n.clamp) hvClampSqDraw();          // the move's CLAMP letters on their squares
     hvTacDraw();                          // a tactic on the move (or the one being marked): arrows, rings, icon, pill
+    lzBoardDraw();                        // Larry's suggestion in focus: his better move, the square it's about
   }
   function hvBuildLabels(){
     const flipped = !!(HV_STATE && HV_STATE.flipped);
@@ -39396,6 +39641,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     el.dataset.node = node.id;
     hvAddBadge(el, node);
     hvAddClamp(el, node);
+    lzMvDisc(el, node);                               // Larry's suggestion waiting on the move: a dashed disc
     hvAddTac(el, node);                               // a tactic on the move: its icon
     if(typeof hpMark==='function') hpMark(el, node);  // review prep: your prep, the move that left it
     return el;
@@ -40133,6 +40379,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(cell){ cell.querySelectorAll('.hv-clamp-m').forEach(x=> x.remove()); hvAddClamp(cell, node); }
     hvComCard();
     if(HV_STATE && HV_STATE.cur===node) hvClampSqDraw();
+    if(HV_STATE && HV_STATE.lz && HV_STATE.lz.items.length){ lzMvRefresh(); lzPaintSoon(); }      // Larry's: one already marked now, or waiting again
   }
   // Go to move (a row's letter box, the CLAMP tab's columns and cards, the brief): the review opens at the position
   // before the marked move (hvOpen's at), and after a short beat, so the eye finds the piece, plays it as the right
@@ -40714,6 +40961,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(t==='engine') return !!hvPrefs.cards.engine && !pxPlaying();       // (while a position is played out: no engine, no explorer)
     if(t==='explorer') return !!hvPrefs.cards.tabs && !pxPlaying();
     if(t==='similar') return !!hvPrefs.cards.tabs && !pxPlaying() && !!RP;     // only with a repertoire to compare with
+    if(t==='larry') return lzShown();      // Larry's suggestions for this game (the Larry Suggestions card in Settings)
     return false;
   }
   // the tab a card shows: the one picked, or while that's off the first of its own that's on (null: none, the card hides)
@@ -40829,11 +41077,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(px && !two && name!=='moves' && name!=='review') name = 'moves';
     if(name==='notes' && hvNotesOff() && !(opts && opts.save)) hvTabAway = 'notes';
     if(name==='notes' && hvNotesOff()) name = 'moves';
+    if(name==='larry' && !hvTabOn('larry')) name = HV_TABS1.indexOf(hvPrefs.tab1) >= 0 && hvPrefs.tab1!=='larry' && hvTabOn(hvPrefs.tab1) ? hvPrefs.tab1 : 'moves';
     if(opts && opts.save && !px && !two) hvTabAway = null;      // a tab picked by hand is the one to keep
     const before = hvVisiblePanes();
     if(two) hvTab2 = name; else hvTab = name;
     hvSyncTabs();
-    if(opts && opts.save && !px){ if(two) hvPrefs.tab2 = name; else hvPrefs.tab1 = name; hvSavePrefs(); }
+    if(opts && opts.save && !px){ if(two) hvPrefs.tab2 = name; else if(name!=='larry') hvPrefs.tab1 = name; hvSavePrefs(); }      // (Larry's tab is never the one kept)
     if(opts && opts.silent) return;
     if(opts && opts.focus) try{ document.getElementById('hv-tab-'+name).focus({ preventScroll:true }); }catch(e){}
     if(name==='moves') requestAnimationFrame(hvKeepInView);
@@ -40844,6 +41093,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const fa = document.activeElement, sl = window.getSelection ? getSelection() : null;
     const caret = fa && sl && sl.rangeCount && fa.contains(sl.anchorNode) ? [sl.anchorNode, sl.anchorOffset, sl.focusNode, sl.focusOffset] : null;
     hvPlaceNotes();
+    lzPlace();
     hvPlaceTabs();
     const P = HV_STATE && HV_STATE.game._practice, own = hvTabbed() ? hvPrefs.tab1 : (HV_TABS.indexOf(hvPrefs.tab)>=0 ? hvPrefs.tab : 'moves');
     if(!P) hvTab = own;
@@ -40855,6 +41105,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(fp){ const t = fp.id.slice(8); if(HV_TABS2.indexOf(t)>=0) hvTab2 = t; else if(HV_TABS1.indexOf(t)>=0) hvTab = t; }
     hvSyncTabs();
     hvSetTab(hvTab, { silent:true });
+    lzPaint();
     // and keeps it: a card moved takes the focus away (its tab hidden a moment), the caret comes back where it was
     if(fa && fa!==document.body && fa.isConnected)
       try{ if(document.activeElement!==fa) fa.focus({ preventScroll:true }); if(caret && document.activeElement===fa) sl.setBaseAndExtent(caret[0], caret[1], caret[2], caret[3]); }catch(e){}
@@ -42879,6 +43130,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(opts.at) hvGoRef(opts.at);
     if(opts.clamp) hvClampGo(opts.clamp);       // Go to move from a CLAMP letter's box
     if(opts.tac) hvTacGo(opts.tac);             // Go to it from the Tactics tab or the brief: plays the move, then its cue
+    lzOpened(opts);                             // Larry's suggestions (opts.larry: opened from his list)
     hvFire(hvPaneLs, hvTab);
     if(hvNotesPinned() && hvTab!=='notes' && !hvNotesOff()) hvFire(hvPaneLs, 'notes');
     if(hvTabbed() && hvPaneShown('explorer')) hvFire(hvPaneLs, 'explorer');       // card 2 on the Explorer
@@ -43974,6 +44226,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       }
       if(hvPaneShown('moves')) requestAnimationFrame(hvKeepInView);     // the move list was hidden or changed size: the current move back in view
     }
+    lzPaint();
     hpfRender();
   }
   (function(){
@@ -45316,7 +45569,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   function spDesired(p){ return p.collections.length ? p.collections.slice() : [SP_UNSORTED]; }
   // "Game notes" is Game History's study ("Chess Arcade \u00b7 Game notes").
-  function spReservedName(name){ return String(name||'').trim().toLowerCase()==='game notes'; }
+  // "Larry suggestions" and "Larry history" are the Larry helper's (2026-11-19, read by the CLAMP tab and the review)
+  function spReservedName(name){ return /^(?:game notes|larry suggestions|larry history)(?: \(\d+\))?$/.test(String(name||'').trim().toLowerCase()); }
   function spCreateCollection(name){
     name = spCleanName(name);
     if(!name || spReservedName(name)) return null;
@@ -45907,6 +46161,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!getLichessToken()) ghReset();
     if(currentView==='history') ghShown();
     gnTokenChanged();
+    lzTokenChanged();
     spSetSync(getLichessToken() ? 'idle' : 'off');
     if(getLichessToken()) spScheduleSync(800);
   }
@@ -45968,7 +46223,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function spParseStudyName(name){
     if(typeof name!=='string' || name.indexOf(SP_STUDY_PREFIX)!==0) return null;
     let rest = name.slice(SP_STUDY_PREFIX.length).trim(), part = 1;
-    if(/^game notes(?: \(\d+\))?$/i.test(rest)) return null;   // Game History's notes study: never a collection
+    if(/^(?:game notes|larry suggestions|larry history)(?: \(\d+\))?$/i.test(rest)) return null;   // Game History's notes study and Larry's two: never a collection
     const m = rest.match(/^(.*?) \((\d+)\)$/);
     if(m){ rest = m[1].trim(); part = Number(m[2]) || 1; }
     return rest ? { name:spCleanName(rest), part } : null;
@@ -46294,7 +46549,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   async function spSync(){
     clearTimeout(spSyncTimer);
     if(spSyncRunning){ spSyncAgain = true; return; }
-    if(gnSyncRunning || ghFetching){ spScheduleSync(1500); return; }   // Game notes / Game History: one request at a time
+    if(gnSyncRunning || ghFetching || lzReq()){ spScheduleSync(1500); return; }   // Game notes / Game History / Larry's read: one request at a time
     if(Date.now() < spBackoffUntil){ spScheduleSync(0); return; }
     if(!getLichessToken()){ spSetSync('off'); return; }
     spSyncRunning = true;
@@ -46499,7 +46754,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // field a newer build added (gnAnExtra), kept as it came: this build never drops what it doesn't know. t (the
   // tactics, 2026-11-03) is last, so builds v106-v113 (which keep it as a field they don't know, after theirs) write
   // the same text as this one and the sync sees no difference.
-  const GN_AN_KNOWN = ['v', 'l', 'c', 'm', 'b', 'k', 'q', 't', 'h', 'o'];        // o: their CLAMP slips (2026-11-12), last like t
+  const GN_AN_KNOWN = ['v', 'l', 'c', 'm', 'b', 'k', 'q', 't', 'h', 'o', 'z'];        // o: their CLAMP slips (2026-11-12), last like t; z: Larry's suggestions added or skipped (2026-11-19), after o (builds v130-v137 keep it there as a field they don't know)
   function gnAnExtra(A){
     const x = {};
     if(A && typeof A==='object' && !Array.isArray(A)) Object.keys(A).forEach(f=>{ if(GN_AN_KNOWN.indexOf(f) < 0 && f!=='__proto__') x[f] = A[f]; });
@@ -46699,7 +46954,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     try{ M = JSON.parse(mine); I = inc ? JSON.parse(inc) : { v:1, l:[], c:[], m:[] }; }catch(e){ return ''; }
     if(!M || typeof M!=='object' || !I || typeof I!=='object' || Array.isArray(I)) return '';
     let kept = false;
-    ['b', 'k', 'q', 't', 'h', 'o'].forEach(f=>{ if(Array.isArray(M[f]) && M[f].length && !(f in I)){ I[f] = M[f]; kept = true; } });      // t: the tactics (2026-11-03), h: side lines' highlights (2026-11-04), the same rule
+    ['b', 'k', 'q', 't', 'h', 'o', 'z'].forEach(f=>{ if(Array.isArray(M[f]) && M[f].length && !(f in I)){ I[f] = M[f]; kept = true; } });      // t: the tactics (2026-11-03), h: side lines' highlights (2026-11-04), the same rule
     if(!kept) return '';
     const t = JSON.stringify(gnAnCanon(I));
     return t.length <= GN_MAX ? t : '';
@@ -47215,7 +47470,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const data = await res.json();
     const got = {};
     ((data && data.chapters) || []).forEach(ch=>{
-      const m = String(ch.name||'').match(/^(\w{8}|cc-d?\d{1,15}|op-[0-9a-f]{8}|an-(?:\w{8}|cc-d?\d{1,15})|g[pq]-[0-9a-f]{8}) /);
+      const m = String(ch.name||'').match(/^(\w{8}|cc-d?\d{1,15}|op-[0-9a-f]{8}|(?:an|lr)-(?:\w{8}|cc-d?\d{1,15})|g[pq]-[0-9a-f]{8}) /);
       if(m && /^\w{8}$/.test(String(ch.id||''))) got[m[1]] = String(ch.id);
     });
     return got;
@@ -47392,7 +47647,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   async function gnSync(){
     clearTimeout(gnSyncTimer);
     if(gnSyncRunning){ gnSyncAgain = true; return; }
-    if(spSyncRunning || ghFetching){ gnScheduleSync(1500); return; }     // one request at a time
+    if(spSyncRunning || ghFetching || lzReq()){ gnScheduleSync(1500); return; }     // one request at a time (Larry's read too)
     if(Date.now() < spBackoffUntil){ gnScheduleSync(0); return; }
     if(!getLichessToken()){ gnSetSync('off'); return; }
     gnSyncRunning = true;
@@ -50516,10 +50771,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // they're all off), and q their squares, [[ply, letter, square]] (q:[] the same). A field this build
   // doesn't know (a newer build's) is kept from the record as it came.
   function hvAnnText(noMarks){
-    const S = HV_STATE, lines = [], com = [], mk = [], bd = [], hl = [], kd = hvClampListOf(S), qd = hvClampSqOf(S), td = gnTacRows(hvTacListOf(S), !!hvTacRoot(S).tacNone), od = hvClampOListOf(S).map(gnClampORow);
+    const S = HV_STATE, lines = [], com = [], mk = [], bd = [], hl = [], kd = hvClampListOf(S), qd = hvClampSqOf(S), td = gnTacRows(hvTacListOf(S), !!hvTacRoot(S).tacNone), od = hvClampOListOf(S).map(gnClampORow), zd = lzDecRows(S);
     let P = null;
     try{ P = S.annText ? JSON.parse(S.annText) : null; }catch(e){ P = null; }
-    const hadB = !!P && Array.isArray(P.b), hadK = !!P && Array.isArray(P.k), hadQ = !!P && Array.isArray(P.q), hadT = !!P && Array.isArray(P.t), hadH = !!P && Array.isArray(P.h), hadO = !!P && Array.isArray(P.o), extra = gnAnExtra(P);
+    const hadB = !!P && Array.isArray(P.b), hadK = !!P && Array.isArray(P.k), hadQ = !!P && Array.isArray(P.q), hadT = !!P && Array.isArray(P.t), hadH = !!P && Array.isArray(P.h), hadO = !!P && Array.isArray(P.o), hadZ = !!P && Array.isArray(P.z), extra = gnAnExtra(P);
     const prof = annoProfile();
     const marks = (n)=>{
       const m = n.marks;
@@ -50536,7 +50791,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       marks(n);
       n.children.forEach(c=>{ if(!c.main && !c.children.length) lines.push(hvNodeRef(c).line); walk(c); });
     })(S.root);
-    if(!lines.length && !com.length && !mk.length && !bd.length && !hadB && !kd.length && !hadK && !qd.length && !hadQ && !td.length && !hadT && !hl.length && !hadH && !od.length && !hadO && !Object.keys(extra).length) return '';
+    if(!lines.length && !com.length && !mk.length && !bd.length && !hadB && !kd.length && !hadK && !qd.length && !hadQ && !td.length && !hadT && !hl.length && !hadH && !od.length && !hadO && !zd.length && !hadZ && !Object.keys(extra).length) return '';
     const A = { v:1, l:lines, c:com, m:mk };
     if(bd.length || hadB) A.b = bd;
     if(kd.length || hadK) A.k = kd;
@@ -50544,6 +50799,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(td.length || hadT) A.t = td;          // your tactics (2026-11-03), t:[] once they're all off
     if(hl.length || hadH) A.h = hl;          // side lines' highlights (2026-11-04), h:[] once they're all off
     if(od.length || hadO) A.o = od;          // their CLAMP slips (2026-11-12), o:[] once they're all off
+    if(zd.length || hadZ) A.z = zd;          // Larry's suggestions added or skipped (2026-11-19), z:[] once all are undone
     return JSON.stringify(Object.assign(A, extra));
   }
   // A record onto the tree: its side lines, comments, marks, badges and CLAMP marks. mine: this device's
@@ -50624,6 +50880,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         hvTacPut(S, c);
       });
       if(hvTacListOf(S).length) hvTacRoot(S).tacNone = false; else if(TL.none) hvTacRoot(S).tacNone = true;
+      // Larry's suggestions added or skipped (z, 2026-11-19) join by key: this device's choice stays, unless its edit lost
+      const ZR = S.tree || S, zd = ZR.lzDec || (ZR.lzDec = {});
+      lzDecList(A).forEach(x=>{ if(!(x[0] in zd) || lost || !mine) zd[x[0]] = x.slice(1); });
       // their squares join by move, letter and square (up to CLAMP_SQ_MAX a letter on a move): how many didn't fit
       // is returned (2026-11-02: "Add them to these" says so, hvAnnResolve)
       const Q = gnClampSqList(A);
@@ -50640,7 +50899,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     S.annText = id ? gnNoteText(id) : '';
     let A = null;
     if(S.annText) try{ A = JSON.parse(S.annText); }catch(e){ A = null; }
-    if(id){ hvClampOnto(S, gnClampList(A), gnClampSqList(A), gnClampOList(A)); hvTacOnto(S, gnTacList(A)); }      // the record's tactics, exactly
+    if(id){ hvClampOnto(S, gnClampList(A), gnClampSqList(A), gnClampOList(A)); hvTacOnto(S, gnTacList(A)); (S.tree || S).lzDec = lzDecObj(lzDecList(A)); }      // the record's tactics and Larry choices, exactly
     if(A) hvAnnMerge(A, false);
   }
   function hvAnnSoon(){ clearTimeout(hvAnnTimer); hvAnnTimer = setTimeout(hvAnnSave, 700); }
@@ -50712,6 +50971,1505 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const ok = kb && document.querySelector('#hv-movelist .hv-ann-conflict.is-note [data-ann="ok"]');
     if(ok) try{ ok.focus({ preventScroll:true }); }catch(e){}
   }
+  /* ---- LARRY SUGGESTIONS (lz*, 2026-11-19) ----
+     Larry (the user's ChatGPT coach) fills a CLAMP sheet after each game. The Larry helper on the user's Mac
+     (tools/larry-helper) copies its rows into private Lichess studies, which Chess Arcade reads with the user's own
+     sign-in (study:read) and NEVER writes:
+       "Chess Arcade \u00b7 Larry suggestions": one chapter per game (lz-cc-<id>), kept 3 days: the review's card;
+       "Chess Arcade \u00b7 Larry history" (then " (2)", ...): one chapter per day of play from 2026-11-18: the CLAMP
+       tab's Larry dashboard (lzHistGames).
+     The format is test-kits/chess-arcade/larry/FORMAT.md; the reader is lz_reader.mjs's, ported (lzMarks, lzReadSug,
+     lzhRead, lzhMerge). Nothing goes into a game until the user taps Add (their rule: "the computer might be wrong");
+     an added suggestion is an ordinary CLAMP mark (k yours, o theirs: one mark, shown everywhere), and the choice is
+     kept in the game's an- record, field z (lzDecList): [key, 's'] skipped, [key, 'a', ply, letters, 'k' | 'o'] added
+     (the move it went on, its letters, yours or theirs), so Undo takes off exactly what Add put on; one of theirs that
+     changed the move's Punished / Missed (said once per move) adds what it was ('p' | 'm' | '-' not said), for Undo.
+     Reads: one request at a time (never while Game notes, Saved Puzzles or Game History talk to Lichess), at most every
+     10 minutes and only when wanted (Game History or the review of a recent chess.com game on screen, Settings' Sync
+     now), kept on this device (LZ_KEY) so the last copy shows offline. ---- */
+  var LZ_KEY = 'wavyChessPrepLarry';
+  var LZ_SUG = 'Chess Arcade \u00b7 Larry suggestions';
+  var LZ_HIST_RE = /^Chess Arcade \u00b7 Larry history(?: \(([2-9]|[1-9]\d{1,3})\))?$/;
+  var LZ_MARK_RE = /\blzs\s+((?:[a-z]+=\S*\s+)*?)end=1(?![^\s}])/g;
+  var LZH_MARK_RE = /\blzh\s+((?:[a-z]+=\S*\s+)*?)end=1(?![^\s}])/g;
+  var LZ_ID_RE = /^cc-d?\d{1,15}$/;
+  var LZH_ID_RE = /^(\d{4}-\d{2}-\d{2})(?:\.([2-9]))?$/;
+  var LZ_K_RE = /^(\d{1,4})([CLAMP])(?:\.\d{1,2})?$/;
+  var LZ_TTL = 10 * 60e3, LZ_RETRY = 2 * 60e3, LZ_KEEP_DAYS = 45, LZ_FROM = '2026-11-18', LZ_DEC_MAX = 150;
+  var LZ = { st:'', err:'', user:'', tk:'', at:0, failAt:0, herr:'', games:{}, hist:{}, sig:'', ver:0, busy:false, again:false, timer:0, csp:false, gen:0 };
+  var lzLs = new Set();
+  function lzOnChange(fn){ lzLs.add(fn); return ()=> lzLs.delete(fn); }
+  function lzFire(){ lzLs.forEach(fn=>{ try{ fn(LZ); }catch(e){ try{ console.warn('Larry listener', e); }catch(e2){} } }); }
+  function lzTk(){ const t = getLichessToken(); return t ? gnFnv(t) : ''; }
+  function lzDayStr(ms){ const d = new Date(ms); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2, '0')+'-'+String(d.getDate()).padStart(2, '0'); }
+  function lzStr(s, n){ return typeof s==='string' ? s.replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, n) : ''; }
+  // Larry is about chess.com games: no chess.com account on this device, nothing to read
+  function lzWanted(){ return !!getLichessToken() && !!(CC && CC.user); }
+
+  // ---- the reader (lz_reader.mjs) ----
+  // every whole, undamaged record in a chapter body for one marker word: [{id, x, h, payload}]; parts by their markers
+  function lzMarks(body, re, idRe){
+    const groups = new Map(), out = [];
+    for(const m of String(body || '').matchAll(re)){
+      const kv = {};
+      m[1].trim().split(/\s+/).forEach(p=>{ const i = p.indexOf('='); if(i > 0) kv[p.slice(0, i)] = p.slice(i + 1); });
+      if(kv.v!=='1' && kv.v!=='2') continue;                   // a version this build doesn't know: left alone
+      const pm = /^(\d+)\/(\d+)$/.exec(kv.p || '');
+      if(!pm || kv.id==null || kv.x==null || kv.h==null || kv.n==null) continue;
+      const key = [kv.v, kv.id, kv.x, kv.h, kv.n, pm[2]].join('|');
+      if(!groups.has(key)) groups.set(key, { id:kv.id, x:kv.x, h:kv.h, n:kv.n, k:+pm[2], parts:{} });
+      groups.get(key).parts[+pm[1]] = kv.d || '';
+    }
+    groups.forEach(g=>{
+      if(!idRe.test(g.id) || !/^\d{1,15}$/.test(g.x) || !(g.k >= 1 && g.k <= 20)) return;
+      let d = '';
+      for(let i = 1; i <= g.k; i++){ if(g.parts[i]==null) return; d += g.parts[i]; }
+      if(Object.keys(g.parts).length!==g.k || String(d.length)!==g.n || gnFnv(d)!==g.h) return;     // damaged: never used
+      let p;
+      try{ p = JSON.parse(decodeURIComponent(d.replace(/\+/g, ' '))); }catch(e){ return; }
+      out.push({ id:g.id, x:+g.x, h:g.h, payload:p });
+    });
+    return out;
+  }
+  // a whole-study export -> [{studyId, chapterId, body}] (spParseExport's split)
+  function lzChapters(text){
+    const out = [];
+    String(text || '').replace(/\r\n/g, '\n').trim().split(/\n\n(?=\[)/).forEach(game=>{
+      const tags = {};
+      game.replace(/^\[(\w+) "((?:[^"\\]|\\.)*)"\][ \t]*$/gm, (m, k, v)=>{ tags[k] = v.replace(/\\(.)/g, '$1'); return m; });
+      const url = (tags.ChapterURL || '').match(/\/study\/(\w{8})\/(\w{8})/);
+      if(url) out.push({ studyId:url[1], chapterId:url[2], body:game.replace(/^\[.*\][ \t]*$/gm, '') });
+    });
+    return out;
+  }
+  // a game's payload as this device keeps it: Larry's texts that the cards use, the rest left out (and every value checked)
+  function lzTrim(p){
+    const rows = [], seen = new Set();
+    (Array.isArray(p.rows) ? p.rows : []).forEach(r=>{
+      if(!r || typeof r!=='object') return;
+      const m = LZ_K_RE.exec(String(r.k || ''));
+      if(!m || !Number.isInteger(r.ply) || r.ply < 1 || r.ply > 3000 || +m[1]!==r.ply || r.l!==m[2] || seen.has(r.k)) return;
+      seen.add(r.k);
+      rows.push({ k:r.k, ply:r.ply, san:lzStr(r.san, 12), l:r.l, who:['t', 'r', 's'].indexOf(r.who) >= 0 ? r.who : '', tf:r.tf===1 ? 1 : 0,
+        mt:lzStr(r.mt, 80), ev:lzStr(r.ev, 80), clk:lzStr(r.clk, 80), ph:lzStr(r.ph, 40), best:lzStr(r.best, 12), idea:lzStr(r.idea, 320),
+        ec:lzStr(r.ec, 20), pc:lzStr(r.pc, 20), ps:lzStr(r.ps, 12) });
+    });
+    rows.sort((a, b)=> a.ply - b.ply);
+    return { v:p.v, id:p.id, date:/^\d{4}-\d{2}-\d{2}$/.test(p.date) ? p.date : '', opp:lzStr(p.opp, 60), me:p.me==='b' ? 'b' : 'w',
+      res:['win', 'loss', 'draw'].indexOf(p.res) >= 0 ? p.res : '', tc:lzStr(p.tc, 40), tcn:/^\d{1,5}-\d{1,3}$/.test(String(p.tcn || '')) ? p.tcn : '',
+      rows, more:Number.isInteger(p.more) && p.more > 0 ? p.more : 0 };
+  }
+  // the suggestions study's export into games ({ [id]: {x, h, c (chapter id), p} }): the same game twice (an update in
+  // progress), the newest x, on a tie the lower chapter id
+  function lzReadSug(text, into){
+    lzChapters(text).forEach(ch=>{
+      let best = null;
+      lzMarks(ch.body, LZ_MARK_RE, LZ_ID_RE).forEach(rec=>{
+        const p = rec.payload;
+        if(!p || (p.v!==1 && p.v!==2) || p.id!==rec.id || !Array.isArray(p.rows)) return;
+        if(!best || rec.x > best.x) best = rec;
+      });
+      if(!best) return;
+      const cur = into[best.id];
+      if(!cur || best.x > cur.x || (best.x===cur.x && ch.chapterId < cur.c)) into[best.id] = { x:best.x, h:best.h, c:ch.chapterId, p:lzTrim(best.payload) };
+    });
+    return into;
+  }
+  // a history study's export -> its usable chapters [{c, day, pt, of, x, p}]
+  function lzhRead(text){
+    const out = [];
+    lzChapters(text).forEach(ch=>{
+      let best = null;
+      lzMarks(ch.body, LZH_MARK_RE, LZH_ID_RE).forEach(rec=>{
+        const m = LZH_ID_RE.exec(rec.id), p = rec.payload, pt = m[2] ? +m[2] : 1;
+        if(!p || (p.v!==1 && p.v!==2) || p.day!==m[1] || p.pt!==pt || !Number.isInteger(p.of) || p.of < pt || p.of > 9 || !Array.isArray(p.g)) return;
+        if(!best || rec.x > best.x) best = { day:m[1], pt, of:p.of, x:rec.x, p };
+      });
+      if(best) out.push(Object.assign({ c:ch.chapterId }, best));
+    });
+    return out;
+  }
+  // a history game as kept: { id, me, res, tc, tcn, opp, r:[[k, ply, san, letter, who, tf, mt, ph, ec, pc]] }
+  function lzhGame(g){
+    if(!g || typeof g!=='object' || !LZ_ID_RE.test(String(g.id || ''))) return null;
+    const r = [], seen = new Set();
+    (Array.isArray(g.r) ? g.r : []).forEach(x=>{
+      const m = Array.isArray(x) ? LZ_K_RE.exec(String(x[0] || '')) : null;
+      if(!m || x[1]!==+m[1] || x[3]!==m[2] || seen.has(x[0])) return;
+      seen.add(x[0]);
+      r.push([x[0], x[1], lzStr(x[2], 12), x[3], ['t', 'r', 's'].indexOf(x[4]) >= 0 ? x[4] : '', x[5]===1 ? 1 : 0, lzStr(x[6], 40), lzStr(x[7], 20), lzStr(x[8], 20), lzStr(x[9], 20)]);
+    });
+    r.sort((a, b)=> a[1] - b[1]);
+    return { id:g.id, me:g.me==='b' ? 'b' : 'w', res:['win', 'loss', 'draw'].indexOf(g.res) >= 0 ? g.res : '', tc:lzStr(g.tc, 40),
+      tcn:/^\d{1,5}-\d{1,3}$/.test(String(g.tcn || '')) ? g.tcn : '', opp:lzStr(g.opp, 60), r };
+  }
+  function lzhNr(e){
+    return e && typeof e==='object' ? { i:Number.isInteger(e.i) ? e.i : 0, opp:lzStr(e.opp, 60), me:e.me==='b' ? 'b' : 'w', res:['win', 'loss', 'draw'].indexOf(e.res) >= 0 ? e.res : '',
+      sp:lzStr(e.sp, 20), tc:lzStr(e.tc, 40), tcn:/^\d{1,5}-\d{1,3}$/.test(String(e.tcn || '')) ? e.tcn : '' } : null;
+  }
+  // the chapters of EVERY history study -> { [day]: {day, x, complete, ix, nr, games} } (lzhMergeDays): per day the newest
+  // version whose chapters 1..of are all there, else the newest one's (complete:false); a game on two days stays on the
+  // one with the larger x. ix / nr null: the sheet has no Game Index (nothing is said about games with nothing flagged).
+  function lzhMerge(chs){
+    const byDay = new Map(), out = {};
+    const cmp = (a, b)=> a.c < b.c ? -1 : a.c > b.c ? 1 : 0;
+    chs.forEach(r=>{ if(!byDay.has(r.day)) byDay.set(r.day, new Map()); const v = byDay.get(r.day); if(!v.has(r.x)) v.set(r.x, []); v.get(r.x).push(r); });
+    byDay.forEach((vers, day)=>{
+      const xs = Array.from(vers.keys()).sort((a, b)=> b - a);
+      let pick = null;
+      for(const x of xs){
+        const rs = vers.get(x).slice().sort(cmp), of = rs[0].of, byPt = {};
+        if(rs.some(r=> r.of!==of)) continue;
+        rs.forEach(r=>{ if(!byPt[r.pt]) byPt[r.pt] = r; });
+        const parts = [];
+        for(let i = 1; i <= of; i++) if(byPt[i]) parts.push(byPt[i]);
+        if(parts.length===of){ pick = { x, parts, complete:true }; break; }
+      }
+      if(!pick){
+        const byPt = {};
+        vers.get(xs[0]).slice().sort(cmp).forEach(r=>{ if(!byPt[r.pt]) byPt[r.pt] = r; });
+        pick = { x:xs[0], parts:Object.keys(byPt).map(Number).sort((a, b)=> a - b).map(k=> byPt[k]), complete:false };
+      }
+      const first = pick.parts.find(r=> r.pt===1), fp = first ? first.p : null, games = [];
+      pick.parts.forEach(r=> r.p.g.forEach(g=>{ const k = lzhGame(g); if(k) games.push(k); }));
+      out[day] = { day, x:pick.x, complete:pick.complete, ix:fp && Number.isInteger(fp.ix) ? fp.ix : null,
+        nr:fp && Array.isArray(fp.nr) ? fp.nr.map(lzhNr).filter(Boolean) : null, games };
+    });
+    const home = new Map();
+    Object.values(out).forEach(d=> d.games.forEach(g=>{ const c = home.get(g.id); if(!c || d.x > c.x || (d.x===c.x && d.day > c.day)) home.set(g.id, d); }));
+    Object.values(out).forEach(d=>{ d.games = d.games.filter(g=> home.get(g.id)===d); });
+    return out;
+  }
+  function lzSigOf(games, hist){
+    return Object.keys(games).sort().map(id=> id+':'+games[id].x+':'+games[id].h).join(',')+'|'+
+      Object.keys(hist).sort().map(d=> d+':'+hist[d].x+':'+(hist[d].complete ? 1 : 0)).join(',');
+  }
+
+  // ---- kept on this device (per Lichess account: another token's copy is never shown) ----
+  function lzPersist(){
+    const cut = lzDayStr(Date.now() - LZ_KEEP_DAYS * 86400e3), hist = {};
+    Object.keys(LZ.hist).forEach(d=>{ if(d >= cut) hist[d] = LZ.hist[d]; });
+    const o = { v:1, tk:LZ.tk, user:LZ.user, at:LZ.at, st:LZ.st, games:LZ.games, hist };
+    try{ localStorage.setItem(LZ_KEY, JSON.stringify(o)); }
+    catch(e){ try{ o.hist = {}; localStorage.setItem(LZ_KEY, JSON.stringify(o)); }catch(e2){} }
+  }
+  function lzLoad(){
+    let o = null;
+    try{ o = JSON.parse(localStorage.getItem(LZ_KEY) || 'null'); }catch(e){ o = null; }
+    const tk = lzTk();
+    LZ.games = {}; LZ.hist = {}; LZ.at = 0; LZ.failAt = 0; LZ.herr = ''; LZ.user = ''; LZ.st = ''; LZ.tk = tk;
+    if(!o || o.v!==1 || !tk || o.tk!==tk || typeof o.games!=='object' || !o.games) { LZ.sig = lzSigOf(LZ.games, LZ.hist); return; }
+    Object.keys(o.games).forEach(id=>{
+      const e = o.games[id];
+      if(!LZ_ID_RE.test(id) || !e || !e.p || e.p.id!==id || typeof e.x!=='number' || !/^[0-9a-f]{8}$/.test(String(e.h))) return;
+      LZ.games[id] = { x:e.x, h:e.h, c:String(e.c || ''), p:lzTrim(e.p) };
+    });
+    Object.keys(o.hist && typeof o.hist==='object' ? o.hist : {}).forEach(day=>{
+      const d = o.hist[day];
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(day) || !d || typeof d.x!=='number' || !Array.isArray(d.games)) return;
+      LZ.hist[day] = { day, x:d.x, complete:d.complete!==false, ix:Number.isInteger(d.ix) ? d.ix : null,
+        nr:Array.isArray(d.nr) ? d.nr.map(lzhNr).filter(Boolean) : null, games:d.games.map(lzhGame).filter(Boolean) };
+    });
+    LZ.user = typeof o.user==='string' ? o.user : '';
+    LZ.at = typeof o.at==='number' ? o.at : 0;
+    LZ.st = ['ok', 'none'].indexOf(o.st) >= 0 ? o.st : '';
+    LZ.sig = lzSigOf(LZ.games, LZ.hist);
+  }
+
+  // ---- reading the studies (read only, one request at a time) ----
+  async function lzWait(){ for(let i = 0; i < 150 && (gnSyncRunning || ghFetching || spSyncRunning); i++) await pdbNap(200); }
+  // a request of Larry's on its way: Game notes, Saved Puzzles and Game History wait for it (lzReq), as Larry waits for them
+  function lzReq(){ return typeof LZ==='object' && !!LZ && !!LZ.req; }
+  async function lzApi(path, opts){
+    await lzWait();
+    if(Date.now() < spBackoffUntil){ const e = new Error('Lichess asked to slow down'); e.status = 429; throw e; }
+    LZ.req = true;
+    try{ const r = await spApi(path, opts); await r.clone().text().catch(()=> ''); return r; }
+    catch(e){ pdbSlow(e); throw e; }
+    finally{ LZ.req = false; }
+  }
+  function lzSetState(st, err){
+    const was = LZ.st + '|' + LZ.err;
+    LZ.st = st; LZ.err = err || '';
+    if(was!==LZ.st + '|' + LZ.err){ lzRenderSet(); lzFire(); }
+  }
+  // when it's on screen: Game History, or the review of one of the games Larry's suggestions study holds
+  function lzOnScreen(){
+    if(document.hidden) return false;
+    if(currentView==='history') return true;
+    const S = HV_STATE;
+    return currentView==='play-history' && !!S && !!S.game && ccIsId(String(S.game.id || '')) && Date.now() - (S.game.createdAt || 0) < 4 * 86400e3;
+  }
+  function lzSoon(ms, force){
+    if(typeof LZ!=='object' || !LZ) return;
+    clearTimeout(LZ.timer);
+    LZ.timer = setTimeout(()=>{ LZ.timer = 0; if(force || lzOnScreen()) lzRefresh(!!force); }, ms==null ? 1500 : ms);
+  }
+  async function lzRefresh(force){
+    if(LZ.busy){ if(force) LZ.again = true; return; }
+    if(!lzWanted()){ lzSetState(getLichessToken() ? '' : 'off'); return; }
+    if(LZ.csp){ lzSetState('csp'); return; }
+    // a try that didn't work waits LZ_RETRY, a good read LZ_TTL, whatever asks sooner (only Sync now doesn't wait)
+    if(!force){
+      const last = LZ.failAt || LZ.at, wait = LZ.failAt ? LZ_RETRY : LZ_TTL, ago = Date.now() - last;
+      if(last && ago < wait){ if(lzOnScreen()) lzSoon(wait - ago + 1000); return; }
+    }
+    if(Date.now() < spBackoffUntil){ lzSoon(spBackoffUntil - Date.now() + 500, force); return; }
+    LZ.busy = true;
+    const tk = lzTk(), gen = ++LZ.gen;
+    let next = LZ_TTL;
+    try{
+      await lzWait();
+      if(Date.now() < spBackoffUntil){ next = spBackoffUntil - Date.now() + 500; return; }
+      let info;
+      LZ.req = true;
+      try{ info = await liTokenInfo(10 * 60e3); }catch(e){ pdbSlow(e); throw e; }finally{ LZ.req = false; }
+      if(lzTk()!==tk || gen!==LZ.gen) return;
+      if(!info){ lzSetState('off'); return; }
+      if(info.bad){ lzSetState('bad'); return; }
+      if(!info.scopes.has('study:read')){ lzSetState('scope'); return; }
+      const user = info.userId || String((await ghEnsureUsername()) || '').toLowerCase();
+      if(!user) throw new Error('couldn\u2019t read your Lichess account');
+      const lr = await lzApi('/api/study/by/'+encodeURIComponent(user), { headers:{ Accept:'application/x-ndjson' } });
+      if(!lr.ok) throw new Error('couldn\u2019t list your studies ('+lr.status+')');
+      const studies = (await lr.text()).split('\n').map(l=> l.trim()).filter(Boolean).map(l=>{ try{ return JSON.parse(l); }catch(e){ return null; } })
+        .filter(x=> x && /^\w{8}$/.test(String(x.id || '')) && typeof x.name==='string');
+      const sug = studies.filter(s=> s.name===LZ_SUG), his = studies.filter(s=> LZ_HIST_RE.test(s.name));
+      const games = {}, chs = [];
+      for(const st of sug){
+        const r = await lzApi('/api/study/'+st.id+'.pgn?clocks=false&comments=true&variations=false');
+        if(!r.ok) throw new Error('couldn\u2019t read Larry\u2019s suggestions ('+r.status+')');
+        lzReadSug(await r.text(), games);
+      }
+      // the history (the dashboard's): one that can't be read keeps the last copy of it, and today's suggestions still come in
+      let herr = null;
+      try{
+        for(const st of his){
+          const r = await lzApi('/api/study/'+st.id+'.pgn?clocks=false&comments=true&variations=false');
+          if(!r.ok) throw new Error('couldn\u2019t read Larry\u2019s history ('+r.status+')');
+          lzhRead(await r.text()).forEach(c=> chs.push(c));
+        }
+      }catch(e){ herr = e; }
+      if(lzTk()!==tk || gen!==LZ.gen) return;
+      let hist = {};
+      if(herr) hist = user===LZ.user && tk===LZ.tk ? LZ.hist : {};
+      else { const all = lzhMerge(chs); Object.keys(all).forEach(d=>{ if(d >= LZ_FROM) hist[d] = all[d]; }); }
+      lzTake(tk, user, games, hist, sug.length || his.length ? 'ok' : 'none', herr ? 'history' : '');
+      if(herr) throw herr;
+    }catch(e){
+      LZ.failAt = Date.now();
+      if(e && e.status===429){ next = Math.max(65000, spBackoffUntil - Date.now() + 500); lzSetState('error', 'Lichess asked to slow down'); }
+      else {
+        if(e && e.message==='no connection') await pdbNap(80);       // (the page's policy says so a moment after the refusal)
+        if(LZ.csp) lzSetState('csp');
+        else lzSetState('error', (e && e.message) || '');
+        next = LZ_RETRY;
+      }
+    }finally{
+      LZ.busy = false;
+      if(LZ.again){ LZ.again = false; lzSoon(1500, true); }
+      else if(lzOnScreen() && !LZ.csp && lzWanted()) lzSoon(next + 1000);
+    }
+  }
+  // what was read: a copy that changes nothing touches nothing (the time read only)
+  function lzTake(tk, user, games, hist, st, herr){
+    const sig = lzSigOf(games, hist), same = sig===LZ.sig && user===LZ.user && tk===LZ.tk && (herr || '')===LZ.herr;
+    LZ.at = Date.now(); LZ.failAt = 0; LZ.tk = tk; LZ.user = user; LZ.herr = herr || '';
+    if(!same){ LZ.games = games; LZ.hist = hist; LZ.sig = sig; LZ.ver++; }
+    const was = LZ.st + '|' + LZ.err;
+    LZ.st = st; LZ.err = '';
+    lzPersist();
+    lzRenderSet();
+    if(!same || was!==LZ.st + '|') lzFire();
+  }
+  function lzTokenChanged(){
+    if(typeof LZ!=='object' || !LZ) return;
+    const tk = lzTk();
+    if(tk===LZ.tk) return;
+    LZ.gen++;
+    lzLoad();
+    LZ.ver++;
+    lzRenderSet();
+    lzFire();
+    if(tk) lzSoon(2500, true);
+  }
+  // plain words for where Larry's suggestions can't come from ('' when they can, or a copy is here to show)
+  function lzMessage(){
+    if(!getLichessToken()) return 'Sign in to Lichess in Settings to see Larry\u2019s suggestions.';
+    if(LZ.csp || LZ.st==='csp') return 'Chess Arcade can\u2019t reach Lichess from this page, so Larry\u2019s suggestions can\u2019t load here.';
+    if(LZ.st==='scope') return 'Your Lichess sign-in can\u2019t read studies. Sign in again in Settings.';
+    if(LZ.st==='bad') return 'Lichess doesn\u2019t recognize your sign-in anymore. Sign in again in Settings.';
+    if(LZ.st==='none') return 'Larry\u2019s sheet isn\u2019t on Lichess yet. The Larry helper on your Mac puts it there.';
+    if(LZ.st==='error' && !LZ.at) return 'Couldn\u2019t read Larry\u2019s suggestions from Lichess. Chess Arcade will try again.';
+    return '';
+  }
+  function lzClock(ms){ try{ return new Date(ms).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }).replace(/\s?AM$/, ' am').replace(/\s?PM$/, ' pm'); }catch(e){ return ''; } }
+  // Settings (Game notes): one quiet line on Larry's suggestions, with chess.com connected
+  function lzRenderSet(){
+    const el = document.getElementById('lz-set');
+    if(!el) return;
+    let t = '';
+    if(getLichessToken() && CC && CC.user){
+      t = lzMessage();
+      if(!t && LZ.at) t = 'Larry\u2019s suggestions: read from Lichess at '+lzClock(LZ.at)+(LZ.st==='error' ? ' (the last try didn\u2019t work; it\u2019ll try again)' : '')+'. Chess Arcade only reads them.';
+    }
+    el.hidden = !t;
+    if(el.textContent!==t) el.textContent = t;
+  }
+  document.addEventListener('securitypolicyviolation', (e)=>{
+    try{ if(e.originalPolicy && !rlCspAllows(e.originalPolicy, 'lichess.org')) LZ.csp = true; }catch(x){}
+  });
+
+  // ---- what the CLAMP tab and the brief read (no replay: the payloads and the an- records only) ----
+  // the decisions in a record (z): [[key, 's'] | [key, 'a', ply, letters, 'k' | 'o']], one per key, by the key's move,
+  // then its letter, then the key
+  function lzDecCmp(a, b){
+    const x = LZ_K_RE.exec(a[0]), y = LZ_K_RE.exec(b[0]);
+    return (+x[1]) - (+y[1]) || 'CLAMP'.indexOf(x[2]) - 'CLAMP'.indexOf(y[2]) || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+  }
+  function lzDecList(A){
+    const out = [], seen = new Set();
+    (A && Array.isArray(A.z) ? A.z : []).forEach(x=>{
+      if(!Array.isArray(x) || typeof x[0]!=='string' || !LZ_K_RE.test(x[0]) || seen.has(x[0])) return;
+      if(x[1]==='s'){ seen.add(x[0]); out.push([x[0], 's']); return; }
+      if(x[1]!=='a' || !Number.isInteger(x[2]) || x[2] < 1 || x[2] > 3000 || typeof x[3]!=='string' || (x[4]!=='k' && x[4]!=='o')) return;
+      const L = CLAMP_K.map(K=> K.ch).filter(ch=> x[3].indexOf(ch) >= 0).join('');
+      if(!L || L.length!==x[3].length) return;
+      seen.add(x[0]);
+      // (one of theirs that changed the move's Punished / Missed: what it was before, for Undo)
+      out.push([x[0], 'a', x[2], L, x[4]].concat(x[4]==='o' && ['p', 'm', '-'].indexOf(x[5]) >= 0 ? [x[5]] : []));
+    });
+    return out.sort(lzDecCmp).slice(0, LZ_DEC_MAX);
+  }
+  function lzDecObj(list){ const o = {}; list.forEach(x=>{ o[x[0]] = x.slice(1); }); return o; }
+  // a tree's decisions as a record's z
+  function lzDecRows(T){ const D = (T.tree || T).lzDec || {}; return lzDecList({ z:Object.keys(D).map(k=> [k].concat(D[k])) }); }
+  var LZ_REC_MEMO = new Map();
+  function lzRecOf(gid){
+    const t = gnNoteText('an-'+gid);
+    const was = LZ_REC_MEMO.get(gid);
+    if(was && was.t===t) return was;
+    let A = null;
+    try{ A = t ? JSON.parse(t) : null; }catch(e){ A = null; }
+    const k = gnClampList(A), o = gnClampOList(A), R = { t, z:lzDecObj(lzDecList(A)), has:new Set(), mine:new Set() };
+    k.forEach(x=>{ R.has.add(x[0]+x[1]); R.mine.add(x[0]+x[1]); });
+    o.forEach(x=> R.has.add(x[0]+x[1]));
+    if(LZ_REC_MEMO.size > 300) LZ_REC_MEMO.clear();
+    LZ_REC_MEMO.set(gid, R);
+    return R;
+  }
+  function lzBare(s){ return String(s || '').replace(/[+#!?]+$/, ''); }
+  function lzSlip(c){ return /^(inaccuracy|mistake|blunder)$/i.test(String(c || '')); }
+  // CA's own review of a game (Game review), read for the side rule when Larry's row has no engine verdict
+  var lzHrMemo = { at:0, st:null };
+  function lzRevClass(gid, toks, ply){
+    if(!toks || ply < 1) return '';
+    if(Date.now() - lzHrMemo.at > 3000){ lzHrMemo = { at:Date.now(), st:hrReadStore() }; }
+    const e = lzHrMemo.st.g[gid];
+    if(!e || e.n!==toks.length || e.h!==gnFnv(toks.join(' '))) return '';
+    const b = HR_BY_CODE[e.b.charAt(ply - 1)];
+    return b ? b.short : '';
+  }
+  function lzToks(gid){ const g = ccGameById(gid), m = g && typeof g.moves==='string' ? g.moves.trim() : ''; return m ? m.split(/\s+/) : null; }
+  // the side rule (approved): "I missed my own resource" is theirs, on the opponent's move just before, only when the
+  // engine called that move an inaccuracy, mistake or blunder (Larry's helper says, else this device's own review); every
+  // other row is yours, on your move
+  function lzRowSide(r, gid, toks){
+    if(r.who!=='r' || r.ply < 2) return 'mine';
+    return lzSlip(r.pc || lzRevClass(gid, toks || lzToks(gid), r.ply - 1)) ? 'theirs' : 'mine';
+  }
+  // a game's suggestions, counted from its payload and its record: { n offered, a added, s skipped, had already marked,
+  // w waiting, wl {letter: waiting}, al {letter + 'k'|'o': added} }; null when the suggestions study doesn't have it
+  function lzTally(gid){
+    const E = LZ.games[gid];
+    if(!E) return null;
+    const g = ccGameById(gid), me = g && g._me ? (g._me==='black' ? 'b' : 'w') : E.p.me;
+    const T = { n:0, a:0, s:0, had:0, w:0, wl:{}, al:{} };
+    lzMarksOf(gid, E.p.rows, me, lzToks(gid)).forEach(m=>{
+      T.n++;
+      if(m.st==='a'){ T.a++; m.d[2].split('').forEach(ch=>{ T.al[ch+m.d[3]] = (T.al[ch+m.d[3]] || 0) + 1; }); }
+      else if(m.st==='s') T.s++;
+      else if(m.st==='h') T.had++;
+      else { T.w++; T.wl[m.r.l] = (T.wl[m.r.l] || 0) + 1; }
+    });
+    return T;
+  }
+  // a game's rows that are offered (your move, the move played, inside the game) and where each stands, from its record:
+  // [{ r, st 'w' waiting | 'a' added | 's' skipped | 'h' marked by you already, p (the move it is or would go on),
+  //    own 'k' | 'o' (in the game as yours or theirs), th (the side rule says theirs), d (the decision) }]
+  function lzMarksOf(gid, rows, me, toks){
+    const R = lzRecOf(gid), out = [];
+    rows.forEach(r=>{
+      if((r.ply % 2===1) !== (me==='w')) return;
+      if(toks && (r.ply > toks.length || (r.san && lzBare(r.san)!==lzBare(toks[r.ply - 1])))) return;
+      const d = R.z[r.k];
+      if(d && d[0]==='a'){ out.push({ r, st:'a', p:d[1], own:d[3], th:d[3]==='o', d }); return; }
+      if(d){ out.push({ r, st:'s', p:r.ply, own:'', th:false, d }); return; }
+      const th = lzRowSide(r, gid, toks)==='theirs', p = th ? r.ply - 1 : r.ply;
+      if(R.has.has(p+r.l)) out.push({ r, st:'h', p, own:R.mine.has(p+r.l) ? 'k' : 'o', th });
+      else if(th && R.mine.has(r.ply+r.l)) out.push({ r, st:'h', p:r.ply, own:'k', th });
+      else out.push({ r, st:'w', p, own:'', th });
+    });
+    return out;
+  }
+  function lzGameDay(gid){ const E = LZ.games[gid], g = ccGameById(gid); return (E && E.p.date) || (g && g.createdAt ? lzDayStr(g.createdAt) : ''); }
+  // the games to check, in the CLAMP view's order (today's newest first, then earlier ones not finished): the order
+  // "Next game" follows. [{ id, day, today, at, t (lzTally) }]
+  function lzOrder(){
+    const today = lzDayStr(ghoBriefNow());
+    return Object.keys(LZ.games).map(id=>{
+      const g = ccGameById(id), day = lzGameDay(id);
+      return { id, day, today:day >= today, at:g && g.createdAt ? g.createdAt : LZ.games[id].x, t:lzTally(id) };
+    }).filter(x=> x.t && x.t.n && (x.today || x.t.w > 0)).sort((a, b)=> (b.today - a.today) || (b.at - a.at) || (a.id < b.id ? 1 : -1));
+  }
+  // every game Larry checked from 2026-11-18 on (the history, and the suggestions study for the days it has that the
+  // history doesn't yet), newest day first: [{ id, day, me, res, tc, tcn, opp, r }]
+  function lzHistGames(){
+    const out = [], seen = new Set();
+    Object.keys(LZ.hist).sort().reverse().forEach(day=> LZ.hist[day].games.forEach(g=>{ if(!seen.has(g.id)){ seen.add(g.id); out.push(Object.assign({ day }, g)); } }));
+    Object.keys(LZ.games).forEach(id=>{
+      if(seen.has(id)) return;
+      const p = LZ.games[id].p;
+      if(p.date && p.date < LZ_FROM) return;             // (a game from before Larry's start, still in the suggestions study)
+      out.push({ id, day:p.date, me:p.me, res:p.res, tc:p.tc, tcn:p.tcn, opp:p.opp, r:p.rows.map(r=> [r.k, r.ply, r.san, r.l, r.who, r.tf, r.mt, r.ph, r.ec, r.pc]) });
+    });
+    return out.sort((a, b)=> (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
+  }
+  // a history row ([k, ply, san, letter, who, tf, mt, ph, ec, pc]) as a suggestions row (lzRowSide, lzTally's shape)
+  function lzRowOf(x){ return { k:x[0], ply:x[1], san:x[2], l:x[3], who:x[4], tf:x[5], mt:x[6], ph:x[7], ec:x[8], pc:x[9] }; }
+  // the review of a game, opened on Larry's suggestions (k: that one in focus)
+  function lzOpenGame(gid, k){
+    const g = ccGameById(gid);
+    if(!g) return false;
+    ghOpenGame(g, { larry:{ k:k || null } });
+    return true;
+  }
+
+  // ======== the CLAMP tab: Larry Suggestions (lzv*: CT.side 'larry', drawn from ctRender) ========
+  // The inbox reads the payloads and the records only (no replay): today's games newest first, then earlier ones not
+  // finished, then Done today (folded); it ignores the Filters and the site tab. Under it, Larry's dashboard: the Mine
+  // cards fed his flags (ctModelL, lzDashMarks). Nothing here talks to Lichess (lzRefresh does, on its own schedule).
+  var LZV = { sig:'' };
+  // one of Larry's games on his dashboard: his flags you haven't skipped (one per move and letter), on your move, as
+  // [ply, letter, Larry's words, 'w' waiting | 'k' in the game as yours | 'o' as theirs, key, 1 when you'd marked it yourself]
+  function lzDashMarks(x, g, u){
+    const id = String(g.id), E = LZ.games[id], rows = E ? E.p.rows : x.r.map(lzRowOf);
+    const mv = String(g.moves || '').trim(), toks = mv ? mv.split(/\s+/) : null, out = [], seen = new Set();
+    lzMarksOf(id, rows, ghMyColor(g, u)==='black' ? 'b' : 'w', toks).forEach(m=>{
+      const r = m.r, key = r.ply+r.l;
+      if(m.st==='s' || seen.has(key)) return;
+      seen.add(key);
+      const tag = r.who==='r' ? (m.th ? 'you missed it' : 'missed your chance') : r.who==='s' ? 'took too long' : r.who==='t' ? 'missed their threat' : '';
+      out.push([r.ply, r.l, [r.mt, tag].filter(Boolean).join(', '), m.st==='w' ? 'w' : m.own, r.k, m.st==='h' ? 1 : 0]);
+    });
+    return out;
+  }
+  function lzvToday(){ return lzDayStr(ghoBriefNow()); }
+  function lzvDayMs(day){ const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day || '')); return m ? new Date(+m[1], +m[2] - 1, +m[3], 12).getTime() : 0; }
+  // what the inbox shows: { msg (where it can't come from), today, O (lzOrder), T today's games, wait / done of them,
+  // early (before today, not finished), n suggestions today, upd (the sheet's newest write), cc (today's chess.com games
+  // against people), nr (today's games with nothing to flag) and notIn (today's games not in the sheet yet): those two
+  // null until the helper says (its Game Index, v2) }
+  function lzvModel(){
+    const ok = typeof LZ==='object' && !!LZ, today = lzvToday();
+    const V = { ok, today, msg:'', O:[], T:[], wait:[], done:[], early:[], n:0, upd:0, cc:[], nr:null, notIn:null };
+    if(!ok) return V;
+    V.msg = getLichessToken() && !(CC && CC.user) ? 'Larry checks your chess.com games: add your chess.com username in the Chess.com tab above to see his suggestions.' : lzMessage();
+    V.O = lzOrder();
+    V.T = V.O.filter(x=> x.today);
+    V.wait = V.T.filter(x=> x.t.w > 0); V.done = V.T.filter(x=> !x.t.w); V.early = V.O.filter(x=> !x.today);
+    V.n = V.T.reduce((s, x)=> s + x.t.n, 0);
+    let up = 0, upT = 0;
+    Object.keys(LZ.games).forEach(id=>{ const x = LZ.games[id].x; up = Math.max(up, x); if(lzGameDay(id)===today) upT = Math.max(upT, x); });
+    V.upd = upT || up;
+    V.cc = (CC && Array.isArray(CC.games) ? CC.games : []).filter(g=> g && g.createdAt && !ghVsComputer(g) && lzDayStr(g.createdAt)===today);
+    if(Object.keys(LZ.hist).some(d=> LZ.hist[d].nr!=null)){
+      // the clean games (nr: no id) matched to today's chess.com games by opponent and color (and result first), in play order
+      const H = LZ.hist[today], nr = H && H.nr ? H.nr : [], ids = new Set(Object.keys(LZ.games)), u = ghMe();
+      Object.keys(LZ.hist).forEach(d=> LZ.hist[d].games.forEach(g=> ids.add(g.id)));
+      const cand = V.cc.filter(g=> !ids.has(String(g.id))).sort((a, b)=> a.createdAt - b.createdAt), used = new Set(), hit = new Set();
+      const L = nr.map((e, i)=> ({ e, i })).sort((a, b)=> a.e.i - b.e.i);
+      [true, false].forEach(strict=> L.forEach(({ e, i })=>{
+        if(hit.has(i)) return;
+        const g = cand.find(c=> !used.has(c) && ghOppName(ghPlayers(c, u).opp).toLowerCase()===e.opp.toLowerCase()
+          && (ghMyColor(c, u)==='black' ? 'b' : 'w')===e.me && (!strict || !e.res || ghGameResult(c, u)===e.res));
+        if(g){ used.add(g); hit.add(i); }
+      }));
+      V.nr = nr.length; V.notIn = cand.length - used.size;
+    }
+    return V;
+  }
+  // the CLAMP tab's count line
+  function lzvCount(V){
+    const b = 'Larry\u2019s CLAMP sheet';
+    if(!V.ok || V.msg) return b;
+    const n = V.T.length, T = Math.max(n, V.cc.length);
+    if(!T) return b;
+    return b+' \u00b7 '+(T===1 ? (n ? 'today\u2019s game has suggestions' : 'today\u2019s game has none') : n+' of today\u2019s '+T+' games '+(n===1 ? 'has' : 'have')+' suggestions');
+  }
+  // the switch's count: games with suggestions waiting (today's and earlier ones not finished)
+  function lzvBadge(V){
+    const b = document.querySelector('#ct-side .lz-sideb'), x = b && b.querySelector('.lz-sbn');
+    if(!x) return;
+    const n = V.wait.length + V.early.length, t = n ? String(n) : '', lab = n ? 'Larry Suggestions, '+ghoN(n, 'game')+' to check' : 'Larry Suggestions';
+    if(x.textContent!==t) x.textContent = t;
+    if(x.hidden!==!n) x.hidden = !n;
+    if(b.getAttribute('aria-label')!==lab) b.setAttribute('aria-label', lab);
+  }
+  // one game of the inbox: who and when, what's added (real discs: filled yours, ring theirs), what's waiting (dashed),
+  // where it stands, Review
+  function lzvRow(x){
+    const id = x.id, g = ccGameById(id), p = LZ.games[id].p, u = ghMe(), t = x.t;
+    const P = g ? ghPlayers(g, u) : null, opp = (P && P.opp && P.opp.user && P.opp.user.name) || p.opp || 'your opponent', rating = P && P.opp ? P.opp.rating : null;
+    const res = g ? ghGameResult(g, u) : p.res, color = g ? ghMyColor(g, u) : (p.me==='b' ? 'black' : 'white');
+    const tc = g ? ghTcLabel(g) : p.tc, at = g && g.createdAt ? g.createdAt : 0;
+    const row = ghEl('div', 'lz-row'+(t.w ? '' : ' is-done'));
+    row.dataset.gid = id;
+    const who = ghEl('div', 'lz-row-who'), l1 = ghEl('div', 'lz-row-l1');
+    if(res) l1.appendChild(ghEl('span', 'history-result-pill history-result-'+res, res==='win' ? 'WON' : res==='loss' ? 'LOST' : 'DRAW'));
+    l1.appendChild(ghEl('span', 'lz-opp', opp));
+    if(rating) l1.appendChild(ghEl('span', 'lz-rt', '('+rating+')'));
+    who.appendChild(l1);
+    // (the color in words: a black swatch on a dark skin reads as an empty, white one)
+    const when = at ? (x.today ? lzClock(at) : ctDay(at)+', '+lzClock(at)) : x.today ? '' : ctDay(lzvDayMs(x.day));
+    who.appendChild(ghEl('div', 'lz-row-l2', [color==='white' ? 'White' : 'Black', tc, when].filter(Boolean).join(' \u00b7 ')));
+    row.appendChild(who);
+    const ls = ghEl('div', 'lz-ls'), sr = [];
+    const al = Object.keys(t.al).sort((a, b)=> 'CLAMP'.indexOf(a[0]) - 'CLAMP'.indexOf(b[0]) || (a[1]==='k' ? -1 : 1));
+    al.forEach(k=>{
+      const K = CLAMP_BY[k[0]], s = ghEl('span', 'lz-lc');
+      s.append(ctDisc(K, k[1]==='o'), document.createTextNode(String(t.al[k])));
+      s.title = K.name+(k[1]==='o' ? ', added as theirs' : ', added as yours');
+      s.setAttribute('aria-hidden', 'true');
+      sr.push(s.title+': '+t.al[k]);
+      ls.appendChild(s);
+    });
+    const wl = CLAMP_K.filter(K=> t.wl[K.ch]).sort((a, b)=> t.wl[b.ch] - t.wl[a.ch] || 'CLAMP'.indexOf(a.ch) - 'CLAMP'.indexOf(b.ch));
+    if(al.length && wl.length){ const sp = ghEl('span', 'lz-sep'); sp.setAttribute('aria-hidden', 'true'); ls.appendChild(sp); }
+    wl.forEach(K=>{
+      const s = ghEl('span', 'lz-lc');
+      s.append(lzDisc(K.ch), document.createTextNode(String(t.wl[K.ch])));
+      s.title = K.name+', waiting';
+      s.setAttribute('aria-hidden', 'true');
+      sr.push(s.title+': '+t.wl[K.ch]);
+      ls.appendChild(s);
+    });
+    if(sr.length) ls.appendChild(ghEl('span', 'ph-sr', sr.join('. ')+'.'));
+    else ls.appendChild(ghEl('span', 'lz-none', 'nothing added'));
+    row.appendChild(ls);
+    const st = ghEl('div', 'lz-st'), bits = [];
+    if(t.a) bits.push(t.a+' added');
+    if(t.s) bits.push(t.s+' skipped');
+    if(t.had) bits.push(t.had+' already marked');
+    // (each count kept on one line: "3 to check" never splits)
+    const part = (i)=>{ if(i) st.appendChild(document.createTextNode(', ')); st.appendChild(ghEl('span', 'lz-nw', bits[i])); };
+    if(t.w){ bits.forEach((x, i)=> part(i)); if(bits.length) st.appendChild(document.createTextNode(', ')); st.appendChild(ghEl('b', '', t.w+' to check')); }
+    else { st.appendChild(ghEl('b', '', 'Done')); if(bits.length){ st.appendChild(document.createTextNode(': ')); bits.forEach((x, i)=> part(i)); } }
+    row.appendChild(st);
+    const b = ghEl('button', 'btn btn-ghost lz-rev', 'Review');
+    b.type = 'button'; b.dataset.act = 'lzrev'; b.dataset.gid = id; b.dataset.fid = 'lz|'+id;
+    b.setAttribute('aria-label', 'Review Larry Suggestions for your game against '+opp);
+    if(!g){ b.disabled = true; b.title = 'This game hasn\u2019t come in from chess.com yet'; }
+    row.appendChild(b);
+    return row;
+  }
+  // the inbox, drawn again only when something it shows changed (V: lzvModel)
+  function lzvDraw(on, V){
+    const box = document.getElementById('lz-view');
+    if(!box) return;
+    if(!on){ if(!box.hidden) box.hidden = true; return; }
+    if(box.hidden) box.hidden = false;
+    const sig = [V.ok ? LZ.ver+':'+LZ.st : '', V.msg, V.today, V.upd, V.n, V.nr, V.notIn, V.cc.length, CT.lzDone ? 1 : 0,
+      V.O.map(x=> x.id+(ccGameById(x.id) ? '+' : '-')+(x.today ? 't' : 'e')+JSON.stringify(x.t)).join(';')].join('|');
+    if(sig===LZV.sig && box.firstChild) return;
+    const fa = document.activeElement, fid = fa && box.contains(fa) && fa.dataset ? fa.dataset.fid || '' : '';
+    LZV.sig = sig;
+    box.textContent = '';
+    // the top card: where it comes from, today's count (or why it can't come), the discs' key
+    const top = ghEl('section', 'ct-card lz-top'), head = ghEl('div', 'ct-head'), h = ghEl('h3', 'ct-h', 'Larry Suggestions');
+    h.id = 'lz-view-h';
+    top.setAttribute('aria-labelledby', 'lz-view-h');
+    head.appendChild(h);
+    if(V.upd) head.appendChild(ghEl('span', 'ct-n', 'Sheet updated '+(lzDayStr(V.upd)===V.today ? lzClock(V.upd) : ctDay(V.upd)+', '+lzClock(V.upd))));
+    top.append(head, ghEl('p', 'ct-sub', 'From Larry\u2019s CLAMP sheet.'));
+    const cp = ghEl('p', 'lz-count');
+    if(V.msg) cp.textContent = V.msg;
+    else if(V.T.length) cp.append(ghEl('b', '', ghoN(V.n, 'suggestion')+' on '+ghoN(V.T.length, 'game')+' from today.'), document.createTextNode(' Nothing goes into a game until you add it.'));
+    else cp.append(ghEl('b', '', 'Nothing from today yet.'), document.createTextNode(' Larry\u2019s suggestions show here once his sheet has today\u2019s games. Nothing goes into a game until you add it.'));
+    top.appendChild(cp);
+    if(!V.msg || V.O.length){
+      const key = ghEl('div', 'lz-key'), kk = (d, t)=>{ const s = ghEl('span', ''); s.append(d, document.createTextNode(t)); key.appendChild(s); };
+      kk(lzDisc('M'), 'Larry\u2019s suggestion, waiting');
+      kk(ctDisc(CLAMP_BY.M), 'added as yours');
+      kk(ctDisc(CLAMP_BY.M, true), 'added as theirs');
+      top.appendChild(key);
+    }
+    box.appendChild(top);
+    // the games to check
+    if(V.T.length || V.early.length){
+      const card = ghEl('section', 'ct-card lz-games');
+      card.setAttribute('aria-label', 'Games to check');
+      if(V.T.length){
+        const gh = ghEl('div', 'ct-head');
+        gh.append(ghEl('h4', 'ct-k', 'Today \u00b7 newest first'), ghEl('span', 'ct-n', V.wait.length ? ghoN(V.wait.length, 'game')+' to check' : 'Nothing left to check'));
+        card.appendChild(gh);
+        V.wait.forEach(x=> card.appendChild(lzvRow(x)));
+        if(!V.wait.length) card.appendChild(ghEl('p', 'lz-all', 'Every suggestion from today is added or skipped.'));
+      }
+      if(V.early.length){
+        const eh = ghEl('div', 'ct-head'+(V.T.length ? ' lz-gh2' : ''));
+        eh.append(ghEl('h4', 'ct-k', 'Earlier, not finished'), ghEl('span', 'ct-n', ghoN(V.early.length, 'game')+' to check'));
+        card.appendChild(eh);
+        V.early.forEach(x=> card.appendChild(lzvRow(x)));
+      }
+      if(V.done.length){
+        const dh = ghEl('button', 'lz-done-h');
+        dh.type = 'button'; dh.dataset.act = 'lzdone'; dh.dataset.fid = 'lzdone';
+        dh.setAttribute('aria-expanded', CT.lzDone ? 'true' : 'false');
+        const ch = ghEl('span', 'lz-chev');
+        ch.setAttribute('aria-hidden', 'true');
+        dh.append(ghEl('span', '', 'Done today ('+V.done.length+')'), ch);
+        if(!CT.lzDone) dh.appendChild(ghEl('span', 'lz-dn', 'every suggestion added or skipped'));
+        card.appendChild(dh);
+        if(CT.lzDone) V.done.forEach(x=> card.appendChild(lzvRow(x)));
+      }
+      box.appendChild(card);
+    }
+    // today's games the list doesn't have: nothing to flag, or not in the sheet yet (once the helper says)
+    const lines = [];
+    if(!V.msg && V.nr) lines.push(V.nr===1 ? '1 game today had nothing for Larry to flag.' : V.nr+' games today had nothing for Larry to flag.');
+    if(!V.msg && V.notIn) lines.push(V.notIn===1 ? '1 of today\u2019s games isn\u2019t in Larry\u2019s sheet yet.' : V.notIn+' of today\u2019s games aren\u2019t in Larry\u2019s sheet yet.');
+    if(lines.length) box.appendChild(ghEl('p', 'ct-src lz-src', lines.join(' ')));
+    if(fid){ const el = Array.from(box.querySelectorAll('[data-fid]')).find(e=> e.dataset.fid===fid); if(el) try{ el.focus({ preventScroll:true }); }catch(e){} }
+  }
+  function lzvClick(t){
+    if(t.dataset.act==='lzdone'){
+      CT.lzDone = !CT.lzDone;
+      lzvDraw(true, lzvModel());
+      const b = document.querySelector('#lz-view .lz-done-h');
+      if(b) try{ b.focus({ preventScroll:true }); }catch(e){}
+      return;
+    }
+    if(!t.dataset.gid || t.disabled) return;
+    CT.back = { y:window.scrollY, fid:t.dataset.fid };          // back here, the keyboard on that Review
+    if(!lzOpenGame(t.dataset.gid)) CT.back = null;
+  }
+  // from the brief: the CLAMP tab on Larry Suggestions (ch: his moments of that letter; none: the games to check)
+  function lzvFromBrief(ch){
+    if(CT.side!=='larry'){
+      CT.side = 'larry';
+      try{ localStorage.setItem('wavyChessPrepClampSide', 'larry'); }catch(e){}
+      CT.m = { ch:'', b:null, out:'' }; CT.shown = CT_MOM_N; CT.gx = null; CT.sig = CT.msig = '';
+    }
+    if(ctOn()) ghRender(); else ghoSetView('clamp');
+    if(ch){ ctSetMoments(ch, null, true); return; }
+    const v = document.getElementById('lz-view');
+    if(!v || v.hidden) return;
+    window.scrollTo({ top:Math.max(0, window.scrollY + v.getBoundingClientRect().top - 12) });
+    const b = v.querySelector('.lz-rev:not([disabled])') || v.querySelector('button');
+    if(b) try{ b.focus({ preventScroll:true }); }catch(e){}
+  }
+  // the brief's one Larry line (2026-11-19): today's suggestions waiting, else his most repeated letter this week (in 2+
+  // of the games he flagged); null when neither. Reads what's here only: never a request
+  function lzBriefFact(){
+    if(typeof LZ!=='object' || !LZ || !lzWanted()) return null;
+    const W = lzOrder().filter(x=> x.today && x.t.w > 0);
+    if(W.length){
+      const n = W.reduce((s, x)=> s + x.t.w, 0), one = W.length===1 ? W[0].id : '';
+      let lab = 'Review Larry\u2019s suggestions: the CLAMP tab, Larry Suggestions';
+      if(one){ const g = ccGameById(one); lab = 'Review Larry\u2019s suggestions for your game against '+((g && ghOppName(ghPlayers(g, ghMe()).opp)) || LZ.games[one].p.opp); }
+      return { tag:'Larry', cls:'is-larry', text:[[ghoN(n, 'suggestion')], (n===1 ? ' is' : ' are')+' waiting on '+(W.length===1 ? 'a game' : W.length+' games')+' from today.'],
+        acts:[{ t:'Review', lab, go:()=>{ if(one && lzOpenGame(one)) return; lzvFromBrief(''); } }] };
+    }
+    const from = lzDayStr(ghoBriefNow() - 6*86400e3), u = ghMe(), L = [];
+    lzHistGames().forEach(x=>{
+      if(x.day < from) return;
+      const g = ccGameById(x.id);
+      if(!g || ghVsComputer(g)) return;
+      const k = lzDashMarks(x, g, u);
+      if(k.length) L.push({ at:Number(g.createdAt) || 0, k });
+    });
+    L.sort((a, b)=> b.at - a.at);
+    const cnt = ctCount(L), ch = ctTop(L, cnt);
+    if(!ch || cnt[ch] < 2) return null;
+    const K = CLAMP_BY[ch];
+    return { tag:'Larry', cls:'is-larry', text:['His most repeated letter this week: ', [K.what], ' in '+cnt[ch]+' of the '+L.length+' games he flagged.'],
+      acts:[{ t:'See them in CLAMP', lab:'See them in CLAMP: Larry\u2019s moments of '+K.name, go:()=>{ lzvFromBrief(ch); } }] };
+  }
+
+  // ======== the review board: the Larry Suggestions card (three columns) or the Larry tab (under them) ========
+  var LZ_NB = '\u00a0';
+  var LZ_PN = { p:'pawn', n:'knight', b:'bishop', r:'rook', q:'queen', k:'king' };
+  var LZ_TYPE = { pawn:'p', knight:'n', bishop:'b', rook:'r', queen:'q', king:'k' };
+  function lzAlg(i){ return 'abcdefgh'[i % 8] + (Math.floor(i / 8) + 1); }
+  // squares a piece attacks (a plain map: sliders stop at the first piece; no pins, no en passant)
+  function lzHits(B, i){
+    const p = B[i];
+    if(!p) return [];
+    const f = i % 8, r = Math.floor(i / 8), out = [];
+    const add = (ff, rr)=>{ if(ff >= 0 && ff < 8 && rr >= 0 && rr < 8) out.push(rr * 8 + ff); };
+    if(p.type==='p'){ const d = p.color==='w' ? 1 : -1; add(f - 1, r + d); add(f + 1, r + d); return out; }
+    if(p.type==='n'){ [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]].forEach(([a, b])=> add(f + a, r + b)); return out; }
+    if(p.type==='k'){ for(let a = -1; a <= 1; a++) for(let b = -1; b <= 1; b++) if(a || b) add(f + a, r + b); return out; }
+    const dirs = [];
+    if(p.type!=='r') dirs.push([1, 1], [1, -1], [-1, 1], [-1, -1]);
+    if(p.type!=='b') dirs.push([1, 0], [-1, 0], [0, 1], [0, -1]);
+    dirs.forEach(([a, b])=>{ let ff = f + a, rr = r + b; while(ff >= 0 && ff < 8 && rr >= 0 && rr < 8){ out.push(rr * 8 + ff); if(B[rr * 8 + ff]) break; ff += a; rr += b; } });
+    return out;
+  }
+  function lzBy(B, sq, color){ let n = 0; for(let i = 0; i < 64; i++){ const p = B[i]; if(p && p.color===color && lzHits(B, i).indexOf(sq) >= 0) n++; } return n; }
+  // pieces of a color (of a type) the other side attacks and nothing of their own defends (never the king)
+  function lzLoose(B, color, type){
+    const o = color==='w' ? 'b' : 'w', out = [];
+    for(let i = 0; i < 64; i++){ const p = B[i]; if(p && p.color===color && p.type!=='k' && (!type || p.type===type) && lzBy(B, i, o) && !lzBy(B, i, color)) out.push(i); }
+    return out;
+  }
+  // Larry's evals are from YOUR side; the app's (like chess.com's and Lichess's) from White's
+  function lzEvTok(s){
+    s = String(s || '').trim().replace(/\u2212/g, '-');
+    const m = /^([+-]?)M(\d+)$/i.exec(s);
+    if(m) return { mate:+m[2], sg:m[1]==='-' ? -1 : 1 };
+    const v = parseFloat(s);
+    return isNaN(v) ? null : { v };
+  }
+  function lzFlip(t, me){ return !t ? null : me==='w' ? t : t.mate!=null ? { mate:t.mate, sg:-t.sg } : { v:-t.v }; }
+  function lzSgn(v){ return (v > 0.04 ? '+' : v < -0.04 ? '\u2212' : '') + Math.abs(v).toFixed(1); }
+  function lzEvW(t){ return t.mate!=null ? 'mate in '+t.mate+' for '+(t.sg > 0 ? 'White' : 'Black') : lzSgn(t.v); }
+  function lzEvPair(a, b){ return a.mate!=null && b.mate!=null && a.sg===b.sg ? 'mate in '+a.mate+' to mate in '+b.mate+' for '+(a.sg > 0 ? 'White' : 'Black') : lzEvW(a)+' to '+lzEvW(b); }
+  function lzLvl(x){ x = Math.abs(x); return x >= 3 ? 'winning' : x >= 1.5 ? 'clearly better' : x >= 0.7 ? 'a bit better' : null; }
+  // what the move did, in words, from YOUR side's numbers (for a reason with nothing concrete in it)
+  function lzSwing(a, b, me, san){
+    if(!a || !b) return null;
+    const MEC = me==='w' ? 'White' : 'Black', OPC = me==='w' ? 'Black' : 'White', at = 'After '+san+', ';
+    if(b.mate!=null) return at+(b.sg > 0 ? MEC : OPC)+' had mate in '+b.mate+'.';
+    const av = a.mate!=null ? (a.sg > 0 ? 99 : -99) : a.v;
+    if(b.v <= -0.7) return at+OPC+' was '+lzLvl(b.v)+(av <= -0.7 && lzLvl(av)===lzLvl(b.v) ? ' still' : '')+'.';
+    if(b.v < 0.7) return av >= 0.7 ? at+'your edge was gone.' : at+'the game was level.';
+    if(av - b.v >= 0.5) return at+'your edge shrank'+(a.mate!=null ? ' from a forced mate' : ' from '+av.toFixed(1))+' to '+b.v.toFixed(1)+'.';
+    return null;
+  }
+  function lzMmss(s){ s = Math.abs(Math.round(s)); return Math.floor(s / 60)+':'+String(s % 60).padStart(2, '0'); }
+  function lzSpent(s){ return s < 0.5 ? 'under 1 sec' : s < 59.5 ? Math.round(s)+' sec' : lzMmss(s); }
+  function lzBestTok(s){ let t = String(s || '').trim().split(/\s+/)[0] || ''; t = t.replace(/[!?,.;:]+$/, '').replace(/^\d+\.+/, ''); return /^(?:[KQRBN][a-h]?[1-8]?x?[a-h][1-8]|[a-h](?:x[a-h])?[1-8](?:=[QRBN])?|O-O(?:-O)?)[+#]?$/.test(t) ? t : ''; }
+  var LZ_GENERIC = /^(your move swung the game|your move was too slow|it opened a line for the \w+|castling kept your king safe)$/;
+  // one row of Larry's as the review shows it, or null when it isn't offered (a move past the end, another move
+  // played there, a move that isn't yours)
+  function lzItem(S, r, rev){
+    const un = S.main[r.ply - 1];
+    if(!un || !un.move || !un.parent || !hvMoveMine(un)) return null;
+    if(r.san && lzBare(r.san)!==lzBare(un.san)) return null;
+    const me = S.me==='black' ? 'b' : 'w', op = me==='w' ? 'b' : 'w';
+    const pcl = r.pc || (rev && Array.isArray(rev.b) && r.ply > 1 && HR_BY_ID[rev.b[r.ply - 2]] ? HR_BY_ID[rev.b[r.ply - 2]].short : '');
+    const theirs = r.who==='r' && r.ply > 1 && !!un.parent.move && lzSlip(pcl) && hvClampOk(un.parent);
+    const idea = r.idea || '', cut = idea.indexOf(' \u2014 ');
+    let better = r.best || (cut > 0 ? lzBestTok(idea.slice(0, cut)) : '');
+    let text = cut > 0 ? idea.slice(cut + 3) : idea;
+    if(cut < 0 && better && lzBestTok(text)===better) text = text.replace(/^\S+\s*/, '');
+    const first = text.split(/\.\s/)[0].replace(/\.$/, '').trim();
+    const pre = un.parent.state, post = un.state;
+    const same = !!better && lzBare(better)===lzBare(un.san) && !theirs;
+    let f = null;
+    if(better && !same) try{ f = hvFindMoveBySan(pre, better); }catch(e){ f = null; }
+    const mv = f && f.move;
+    let sq = null;
+    const cl = [];
+    if(mv && mv.captured){ sq = lzAlg(mv.to); cl.push('you could take the '+LZ_PN[mv.captured]+' on'+LZ_NB+sq+(/\+$/.test(better) ? ' with check' : '')); }
+    first.split(/;\s*/).map(s=> s.trim()).filter(Boolean).forEach(raw=>{
+      const p = raw.toLowerCase();
+      let m;
+      if(/^missed tactical capture/.test(p)){ if(!(mv && mv.captured)) cl.push('you missed a capture'); return; }
+      if(mv && mv.captured && /^loose/.test(p)) return;          // the capture says it
+      if((m = /^loose opposing (\w+)/.exec(p))){
+        const t = LZ_TYPE[m[1]];
+        let c = f ? lzLoose(f.next.board, op, t) : [];
+        if(c.length!==1) c = lzLoose(pre.board, op, t);
+        if(c.length===1 && !sq){ sq = lzAlg(c[0]); cl.push('their '+m[1]+' on'+LZ_NB+sq+' was loose'); } else cl.push('their '+m[1]+' was loose');
+        return;
+      }
+      if((m = /^loose (\w+)/.exec(p))){
+        const c = lzLoose(post.board, me, LZ_TYPE[m[1]]);
+        if(c.length===1 && !sq){ sq = lzAlg(c[0]); cl.push('your '+m[1]+' on'+LZ_NB+sq+' was left loose'); } else cl.push('your '+m[1]+' was left loose');
+        return;
+      }
+      if(/^exposed opposing king/.test(p)) return cl.push('their king was open');
+      if(/^exposed own king/.test(p)) return cl.push('your king was left open');
+      if(/^lost time or activity/.test(p)) return cl.push('your move was too slow');
+      if((m = /^pinned (\w+)/.exec(p))) return cl.push('a '+m[1]+' was pinned');
+      if(/^missed forcing check/.test(p)) return cl.push('you had a check');
+      if(/^allowed forced mate/.test(p)) return cl.push('your move allowed a forced mate');
+      if(/^decisive tactical swing/.test(p)) return cl.push('your move swung the game');
+      if(/^structural concession/.test(p)) return cl.push('your move weakened your pawns');
+      if(/castling and king safety/.test(p)) return cl.push('castling kept your king safe');
+      if((m = /^opened line for the (\w+)/.exec(p))) return cl.push('it opened a line for the '+m[1]);
+      cl.push(/^[A-Z][a-z]/.test(raw) ? raw.charAt(0).toLowerCase() + raw.slice(1) : raw);
+    });
+    // short: the first point, a second only when it names the square and the first doesn't
+    const keep = cl.slice(0, 1).concat(cl.slice(1).filter(c=> sq && c.indexOf(LZ_NB+sq) >= 0 && cl[0].indexOf(LZ_NB+sq) < 0).slice(0, 1));
+    const evs = String(r.ev || '').split(/\s*(?:\u2192|->)\s*/), ea = lzEvTok(evs[0]), eb = evs.length > 1 ? lzEvTok(evs[1]) : null;
+    const generic = !keep.length || keep.every(c=> LZ_GENERIC.test(c));
+    const sw = generic ? lzSwing(ea, eb, me, un.san) : null;
+    const betterLab = better ? (theirs ? ghClampLabel(r.ply, better, un.off || 0) : better) : '';
+    const lead = same || !better ? '' : theirs ? 'Best reply was ' : 'Better was ';
+    const cap = (s)=> s.charAt(0).toUpperCase() + s.slice(1);
+    let tail, note;
+    if(same){ tail = 'You played Larry\u2019s own pick here, '+better+'. This one is about the clock.'; note = 'Right move, slow: check the clock.'; }
+    else if(sw){ tail = better ? '. '+sw : sw; note = better ? 'Better was '+better+'. '+sw : sw; }
+    else if(keep.length){ const w = keep.join('; '); tail = better ? ': '+w+'.' : cap(w)+'.'; note = cap(w)+'.'; }
+    else { tail = better ? '.' : ''; note = better ? 'Better was '+better+'.' : ''; }
+    // the clock from the game's own readings (centiseconds after each ply)
+    const G = S.game, CL = Array.isArray(G.clocks) ? G.clocks : [];
+    const ini = G.clock && G.clock.initial!=null ? Number(G.clock.initial) * 100 : null, inc = G.clock ? Number(G.clock.increment || 0) * 100 : 0;
+    const after = CL[r.ply - 1], before = r.ply > 2 ? CL[r.ply - 3] : ini;
+    const clk = String(r.clk || '').split(/\s*(?:\u2192|->)\s*/);
+    const left = typeof after==='number' ? hvFmtClock(after) : (clk[1] || clk[0] || '');
+    const think = typeof after==='number' && typeof before==='number' ? (before + inc - after) / 100 : null;
+    const ecl = r.ec || (rev && Array.isArray(rev.b) && HR_BY_ID[rev.b[r.ply - 1]] ? HR_BY_ID[rev.b[r.ply - 1]].short : '');
+    const facts = [];
+    if(theirs) facts.push({ t:'Your reply '+hvNodeLabel(un) });
+    if(r.mt || (ea && eb)) facts.push({ t:'Larry: '+(r.mt || 'no type')+(ea && eb ? ', eval '+lzEvPair(lzFlip(ea, me), lzFlip(eb, me)) : '') });
+    if(ecl && ecl.toLowerCase()!==String(r.mt || '').toLowerCase()) facts.push({ t:'engine: '+ecl });
+    if((r.who==='s' || r.tf===1 || same) && think!=null && think >= 0) facts.push({ t:'thought for '+lzSpent(think) });
+    if(left) facts.push({ t:left+' left' });
+    // the board: always the position you chose from (the move before yours), so Larry's better move is drawn on the board it
+    // belongs to, with you to move (2026-11-19, the user's go: the board used to land on your move, the arrow a move behind it)
+    const node = theirs ? un.parent : un;
+    const at = un.parent || node;
+    if(r.ph) facts.push({ t:r.ph, cls:'lz-ph' });
+    const tag = same ? 'you played Larry\u2019s move' : r.who==='r' ? (theirs ? 'you missed it' : 'missed your chance') : r.who==='s' ? 'took too long' : r.who==='t' ? 'missed their threat' : '';
+    return { k:r.k, row:r, ch:r.l, theirs, tag, node, un, at, label:hvNodeLabel(node), better, betterLab, lead, tail, same,
+      note:gnClampNote(note), facts, from:mv ? mv.from : null, to:mv ? mv.to : null, sq, mt:r.mt };
+  }
+  // the game's suggestions for the review (S.lz): items in row order, and by the move they go on (the move list's discs)
+  function lzBuild(S){
+    const g = S && S.game, gid = g && g.id ? String(g.id) : '', E = gid && LZ && LZ.games ? LZ.games[gid] : null;
+    const L = { gid, sig:(E ? E.x+':'+E.h : '')+'|'+(S && S.review ? 1 : 0), rev:S ? S.review : null, items:[], byNode:new Map(), focus:null, edit:null, showDec:false, more:false };
+    if(!E || !ccIsId(gid) || g._puzzle || g._practice || !S.me || !hvAnnId()) return L;
+    E.p.rows.forEach(r=>{
+      let it = null;
+      try{ it = lzItem(S, r, S.review); }catch(e){ it = null; }
+      if(!it) return;
+      L.items.push(it);
+      if(!L.byNode.has(it.node.id)) L.byNode.set(it.node.id, []);
+      L.byNode.get(it.node.id).push(it);
+    });
+    return L;
+  }
+  function lzDecOf(S){ return S ? ((S.tree || S).lzDec || {}) : {}; }
+  // the target move has the letter already (yours or theirs; for one of theirs, yours on your move too): no second mark
+  function lzHad(it){
+    return !!(it.node.clamp && it.ch in it.node.clamp) || (it.theirs && !!it.un.clamp && it.ch in it.un.clamp && !hvClampIsT(it.un, it.ch));
+  }
+  function lzStatus(it){ const d = lzDecOf(HV_STATE)[it.k]; return d ? (d[0]==='a' ? 'a' : 's') : lzHad(it) ? 'had' : 'wait'; }
+  function lzItemOf(k){ const L = HV_STATE && HV_STATE.lz; return L ? L.items.find(x=> x.k===k) || null : null; }
+  function lzShown(){
+    const S = HV_STATE;
+    return !!(S && S.lz && S.lz.items.length && !S.game._puzzle && !S.game._practice && (hvPrefs.cards.larry || S.lzForce));
+  }
+  function lzCounts(){
+    const L = HV_STATE && HV_STATE.lz, c = { n:0, a:0, s:0, had:0, w:0 };
+    if(L) L.items.forEach(it=>{ c.n++; const s = lzStatus(it); if(s==='a') c.a++; else if(s==='s') c.s++; else if(s==='had') c.had++; else c.w++; });
+    return c;
+  }
+  // the next game with suggestions waiting, in the CLAMP view's order from this one: { gid, opp, n } or null
+  function lzNextGame(gid){
+    const L = lzOrder(), i = L.findIndex(x=> x.id===gid);
+    for(let k = 1; k <= L.length; k++){
+      const x = L[(i + k + L.length) % L.length];
+      if(!x || x.id===gid || !x.t || !x.t.w || !ccGameById(x.id)) continue;
+      const g = ccGameById(x.id), P = ghPlayers(g, ghMe());
+      return { gid:x.id, opp:ghOppName(P.opp) || LZ.games[x.id].p.opp || 'your opponent', n:x.t.w };
+    }
+    return null;
+  }
+
+  // ---- decisions: Add (an ordinary CLAMP mark), Skip, Undo; each one save of the record ----
+  // o (Edit): { letters, theirs, out 'p' | 'm', note, sqs }; left out, Larry's (the side rule's) as they are
+  function lzAdd(it, o){
+    const S = HV_STATE;
+    if(!S || !S.lz) return false;
+    o = o || {};
+    const theirs = o.theirs!=null ? !!o.theirs : it.theirs, node = theirs ? it.un.parent : it.un;
+    if(!node || !node.move || !hvClampOk(node)) return false;
+    const letters = CLAMP_K.map(K=> K.ch).filter(ch=> (o.letters || [it.ch]).indexOf(ch) >= 0 && !(node.clamp && ch in node.clamp));
+    if(!letters.length){ hvSay(hvNodeLabel(node)+': already marked'); lzPaint(); return false; }
+    const note = gnClampNote(o.note!=null ? o.note : it.note);
+    const sqs = (o.sqs || (it.sq ? [it.sq] : [])).filter(s=> /^[a-h][1-8]$/.test(s)).slice(0, CLAMP_SQ_MAX);
+    const R = S.tree || S, D = R.lzDec || (R.lzDec = {}), before = hvAnnText(false).length;
+    const was = { clamp:node.clamp ? Object.assign({}, node.clamp) : null, clampSq:node.clampSq ? JSON.parse(JSON.stringify(node.clampSq)) : null,
+      clampT:node.clampT ? Object.assign({}, node.clampT) : null, clampR:node.clampR || null }, wasD = D[it.k];
+    // Punished / Missed is said once for the move: one the move has stays (only Edit's own choice changes it); none
+    // yet, Larry's (Missed). A change on a move with slips of theirs already keeps what it was, for Undo
+    const hadT = theirs && hvClampHasT(node), prevR = hadT ? (node.clampR || '-') : '';
+    node.clamp = node.clamp || {};
+    letters.forEach(ch=>{ node.clamp[ch] = note; hvClampSetT(node, ch, theirs); });
+    if(theirs){
+      const want = o.out==='p' || o.out==='m' ? o.out : '';
+      if(!hadT || !node.clampR) node.clampR = want || 'm';
+      else if(want) node.clampR = want;
+    }
+    letters.forEach(ch=> sqs.forEach(s=> hvClampSqAdd(S, node.ply, ch, s)));
+    D[it.k] = ['a', node.ply, letters.join(''), theirs ? 'o' : 'k'].concat(hadT && (node.clampR || '-')!==prevR ? [prevR] : []);
+    if(!hvAnnFits(before)){
+      Object.keys(was).forEach(f=>{ if(was[f]) node[f] = was[f]; else delete node[f]; });
+      if(wasD) D[it.k] = wasD; else delete D[it.k];
+      hvSay(GH_CLAMP_FULL);
+      return false;
+    }
+    hvClampShown(node);
+    hvAnnSave();
+    hvSay(hvNodeLabel(node)+': '+letters.map(ch=> CLAMP_BY[ch].name).join(', ')+(theirs ? ' (their CLAMP slip) added' : ' (CLAMP) added'));
+    return true;
+  }
+  function lzSkip(it){
+    const S = HV_STATE;
+    if(!S) return false;
+    const R = S.tree || S, D = R.lzDec || (R.lzDec = {}), before = hvAnnText(false).length, wasD = D[it.k];
+    D[it.k] = ['s'];
+    if(!hvAnnFits(before)){ if(wasD) D[it.k] = wasD; else delete D[it.k]; hvSay(GH_CLAMP_FULL); return false; }
+    hvAnnSave();
+    hvSay(it.label+': skipped');
+    return true;
+  }
+  // Undo: the decision goes, and an add's own letters with it (each one still on that move as it was added; one
+  // taken off by hand since stays off)
+  function lzUndo(it){
+    const S = HV_STATE, R = S && (S.tree || S), D = R && R.lzDec, d = D && D[it.k];
+    if(!d) return false;
+    let node = null;
+    if(d[0]==='a'){
+      node = S.main[d[1] - 1];
+      if(node && node.clamp){
+        d[2].split('').forEach(ch=>{
+          if(!(ch in node.clamp) || hvClampIsT(node, ch)!==(d[3]==='o')) return;
+          delete node.clamp[ch];
+          hvClampSqOff(node, ch);
+          hvClampSetT(node, ch, false);
+        });
+        if(!Object.keys(node.clamp).length) delete node.clamp;
+        if(!hvClampHasT(node)){ delete node.clampT; delete node.clampR; }
+        else if(d[4]){ if(d[4]==='-') delete node.clampR; else node.clampR = d[4]; }      // (the move's Punished / Missed as it was)
+      }
+    }
+    delete D[it.k];
+    if(node) hvClampShown(node);
+    hvAnnSave();
+    hvSay(it.label+': '+(d[0]==='a' ? 'taken off again' : 'back to check'));
+    return true;
+  }
+
+  // ---- the board: the focused suggestion's better move as an arrow in its letter's color, and the square it's about ----
+  var lzGoT = 0;
+  function lzGo(n){
+    clearTimeout(lzGoT); lzGoT = 0;
+    const S = HV_STATE;
+    if(!S || !n) return;
+    if(S.cur===n){ lzBoardDraw(); return; }
+    if(reducedMotion() || !n.parent || !n.move){ hvGoNode(n); return; }
+    if(S.cur!==n.parent) hvGoNode(n.parent);
+    lzGoT = setTimeout(()=>{
+      lzGoT = 0;
+      if(HV_STATE!==S || S.cur!==n.parent || !hvViewActive()) return;
+      hvGoNode(n, { sound:true });
+    }, HV_CLAMP_GO_MS);
+  }
+  function lzFocusedItem(){ const L = HV_STATE && HV_STATE.lz; return L && L.focus ? lzItemOf(L.focus) : null; }
+  function lzBoardDraw(){
+    const old = hvBoardEl.querySelector(':scope > .lz-svg');
+    if(old) old.remove();
+    const S = HV_STATE, it = lzFocusedItem();
+    if(!it || !lzShown() || lzStatus(it)!=='wait' || (S.cur!==it.at && S.cur!==it.un.parent)) return;
+    if(it.from==null && !it.sq) return;
+    const E = S.lz.edit && S.lz.edit.k===it.k ? S.lz.edit : null, ch = E && E.letters.length ? E.letters[0] : it.ch;
+    // Larry's square is circled only where it means something on this board (a piece there, or his arrow's target): the board
+    // shows the position you chose from, and a square about your moved piece is empty here (it stays in the mark's squares)
+    const sq0 = it.sq && (S.cur.state.board[nbAlgIdx(it.sq)] || nbAlgIdx(it.sq)===it.to) ? [it.sq] : [];
+    const sqs = E ? E.sqs : sq0;
+    const NS = 'http://www.w3.org/2000/svg', col = CLAMP_BY[ch].color, RING = 0.43, HALO = 0.13;
+    const mk = (tag, at)=>{ const e = document.createElementNS(NS, tag); Object.keys(at).forEach(k=> e.setAttribute(k, at[k])); return e; };
+    const svg = mk('svg', { class:'lz-svg', viewBox:'0 0 8 8', preserveAspectRatio:'none', 'aria-hidden':'true' });
+    const cx = (i)=>{ const c = i % 8; return (S.flipped ? 7 - c : c) + 0.5; };
+    const cy = (i)=>{ const r = Math.floor(i / 8); return (S.flipped ? r : 7 - r) + 0.5; };
+    sqs.forEach(s=>{
+      const q = nbAlgIdx(s);
+      svg.appendChild(mk('circle', { cx:cx(q), cy:cy(q), r:RING, fill:'none', stroke:'rgba(255,255,255,.75)', 'stroke-width':HALO }));
+      svg.appendChild(mk('circle', { cx:cx(q), cy:cy(q), r:RING, fill:'none', stroke:col, 'stroke-width':0.075 }));
+    });
+    if(it.from!=null && it.to!=null){
+      const dr = Math.floor(it.to / 8) - Math.floor(it.from / 8), dc = it.to % 8 - it.from % 8, ax = cx(it.from), ay = cy(it.from);
+      let bx = cx(it.to), by = cy(it.to);
+      if(sqs.indexOf(lzAlg(it.to)) >= 0){
+        // the tip stops at the ring's outside edge (annoArrowShape insets the tip .08 itself), along a knight's last leg
+        const knight = (Math.abs(dr)===1 && Math.abs(dc)===2) || (Math.abs(dr)===2 && Math.abs(dc)===1);
+        let dx = bx - ax, dy = by - ay;
+        if(knight){ if(Math.abs(dr) > Math.abs(dc)) dy = 0; else dx = 0; }
+        const len = Math.hypot(dx, dy) || 1, cut = RING + HALO / 2 - 0.08;
+        bx -= dx / len * cut; by -= dy / len * cut;
+      }
+      const shp = annoArrowShape(ax, ay, bx, by, dr, dc, 1), g = mk('g', { opacity:'.92' });
+      g.appendChild(mk('path', { d:shp.pathD, fill:'none', stroke:'rgba(255,255,255,.7)', 'stroke-width':0.28, 'stroke-linecap':'butt' }));
+      g.appendChild(mk('polygon', { points:shp.triPoints, fill:'none', stroke:'rgba(255,255,255,.7)', 'stroke-width':0.08, 'stroke-linejoin':'round' }));
+      g.appendChild(mk('path', { d:shp.pathD, fill:'none', stroke:col, 'stroke-width':0.2, 'stroke-linecap':'butt', 'stroke-dasharray':'0.17 0.09' }));
+      g.appendChild(mk('polygon', { points:shp.triPoints, fill:col }));
+      svg.appendChild(g);
+    }
+    hvBoardEl.appendChild(svg);
+  }
+  // the move list: a small dashed disc after a move with a suggestion waiting (hvMoveCell; redrawn in place after a choice)
+  function lzMvDisc(el, node){
+    const S = HV_STATE, L = S && S.lz;
+    if(!L || !L.byNode.size || !lzShown()) return;
+    const seen = new Set();          // (two of Larry's rows with one letter on one move: one disc, adding either marks both)
+    (L.byNode.get(node.id) || []).forEach(it=>{
+      if(lzStatus(it)!=='wait' || seen.has(it.ch)) return;
+      seen.add(it.ch);
+      const K = CLAMP_BY[it.ch], d = hvEl('span', 'lz-mvd', it.ch), tip = 'Larry suggests '+K.name;
+      d.style.setProperty('--cw', K.color);
+      d.title = tip;
+      d.setAttribute('aria-label', tip);
+      el.appendChild(d);
+    });
+  }
+  function lzMvRefresh(){
+    document.querySelectorAll('#hv-movelist .lz-mvd').forEach(x=> x.remove());
+    const L = HV_STATE && HV_STATE.lz;
+    if(!L) return;
+    L.byNode.forEach((its, id)=>{ const cell = document.querySelector('#hv-movelist .mv-san[data-node="'+id+'"]'); if(cell) lzMvDisc(cell, { id }); });
+  }
+
+  // ---- the card / the tab ----
+  function lzDisc(ch, cls){ const K = CLAMP_BY[ch], d = hvEl('span', cls || 'lz-d', ch); d.style.setProperty('--cw', K.color); d.setAttribute('aria-hidden', 'true'); return d; }
+  function lzRealDisc(ch, theirs){ const d = lzDisc(ch, 'clamp-d is-on'+(theirs ? ' is-theirs' : '')); if(!theirs) d.style.background = CLAMP_BY[ch].color; return d; }
+  function lzBtn(cls, text, act, k){ const b = hvEl('button', cls, text); b.type = 'button'; if(act) b.dataset.lz = act; if(k) b.dataset.k = k; return b; }
+  // the pane lives in the card (three columns) or in the first tabbed card (hvPlaceNotes' way)
+  function lzPlace(){
+    const pane = document.getElementById('hv-pane-larry'), host = document.getElementById(hvMqWide.matches ? 'lz-card' : 'hv-tabs');
+    if(!pane || !host || pane.parentNode===host) return;
+    const had = pane.contains(document.activeElement) ? document.activeElement : null;
+    host.appendChild(pane);
+    if(had && had.isConnected) try{ had.focus({ preventScroll:true }); }catch(e){}
+  }
+  function lzTabMark(){
+    const tab = document.getElementById('hv-tab-larry'), n = document.getElementById('lz-tabn');
+    if(!tab || !n) return;
+    const w = lzShown() ? lzCounts().w : 0;
+    n.hidden = !w;
+    if(n.textContent!==String(w)) n.textContent = String(w);
+    const lab = 'Larry Suggestions'+(w ? ', '+w+' to check' : '');
+    if(tab.getAttribute('aria-label')!==lab) tab.setAttribute('aria-label', lab);
+  }
+  function lzFactsEl(it){
+    const p = hvEl('p', 'lz-facts');
+    it.facts.forEach((x, i)=> p.appendChild(hvEl('span', x.cls || '', (i ? ' \u00b7 ' : '')+x.t)));
+    return p;
+  }
+  function lzItemEl(it){
+    const S = HV_STATE, L = S.lz, st = lzStatus(it), dec = st!=='wait', foc = L.focus===it.k && !dec, E = foc && L.edit && L.edit.k===it.k ? L.edit : null;
+    const e = hvEl('div', 'lz-it'+(st==='a' ? ' is-added' : st==='s' ? ' is-skipped' : st==='had' ? ' is-had' : '')+(foc ? ' is-focus' : '')+(E ? ' is-editing' : ''));
+    e.style.setProperty('--cw', CLAMP_BY[E && E.letters.length ? E.letters[0] : it.ch].color);
+    e.dataset.k = it.k;
+    e.setAttribute('role', 'listitem');
+    const d = lzDecOf(S)[it.k], th = st==='a' ? d[3]==='o' : it.theirs;
+    const l1 = hvEl('div', 'lz-il1'), mv = lzBtn('hv-com-mv lz-mv', hvNodeLabel(st==='a' ? (S.main[d[1] - 1] || it.node) : it.node), 'go', it.k);
+    mv.title = 'Go to '+mv.textContent;
+    l1.appendChild(mv);
+    l1.appendChild(st==='a' ? lzRealDisc(d[2].charAt(0), th) : lzDisc(it.ch, 'lz-d'+(st==='s' || st==='had' ? ' is-off' : '')));
+    const sd = hvEl('span', 'lz-side');
+    // (decided rows keep Larry's tag, so two on one move and letter read apart)
+    if(st==='a'){ const an = S.main[d[1] - 1]; sd.textContent = th ? 'Theirs \u00b7 '+(an && an.clampR==='p' ? 'Punished' : 'Missed') : 'Mine'+(it.tag && !it.theirs ? ' \u00b7 '+it.tag : ''); }
+    else if(dec) sd.textContent = (it.theirs ? 'Theirs' : 'Mine')+(it.tag ? ' \u00b7 '+it.tag : '');
+    else { sd.appendChild(hvEl('b', '', it.theirs ? 'Theirs' : 'Mine')); if(it.tag) sd.appendChild(document.createTextNode(' \u00b7 '+it.tag)); }
+    l1.appendChild(sd);
+    if(dec){
+      l1.appendChild(hvEl('span', 'lz-is', st==='a' ? 'Added' : st==='s' ? 'Skipped' : 'Already marked'));
+      if(st!=='had'){ const u = lzBtn('ct-l lz-undo', 'Undo', 'undo', it.k); u.setAttribute('aria-label', 'Undo, '+it.label); l1.appendChild(u); }
+    }
+    e.appendChild(l1);
+    if(!dec){
+      const w = hvEl('p', 'lz-why');
+      if(it.same || !it.better) w.textContent = it.tail;
+      else { w.appendChild(document.createTextNode(it.lead)); w.appendChild(hvEl('b', '', it.betterLab)); w.appendChild(document.createTextNode(it.tail)); }
+      e.appendChild(w);
+      if(!E) e.appendChild(lzFactsEl(it));
+    }
+    if(foc && !E){
+      const a = hvEl('div', 'lz-acts');
+      a.appendChild(lzBtn('btn btn-primary', 'Add', 'add', it.k));
+      a.appendChild(lzBtn('btn btn-ghost', 'Edit', 'edit', it.k));
+      a.appendChild(lzBtn('btn btn-ghost', 'Skip', 'skip', it.k));
+      e.appendChild(a);
+    }
+    if(E) e.appendChild(lzEditEl(it, E));
+    return e;
+  }
+  // Edit: the CLAMP menu's fields, filled in with Larry's (nothing is kept until Add)
+  function lzEditEl(it, E){
+    const w = hvEl('div', 'lz-ed'), th = E.theirs;
+    const g = hvEl('div', 'hv-bdg-grid hv-clamp-grid');
+    g.setAttribute('role', 'group');
+    g.setAttribute('aria-label', 'CLAMP letters');
+    CLAMP_K.forEach(K=>{
+      const on = E.letters.indexOf(K.ch) >= 0, b = lzBtn('hv-clamp-pick'+(on ? ' is-on' : ''), '', 'eletter', it.k);
+      b.dataset.ch = K.ch;
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.setAttribute('aria-label', K.name);
+      b.title = K.name;
+      b.appendChild(lzRealDisc(K.ch, th));
+      g.appendChild(b);
+    });
+    w.appendChild(g);
+    const wr = hvEl('div', 'hv-clamp-whorow'), who = hvEl('div', 'hv-clamp-who');
+    who.setAttribute('role', 'group');
+    who.setAttribute('aria-label', 'Whose slip');
+    const tOk = !!it.un.parent && !!it.un.parent.move && hvClampOk(it.un.parent);
+    [['Mine', false], ['Theirs', true]].forEach(([t, v])=>{
+      const b = lzBtn('hv-clamp-whob'+(v===th ? ' is-on' : ''), t, 'ewho', it.k);
+      b.dataset.v = v ? 'theirs' : 'mine';
+      b.setAttribute('aria-pressed', v===th ? 'true' : 'false');
+      if(v && !tOk) b.disabled = true;
+      who.appendChild(b);
+    });
+    wr.appendChild(hvEl('span', 'hv-clamp-whol', 'Whose slip'));
+    wr.appendChild(who);
+    w.appendChild(wr);
+    if(th){
+      const out = hvEl('div', 'hv-clamp-out');
+      out.appendChild(hvEl('div', 'hv-clamp-outq', 'Your reply '+hvNodeLabel(it.un)+(it.mt ? ' (Larry: '+it.mt+')' : '')+': did you punish\u00a0it?'));
+      const bs = hvEl('div', 'hv-clamp-outbs');
+      [['Punished', 'p'], ['Missed', 'm']].forEach(([t, v])=>{ const b = lzBtn('hv-clamp-outb'+(E.out===v ? ' is-on' : ''), t, 'eout', it.k); b.dataset.v = v; b.setAttribute('aria-pressed', E.out===v ? 'true' : 'false'); bs.appendChild(b); });
+      out.appendChild(bs);
+      w.appendChild(out);
+    }
+    const nl = hvEl('label', 'lz-edl', 'Note');
+    const ta = hvEl('textarea', 'text-input lz-note');
+    ta.rows = 2;
+    ta.maxLength = CLAMP_NOTE_MAX;
+    ta.value = E.note;
+    ta.placeholder = 'What you missed (optional)';
+    ta.id = 'lz-note-'+it.k.replace(/\W/g, '_');
+    nl.htmlFor = ta.id;
+    ta.dataset.lzIn = 'note';
+    w.appendChild(nl);
+    w.appendChild(ta);
+    const sq = hvEl('div', 'lz-sqs');
+    sq.appendChild(hvEl('span', 'lz-edl', 'Squares'));
+    E.sqs.forEach(s=>{ const c = lzBtn('ct-chip is-b lz-chip', s, 'esqx', it.k); c.dataset.s = s; c.setAttribute('aria-label', 'Take off '+s); c.appendChild(hvEl('i', '', '\u00d7')); sq.appendChild(c); });
+    if(E.sqs.length < CLAMP_SQ_MAX && !E.arm) sq.appendChild(lzBtn('ct-l', 'Mark a square\u2026', 'esq', it.k));
+    w.appendChild(sq);
+    if(E.arm){
+      const ask = hvEl('div', 'lz-ask');
+      ask.appendChild(hvEl('span', 'lz-ask-t', 'Tap or click a square on the board'));
+      const inp = hvEl('input', 'hv-sq-ask-in lz-ask-in');
+      inp.type = 'text'; inp.maxLength = 2; inp.autocomplete = 'off'; inp.spellcheck = false; inp.placeholder = 'h2';
+      inp.setAttribute('autocapitalize', 'off');
+      inp.setAttribute('aria-label', 'Or type a square, then Enter');
+      inp.dataset.lzIn = 'sq';
+      ask.appendChild(inp);
+      ask.appendChild(lzBtn('btn-link', 'Cancel', 'esqcancel', it.k));
+      w.appendChild(ask);
+    }
+    const f = hvEl('div', 'lz-edf'), bb = hvEl('div', 'lz-acts');
+    const add = lzBtn('btn btn-primary', 'Add', 'eadd', it.k);
+    if(!E.letters.length) add.disabled = true;
+    bb.appendChild(add);
+    bb.appendChild(lzBtn('btn btn-ghost', 'Cancel', 'ecancel', it.k));
+    f.appendChild(bb);
+    f.appendChild(hvEl('span', 'lz-edn', E.note.length+' / '+CLAMP_NOTE_MAX));
+    w.appendChild(f);
+    return w;
+  }
+  function lzPaint(){
+    const card = document.getElementById('lz-card'), pane = document.getElementById('hv-pane-larry');
+    if(!card || !pane) return;
+    const S = HV_STATE, on = lzShown(), wide = hvMqWide.matches;
+    card.hidden = !(on && wide);
+    lzTabMark();
+    if(!on){ if(pane.firstChild) pane.textContent = ''; return; }
+    const L = S.lz, c = lzCounts(), all = !c.w, showDec = all || L.showDec;
+    const folded = wide && !!hvPrefs.fold.larry && !S.lzUnfold;
+    card.classList.toggle('is-folded', folded);
+    const edWas = card.classList.contains('is-editing');
+    card.classList.toggle('is-editing', !!L.edit && !folded);
+    // (in three columns the card grows while editing and the Moves card under it shrinks: the current move back in view)
+    if(wide && edWas!==(!!L.edit && !folded) && hvPaneShown('moves')) requestAnimationFrame(hvKeepInView);
+    const fb = document.getElementById('lz-fold');
+    if(fb){ fb.setAttribute('aria-expanded', folded ? 'false' : 'true'); fb.setAttribute('aria-label', folded ? 'Show Larry Suggestions' : 'Fold Larry Suggestions'); fb.title = folded ? 'Show all of it' : 'Fold to its title'; }
+    // the keyboard's place, back after the redraw
+    const a = document.activeElement, keep = a && pane.contains(a) ? { act:a.dataset.lz || '', k:a.dataset.k || '', ch:a.dataset.ch || '', v:a.dataset.v || '', s:a.dataset.s || '', inp:a.dataset.lzIn || '' } : null;
+    pane.textContent = '';
+    if(!all){
+      const pr = hvEl('div', 'lz-prog'), dn = c.a + c.s + c.had;
+      pr.appendChild(hvEl('b', '', dn+' of '+c.n+' checked'));
+      const bits = [c.a ? c.a+' added' : '', c.s ? c.s+' skipped' : '', c.had ? c.had+' already marked' : ''].filter(Boolean);
+      if(bits.length){
+        // one line of text that wraps at its words: each dot held to the word before it, Show to the last word (no line
+        // starts with a dot, Show never alone)
+        const t = bits.join(', '), i = t.lastIndexOf(' ');
+        pr.appendChild(document.createTextNode('\u00a0\u00b7 '+t.slice(0, i + 1)));
+        const nw = hvEl('span', 'lz-nw', t.slice(i + 1)+'\u00a0\u00b7\u00a0');
+        const sh = lzBtn('ct-l lz-show', L.showDec ? 'Hide' : 'Show', 'show');
+        sh.setAttribute('aria-expanded', L.showDec ? 'true' : 'false');
+        sh.setAttribute('aria-label', (L.showDec ? 'Hide' : 'Show')+' the '+dn+' you checked');
+        nw.appendChild(sh);
+        pr.appendChild(nw);
+      }
+      pane.appendChild(pr);
+    } else {
+      const dn = hvEl('div', 'lz-done');
+      dn.appendChild(hvEl('div', 'lz-done-t', 'All '+c.n+' decided.'));
+      dn.appendChild(hvEl('div', 'lz-done-s', [c.a+' added', c.s+' skipped'].concat(c.had ? [c.had+' already marked'] : []).join(', ')+'.'+(c.a || c.s ? ' Undo any of them below.' : '')));
+      const nx = lzNextGame(L.gid);
+      if(nx){ const nb = lzBtn('btn btn-primary lz-next', 'Next game: vs '+nx.opp+' ('+nx.n+' to check)', 'next'); nb.dataset.gid = nx.gid; dn.appendChild(nb); }
+      pane.appendChild(dn);
+    }
+    const list = hvEl('div', 'lz-items');
+    list.setAttribute('role', 'list');
+    list.setAttribute('aria-label', 'Larry\u2019s suggestions for this game');
+    L.items.forEach(it=>{ if(lzStatus(it)!=='wait' && !showDec) return; list.appendChild(lzItemEl(it)); });
+    pane.appendChild(list);
+    if(keep){
+      const sel = keep.inp ? '[data-lz-in="'+keep.inp+'"]' : '[data-lz="'+keep.act+'"]'+(keep.k ? '[data-k="'+CSS.escape(keep.k)+'"]' : '')+(keep.ch ? '[data-ch="'+keep.ch+'"]' : '')+(keep.v ? '[data-v="'+keep.v+'"]' : '')+(keep.s ? '[data-s="'+keep.s+'"]' : '');
+      const t = pane.querySelector(sel) || pane.querySelector('.lz-it.is-focus .lz-mv');
+      if(t) try{ t.focus({ preventScroll:true }); }catch(e){}
+    }
+    if(wide && !folded) lzFit();
+  }
+  var lzPaintRaf = 0;
+  function lzPaintSoon(){ if(lzPaintRaf) return; lzPaintRaf = requestAnimationFrame(()=>{ lzPaintRaf = 0; lzPaint(); }); }
+  // the wide card: what doesn't fit ends on a clear "N more below" line, never a half-drawn item; the focused one in view
+  function lzFit(){
+    const card = document.getElementById('lz-card'), list = card && card.querySelector('.lz-items');
+    if(!list || card.hidden) return;
+    const L = HV_STATE.lz, fe = list.querySelector('.lz-it.is-focus');
+    if(!L.more && list.scrollHeight > list.clientHeight + 1){
+      // (the line goes under the list, outside its scroll box: always in view at the card's foot)
+      const its = Array.from(list.querySelectorAll('.lz-it')), more = lzBtn('ct-l lz-more', '', 'more');
+      list.after(more);
+      let n = 0;
+      for(let k = its.length - 1; k >= 0 && list.scrollHeight > list.clientHeight + 1; k--){
+        if(its[k]===fe || its[k].contains(document.activeElement)) break;
+        its[k].classList.add('lz-cut'); n++;
+      }
+      if(!n) more.remove();
+      else { more.textContent = n+' more below'; more.setAttribute('aria-label', 'Show '+n+' more of Larry\u2019s suggestions'); }
+    }
+    if(fe && list.scrollHeight > list.clientHeight){
+      const off = fe.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop, h = fe.getBoundingClientRect().height;
+      // editing, or taller than the list: its top in view; else all of it
+      if(L.edit || h >= list.clientHeight) list.scrollTop = off;
+      else if(off < list.scrollTop || off + h > list.scrollTop + list.clientHeight) list.scrollTop = Math.max(0, off + h - list.clientHeight + 8);
+    }
+  }
+  // a phone: the board and the focused suggestion's buttons on one screen when they fit, else the board from its top
+  function lzPhoneScroll(){
+    if(!hvMqPhone.matches) return;
+    const fe = document.querySelector('#hv-pane-larry .lz-it.is-focus .lz-acts'), bar = document.getElementById('hv-row-top'), fr = hvBoardEl.closest('.hv-frame') || hvBoardEl;
+    if(!fe || !bar) return;
+    const top = bar.getBoundingClientRect().top + scrollY, bottom = fe.getBoundingClientRect().bottom + scrollY;
+    const y = bottom - top <= innerHeight - 8 ? top - 4 : fr.getBoundingClientRect().top + scrollY - 8;
+    try{ window.scrollTo({ top:Math.max(0, y), behavior:reducedMotion() ? 'auto' : 'smooth' }); }catch(e){ window.scrollTo(0, Math.max(0, y)); }
+  }
+  // focus a suggestion: the board plays to the position you chose from (Go to move's way), its arrow and square drawn there
+  function lzFocus(k, user){
+    const S = HV_STATE, it = lzItemOf(k);
+    if(!S || !it) return;
+    S.lz.focus = k; S.lz.edit = null; S.lz.more = false;
+    lzPaint();
+    const st = lzStatus(it), d = lzDecOf(S)[k];
+    lzGo(st==='wait' ? it.at : st==='a' ? (S.main[d[1] - 1] || it.node) : it.node);
+    if(user) requestAnimationFrame(lzPhoneScroll);
+  }
+  // after a choice: the next suggestion waiting, in move order from this one (wrapping); none left, the All decided view
+  function lzAfter(it){
+    const S = HV_STATE, L = S.lz, i = L.items.indexOf(it);
+    let nx = null;
+    for(let k = 1; k <= L.items.length; k++){ const x = L.items[(i + k) % L.items.length]; if(x!==it && lzStatus(x)==='wait'){ nx = x; break; } }
+    lzMvRefresh();
+    if(nx){ lzFocus(nx.k, false); return; }
+    L.focus = null; L.edit = null;
+    lzPaint();
+    lzBoardDraw();
+    const nb = document.querySelector('#hv-pane-larry .lz-next') || document.querySelector('#hv-pane-larry .lz-done-t');
+    if(nb && nb.tagName==='BUTTON') try{ nb.focus({ preventScroll:true }); }catch(e){}
+  }
+  function lzEditStart(it){
+    const S = HV_STATE;
+    S.lz.focus = it.k;
+    const pn = it.un.parent, pr = pn && hvClampHasT(pn) ? pn.clampR : '';       // (the move's own Punished / Missed, when it has one)
+    S.lz.edit = { k:it.k, letters:[it.ch], theirs:it.theirs, out:pr==='p' || pr==='m' ? pr : 'm', note:it.note, sqs:it.sq ? [it.sq] : [], arm:false };
+    lzPaint();
+    const ta = document.querySelector('#hv-pane-larry .lz-note');
+    if(ta) try{ ta.focus({ preventScroll:true }); }catch(e){}
+  }
+  function lzEditBoard(it, E){ lzGo(it.un.parent || it.at); }      // mine or theirs, the choice was made from the move before yours
+  function lzSqPick(s){
+    const S = HV_STATE, E = S && S.lz && S.lz.edit;
+    if(!E || !/^[a-h][1-8]$/.test(s)) return;
+    if(E.sqs.indexOf(s) < 0 && E.sqs.length < CLAMP_SQ_MAX) E.sqs.push(s);
+    E.arm = false;
+    lzPaint();
+    lzBoardDraw();
+    hvSay('Square '+s+' marked');
+  }
+  function lzSqDisarm(){ const E = HV_STATE && HV_STATE.lz && HV_STATE.lz.edit; if(E && E.arm){ E.arm = false; lzPaint(); } }
+  (function lzWire(){
+    const pane = document.getElementById('hv-pane-larry');
+    pane.addEventListener('click', (e)=>{
+      const S = HV_STATE, L = S && S.lz;
+      if(!L) return;
+      const b = e.target.closest('[data-lz]');
+      if(!b){
+        const row = e.target.closest('.lz-it');
+        const ri = row ? lzItemOf(row.dataset.k) : null;
+        if(ri && !e.target.closest('textarea, input, .lz-ed') && lzStatus(ri)==='wait' && L.focus!==ri.k) lzFocus(ri.k, true);
+        return;
+      }
+      const act = b.dataset.lz, it = b.dataset.k ? lzItemOf(b.dataset.k) : null, E = L.edit;
+      if(act==='go' && it) return lzFocus(it.k, true);
+      if(act==='add' && it){ if(lzAdd(it)) lzAfter(it); else lzPaint(); return; }
+      if(act==='skip' && it){ if(lzSkip(it)) lzAfter(it); return; }
+      if(act==='edit' && it) return lzEditStart(it);
+      if(act==='undo' && it){ if(lzUndo(it)){ lzMvRefresh(); lzFocus(it.k, false); } return; }
+      if(act==='show'){ L.showDec = !L.showDec; lzPaint(); return; }
+      if(act==='more'){ L.more = true; lzPaint(); const f = pane.querySelector('.lz-it.lz-cut') || pane.querySelector('.lz-it:last-child'); if(f) f.scrollIntoView({ block:'nearest' }); return; }
+      if(act==='next'){ const g = ccGameById(b.dataset.gid); if(g) ghOpenGame(g, { larry:{} }); return; }
+      if(!E || !it || E.k!==it.k) return;
+      if(act==='eletter'){ const ch = b.dataset.ch, i = E.letters.indexOf(ch); if(i >= 0) E.letters.splice(i, 1); else E.letters.push(ch); E.letters = CLAMP_K.map(K=> K.ch).filter(c=> E.letters.indexOf(c) >= 0); lzPaint(); lzBoardDraw(); return; }
+      if(act==='ewho'){ const t = b.dataset.v==='theirs'; if(t!==E.theirs){ E.theirs = t; lzPaint(); lzEditBoard(it, E); } return; }
+      if(act==='eout'){ E.out = b.dataset.v==='p' ? 'p' : 'm'; lzPaint(); return; }
+      if(act==='esqx'){ E.sqs = E.sqs.filter(s=> s!==b.dataset.s); lzPaint(); lzBoardDraw(); return; }
+      if(act==='esq'){
+        E.arm = true;
+        lzPaint();
+        if(S.cur!==it.at && S.cur!==it.un.parent && S.cur!==it.un) lzEditBoard(it, E);
+        const inp = pane.querySelector('.lz-ask-in');
+        if(inp && e.detail===0) try{ inp.focus({ preventScroll:true }); }catch(x){}
+        return;
+      }
+      if(act==='esqcancel'){ E.arm = false; lzPaint(); return; }
+      if(act==='ecancel'){ L.edit = null; lzPaint(); lzBoardDraw(); return; }
+      if(act==='eadd'){ if(lzAdd(it, { letters:E.letters, theirs:E.theirs, out:E.out, note:E.note, sqs:E.sqs })){ L.edit = null; lzAfter(it); } else lzPaint(); }
+    });
+    pane.addEventListener('input', (e)=>{
+      const E = HV_STATE && HV_STATE.lz && HV_STATE.lz.edit;
+      if(!E || e.target.dataset.lzIn!=='note') return;
+      E.note = e.target.value.slice(0, CLAMP_NOTE_MAX);
+      const n = pane.querySelector('.lz-edn');
+      if(n) n.textContent = E.note.length+' / '+CLAMP_NOTE_MAX;
+    });
+    pane.addEventListener('keydown', (e)=>{
+      const E = HV_STATE && HV_STATE.lz && HV_STATE.lz.edit;
+      if(!E) return;
+      if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); if(E.arm){ E.arm = false; lzPaint(); } else { HV_STATE.lz.edit = null; lzPaint(); lzBoardDraw(); } return; }
+      if(e.target.dataset.lzIn==='sq' && e.key==='Enter'){
+        e.preventDefault();
+        const v = e.target.value.trim().toLowerCase();
+        if(/^[a-h][1-8]$/.test(v)) lzSqPick(v); else e.target.setAttribute('aria-invalid', 'true');
+      }
+    });
+    // keys typed in the card stay there (the review's keys never see a note being written)
+    ['keydown', 'keyup'].forEach(t=> pane.addEventListener(t, (e)=>{ if(e.target.matches && e.target.matches('textarea, input')) e.stopPropagation(); }));
+    document.getElementById('lz-fold').addEventListener('click', ()=>{
+      const S = HV_STATE;
+      if(S && S.lzUnfold){ S.lzUnfold = false; hvPrefs.fold.larry = true; }
+      else hvPrefs.fold.larry = !hvPrefs.fold.larry;
+      hvSavePrefs();
+      lzPaint();
+    });
+    // "Mark a square": the next square pressed on the board is the note's (never a move, a drawing or a box)
+    let press = null;
+    window.addEventListener('pointerdown', (e)=>{
+      const E = HV_STATE && HV_STATE.lz && HV_STATE.lz.edit;
+      if(!E || !E.arm) return;
+      const t = e.target && e.target.closest ? e.target : null, sq = t ? t.closest('.sq') : null;
+      if(sq && hvBoardEl.contains(sq)){ e.preventDefault(); e.stopPropagation(); press = e.isPrimary ? { id:e.pointerId, idx:Number(sq.dataset.idx) } : null; return; }
+      if(t && t.closest('.lz-ed')) return;
+      E.arm = false;
+      lzPaint();
+    }, true);
+    window.addEventListener('pointerup', (e)=>{
+      const P = press;
+      if(!P || e.pointerId!==P.id) return;
+      press = null;
+      e.stopPropagation();
+      const u = document.elementFromPoint(e.clientX, e.clientY), sq = u && u.closest ? u.closest('.sq') : null;
+      if(sq && hvBoardEl.contains(sq) && Number(sq.dataset.idx)===P.idx) lzSqPick(lzAlg(P.idx));
+    }, true);
+    window.addEventListener('click', (e)=>{
+      const E = HV_STATE && HV_STATE.lz && HV_STATE.lz.edit;
+      if(E && E.arm && e.target && hvBoardEl.contains(e.target)){ e.preventDefault(); e.stopImmediatePropagation(); }
+    }, true);
+    window.addEventListener('keydown', (e)=>{
+      const E = HV_STATE && HV_STATE.lz && HV_STATE.lz.edit;
+      if(!E || !E.arm || e.key!=='Escape') return;
+      e.preventDefault(); e.stopPropagation();
+      E.arm = false;
+      lzPaint();
+    }, true);
+  })();
+  // a game opened: its suggestions (built before its tab is chosen); a recent chess.com game asks for a fresh copy
+  hvOnGame((S)=>{
+    clearTimeout(lzGoT); lzGoT = 0;
+    S.lzForce = false; S.lzUnfold = false;
+    S.lz = lzBuild(S);
+    const g = S.game;
+    if(g && ccIsId(String(g.id || '')) && !g._puzzle && !g._practice && Date.now() - (g.createdAt || 0) < 4 * 86400e3) lzSoon(600);
+  });
+  // hvOpen's end: opened from Larry's list (opts.larry: {k}), the suggestions show (the card even when it's off in Settings),
+  // the tab is picked (not remembered) and the first one waiting (or k) is in focus, the board on its move
+  function lzOpened(opts){
+    const S = HV_STATE;
+    if(!S || !S.lz) return;
+    const L = S.lz, want = opts && opts.larry;
+    if(want && L.items.length){
+      S.lzForce = true; S.lzUnfold = true;
+      const w = L.items.find(x=> lzStatus(x)==='wait');
+      L.focus = want.k && lzItemOf(want.k) ? want.k : w ? w.k : null;
+    }
+    if(hvTabbed()){
+      hvSyncTabs();
+      if(want && lzShown()) hvSetTab('larry', { silent:true });
+    }
+    lzPaint();
+    if(L.focus && !opts.at && !opts.clamp && !opts.tac){
+      const it = lzItemOf(L.focus), st = lzStatus(it), d = lzDecOf(S)[it.k];
+      lzGo(st==='wait' ? it.at : st==='a' ? (S.main[d[1] - 1] || it.node) : it.node);
+    }
+  }
+  // the board moved: the review's verdicts may have arrived since (the side rule reads them)
+  hvOnNode(()=>{
+    const S = HV_STATE;
+    if(S && S.lz && S.lz.rev!==S.review && LZ.games[S.lz.gid]){
+      const keep = { focus:S.lz.focus, showDec:S.lz.showDec, edit:S.lz.edit };
+      S.lz = Object.assign(lzBuild(S), keep);
+      if(!lzItemOf(S.lz.focus)) S.lz.focus = null;
+      if(hvTabbed()) hvSyncTabs();
+      lzPaint(); lzMvRefresh();
+    }
+  });
+  onLeavePlay(()=>{ clearTimeout(lzGoT); lzGoT = 0; });
+  // a new copy of Larry's studies: the game on the board takes its suggestions (its choices kept)
+  lzOnChange(()=>{
+    const S = HV_STATE;
+    if(!S || !S.lz) return;
+    const E = LZ.games[S.lz.gid], sig = (E ? E.x+':'+E.h : '')+'|'+(S.review ? 1 : 0);
+    if(sig===S.lz.sig) return;
+    const keep = { focus:S.lz.focus, showDec:S.lz.showDec };
+    S.lz = Object.assign(lzBuild(S), keep);
+    if(!lzItemOf(S.lz.focus)) S.lz.focus = null;
+    if(!hvViewActive()) return;
+    if(hvTabbed()) hvSyncTabs();
+    lzPaint(); lzMvRefresh(); lzBoardDraw();
+  });
+  document.getElementById('gn-sync-now').addEventListener('click', ()=> lzSoon(400, true));
+  // a new copy of Larry's studies (or a new state: signed out, can't reach): the CLAMP tab draws again, the brief's line too
+  lzOnChange(()=>{
+    if(currentView!=='history') return;
+    if(ctOn()) ghRender();
+    else if(ghoOn() && !ghvOn() && GHO_BRIEF.model) ghoDrawFacts();
+  });
+  lzLoad();
+  lzPlace();
+  lzRenderSet();
   // ---- comments ----
   function hvComRow(n){
     const row = hvEl('div', 'hv-com');
