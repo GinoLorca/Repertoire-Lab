@@ -8,7 +8,10 @@ import {
   watchCloudVideos, startUpload, uploadStatus, watchUpload, cloudVideoUrl, saveOffline, deleteCloudVideo,
 } from '../lib/cloud/videos';
 import { classifyVideoUrl, embedSrc, fmtTime } from '../lib/videoLinks';
-import { uid } from '../store';
+import {
+  spotFor, spotOf, resumeAt, saveDeviceSpot, readYouTube, readVimeo, YOUTUBE_LISTEN, VIMEO_LISTEN,
+} from '../lib/videoSpots';
+import { uid, useStore } from '../store';
 import { UploadIcon, LinkIcon, PencilIcon } from './Icons';
 
 // One video at the top of a chapter, with the moment it's paused at capturable
@@ -34,6 +37,13 @@ import { UploadIcon, LinkIcon, PencilIcon } from './Icons';
 // videos.js): `onCloud(videoId, cloud)` records it on the chapter once it's
 // there, and every other device then streams it from there — or saves it
 // for offline, after which it plays there with no connection too.
+// Where you left off is remembered (lib/videoSpots.js): every few seconds on
+// this device while it plays, and in your synced settings when you pause,
+// leave or put the app away. Opening the chapter again, the video is ready
+// at that spot — "Start over" goes back to the beginning — and watching to
+// the end clears it. YouTube and Vimeo players report where they are by
+// postMessage, so they're remembered too, and "link this variation here"
+// takes the moment you're really at in them.
 const mb = (bytes) => `${Math.max(1, Math.round((bytes ?? 0) / 1024 / 1024))} MB`;
 const pct = (p) => `${Math.floor((p ?? 0) * 100)}%`;
 
@@ -60,6 +70,138 @@ const ChapterVideo = forwardRef(({
   const [reloadKey, setReloadKey] = useState(0); // bumped to force an embed iframe to reload at a new start=
   const fileRef = useRef(null);
   const videoRef = useRef(null);
+  const frameRef = useRef(null);
+
+  // Where you left off. `resume`: the spot it picked up from, while that's
+  // worth saying; `pendingSeek`: a spot a <video> still has to jump to once it
+  // knows its length. An embed starts there instead (`embedStart`).
+  const { state, dispatch } = useStore();
+  const synced = state.settings?.videoSpots;
+  const key = video?.id ?? null;
+  const [resume, setResume] = useState(() => resumeAt(spotOf(key, synced)));
+  const [embedStart, setEmbedStart] = useState(() => resume ?? 0);
+  const [live, setLive] = useState(false); // an embed has said where it is
+  const pendingSeek = useRef(resume);
+  const keyRef = useRef(key);
+  const last = useRef({ at: 0, dur: null }); // where it is now, and how long
+  const touched = useRef(false); // played since it opened: only then is a spot saved
+  const savedAt = useRef(0);
+
+  // Another video in this chapter (or another chapter): its own spot.
+  useEffect(() => {
+    if (keyRef.current === key) return;
+    keyRef.current = key;
+    const r = resumeAt(spotOf(key, synced));
+    setResume(r);
+    pendingSeek.current = r;
+    setEmbedStart(r ?? 0);
+    setLive(false);
+    last.current = { at: 0, dur: null };
+    touched.current = false;
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A spot from another device arriving after this opened (the first sync of
+  // the day) — taken, as long as nothing's been played here yet.
+  const syncedHere = synced?.[key];
+  useEffect(() => {
+    if (touched.current || !key) return;
+    const r = resumeAt(spotOf(key, synced));
+    if (r === resume) return;
+    setResume(r);
+    if (video?.kind === 'youtube' || video?.kind === 'vimeo') {
+      setEmbedStart(r ?? 0);
+      setReloadKey((k) => k + 1);
+    } else if (videoRef.current && videoRef.current.readyState >= 1 && r != null) {
+      videoRef.current.currentTime = r;
+    } else {
+      pendingSeek.current = r;
+    }
+  }, [syncedHere?.t]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Saved where it is: on this device (cheap, every few seconds while it
+  // plays), and — `everywhere` — in your synced settings too.
+  const save = (everywhere, ended = false) => {
+    const k = keyRef.current;
+    if (!k || !touched.current || pendingSeek.current != null) return;
+    const spot = ended ? null : spotFor(last.current.at, last.current.dur);
+    saveDeviceSpot(k, spot);
+    savedAt.current = Date.now();
+    if (everywhere) dispatch({ type: 'setVideoSpot', key: k, spot });
+  };
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  const moved = (at, dur) => {
+    last.current = { at, dur: Number.isFinite(dur) && dur > 0 ? dur : last.current.dur };
+    setCurrentTime(at);
+    if (touched.current && resume != null && Math.abs(at - resume) > 10) setResume(null);
+    if (touched.current && Date.now() - savedAt.current > 3000) save(false);
+  };
+
+  // Leaving the chapter, closing the app or switching away from it.
+  useEffect(() => {
+    const away = () => { if (document.visibilityState === 'hidden') saveRef.current(true); };
+    const gone = () => saveRef.current(true);
+    document.addEventListener('visibilitychange', away);
+    window.addEventListener('pagehide', gone);
+    return () => {
+      document.removeEventListener('visibilitychange', away);
+      window.removeEventListener('pagehide', gone);
+      saveRef.current(true);
+    };
+  }, []);
+
+  // A <video>: to the spot once it knows its length; then where it is.
+  const videoEvents = {
+    onLoadedMetadata: (e) => {
+      const to = pendingSeek.current;
+      pendingSeek.current = null;
+      last.current = { ...last.current, dur: e.currentTarget.duration };
+      if (to != null && to < (e.currentTarget.duration || Infinity)) e.currentTarget.currentTime = to;
+    },
+    onTimeUpdate: (e) => moved(e.currentTarget.currentTime, e.currentTarget.duration),
+    onPlay: () => { touched.current = true; },
+    onPause: (e) => { if (!e.currentTarget.ended) { moved(e.currentTarget.currentTime, e.currentTarget.duration); save(true); } },
+    onEnded: () => { save(true, true); setResume(null); },
+  };
+
+  // YouTube or Vimeo: asked to report, then where it is.
+  const isEmbedKind = video?.kind === 'youtube' || video?.kind === 'vimeo';
+  const ask = () => {
+    const win = frameRef.current?.contentWindow;
+    if (!win) return;
+    if (video?.kind === 'youtube') win.postMessage(YOUTUBE_LISTEN, 'https://www.youtube.com');
+    else VIMEO_LISTEN.forEach((m) => win.postMessage(m, 'https://player.vimeo.com'));
+  };
+  useEffect(() => {
+    if (!isEmbedKind) return undefined;
+    const onMessage = (e) => {
+      const win = frameRef.current?.contentWindow;
+      if (!win || e.source !== win) return;
+      const r = video.kind === 'youtube' ? readYouTube(e.data) : readVimeo(e.data);
+      if (!r) return;
+      if (r.ready) { ask(); return; }
+      if (r.playing) touched.current = true;
+      if (Number.isFinite(r.at)) { setLive(true); moved(r.at, r.dur); }
+      if (r.ended) { saveRef.current(true, true); setResume(null); } else if (r.paused) saveRef.current(true);
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [key, video?.kind]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Back to the beginning: the bookmark goes, everywhere.
+  const startOver = () => {
+    setResume(null);
+    pendingSeek.current = null;
+    last.current = { ...last.current, at: 0 };
+    if (key) { saveDeviceSpot(key, null); dispatch({ type: 'setVideoSpot', key, spot: null }); }
+    if (isEmbedKind) {
+      setEmbedStart(0);
+      setCurrentTime(0);
+      setReloadKey((k) => k + 1);
+    } else if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+    }
+  };
 
   useEffect(() => {
     let url;
@@ -120,6 +262,8 @@ const ChapterVideo = forwardRef(({
         videoId: video.id, path: video.cloud.path, onProgress: (p) => setSaving({ progress: p }),
       });
       setSaving(null);
+      // The player changes over to the saved file: same spot.
+      if (last.current.at > 0) pendingSeek.current = last.current.at;
       setFileTick((t) => t + 1);
     } catch {
       setSaving({ error: true });
@@ -128,22 +272,25 @@ const ChapterVideo = forwardRef(({
 
   useImperativeHandle(ref, () => ({
     seekTo(seconds) {
+      // A line's own moment: that, not where you left off.
+      setResume(null);
+      pendingSeek.current = null;
+      touched.current = true;
       if ((video?.kind === 'file' || video?.kind === 'file-url') && videoRef.current) {
         videoRef.current.currentTime = seconds;
         videoRef.current.play().catch(() => {}); // autoplay can be blocked; a paused seek is still a correct jump
       } else if (video?.kind === 'youtube' || video?.kind === 'vimeo') {
+        setEmbedStart(seconds);
         setCurrentTime(seconds);
         setReloadKey((k) => k + 1);
       }
     },
-    // What "link this variation here" actually captures. For an uploaded file
-    // this tracks the player continuously. For an embed there's no live
-    // readout without pulling in that platform's SDK, so it's the timestamp
-    // the frame was last (re)loaded at — reflected in the "needs a
-    // connection" line in the bar below, not hidden.
-    getCurrentTime: () => currentTime,
+    // What "link this variation here" actually captures: where the player
+    // is. An embed that hasn't reported yet (offline, or a player that
+    // doesn't) gives the moment it was last (re)loaded at.
+    getCurrentTime: () => (isEmbedKind && !live ? embedStart : currentTime),
     openAdd(which) { setMode(which); setError(null); },
-  }), [currentTime]);
+  }), [currentTime, live, embedStart, isEmbedKind]);
 
   const upload = async (file) => {
     if (!file) return;
@@ -301,7 +448,7 @@ const ChapterVideo = forwardRef(({
             controls
             preload="metadata"
             playsInline
-            onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+            {...videoEvents}
           />
         )}
         {video.kind === 'file' && fileStatus === 'missing' && !streamUrl && (
@@ -342,14 +489,16 @@ const ChapterVideo = forwardRef(({
             src={objectUrl}
             controls
             preload="metadata"
-            onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+            {...videoEvents}
           />
         )}
         {isEmbed && (
           <iframe
             key={reloadKey}
+            ref={frameRef}
+            onLoad={ask}
             title={video.name || 'Chapter video'}
-            src={embedSrc(video, currentTime)}
+            src={embedSrc(video, embedStart, { origin: typeof window !== 'undefined' ? window.location.origin : undefined })}
             allow="accelerate-compute; autoplay; encrypted-media; picture-in-picture"
             allowFullScreen
           />
@@ -360,10 +509,16 @@ const ChapterVideo = forwardRef(({
             src={video.url}
             controls
             preload="metadata"
-            onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+            {...videoEvents}
           />
         )}
       </div>
+      {resume != null && (
+        <div className="cv-resume" role="status">
+          <span>Picking up where you left off · <strong>{fmtTime(resume)}</strong></span>
+          <button type="button" className="small ghost" onClick={startOver}>Start over</button>
+        </div>
+      )}
       <div className="cv-bar">
         <span className="muted-note cv-source">
           {video.kind === 'file'
@@ -371,7 +526,7 @@ const ChapterVideo = forwardRef(({
             : `Streamed from ${video.kind === 'youtube' ? 'YouTube' : video.kind === 'vimeo' ? 'Vimeo' : 'a link'} — needs a connection`}
         </span>
         <span style={{ flex: 1 }} />
-        {!isEmbed && (fileStatus !== 'missing' || streamUrl) && (
+        {((!isEmbed && (fileStatus !== 'missing' || streamUrl)) || (isEmbed && live)) && (
           <span className="muted-note cv-time">{fmtTime(currentTime)}</span>
         )}
         <button className="small ghost" title="Replace this video" onClick={() => setMode('replace')}>

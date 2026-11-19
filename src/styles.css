@@ -112,6 +112,7 @@
 :root.has-custom-bg .opening-stats,
 :root.has-custom-bg .board-editor-panel,
 :root.has-custom-bg .cv-bar,
+:root.has-custom-bg .cv-resume,
 :root.has-custom-bg .empty-note {
   background: var(--panel);
   border: 1px solid var(--outline);
@@ -195,6 +196,16 @@
 .cv-source { font-size: 12.5px; }
 .cv-source .cv-act { font-size: 12.5px; margin-left: 6px; }
 .cv-time { font-variant-numeric: tabular-nums; }
+/* Where you left off (lib/videoSpots.js): said under the player, with a
+   way back to the beginning. */
+.cv-resume {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px;
+  padding: 6px 6px 6px 12px; border-radius: 10px; font-size: 14px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.cv-resume strong { font-variant-numeric: tabular-nums; }
+.cv-resume button { margin-left: auto; min-height: 36px; }
 
 /* The camera icon on a variation card. */
 .video-link-btn { display: inline-flex; align-items: center; gap: 4px; }
@@ -852,6 +863,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   color: var(--muted); font-size: 13.5px; font-weight: 600;
 }
 .chapter-video-mark svg { flex: none; }
+.chapter-video-mark.started { color: var(--accent); }
 .progress-track {
   height: 7px; background: var(--track); border-radius: 6px; overflow: hidden;
 }

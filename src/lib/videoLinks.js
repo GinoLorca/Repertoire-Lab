@@ -16,14 +16,19 @@ export function classifyVideoUrl(url) {
   return { kind: 'unknown', url: text };
 }
 
-// A start time only takes effect on load for an iframe embed — there's no
-// livepostMessage seek without pulling in each platform's player SDK, so
-// jumping to a new timestamp on an already-open embed means reloading it
-// with a new `start=`/`#t=` param. That's a visible reload, not a smooth
-// seek, and is disclosed in the UI rather than pretended away.
-export function embedSrc({ kind, id }, startSeconds = 0) {
+// A start time only takes effect on load for an iframe embed, so jumping to
+// a new timestamp on an already-open embed means reloading it with a new
+// `start=`/`#t=` param — a visible reload, not a smooth seek, disclosed in
+// the UI rather than pretended away.
+// `origin` (this page's): YouTube's player then reports where it is by
+// postMessage (enablejsapi), which is how the app knows where you left off
+// (lib/videoSpots.js). Vimeo's player reports without being asked to.
+export function embedSrc({ kind, id }, startSeconds = 0, { origin } = {}) {
   const s = Math.max(0, Math.floor(startSeconds));
-  if (kind === 'youtube') return `https://www.youtube.com/embed/${id}?start=${s}`;
+  if (kind === 'youtube') {
+    const api = origin ? `&enablejsapi=1&origin=${encodeURIComponent(origin)}` : '';
+    return `https://www.youtube.com/embed/${id}?start=${s}${api}`;
+  }
   if (kind === 'vimeo') return `https://player.vimeo.com/video/${id}#t=${s}s`;
   return null;
 }

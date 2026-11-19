@@ -13,6 +13,7 @@ import { arrangeTop, arrangeFolder, gatherIntoFolder } from './lib/chapterOrder'
 import { sendToChapter } from './lib/chapterTransfer';
 import { curateInto, reorganise } from './lib/curate';
 import { collectionPlan } from './lib/collectionCopy';
+import { withSpot } from './lib/videoSpots';
 import { kidArtwork, kidArtForStudents, isKidArt } from './lib/kidArtwork';
 import { cleanGameReview, sameGameReview } from './lib/analysisDoc';
 import { parseMarks, withText, withMarks } from './lib/marks';
@@ -1494,6 +1495,21 @@ function reduce(state, action) {
       };
     case 'setSettings':
       return { ...state, settings: { ...state.settings, ...action.settings } };
+    // Where you left off in a chapter's video (lib/videoSpots.js) — set when
+    // you pause or leave it, cleared (null) when it's watched to the end.
+    // Unchanged state when it's already that, so a repeat isn't a sync.
+    case 'setVideoSpot': {
+      const now = state.settings?.videoSpots?.[action.key];
+      const next = action.spot ?? null;
+      if (!action.key) return state;
+      if (now && next && now.at === next.at) return state;
+      if (now && !next && now.at == null) return state;
+      if (!now && !next) return state;
+      return {
+        ...state,
+        settings: { ...state.settings, videoSpots: withSpot(state.settings?.videoSpots, action.key, next, action.t) },
+      };
+    }
     // Coaches Corner's "Reviews in progress" (lib/reviewsInProgress.js). Each
     // returns the state untouched when nothing changes, so Studio can say
     // "started" on every save without a write or a sync to show for it.

@@ -52,6 +52,7 @@ import { kidArtwork, kidArtForStudents, isKidArt } from '../src/lib/kidArtwork.j
 import { cleanGameReview, sameGameReview } from '../src/lib/analysisDoc.js';
 import { curateInto, reorganise } from '../src/lib/curate.js';
 import { collectionPlan } from '../src/lib/collectionCopy.js';
+import { withSpot } from '../src/lib/videoSpots.js';
 
 // ---------------------------------------------------------------------------
 // The app's own reducer and emptyState, straight from src/store.jsx.
@@ -74,9 +75,9 @@ const { reducer, emptyState } = (() => {
     'return { reducer, emptyState };',
   ].join('\n');
   // eslint-disable-next-line no-new-func
-  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', 'canonicalStartFen', 'fen4', 'sendToChapter', 'kidArtwork', 'kidArtForStudents', 'isKidArt', 'cleanGameReview', 'sameGameReview', 'curateInto', 'reorganise', 'collectionPlan', body)(
+  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', 'canonicalStartFen', 'fen4', 'sendToChapter', 'kidArtwork', 'kidArtForStudents', 'isKidArt', 'cleanGameReview', 'sameGameReview', 'curateInto', 'reorganise', 'collectionPlan', 'withSpot', body)(
     DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, sendLines, makeSub, leaveFolder, withFolderMates, arrangeTop, arrangeFolder, gatherIntoFolder, parseMarks, withText, withMarks, canonicalStartFen, fen4,
-    sendToChapter, kidArtwork, kidArtForStudents, isKidArt, cleanGameReview, sameGameReview, curateInto, reorganise, collectionPlan,
+    sendToChapter, kidArtwork, kidArtForStudents, isKidArt, cleanGameReview, sameGameReview, curateInto, reorganise, collectionPlan, withSpot,
   );
 })();
 
@@ -1280,4 +1281,34 @@ test('a line set up from a position keeps its start through sync and a copy to a
   mac.do({ type: 'copyOpeningsToPlayers', playerIds: ['p-parker'], variationIds: [idea] });
   const theirs = mac.state.openings.find((o) => o.ownerId === 'p-parker' && o.name === 'Caro-Kann');
   assert.equal(theirs.chapters[0].variations[0].startFen, fen);
+});
+
+test('where you left off in a video: paused on the Mac, picked up on the iPad; both stopping in different videos keeps both; finished clears it everywhere', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  mac.do({ type: 'setVideoSpot', key: 'vid-caro', spot: { at: 754, dur: 1800, t: 100 } });
+  const same = mac.state;
+  mac.do({ type: 'setVideoSpot', key: 'vid-caro', spot: { at: 754, dur: 1800, t: 101 } });
+  assert.equal(mac.state, same, 'the same spot again: no change, no sync');
+  await mac.sync();
+  await ipad.sync();
+  assert.deepEqual(ipad.state.settings.videoSpots, { 'vid-caro': { at: 754, dur: 1800, t: 100 } });
+
+  // Each stops somewhere before syncing.
+  mac.do({ type: 'setVideoSpot', key: 'vid-caro', spot: { at: 900, t: 200 } });
+  ipad.do({ type: 'setVideoSpot', key: 'vid-london', spot: { at: 60, t: 210 } });
+  await mac.sync();
+  await ipad.sync();
+  await mac.sync();
+  for (const d of [mac, ipad]) {
+    assert.deepEqual(d.state.settings.videoSpots, { 'vid-caro': { at: 900, t: 200 }, 'vid-london': { at: 60, t: 210 } }, d.label);
+  }
+
+  // Watched to the end on the iPad.
+  ipad.do({ type: 'setVideoSpot', key: 'vid-caro', spot: null, t: 300 });
+  await ipad.sync();
+  await mac.sync();
+  assert.deepEqual(mac.state.settings.videoSpots['vid-caro'], { at: null, t: 300 });
+  const cleared = mac.state;
+  mac.do({ type: 'setVideoSpot', key: 'vid-caro', spot: null, t: 301 });
+  assert.equal(mac.state, cleared, 'cleared again: no change');
 });

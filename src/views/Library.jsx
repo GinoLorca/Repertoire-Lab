@@ -32,6 +32,8 @@ import { fullBackup } from '../lib/backup';
 import { cloudConfigured } from '../lib/cloud/config';
 import { watchAuth } from '../lib/cloud/auth';
 import { loadProfile } from '../lib/cloud/profile';
+import { fmtTime } from '../lib/videoLinks';
+import { spotOf, resumeAt } from '../lib/videoSpots';
 
 function openingTotals(opening) {
   return opening.chapters.reduce(
@@ -174,18 +176,24 @@ function tallyChapters(chapters) {
 // camcorder under the title. A folder says how many of its chapters have one.
 // Not shown while chapter videos are turned off in Settings.
 const VIDEO_FROM = { youtube: 'a YouTube video', vimeo: 'a Vimeo video', file: 'an uploaded video', 'file-url': 'a video link' };
+// Partway through one, it says where you left off (lib/videoSpots.js); a
+// folder, how many of its videos you're partway through.
 function VideoMark({ chapters }) {
   const { state } = useStore();
   if (state.settings.showChapterVideos === false) return null;
   const withVideo = chapters.filter((c) => c.video);
   if (!withVideo.length) return null;
   const one = chapters.length === 1;
-  const label = one ? 'Video' : `${withVideo.length} video${withVideo.length === 1 ? '' : 's'}`;
+  const spots = withVideo.map((c) => resumeAt(spotOf(c.video.id, state.settings.videoSpots)));
+  const started = spots.filter((at) => at != null).length;
+  const label = one
+    ? `Video${spots[0] != null ? ` · ${fmtTime(spots[0])}` : ''}`
+    : `${withVideo.length} video${withVideo.length === 1 ? '' : 's'}${started ? ` · ${started} started` : ''}`;
   const title = one
-    ? `This chapter has ${VIDEO_FROM[withVideo[0].video.kind] ?? 'a video'}`
-    : `${withVideo.length} of the ${chapters.length} chapters here have a video`;
+    ? `This chapter has ${VIDEO_FROM[withVideo[0].video.kind] ?? 'a video'}${spots[0] != null ? ` — you left off at ${fmtTime(spots[0])}` : ''}`
+    : `${withVideo.length} of the ${chapters.length} chapters here have a video${started ? ` — ${started} you’re partway through` : ''}`;
   return (
-    <span className="chapter-video-mark" title={title} aria-label={title}>
+    <span className={`chapter-video-mark${started ? ' started' : ''}`} title={title} aria-label={title}>
       <VideoIcon size={15} /> {label}
     </span>
   );
