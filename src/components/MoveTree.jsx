@@ -18,8 +18,9 @@ const numFor = (virtualPly, startNumber) => (
 // rather than anything living on an individual move button. Same hex the
 // pens/squares elsewhere already draw in, so a green here means the same
 // thing a green arrow does.
-// Purple, white and red come from Game Review (Chess Arcade's line colours,
-// lib/reviewOnBoard): shown, not offered in this menu.
+// Purple, white and red are Game Review's (Chess Arcade's line colours,
+// lib/reviewOnBoard): offered in the menu on a game whose review the board
+// changes (highlightColors), shown wherever they're on a line.
 const HIGHLIGHT_HEX = {
   green: '#2ecc71', blue: '#3b9cff', yellow: '#e8b339', purple: '#8b5cf6', white: '#ffffff', red: '#e5534b',
 };
@@ -112,7 +113,7 @@ function InlineLine({
 // lands in the Black column of row one, White's cell left blank.
 export default function MoveTree({
   root, headId, badges: badgesIn, moments, chips, highlights, onHighlight, onGo, onPromote, onPromoteOne, onDelete,
-  startNumber = 1, startColor = 'w', readOnly = false,
+  startNumber = 1, startColor = 'w', readOnly = false, highlightColors = ['green', 'blue', 'yellow'],
 }) {
   const { state } = useStore();
   // Gated once, here, rather than in every downstream renderer (InlineLine
@@ -249,7 +250,7 @@ export default function MoveTree({
           >
             {onHighlight && menuBranchRoot && (
               <div className="mt-highlight-row">
-                {['green', 'blue', 'yellow'].map((color) => (
+                {highlightColors.map((color) => (
                   <button
                     key={color}
                     type="button"

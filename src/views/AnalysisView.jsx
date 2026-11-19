@@ -85,10 +85,13 @@ import { analysisSourceKey } from '../lib/session';
 import { openReview } from '../components/ReviewReader';
 import { holdSends, releaseSends, sendOnce } from '../lib/cloud/sendHold';
 import { cardHasRoom } from '../lib/cloud/reviews';
-import { recordsFor } from '../lib/gameReviewBridge';
+import { recordsFor, cleanRecords, writesReviewLayer, withGameReview } from '../lib/gameReviewBridge';
 import {
   reviewOnBoard, chipsOf, refOf, marksWith, TACTIC_COLOR,
 } from '../lib/reviewOnBoard';
+import {
+  setMarksAt, setCommentAt, setBadgeAt, setLineColorAt, removeLineFrom, hasLineFrom, fits, reviewBadge, REVIEW_LINE_COLORS,
+} from '../lib/reviewEdit';
 import { openGameReview } from '../lib/openGameReview';
 import {
   BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon,
@@ -334,10 +337,15 @@ export default function AnalysisView({
 
   // The game's Game Review (lib/reviewOnBoard): its side lines on the tree,
   // its comments, marks, badges, line colours, CLAMP and tactics with the
-  // board's own, the Notes card and a Larry Review beside it. Shown, never
-  // saved as the board's own — it's changed in Game Review (Edit in Game
-  // Review). Live: a review that changes elsewhere (the coach's, arriving)
-  // shows as it comes. Only while the tree's main line is the game's moves.
+  // board's own, the Notes card and a Larry Review beside it. Live: a review
+  // that changes elsewhere (the coach's, arriving) shows as it comes.
+  //
+  // And the board changes it (lib/reviewEdit): on a saved game, what's drawn
+  // here, a move's comment and badge, a side line's colour, a side line taken
+  // out — all go into the same record Game Review writes, so the two screens
+  // never disagree. CLAMP, tactics, the Notes card and Larry Review are
+  // changed in Game Review (Edit in Game Review). Only while the tree's main
+  // line is the game's moves; a move past the game's end stays the board's.
   const reviewOwner = useMemo(
     () => (initialLine?.playerId ? state.players.find((p) => p.id === initialLine.playerId) ?? null : null),
     [state.players, initialLine?.playerId],
@@ -346,47 +354,119 @@ export default function AnalysisView({
     () => (liveGame && !coachMode ? recordsFor(liveGame, reviewOwner) : null),
     [liveGame, reviewOwner, coachMode],
   );
-  const review = useMemo(() => {
-    const gm = liveGame?.moves ?? [];
-    if (!reviewRecords || !gm.length) return null;
+  const gameMoves = liveGame?.moves;
+  const trunkIsGame = useMemo(() => {
+    const gm = gameMoves ?? [];
+    if (!gm.length) return false;
     const trunk = mainLineFrom(tree);
-    if (trunk.length < gm.length || gm.some((m, i) => trunk[i].san !== m)) return null;
+    return trunk.length >= gm.length && gm.every((m, i) => trunk[i].san === m);
+  }, [tree, gameMoves]);
+  const reviewEditable = Boolean(liveGame && !coachMode && reviewOwner && trunkIsGame);
+  const review = useMemo(() => {
+    if (!reviewRecords || !trunkIsGame) return null;
     try {
       return reviewOnBoard({
-        tree, moves: gm, startFen: liveGame.startFen ?? null, records: reviewRecords, side: liveGame.meta?.color ?? null,
+        tree, moves: liveGame.moves, startFen: liveGame.startFen ?? null, records: reviewRecords, side: liveGame.meta?.color ?? null,
       });
     } catch {
       return null;
     }
-  }, [tree, reviewRecords, liveGame]);
+  }, [tree, reviewRecords, liveGame, trunkIsGame]);
   // Its side lines, onto the board's tree (a move already there is followed).
   useEffect(() => { if (review && review.tree !== tree) setTree(review.tree); }, [review]); // eslint-disable-line react-hooks/exhaustive-deps
   const reviewChips = useMemo(() => chipsOf(review), [review]);
-  // A move's badge: the board's own, else one set in Game Review, else the engine's.
+  // A move's badge: one set in Game Review (here or there), else one the game
+  // already had, else the engine's.
   const shownBadges = useMemo(
-    () => (review ? { ...review.engineBadges, ...review.ownBadges, ...moveBadges } : moveBadges),
+    () => (review ? { ...review.engineBadges, ...moveBadges, ...review.ownBadges } : moveBadges),
     [review, moveBadges],
   );
   const shownHighlights = useMemo(
     () => (review ? { ...review.lineColors, ...variationHighlights } : variationHighlights),
     [review, variationHighlights],
   );
-  // What the review says on the move on the board.
+  // Where a move is in the record (a ply, or [ply, uci…]); null for one past
+  // the game's end, which the review can't hold.
+  const reviewRefAt = (nodeId) => {
+    if (!reviewEditable) return null;
+    const r = refOf(tree, nodeId, liveGame.startFen ?? null);
+    const n = liveGame.moves.length;
+    if (!r) return null;
+    if ('ply' in r) return r.ply <= n ? r.ply : null;
+    return r.line[0] <= n ? r.line : null;
+  };
+  const reviewRefHere = useMemo(() => reviewRefAt(head), [reviewEditable, tree, head]); // eslint-disable-line react-hooks/exhaustive-deps
+  // What the review says on the move on the board — and, editable, what can be changed there.
   const reviewHere = useMemo(() => {
-    if (!review) return null;
-    const note = review.notes[head] ?? '';
-    const clamp = review.clamp[head] ?? [];
-    const tactics = review.tactics[head] ?? [];
-    const own = review.ownBadges[head] ?? null;
-    const badge = own ?? review.engineBadges[head] ?? null;
-    if (!note && !clamp.length && !tactics.length && !badge) return null;
+    if (!review && reviewRefHere == null) return null;
+    const note = review?.notes[head] ?? '';
+    const clamp = review?.clamp[head] ?? [];
+    const tactics = review?.tactics[head] ?? [];
+    const own = review?.ownBadges[head] ?? null;
+    const badge = own ?? review?.engineBadges[head] ?? null;
+    if (reviewRefHere == null && !note && !clamp.length && !tactics.length && !badge) return null;
     return {
-      note, clamp, tactics, badge, engine: !own,
+      note, clamp, tactics, badge, own, engine: !own, editable: reviewRefHere != null,
     };
-  }, [review, head]);
+  }, [review, head, reviewRefHere]);
+
+  // Writing it: the record as last written here, until the store has it (two
+  // changes in a row build on each other); your review of a student's own
+  // game goes to them a few seconds after the last change, or on Save, or as
+  // the board closes.
+  const reviewWritten = useRef(null);
+  const reviewPending = useRef(null); // { playerId, gameId, body } not sent yet
+  const reviewTimer = useRef(0);
+  const [reviewSave, setReviewSave] = useState(null); // null | 'saved' | 'full'
+  const latestReview = () => {
+    const w = reviewWritten.current;
+    return w && (w.at ?? 0) > (reviewRecords?.at ?? 0) ? w : reviewRecords;
+  };
+  const publishReview = () => {
+    clearTimeout(reviewTimer.current);
+    const d = reviewPending.current;
+    if (!d) return;
+    reviewPending.current = null;
+    dispatch({ type: 'setGameReview', ...d, publish: true });
+  };
+  const publishReviewRef = useRef(publishReview);
+  publishReviewRef.current = publishReview;
+  useEffect(() => () => publishReviewRef.current(), []);
+  const writeReview = (mutate) => {
+    if (!reviewEditable) return false;
+    const base = latestReview();
+    const was = base?.an ?? '';
+    const an = mutate(was);
+    if (an === was) return true;
+    if (!fits(an)) { setReviewSave('full'); return false; }
+    const at = Date.now();
+    const rec = cleanRecords({ note: '', ...(base ?? {}), an, at });
+    reviewWritten.current = rec ?? { note: '', an: '', at };
+    if (writesReviewLayer(liveGame, reviewOwner)) {
+      const body = withGameReview(liveGame.review?.body, liveGame, rec);
+      dispatch({ type: 'setGameReview', playerId: reviewOwner.id, gameId: liveGame.id, body, publish: false });
+      reviewPending.current = { playerId: reviewOwner.id, gameId: liveGame.id, body };
+      clearTimeout(reviewTimer.current);
+      reviewTimer.current = setTimeout(() => publishReviewRef.current(), 3000);
+    } else {
+      dispatch({ type: 'setGameReviewRecords', playerId: reviewOwner.id, gameId: liveGame.id, records: rec });
+    }
+    setReviewSave('saved');
+    return true;
+  };
+  const reviewToStudent = Boolean(liveGame && reviewOwner && writesReviewLayer(liveGame, reviewOwner));
+  const setReviewComment = (text) => {
+    if (reviewRefHere == null) return;
+    writeReview((an) => setCommentAt(an, reviewRefHere, text));
+  };
+  const setReviewBadge = (id) => {
+    if (reviewRefHere == null || reviewRefHere === 0) return;
+    writeReview((an) => setBadgeAt(an, reviewRefHere, id));
+  };
   // The same game in Game Review, at the move on the board.
   const editInGameReview = () => {
     if (!initialLine?.gameId || !initialLine?.playerId) return;
+    publishReview();
     const at = refOf(tree, head, liveGame?.startFen ?? null);
     openGameReview({ playerId: initialLine.playerId, gameId: initialLine.gameId, reviewOpts: at ? { at } : null });
   };
@@ -455,6 +535,15 @@ export default function AnalysisView({
   const assignHighlight = (nodeId, color) => {
     const rootId = branchRootOf(tree, nodeId);
     if (!rootId) return;
+    // A saved game's: into its Game Review (the board's own colour on it goes).
+    const lineRef = reviewEditable ? reviewRefAt(rootId) : null;
+    if (Array.isArray(lineRef)) {
+      const next = !color || shownHighlights[rootId] === color ? null : color;
+      if (writeReview((an) => setLineColorAt(an, lineRef, next)) && variationHighlights[rootId]) {
+        setVariationHighlights((prev) => { const n = { ...prev }; delete n[rootId]; return n; });
+      }
+      return;
+    }
     setVariationHighlights((prev) => {
       const next = { ...prev };
       if (!color || next[rootId] === color) delete next[rootId];
@@ -809,10 +898,22 @@ export default function AnalysisView({
   // …and Game Review's on this move, drawn with them (drawing changes the board's own).
   const shownMarks = useMemo(() => marksWith(marks, review?.marks?.[head]), [marks, review, head]);
 
-  const updateMarks = (fn) => setAnnotations((all) => {
-    const next = fn(all[fen] ?? EMPTY_MARKS);
-    return { ...all, [fen]: next };
-  });
+  // On a saved game, the arrows and squares drawn at a move are its Game
+  // Review's: what the board has of its own there and the review's drawn ones
+  // are one set, and a change goes into the review (the board's own copy
+  // goes, so there's one). A tactic's or a CLAMP letter's marks are theirs,
+  // changed in Game Review.
+  const editableMarks = reviewRefHere != null ? marksWith(marks, review?.drawn?.[head]) : marks;
+  const updateMarks = (fn) => {
+    if (reviewRefHere != null) {
+      const next = fn(editableMarks);
+      if (writeReview((an) => setMarksAt(an, reviewRefHere, next)) && annotations[fen]) {
+        setAnnotations((all) => { const n = { ...all }; delete n[fen]; return n; });
+      }
+      return;
+    }
+    setAnnotations((all) => ({ ...all, [fen]: fn(all[fen] ?? EMPTY_MARKS) }));
+  };
 
   // The arrow colour profile (lib/arrowProfiles.js): with Sequential or
   // Strategic on, an arrow or square drawn without a pen key takes the
@@ -950,13 +1051,16 @@ export default function AnalysisView({
     held, pen: drawColor, profile: arrowProfile, fen,
   }));
 
-  const clearMarks = () => setAnnotations((all) => {
-    const next = { ...all };
-    delete next[fen];
-    return next;
-  });
+  const clearMarks = () => {
+    if (reviewRefHere != null) { updateMarks(() => EMPTY_MARKS); return; }
+    setAnnotations((all) => {
+      const next = { ...all };
+      delete next[fen];
+      return next;
+    });
+  };
 
-  const hasMarks = marks.arrows.length > 0 || Object.keys(marks.squares).length > 0;
+  const hasMarks = editableMarks.arrows.length > 0 || Object.keys(editableMarks.squares).length > 0;
   // The pen a drag draws with when no pen key is held, and the others' keys —
   // for the reminder under the board.
   const penNow = PENS.find((p) => p.value === drawColor) ?? defaultPen(state.settings);
@@ -2142,7 +2246,7 @@ export default function AnalysisView({
     <BoardArrows
       arrows={drawFrom && holdTo
         // The arrow a held finger is dragging out, in the colour it will be.
-        ? [...shownMarks.arrows, [drawFrom, holdTo, colorOfNext(marks, drawFrom, holdTo, {
+        ? [...shownMarks.arrows, [drawFrom, holdTo, colorOfNext(editableMarks, drawFrom, holdTo, {
           held: null, pen: drawColor, profile: arrowProfile, fen,
         }) ?? drawColor]]
         : shownMarks.arrows}
@@ -2343,16 +2447,40 @@ export default function AnalysisView({
             </span>
           )}
           <span style={{ flex: 1 }} />
+          {reviewEditable && (
+            <button
+              type="button"
+              className="small"
+              title={reviewToStudent
+                ? 'Save what’s changed here into Game Review and send it to your student now'
+                : 'Save what’s changed here into Game Review now'}
+              onClick={() => { publishReview(); saveNow(); setReviewSave('saved'); }}
+            >
+              <CheckIcon size={13} /> {reviewToStudent ? 'Save & send' : 'Save'}
+            </button>
+          )}
           <button
             type="button"
             className="small"
-            title="Open this game in Game Review, at the move on the board, to change its review"
+            title="Open this game in Game Review, at the move on the board"
             onClick={editInGameReview}
           >
             <PencilIcon size={13} /> {review ? 'Edit in Game Review' : 'Open in Game Review'}
           </button>
         </div>
-        {!review && <p className="muted-note game-review-empty">Nothing from Game Review on this game yet.</p>}
+        {reviewSave === 'full' && (
+          <p className="annotate-error game-review-empty">This game’s review is full — take out a side line, some arrows or a comment first.</p>
+        )}
+        {reviewSave === 'saved' && (
+          <p className="muted-note game-review-empty"><CheckIcon size={12} /> Saved to Game Review{reviewToStudent ? ' — your student gets it in a few seconds' : ''}</p>
+        )}
+        {!review && reviewSave !== 'saved' && (
+          <p className="muted-note game-review-empty">
+            {reviewEditable
+              ? 'Nothing in Game Review on this game yet — arrows, comments and badges you add here go into it.'
+              : 'Nothing from Game Review on this game yet.'}
+          </p>
+        )}
         {review?.note && (
           <details className="game-review-part" open>
             <summary>Notes card</summary>
@@ -2534,7 +2662,25 @@ export default function AnalysisView({
             </span>
           )}
         </div>
-        {reviewHere.note && <p className="review-move-text">{reviewHere.note}</p>}
+        {reviewHere.editable ? (
+          <ReviewComment key={`${liveGame?.id}:${head}`} text={reviewHere.note} onSave={setReviewComment} />
+        ) : reviewHere.note && <p className="review-move-text">{reviewHere.note}</p>}
+        {reviewHere.editable && head !== 'root' && (
+          <div className="review-badges" role="group" aria-label="Your badge on this move">
+            {BADGES.filter((b) => reviewBadge(b.id)).map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                className={`review-badge-btn${reviewHere.own === b.id ? ' on' : ''}`}
+                title={reviewHere.own === b.id ? `${b.label} — tap to take it off` : b.label}
+                aria-pressed={reviewHere.own === b.id}
+                onClick={() => setReviewBadge(reviewHere.own === b.id ? null : b.id)}
+              >
+                <MoveBadge id={b.id} size={16} />
+              </button>
+            ))}
+          </div>
+        )}
         {reviewHere.clamp.map((c) => (
           <div key={`${c.letter}${c.theirs}`} className="review-move-row">
             <span
@@ -3182,6 +3328,7 @@ export default function AnalysisView({
             moments={marksByMove}
             chips={reviewChips}
             highlights={shownHighlights}
+            highlightColors={reviewEditable ? REVIEW_LINE_COLORS : undefined}
             onHighlight={assignHighlight}
             startNumber={baseMeta.startNumber}
             startColor={baseMeta.startColor}
@@ -3197,6 +3344,12 @@ export default function AnalysisView({
               }
               const next = removeNode(tree, id);
               if (!confirmMomentLoss(next)) return;
+              // A side line the game's Game Review has: out of it too.
+              const lineRef = reviewEditable ? reviewRefAt(id) : null;
+              if (Array.isArray(lineRef) && hasLineFrom(latestReview()?.an, lineRef)) {
+                if (!window.confirm('Delete this line here and in Game Review? Its comments, arrows and badges go with it.')) return;
+                if (!writeReview((an) => removeLineFrom(an, lineRef))) return;
+              }
               // Standing on the move you're deleting: step back first.
               if (nodePath(tree, id).some((n) => n.id === head)) {
                 const trail = nodePath(tree, id);
@@ -3923,6 +4076,56 @@ function SaveLineToChapter({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// A move's comment in Game Review, written on the analysis board: the text,
+// and a box to change it — kept a moment after you stop typing, and when you
+// leave the box.
+function ReviewComment({ text, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(text);
+  const timer = useRef(0);
+  const saved = useRef(text);
+  useEffect(() => { if (!editing) { setDraft(text); saved.current = text; } }, [text, editing]);
+  const commit = (t) => {
+    clearTimeout(timer.current);
+    if (t.trim() === (saved.current ?? '').trim()) return;
+    saved.current = t;
+    onSave(t);
+  };
+  const commitRef = useRef(commit);
+  commitRef.current = commit;
+  useEffect(() => () => clearTimeout(timer.current), []);
+  if (!editing) {
+    return text ? (
+      <button type="button" className="review-move-text review-comment-text" title="Change this comment" onClick={() => setEditing(true)}>
+        {text}
+      </button>
+    ) : (
+      <button type="button" className="small ghost review-comment-add" onClick={() => setEditing(true)}>
+        <CommentIcon size={13} /> Add a comment
+      </button>
+    );
+  }
+  return (
+    <div className="review-comment-edit">
+      <textarea
+        className="review-comment-input"
+        rows={3}
+        autoFocus
+        value={draft}
+        placeholder="A comment on this move, for Game Review"
+        onChange={(e) => {
+          const t = e.target.value;
+          setDraft(t);
+          clearTimeout(timer.current);
+          timer.current = setTimeout(() => commitRef.current(t), 800);
+        }}
+        onBlur={() => commit(draft)}
+      />
+      <button type="button" className="small" onClick={() => { commit(draft); setEditing(false); }}>Done</button>
     </div>
   );
 }

@@ -225,6 +225,7 @@ export function reviewOnBoard({ tree, moves = [], startFen = null, records, side
   const ownBadges = {};
   const engineBadges = {};
   const marks = {};
+  const drawn = {}; // the arrows and squares drawn (m) alone — what the board edits
   const lineColors = {};
   const clamp = {};
   const tactics = {};
@@ -249,6 +250,7 @@ export function reviewOnBoard({ tree, moves = [], startFen = null, records, side
       const m = /^([A-Z])([a-h][1-8])$/.exec(t);
       if (m && PEN_HEX[m[1]]) mark(id).squares[m[2]] = PEN_HEX[m[1]];
     }
+    if (marks[id]) drawn[id] = { arrows: [...marks[id].arrows], squares: { ...marks[id].squares } };
   }
   for (const x of list('b')) {
     const id = Array.isArray(x) && x[0] !== 0 ? W.resolve(x[0]) : null;
@@ -325,6 +327,7 @@ export function reviewOnBoard({ tree, moves = [], startFen = null, records, side
     ownBadges,
     engineBadges,
     marks,
+    drawn,
     lineColors,
     clamp,
     tactics,

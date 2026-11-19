@@ -264,6 +264,26 @@
   font-size: 13px; color: var(--text);
 }
 .review-move-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* …and changed there (lib/reviewEdit): the comment, tap to change; your badge. */
+.review-comment-text {
+  display: block; width: 100%; text-align: left; background: none; border: 1px dashed transparent;
+  border-radius: 8px; padding: 4px 6px; margin: 0 -6px; color: var(--text); font: inherit; cursor: text; min-height: 0;
+}
+.review-comment-text:hover { border-color: var(--border); }
+.review-comment-add { align-self: flex-start; }
+.review-comment-edit { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.review-comment-input { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; resize: vertical; }
+.review-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+.review-badge-btn {
+  min-width: 34px; min-height: 34px; padding: 0; border-radius: 8px; display: inline-flex;
+  align-items: center; justify-content: center; background: transparent; border: 1px solid var(--border); opacity: 0.55;
+}
+.review-badge-btn:hover { opacity: 0.9; }
+.review-badge-btn.on { opacity: 1; border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+@media (max-width: 480px) {
+  .review-badges { gap: 3px; }
+  .review-badge-btn { min-width: 30px; min-height: 32px; }
+}
 .review-move-row { display: flex; align-items: flex-start; gap: 7px; font-size: 14px; overflow-wrap: anywhere; }
 .review-move-row .mt-chip { margin: 2px 0 0; min-width: 18px; height: 18px; border-radius: 9px; font-size: 10.5px; }
 .game-review-panel { display: flex; flex-direction: column; gap: 8px; }
