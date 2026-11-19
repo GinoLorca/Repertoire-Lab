@@ -5,7 +5,7 @@ import { Chess } from 'chess.js';
 import { useStore } from '../store';
 import { checkedKingSquare, CHECK_STYLE, LAST_MOVE_STYLE } from '../lib/legalMoves';
 import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
-import { boardBadgeStyle } from '../lib/badges';
+import { boardBadgeStyle, boardBadgeTint, BADGE_BY_ID } from '../lib/badges';
 import { suitSquareStyles } from '../lib/suitMarks';
 import { boardColors } from '../lib/theme';
 import BoardArrows, { cell } from './BoardArrows';
@@ -155,8 +155,73 @@ const NOTATION_STYLE = {
 // that was the orange arrow cutting diagonally across a knight move, and no
 // change to our renderer could reach it. It's off from here on, so arrows come
 // from one place.
+// The marks that sit on top of everything drawn on a square — a move's badge
+// disc (top right of the square it landed on) and its CLAMP letters from Game
+// Review (lib/reviewOnBoard): discs in the bottom-left corner of the squares
+// they're about, or of the square the piece moved to, side by side, smaller
+// three or more to a square; theirs dark, ringed in the letter's colour — as
+// Chess Arcade draws them. On their own layer above the arrows (10) and under
+// the telestrator's ink (40), so an arrow across the square never buries them.
+const FILES = 'abcdefgh';
+function squareBox(square, size, orientation) {
+  const f = FILES.indexOf(square?.[0]);
+  const r = Number(square?.[1]);
+  if (f < 0 || !(r >= 1 && r <= 8)) return null;
+  const col = orientation === 'black' ? 7 - f : f;
+  const row = orientation === 'black' ? r - 1 : 8 - r;
+  return {
+    left: col * size, top: row * size, width: size, height: size,
+  };
+}
+function BoardTopMarks({
+  badgeSquare, badge, clampAt, boardWidth, orientation,
+}) {
+  const size = boardWidth / 8;
+  const b = badge ? BADGE_BY_ID[badge] : null;
+  const badgeBox = b ? squareBox(badgeSquare, size, orientation) : null;
+  return (
+    <div className="board-top-marks" aria-hidden="true">
+      {badgeBox && (
+        <div className="board-top-sq" style={badgeBox}>
+          <span className={`board-badge-disc board-badge-${b.id}`} style={{ background: b.color, fontSize: size * 0.17 }}>
+            {b.symbol}
+          </span>
+        </div>
+      )}
+      {Object.entries(clampAt ?? {}).map(([sq, list]) => {
+        const box = squareBox(sq, size, orientation);
+        if (!box || !list?.length) return null;
+        const many = list.length > 2;
+        const d = size * (many ? 0.28 : 0.36);
+        return (
+          <div key={sq} className="board-top-sq" style={box}>
+            <span className="board-clamp-box" style={{ gap: size * 0.03 }}>
+              {list.map((c) => (
+                <span
+                  key={c.letter}
+                  className={`board-clamp-disc${c.theirs ? ' theirs' : ''}`}
+                  style={{
+                    width: d,
+                    height: d,
+                    fontSize: size * (many ? 0.16 : 0.19),
+                    ...(c.theirs
+                      ? { boxShadow: `inset 0 0 0 ${size * 0.045}px ${c.color}, 0 0 0 1.5px rgba(255,255,255,.9), 0 1px 3px rgba(0,0,0,.4)` }
+                      : { background: c.color }),
+                  }}
+                >
+                  {c.letter}
+                </span>
+              ))}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Board({
-  position, customSquareStyles, lastMove, badge, suitPick = null, ownArrows = true, marks = null, telestrator = true, ...rest
+  position, customSquareStyles, lastMove, badge, clampAt = null, suitPick = null, ownArrows = true, marks = null, telestrator = true, ...rest
 }) {
   const { state } = useStore();
   // What's right-clicked onto this board (see DrawableBoard): its arrows and
@@ -175,6 +240,7 @@ export default function Board({
   const markCheck = state.settings.checkHighlight !== false;
   const markLast = state.settings.lastMoveHighlight !== false;
   const markBadge = state.settings.showBoardBadges !== false;
+  const sized = typeof rest.boardWidth === 'number';
 
   // A Chess Arcade skin brings its own board and pieces; Custom falls through
   // to the colours picked in Settings, and then to the built-in pair.
@@ -212,7 +278,8 @@ export default function Board({
     // badge look like it's losing to a decoration it's meant to replace.
     let badged = null;
     if (markBadge && badge && lastMove?.to) {
-      const badgeStyle = boardBadgeStyle(badge);
+      // Sized: the tint here, the disc on the top layer (BoardTopMarks).
+      const badgeStyle = sized ? boardBadgeTint(badge) : boardBadgeStyle(badge);
       const callerStyle = customSquareStyles?.[lastMove.to];
       if (badgeStyle) {
         out = { ...out, [lastMove.to]: { ...badgeStyle, ...(callerStyle ?? {}) } };
@@ -246,9 +313,8 @@ export default function Board({
     }
     return out;
   }, [markCheck, markLast, markBadge, lastMove?.from, lastMove?.to, badge, position, customSquareStyles, drawing.squares, profile,
-    suitPick, rest.boardOrientation, rest.showBoardNotation]);
+    suitPick, rest.boardOrientation, rest.showBoardNotation, sized]);
 
-  const sized = typeof rest.boardWidth === 'number';
   const orientation = rest.boardOrientation === 'black' ? 'black' : 'white';
   // Uptown Express's coordinates are line signs (LineSigns above), on any
   // board with a size to draw them at; the board's own step aside for them.
@@ -291,9 +357,19 @@ export default function Board({
   );
   // A board without the arrow layer carries the signs itself.
   const ownSigns = !ownArrows && signs;
+  const hasBadge = Boolean(lastMove?.to && badge && BADGE_BY_ID[badge]);
+  const top = sized && markBadge && (hasBadge || Object.keys(clampAt ?? {}).length) ? (
+    <BoardTopMarks
+      badgeSquare={lastMove?.to}
+      badge={hasBadge ? badge : null}
+      clampAt={clampAt}
+      boardWidth={rest.boardWidth}
+      orientation={orientation}
+    />
+  ) : null;
   if (!sized || !telestrator) {
-    return ownSigns
-      ? <div className="line-sign-host" style={{ position: 'relative', width: rest.boardWidth, height: rest.boardWidth }}>{drawn}{signs}</div>
+    return ownSigns || top
+      ? <div className="line-sign-host" style={{ position: 'relative', width: rest.boardWidth, height: rest.boardWidth }}>{drawn}{ownSigns}{top}</div>
       : drawn;
   }
 
@@ -303,6 +379,7 @@ export default function Board({
     <div className="tele-host" style={{ position: 'relative', width: rest.boardWidth, height: rest.boardWidth }}>
       {drawn}
       {ownSigns}
+      {top}
       <TelestratorLayer
         boardWidth={rest.boardWidth}
         orientation={orientation}

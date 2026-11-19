@@ -48,7 +48,8 @@ test('comments, arrows and squares, by move', () => {
   assert.deepEqual(r.marks[ply(5)].arrows, [['b5', 'c6', PEN_HEX.G], ['e1', 'e8', PEN_HEX.R]]);
   assert.equal(r.marks[ply(5)].squares.e5, PEN_HEX.Y);
   assert.equal(r.marks[ply(5)].squares.c6, PEN_HEX.B, 'a square drawn keeps its colour');
-  assert.equal(r.marks[ply(5)].squares.e8, CLAMP.A.color, 'a CLAMP square in its letter\'s colour');
+  assert.equal(r.marks[ply(5)].squares.e8, undefined, 'a CLAMP square isn\'t tinted: the board puts its letter there');
+  assert.equal(CLAMP.A.color, '#2675cd');
   assert.deepEqual(r.marks.root.arrows, [['e2', 'e4', PEN_HEX.G]], 'the start position\'s marks');
 });
 

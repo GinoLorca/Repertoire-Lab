@@ -50,6 +50,14 @@ export const badgeIdForGlyph = (g) => BADGE_ID_BY_GLYPH[g] ?? null;
 // drops into the exact mechanism every board already uses for the last-move
 // wash and the check glow, wherever a board is showing a badged position —
 // there's no separate overlay layer to keep in sync.
+// The square's tint alone: a board with a size of its own draws the glyph's
+// disc on its top layer instead (components/Board.jsx BoardTopMarks), above
+// the arrows, where an arrow can't bury it.
+export function boardBadgeTint(id) {
+  const badge = BADGE_BY_ID[id];
+  return badge ? { backgroundColor: `color-mix(in srgb, ${badge.color} 34%, transparent)` } : null;
+}
+
 const badgeStyleCache = new Map();
 export function boardBadgeStyle(id) {
   const badge = BADGE_BY_ID[id];

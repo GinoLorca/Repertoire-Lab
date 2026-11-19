@@ -1448,6 +1448,17 @@ export default function AnalysisView({
     () => lastMoveOf(Chess, moves, ply, baseFen),
     [moves, ply, baseFen],
   );
+  // The move's CLAMP letters on the board (Board's top layer): on the squares
+  // they're about, or the square the piece moved to — as Chess Arcade does.
+  const boardClamp = useMemo(() => {
+    const out = {};
+    for (const c of review?.clamp?.[head] ?? []) {
+      for (const sq of c.squares.length ? c.squares : [lastMove?.to].filter(Boolean)) {
+        (out[sq] ??= []).push({ letter: c.letter, color: c.color, theirs: c.theirs });
+      }
+    }
+    return out;
+  }, [review, head, lastMove?.to]);
 
   // The piece sounds you get in practice, here too: play a move or step through
   // the game and it clicks.
@@ -2227,6 +2238,7 @@ export default function AnalysisView({
       customSquareStyles={squareStyles}
       lastMove={lastMove}
       badge={shownBadges[head]}
+      clampAt={boardClamp}
       suitPick={cardsPick}
       boardOrientation={orientation}
       boardWidth={boardWidth}

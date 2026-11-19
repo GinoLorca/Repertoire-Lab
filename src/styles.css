@@ -5674,6 +5674,24 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
    pen sits in the bottom-right corner, clear of the boards, which keep to the
    left or the middle; the toolbar covers the menu bar while it's up, which
    isn't wanted while drawing, rather than the bottom of a board. */
+/* A move's badge disc and its CLAMP letters (components/Board.jsx
+   BoardTopMarks): above the arrows (10), under the telestrator (40). */
+.board-top-marks { position: absolute; inset: 0; z-index: 12; pointer-events: none; }
+.board-top-sq { position: absolute; }
+.board-badge-disc, .board-clamp-disc {
+  box-sizing: border-box; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: system-ui, -apple-system, sans-serif; font-weight: 800; line-height: 1; color: #fff;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.9), 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+.board-badge-disc { position: absolute; top: 3%; right: 3%; width: 38%; height: 38%; letter-spacing: -0.04em; color: #10151d; }
+.board-badge-blunder { color: #000; }
+.board-clamp-box {
+  position: absolute; left: 3%; bottom: 3%; width: 94%;
+  display: flex; flex-wrap: wrap-reverse;
+}
+.board-clamp-disc { flex: 0 0 auto; }
+.board-clamp-disc.theirs { background: rgba(20, 21, 23, 0.82); }
 .tele-layer {
   position: absolute; inset: 0; z-index: 40;
   touch-action: none; cursor: crosshair;

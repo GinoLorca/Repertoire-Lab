@@ -6538,8 +6538,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   /* the symbol on the blunder red: #10151d is 4.4:1 there, black is 5:1 */
   .hv-badge-blunder, .hv-sq-badge-blunder{ color:#000; }
+  /* z-index 6: above the arrows (yours 5, the engine's 4), so an arrow across the square never buries it (2026-11-19) */
   .hv-sq-badge{
-    position:absolute; top:3%; right:3%; z-index:3; width:38%; height:38%; box-sizing:border-box;
+    position:absolute; top:3%; right:3%; z-index:6; width:38%; height:38%; box-sizing:border-box;
     display:flex; align-items:center; justify-content:center; border-radius:50%; pointer-events:none;
     font:800 calc(var(--sq) * .18)/1 "Helvetica Neue",Helvetica,Arial,sans-serif; letter-spacing:-.04em; color:#10151d;
     box-shadow:0 0 0 1.5px rgba(255,255,255,.9), 0 1px 3px rgba(0,0,0,.4);
@@ -6595,8 +6596,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   /* the move on the board's CLAMP letters (hvClampSqDraw): in the bottom-left corner of the squares they're about (the
      badge has the top-right), side by side; three or more on one square smaller, three a row going up. White on the
      letter's color with the badge's white ring: they read on every skin's squares */
+  /* z-index 6: above the arrows, like the badge (2026-11-19) */
   .hv-sq-ck{
-    position:absolute; left:3%; bottom:3%; z-index:3; width:94%; display:flex; flex-wrap:wrap-reverse; gap:calc(var(--sq) * .03);
+    position:absolute; left:3%; bottom:3%; z-index:6; width:94%; display:flex; flex-wrap:wrap-reverse; gap:calc(var(--sq) * .03);
     pointer-events:none;
   }
   .hv-sq-ckd{

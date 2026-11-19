@@ -12,7 +12,7 @@
 //   · badges: the ones set by hand, and the engine's on the game's moves
 //   · side lines' highlight colours
 //   · CLAMP letters, yours and their slips (punished, missed), with their
-//     notes and squares
+//     notes and squares (drawn by the board on those squares)
 //   · tactics: their names, whose chance and how it went, a note, and their
 //     arrows and pieces on the board
 //   · the Notes card, a Larry Review, the engine's accuracy
@@ -294,9 +294,10 @@ export function reviewOnBoard({ tree, moves = [], startFen = null, records, side
       clampAt(x[0], x[1], { theirs: true, note: text(x[2], 140), out: x[3] === 'p' || x[3] === 'm' ? x[3] : '', squares });
     }
   }
+  // Their squares aren't tinted: the board puts the letters on them (Board's
+  // top layer), as Chess Arcade does.
   for (const id of Object.keys(clamp)) {
     clamp[id].sort((a, b) => CLAMP_ORDER.indexOf(a.letter) - CLAMP_ORDER.indexOf(b.letter));
-    for (const c of clamp[id]) for (const s of c.squares) mark(id).squares[s] ??= c.color;
   }
 
   // Tactics: on each move of the chance, its arrows and pieces in the position after it.
