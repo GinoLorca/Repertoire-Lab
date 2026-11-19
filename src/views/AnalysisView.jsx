@@ -11,7 +11,9 @@ import {
 } from '../lib/similarOpenings';
 import { fetchExplorer, explorerTotals, pct } from '../lib/explorer';
 import { useViewportWidth, useViewportHeight } from '../components/useViewportWidth';
-import { topInset, bottomInset } from '../lib/safeArea';
+import {
+  topInset, bottomInset, leftInset, rightInset,
+} from '../lib/safeArea';
 import BoardArrows from '../components/BoardArrows';
 import ArrowProfileLabel from '../components/ArrowProfileLabel';
 import {
@@ -135,6 +137,7 @@ const EMPTY_MARKS = { arrows: [], squares: {} };
 
 // A finger is this device's main pointer (an iPad, a phone), not a mouse.
 const COARSE = typeof window !== 'undefined' && Boolean(window.matchMedia?.('(pointer: coarse)')?.matches);
+const FULL_KEY = 'rl.analysis.full';
 
 // Best move, second, third — three hues rather than three blues, so a glance at
 // the board tells you which arrow is which line. Read on light and dark squares.
@@ -199,6 +202,48 @@ export default function AnalysisView({
   // switches modes in a dozen places and none of them should have to know
   // about routing.
   const [mode, setMode] = useState(routeMode ?? 'engine'); // 'engine' | 'compare' | 'editor'
+  // Full screen (the Engine tab): the board as big as the window allows, the
+  // moves beside it (or under it, held upright), the rest stepped away — for
+  // a lesson on a projector, a board the back of the room can read. Kept on
+  // this device, as Game Review's is; on a computer it takes the browser's
+  // own full screen too, and leaving that (Esc) leaves this.
+  const [fullAsked, setFullAsked] = useState(() => {
+    try { return localStorage.getItem(FULL_KEY) === '1'; } catch { return false; }
+  });
+  const fullOn = fullAsked && mode === 'engine';
+  const browserFull = useRef(false);
+  const keepFull = (on) => {
+    setFullAsked(on);
+    try { localStorage.setItem(FULL_KEY, on ? '1' : '0'); } catch { /* not kept: fine */ }
+  };
+  const enterFull = () => {
+    keepFull(true);
+    if (COARSE || document.fullscreenElement || !document.documentElement.requestFullscreen) return;
+    document.documentElement.requestFullscreen().then(() => { browserFull.current = true; }).catch(() => {});
+  };
+  const exitFull = () => {
+    keepFull(false);
+    if (browserFull.current && document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    browserFull.current = false;
+  };
+  useEffect(() => {
+    const left = () => {
+      if (!document.fullscreenElement && browserFull.current) { browserFull.current = false; keepFull(false); }
+    };
+    document.addEventListener('fullscreenchange', left);
+    return () => document.removeEventListener('fullscreenchange', left);
+  }, []);
+  useEffect(() => {
+    if (!fullOn) return undefined;
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      const t = e.target;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(t?.tagName) || t?.isContentEditable) return;
+      exitFull();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [fullOn]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { onModeChange?.(mode === 'engine' ? null : mode); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
   // Back/forward moves the URL without touching this view, so follow it.
   useEffect(() => {
@@ -2044,11 +2089,20 @@ export default function AnalysisView({
   // grow by 10%, and the page itself is a little wider (.analysis-page) so on
   // a big screen the extra comes out of empty margin rather than the cards
   // beside it. The step controls under the board sit that much lower.
-  const boardWidth = BOARD_GROW === 1 ? baseBoardWidth : Math.floor(
+  const pageBoardWidth = BOARD_GROW === 1 ? baseBoardWidth : Math.floor(
     Math.max(280, Math.min(
       BOARD_MAX * BOARD_GROW, boardRoom || 520, heightCap * BOARD_GROW, viewportWidth - 48,
     )) / 8,
   ) * 8;
+  // Full screen: the window's room, less the moves beside the board (a wide
+  // window) or under it (an upright one), and the bars under the board.
+  const fullWide = viewportWidth >= 700 && viewportWidth > viewportHeight * 0.9;
+  const FULL_SIDE = fullWide ? Math.round(Math.min(380, Math.max(250, viewportWidth * 0.24))) : 0;
+  const fullBoardWidth = Math.floor(Math.max(240, Math.min(
+    viewportWidth - leftInset() - rightInset() - FULL_SIDE - EVAL_W - (fullWide ? 72 : 20),
+    winH - systemChrome - (fullWide ? 104 : 340),
+  )) / 8) * 8;
+  const boardWidth = fullOn ? fullBoardWidth : pageBoardWidth;
   // The editor gets a much bigger board than Engine mode — it can afford it:
   // setting a position up by hand is the one job here that's all board, and
   // the palette sits BESIDE it (.board-editor is a flex row, and it wraps the
@@ -2382,6 +2436,18 @@ export default function AnalysisView({
       <button className="small ghost" disabled={!hasMarks} onClick={clearMarks}>
         Clear
       </button>
+      {mode === 'engine' && (
+        <button
+          type="button"
+          className={`small${fullOn ? ' primary' : ' ghost'} board-full-btn`}
+          title={fullOn ? 'Leave full screen (Esc)' : 'Full screen: the board as big as the window allows'}
+          aria-pressed={fullOn}
+          onClick={fullOn ? exitFull : enterFull}
+        >
+          <span aria-hidden="true">⛶</span>
+          <span className="btn-label">{fullOn ? ' Exit full screen' : ' Full screen'}</span>
+        </button>
+      )}
     </div>
     )}
     {/* On a tablet the two-line reminder is what pushes the controls off
@@ -3378,6 +3444,34 @@ export default function AnalysisView({
 
   // The screen as it has always been laid out: the board's column, the
   // engine's, the moves'.
+  // Full screen: the board, its bars and the step buttons; the moves beside
+  // or under it; everything else away until it's left.
+  const fullLayout = fullOn && (
+    <div
+      className={`analysis-full${fullWide ? ' wide' : ''}`}
+      role="region"
+      aria-label="Analysis board, full screen"
+      style={{ '--full-side': `${FULL_SIDE}px` }}
+    >
+      <div
+        className="analysis-board analysis-full-main"
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
+        onPointerDown={onDrawPointerDown}
+        onPointerUp={onDrawPointerUp}
+        onPointerCancel={() => setDrawFrom(null)}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        {boardPanel()}
+        {!fullWide && controlsPanel()}
+      </div>
+      <div className="analysis-full-side">
+        {fullWide && controlsPanel()}
+        {movesPanel()}
+      </div>
+    </div>
+  );
+
   const classicLayout = (
   <div
     ref={setLayoutEl}
@@ -3757,7 +3851,7 @@ export default function AnalysisView({
         </div>
       )}
 
-      {dockOn ? dockLayout : classicLayout}
+      {fullOn ? fullLayout : dockOn ? dockLayout : classicLayout}
 
       {archive && archiveOpen && (
         <ArchiveDialog

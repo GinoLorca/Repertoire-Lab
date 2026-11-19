@@ -99,11 +99,12 @@ const LINE_COLOR = {
   g: '#6cbe45', h: '#6cbe45',
 };
 
-function LineSigns({ boardWidth, orientation }) {
+function LineSigns({ boardWidth, orientation, scale = 1 }) {
   const sq = boardWidth / 8;
   // About a quarter of a square — Chess Arcade's proportion — kept legible
-  // on a small board and not oversized on a big one.
-  const size = Math.round(Math.min(20, Math.max(9, sq * 0.24)));
+  // on a small board and not oversized on a big one; bigger with Settings'
+  // coordinate size (never past two fifths of a square).
+  const size = Math.round(Math.min(20 * scale, sq * 0.4, Math.max(9, sq * 0.24 * scale)));
   const inset = Math.max(1.5, sq * 0.045);
   const black = orientation === 'black';
   const ranks = black ? '12345678' : '87654321'; // top to bottom
@@ -123,6 +124,37 @@ function LineSigns({ boardWidth, orientation }) {
     <div className="line-signs" aria-hidden="true">
       {[...ranks].map((r, i) => sign(r, inset, i * sq + inset))}
       {[...files].map((f, i) => sign(f, (i + 1) * sq - inset - size, boardWidth - inset - size))}
+    </div>
+  );
+}
+
+// Bigger coordinates (Settings → The board → Coordinate size): the board's own
+// letters and numbers in the same corners and colours — light lettering on a
+// dark square, dark on a light one — at 1.5× or 2× their size. A layer of
+// their own: react-chessboard sets one style for both and places them by a
+// padding worked out for its own size. Normal keeps react-chessboard's.
+export const COORD_SCALE = { normal: 1, large: 1.5, xl: 2 };
+export const coordScaleOf = (settings) => COORD_SCALE[settings?.coordSize] ?? 1;
+function BoardCoords({
+  boardWidth, orientation, scale, light, dark,
+}) {
+  const sq = boardWidth / 8;
+  const size = (boardWidth / 48) * scale;
+  const pad = sq * 0.05;
+  const black = orientation === 'black';
+  const ranks = black ? '12345678' : '87654321'; // top to bottom
+  const files = black ? 'hgfedcba' : 'abcdefgh'; // left to right
+  const dark1 = (f, r) => ('abcdefgh'.indexOf(f) + Number(r)) % 2 === 1; // a1 dark
+  const leftFile = files[0];
+  const bottomRank = ranks[7];
+  return (
+    <div className="board-coords" aria-hidden="true" style={{ fontSize: size }}>
+      {[...ranks].map((r, i) => (
+        <span key={r} style={{ left: pad, top: i * sq + pad * 0.6, color: dark1(leftFile, r) ? light : dark }}>{r}</span>
+      ))}
+      {[...files].map((f, i) => (
+        <span key={f} style={{ right: boardWidth - (i + 1) * sq + pad, bottom: pad * 0.4, color: dark1(f, bottomRank) ? light : dark }}>{f}</span>
+      ))}
     </div>
   );
 }
@@ -318,8 +350,14 @@ export default function Board({
   const orientation = rest.boardOrientation === 'black' ? 'black' : 'white';
   // Uptown Express's coordinates are line signs (LineSigns above), on any
   // board with a size to draw them at; the board's own step aside for them.
+  const coordScale = coordScaleOf(state.settings);
   const lineSigns = sized && rest.showBoardNotation !== false && skinId(state.settings) === 'uptown';
-  const signs = lineSigns ? <LineSigns boardWidth={rest.boardWidth} orientation={orientation} /> : null;
+  // Bigger coordinates: a layer of their own (BoardCoords), the board's step aside.
+  const bigCoords = sized && !lineSigns && rest.showBoardNotation !== false && coordScale !== 1;
+  const signs = lineSigns ? <LineSigns boardWidth={rest.boardWidth} orientation={orientation} scale={coordScale} />
+    : bigCoords ? (
+      <BoardCoords boardWidth={rest.boardWidth} orientation={orientation} scale={coordScale} light={squareLight} dark={squareDark} />
+    ) : null;
 
   const board = (
     <Chessboard
@@ -333,7 +371,7 @@ export default function Board({
       position={position}
       customSquareStyles={styles}
       {...rest}
-      {...(lineSigns ? { showBoardNotation: false } : {})}
+      {...(lineSigns || bigCoords ? { showBoardNotation: false } : {})}
     />
   );
 

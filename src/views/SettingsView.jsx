@@ -644,6 +644,24 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
           on={s.lastMoveHighlight !== false}
           onChange={(v) => set({ lastMoveHighlight: v })}
         />
+        {/* Coordinate size (components/Board.jsx BoardCoords): for a room
+            reading a board on a screen at the front. */}
+        <div className="settings-row" style={{ marginTop: 18 }}>
+          <span><strong>Coordinate size</strong> — the letters and numbers on the board's edge, on every board</span>
+        </div>
+        <div className="speed-choices coord-size-choices">
+          {[['normal', 'Normal', 'As they’ve always been'], ['large', 'Large', 'One and a half times'], ['xl', 'Extra large', 'Twice the size — for a class']].map(([value, label, hint]) => (
+            <button
+              key={value}
+              type="button"
+              className={`theme-card${(s.coordSize ?? 'normal') === value ? ' active' : ''}`}
+              onClick={() => set({ coordSize: value })}
+            >
+              <strong>{label}</strong>
+              <span className="muted-note">{hint}</span>
+            </button>
+          ))}
+        </div>
         <Toggle
           label="Highlight the king in check"
           hint="A red glow under a king that's in check, on every board in the app."

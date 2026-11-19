@@ -5674,6 +5674,39 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
    pen sits in the bottom-right corner, clear of the boards, which keep to the
    left or the middle; the toolbar covers the menu bar while it's up, which
    isn't wanted while drawing, rather than the bottom of a board. */
+/* Bigger coordinates (components/Board.jsx BoardCoords): the board's own
+   corners, stroked as react-chessboard's are (NOTATION_STYLE). */
+.board-coords { position: absolute; inset: 0; z-index: 4; pointer-events: none; font-weight: 700; line-height: 1; }
+.board-coords span {
+  position: absolute; -webkit-text-stroke: 0.35px currentColor; text-shadow: 0 0 1.5px currentColor;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* The analysis board full screen (AnalysisView fullLayout): over the whole
+   window, the board as big as it allows; the moves beside it on a wide
+   window, under it held upright. */
+.analysis-full {
+  position: fixed; inset: 0; z-index: 60; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; gap: 14px; overflow: auto;
+  padding: calc(12px + var(--safe-top)) calc(16px + var(--safe-right)) calc(12px + var(--safe-bottom)) calc(16px + var(--safe-left));
+  box-sizing: border-box;
+}
+.analysis-full.wide { flex-direction: row; align-items: flex-start; justify-content: center; }
+.analysis-full-main { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.analysis-full .draw-hint { display: none; }
+.analysis-full .viewer-controls { margin-top: 0; }
+.analysis-full-side { width: 100%; max-width: 560px; display: flex; flex-direction: column; min-height: 0; }
+.analysis-full.wide .analysis-full-side { width: var(--full-side); align-self: stretch; }
+.analysis-full.wide .analysis-full-side { gap: 10px; }
+.analysis-full.wide .analysis-full-side .viewer-controls { flex-wrap: wrap; justify-content: flex-start; }
+.analysis-full .analysis-movelist-panel { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.analysis-full .movelist-scroll { max-height: none !important; flex: 1; overflow-y: auto; }
+.analysis-full.wide .movelist-scroll { max-height: calc(100vh - 120px) !important; }
+@media (max-width: 600px) {
+  .board-full-btn .btn-label { display: none; }
+  .analysis-full { padding-left: calc(6px + var(--safe-left)); padding-right: calc(6px + var(--safe-right)); }
+}
+
 /* A move's badge disc and its CLAMP letters (components/Board.jsx
    BoardTopMarks): above the arrows (10), under the telestrator (40). */
 .board-top-marks { position: absolute; inset: 0; z-index: 12; pointer-events: none; }
