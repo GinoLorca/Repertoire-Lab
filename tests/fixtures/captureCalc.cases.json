@@ -1,0 +1,1538 @@
+{
+ "about": "Capture Calculator test cases (Chess Arcade + Repertoire Lab, 2026-11-19). Each case: a start position (fen), the moves played from it (SAN), and at = how many of them the board is at (stepping back; all when absent). expect is what both apps must compute for the board at that point. Fake positions only (well-known openings and made-up endgames).",
+ "values": {
+  "p": 1,
+  "n": 3,
+  "b": 3,
+  "r": 5,
+  "q": 9
+ },
+ "rules": [
+  "Only material won or lost from the start position counts. Each move earns its mover points: the captured piece's value, plus (promotion) the new piece's value minus 1 (queen +8, rook +4, bishop or knight +2). A capturing promotion counts both. En passant takes a pawn (1).",
+  "white / black: the points each side earned up to the board. balance = white - black (above 0: White ahead).",
+  "events: one per move up to the board, in order. label = move number + SAN as the app writes it (\"15. Bxh7+\", \"15...Kxh7\"). took / promo: piece letters or null. text: \"takes a <piece>\", \"promotes to a <piece>\", or both joined by \", \"; \"\" for a quiet move. pointsText: \"+N\" or \"\".",
+  "later: the labels of the moves after the board (shown, not counted).",
+  "status (checked in this order): \"mate\" when the side to move is checkmated; \"open\" when there was a capture or promotion and the side to move can legally capture on the square of the LAST one (legal moves: a pinned piece cannot); \"done\" after at least one capture or promotion; else \"none\". square: that square for \"open\".",
+  "lines (exact words; \"(you)\" goes after the color the app knows is the player's, in balance and the took/promoted lines only, never in the verdict): start \"Start: this position, White to move\" (the app writes \"Start: after 14...Nd7, White to move\" when it knows the move before), balance \"White +2\" / \"Black +3\" / \"Even\"; whiteTook / blackTook \"White took: bishop, pawn (4)\" or \"... took: nothing\" (null before any capture or promotion), pieces in the order taken; whitePromo / blackPromo \"White promoted: queen (+8)\" (null when that side did not promote); status \"No captures yet.\" / \"Not finished: Black can take back on e5.\" / \"Trades finished.\" / \"Checkmate. The count doesn\u2019t matter now.\"; verdict (only with \"Trades finished.\"): \"White comes out ahead by 2.\" / \"Black comes out ahead by 3.\" / \"It\u2019s an even trade.\"",
+  "Hide the count hides pointsText, balance, the bar, the took/promoted lines and the verdict; the moves (label + text) and the status line stay."
+ ],
+ "cases": [
+  {
+   "id": "simple-trade",
+   "title": "A simple trade: bishop for knight (Ruy Lopez, Exchange)",
+   "fen": "r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4",
+   "moves": [
+    "Bxc6",
+    "dxc6"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "4. Bxc6",
+      "san": "Bxc6",
+      "side": "w",
+      "took": "n",
+      "promo": null,
+      "points": 3,
+      "text": "takes a knight",
+      "pointsText": "+3"
+     },
+     {
+      "label": "4...dxc6",
+      "san": "dxc6",
+      "side": "b",
+      "took": "b",
+      "promo": null,
+      "points": 3,
+      "text": "takes a bishop",
+      "pointsText": "+3"
+     }
+    ],
+    "later": [],
+    "white": 3,
+    "black": 3,
+    "balance": 0,
+    "whiteTook": [
+     "n"
+    ],
+    "blackTook": [
+     "b"
+    ],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "w",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "Even",
+     "whiteTook": "White took: knight (3)",
+     "blackTook": "Black took: bishop (3)",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "It\u2019s an even trade."
+    }
+   }
+  },
+  {
+   "id": "winning-a-piece",
+   "title": "Winning a piece: the knight on e4 is simply taken",
+   "fen": "rnbqkb1r/pppp1ppp/8/4p3/4n3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq - 0 4",
+   "moves": [
+    "Nxe4",
+    "d5",
+    "Ng3"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "4. Nxe4",
+      "san": "Nxe4",
+      "side": "w",
+      "took": "n",
+      "promo": null,
+      "points": 3,
+      "text": "takes a knight",
+      "pointsText": "+3"
+     },
+     {
+      "label": "4...d5",
+      "san": "d5",
+      "side": "b",
+      "took": null,
+      "promo": null,
+      "points": 0,
+      "text": "",
+      "pointsText": ""
+     },
+     {
+      "label": "5. Ng3",
+      "san": "Ng3",
+      "side": "w",
+      "took": null,
+      "promo": null,
+      "points": 0,
+      "text": "",
+      "pointsText": ""
+     }
+    ],
+    "later": [],
+    "white": 3,
+    "black": 0,
+    "balance": 3,
+    "whiteTook": [
+     "n"
+    ],
+    "blackTook": [],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "b",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "White +3",
+     "whiteTook": "White took: knight (3)",
+     "blackTook": "Black took: nothing",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "White comes out ahead by 3."
+    }
+   }
+  },
+  {
+   "id": "looks-good-loses",
+   "title": "A capture that looks good but loses material (Bxh7+ Kxh7)",
+   "fen": "r1bq1rk1/pppnbppp/4p3/3pP3/3P4/3B1N2/PPP2PPP/RNBQ1RK1 w - - 0 15",
+   "moves": [
+    "Bxh7+",
+    "Kxh7"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "15. Bxh7+",
+      "san": "Bxh7+",
+      "side": "w",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     },
+     {
+      "label": "15...Kxh7",
+      "san": "Kxh7",
+      "side": "b",
+      "took": "b",
+      "promo": null,
+      "points": 3,
+      "text": "takes a bishop",
+      "pointsText": "+3"
+     }
+    ],
+    "later": [],
+    "white": 1,
+    "black": 3,
+    "balance": -2,
+    "whiteTook": [
+     "p"
+    ],
+    "blackTook": [
+     "b"
+    ],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "w",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "Black +2",
+     "whiteTook": "White took: pawn (1)",
+     "blackTook": "Black took: bishop (3)",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "Black comes out ahead by 2."
+    }
+   }
+  },
+  {
+   "id": "looks-good-loses-you-black",
+   "title": "The same, with the app knowing you are Black: \"(you)\" after Black",
+   "fen": "r1bq1rk1/pppnbppp/4p3/3pP3/3P4/3B1N2/PPP2PPP/RNBQ1RK1 w - - 0 15",
+   "moves": [
+    "Bxh7+",
+    "Kxh7"
+   ],
+   "you": "b",
+   "expect": {
+    "events": [
+     {
+      "label": "15. Bxh7+",
+      "san": "Bxh7+",
+      "side": "w",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     },
+     {
+      "label": "15...Kxh7",
+      "san": "Kxh7",
+      "side": "b",
+      "took": "b",
+      "promo": null,
+      "points": 3,
+      "text": "takes a bishop",
+      "pointsText": "+3"
+     }
+    ],
+    "later": [],
+    "white": 1,
+    "black": 3,
+    "balance": -2,
+    "whiteTook": [
+     "p"
+    ],
+    "blackTook": [
+     "b"
+    ],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "w",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "Black (you) +2",
+     "whiteTook": "White took: pawn (1)",
+     "blackTook": "Black (you) took: bishop (3)",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "Black comes out ahead by 2."
+    }
+   }
+  },
+  {
+   "id": "losing-the-exchange",
+   "title": "Losing the exchange: a rook for a bishop",
+   "fen": "6k1/pppb1ppp/5n2/8/8/8/PPP2PPP/3R2K1 w - - 0 22",
+   "moves": [
+    "Rxd7",
+    "Nxd7"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "22. Rxd7",
+      "san": "Rxd7",
+      "side": "w",
+      "took": "b",
+      "promo": null,
+      "points": 3,
+      "text": "takes a bishop",
+      "pointsText": "+3"
+     },
+     {
+      "label": "22...Nxd7",
+      "san": "Nxd7",
+      "side": "b",
+      "took": "r",
+      "promo": null,
+      "points": 5,
+      "text": "takes a rook",
+      "pointsText": "+5"
+     }
+    ],
+    "later": [],
+    "white": 3,
+    "black": 5,
+    "balance": -2,
+    "whiteTook": [
+     "b"
+    ],
+    "blackTook": [
+     "r"
+    ],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "w",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "Black +2",
+     "whiteTook": "White took: bishop (3)",
+     "blackTook": "Black took: rook (5)",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "Black comes out ahead by 2."
+    }
+   }
+  },
+  {
+   "id": "losing-the-exchange-you-white",
+   "title": "The same, with the app knowing you are White",
+   "fen": "6k1/pppb1ppp/5n2/8/8/8/PPP2PPP/3R2K1 w - - 0 22",
+   "moves": [
+    "Rxd7",
+    "Nxd7"
+   ],
+   "you": "w",
+   "expect": {
+    "events": [
+     {
+      "label": "22. Rxd7",
+      "san": "Rxd7",
+      "side": "w",
+      "took": "b",
+      "promo": null,
+      "points": 3,
+      "text": "takes a bishop",
+      "pointsText": "+3"
+     },
+     {
+      "label": "22...Nxd7",
+      "san": "Nxd7",
+      "side": "b",
+      "took": "r",
+      "promo": null,
+      "points": 5,
+      "text": "takes a rook",
+      "pointsText": "+5"
+     }
+    ],
+    "later": [],
+    "white": 3,
+    "black": 5,
+    "balance": -2,
+    "whiteTook": [
+     "b"
+    ],
+    "blackTook": [
+     "r"
+    ],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "w",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "Black +2",
+     "whiteTook": "White (you) took: bishop (3)",
+     "blackTook": "Black took: rook (5)",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "Black comes out ahead by 2."
+    }
+   }
+  },
+  {
+   "id": "winning-the-queen",
+   "title": "A discovered check wins the queen for a knight (quiet moves in between)",
+   "fen": "rnbqkb1r/pppp1ppp/5n2/4N3/8/8/PPPPQPPP/RNB1KB1R w KQkq - 2 5",
+   "moves": [
+    "Nc6+",
+    "Be7",
+    "Nxd8",
+    "Kxd8"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "5. Nc6+",
+      "san": "Nc6+",
+      "side": "w",
+      "took": null,
+      "promo": null,
+      "points": 0,
+      "text": "",
+      "pointsText": ""
+     },
+     {
+      "label": "5...Be7",
+      "san": "Be7",
+      "side": "b",
+      "took": null,
+      "promo": null,
+      "points": 0,
+      "text": "",
+      "pointsText": ""
+     },
+     {
+      "label": "6. Nxd8",
+      "san": "Nxd8",
+      "side": "w",
+      "took": "q",
+      "promo": null,
+      "points": 9,
+      "text": "takes a queen",
+      "pointsText": "+9"
+     },
+     {
+      "label": "6...Kxd8",
+      "san": "Kxd8",
+      "side": "b",
+      "took": "n",
+      "promo": null,
+      "points": 3,
+      "text": "takes a knight",
+      "pointsText": "+3"
+     }
+    ],
+    "later": [],
+    "white": 9,
+    "black": 3,
+    "balance": 6,
+    "whiteTook": [
+     "q"
+    ],
+    "blackTook": [
+     "n"
+    ],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "w",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "White +6",
+     "whiteTook": "White took: queen (9)",
+     "blackTook": "Black took: knight (3)",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "White comes out ahead by 6."
+    }
+   }
+  },
+  {
+   "id": "even-multi-capture",
+   "title": "An even multi-capture sequence on d5",
+   "fen": "rnbqkb1r/ppp2ppp/4pn2/3p4/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq - 2 4",
+   "moves": [
+    "exd5",
+    "Nxd5",
+    "Nxd5",
+    "Qxd5"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "4. exd5",
+      "san": "exd5",
+      "side": "w",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     },
+     {
+      "label": "4...Nxd5",
+      "san": "Nxd5",
+      "side": "b",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     },
+     {
+      "label": "5. Nxd5",
+      "san": "Nxd5",
+      "side": "w",
+      "took": "n",
+      "promo": null,
+      "points": 3,
+      "text": "takes a knight",
+      "pointsText": "+3"
+     },
+     {
+      "label": "5...Qxd5",
+      "san": "Qxd5",
+      "side": "b",
+      "took": "n",
+      "promo": null,
+      "points": 3,
+      "text": "takes a knight",
+      "pointsText": "+3"
+     }
+    ],
+    "later": [],
+    "white": 4,
+    "black": 4,
+    "balance": 0,
+    "whiteTook": [
+     "p",
+     "n"
+    ],
+    "blackTook": [
+     "p",
+     "n"
+    ],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "w",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "Even",
+     "whiteTook": "White took: pawn, knight (4)",
+     "blackTook": "Black took: pawn, knight (4)",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "It\u2019s an even trade."
+    }
+   }
+  },
+  {
+   "id": "fork-trick",
+   "title": "The fork trick: even, with quiet moves in between (Black starts)",
+   "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R b KQkq - 5 4",
+   "moves": [
+    "Nxe4",
+    "Nxe4",
+    "d5",
+    "Bd3",
+    "dxe4",
+    "Bxe4"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "4...Nxe4",
+      "san": "Nxe4",
+      "side": "b",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     },
+     {
+      "label": "5. Nxe4",
+      "san": "Nxe4",
+      "side": "w",
+      "took": "n",
+      "promo": null,
+      "points": 3,
+      "text": "takes a knight",
+      "pointsText": "+3"
+     },
+     {
+      "label": "5...d5",
+      "san": "d5",
+      "side": "b",
+      "took": null,
+      "promo": null,
+      "points": 0,
+      "text": "",
+      "pointsText": ""
+     },
+     {
+      "label": "6. Bd3",
+      "san": "Bd3",
+      "side": "w",
+      "took": null,
+      "promo": null,
+      "points": 0,
+      "text": "",
+      "pointsText": ""
+     },
+     {
+      "label": "6...dxe4",
+      "san": "dxe4",
+      "side": "b",
+      "took": "n",
+      "promo": null,
+      "points": 3,
+      "text": "takes a knight",
+      "pointsText": "+3"
+     },
+     {
+      "label": "7. Bxe4",
+      "san": "Bxe4",
+      "side": "w",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     }
+    ],
+    "later": [],
+    "white": 4,
+    "black": 4,
+    "balance": 0,
+    "whiteTook": [
+     "n",
+     "p"
+    ],
+    "blackTook": [
+     "p",
+     "n"
+    ],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "b",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, Black to move",
+     "balance": "Even",
+     "whiteTook": "White took: knight, pawn (4)",
+     "blackTook": "Black took: pawn, knight (4)",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "It\u2019s an even trade."
+    }
+   }
+  },
+  {
+   "id": "sacrifice-count",
+   "title": "A sacrifice: the count says Black is ahead (Fried Liver, Black starts)",
+   "fen": "r1bqkb1r/ppp2ppp/2n2n2/3Pp1N1/2B5/8/PPPP1PPP/RNBQK2R b KQkq - 0 5",
+   "moves": [
+    "Nxd5",
+    "Nxf7",
+    "Kxf7"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "5...Nxd5",
+      "san": "Nxd5",
+      "side": "b",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     },
+     {
+      "label": "6. Nxf7",
+      "san": "Nxf7",
+      "side": "w",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     },
+     {
+      "label": "6...Kxf7",
+      "san": "Kxf7",
+      "side": "b",
+      "took": "n",
+      "promo": null,
+      "points": 3,
+      "text": "takes a knight",
+      "pointsText": "+3"
+     }
+    ],
+    "later": [],
+    "white": 1,
+    "black": 4,
+    "balance": -3,
+    "whiteTook": [
+     "p"
+    ],
+    "blackTook": [
+     "p",
+     "n"
+    ],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "w",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, Black to move",
+     "balance": "Black +3",
+     "whiteTook": "White took: pawn (1)",
+     "blackTook": "Black took: pawn, knight (4)",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "Black comes out ahead by 3."
+    }
+   }
+  },
+  {
+   "id": "recapture-available",
+   "title": "A recapture is still available",
+   "fen": "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+   "moves": [
+    "exd5"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "2. exd5",
+      "san": "exd5",
+      "side": "w",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     }
+    ],
+    "later": [],
+    "white": 1,
+    "black": 0,
+    "balance": 1,
+    "whiteTook": [
+     "p"
+    ],
+    "blackTook": [],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "b",
+    "status": "open",
+    "square": "d5",
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "White +1",
+     "whiteTook": "White took: pawn (1)",
+     "blackTook": "Black took: nothing",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Not finished: Black can take back on d5.",
+     "verdict": null
+    }
+   }
+  },
+  {
+   "id": "pinned-cant-recapture",
+   "title": "The only defender is pinned: g7 cannot take back on f6",
+   "fen": "r5k1/ppp2pp1/5n1p/8/7B/8/PPP2P1P/6RK w - - 0 25",
+   "moves": [
+    "Bxf6"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "25. Bxf6",
+      "san": "Bxf6",
+      "side": "w",
+      "took": "n",
+      "promo": null,
+      "points": 3,
+      "text": "takes a knight",
+      "pointsText": "+3"
+     }
+    ],
+    "later": [],
+    "white": 3,
+    "black": 0,
+    "balance": 3,
+    "whiteTook": [
+     "n"
+    ],
+    "blackTook": [],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "b",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "White +3",
+     "whiteTook": "White took: knight (3)",
+     "blackTook": "Black took: nothing",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "White comes out ahead by 3."
+    }
+   }
+  },
+  {
+   "id": "en-passant",
+   "title": "En passant takes a pawn, and is taken back",
+   "fen": "r1bqkbnr/ppp1pppp/2n5/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3",
+   "moves": [
+    "exd6",
+    "exd6"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "3. exd6",
+      "san": "exd6",
+      "side": "w",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     },
+     {
+      "label": "3...exd6",
+      "san": "exd6",
+      "side": "b",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     }
+    ],
+    "later": [],
+    "white": 1,
+    "black": 1,
+    "balance": 0,
+    "whiteTook": [
+     "p"
+    ],
+    "blackTook": [
+     "p"
+    ],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "w",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "Even",
+     "whiteTook": "White took: pawn (1)",
+     "blackTook": "Black took: pawn (1)",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "It\u2019s an even trade."
+    }
+   }
+  },
+  {
+   "id": "en-passant-step-back",
+   "title": "En passant, stepped back to after the first move: not finished",
+   "fen": "r1bqkbnr/ppp1pppp/2n5/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3",
+   "moves": [
+    "exd6",
+    "exd6"
+   ],
+   "at": 1,
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "3. exd6",
+      "san": "exd6",
+      "side": "w",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     }
+    ],
+    "later": [
+     "3...exd6"
+    ],
+    "white": 1,
+    "black": 0,
+    "balance": 1,
+    "whiteTook": [
+     "p"
+    ],
+    "blackTook": [],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "b",
+    "status": "open",
+    "square": "d6",
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "White +1",
+     "whiteTook": "White took: pawn (1)",
+     "blackTook": "Black took: nothing",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Not finished: Black can take back on d6.",
+     "verdict": null
+    }
+   }
+  },
+  {
+   "id": "promotion-quiet",
+   "title": "Promotion without a capture (+8)",
+   "fen": "8/4P1k1/8/8/8/8/8/2K5 w - - 0 50",
+   "moves": [
+    "e8=Q"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "50. e8=Q",
+      "san": "e8=Q",
+      "side": "w",
+      "took": null,
+      "promo": "q",
+      "points": 8,
+      "text": "promotes to a queen",
+      "pointsText": "+8"
+     }
+    ],
+    "later": [],
+    "white": 8,
+    "black": 0,
+    "balance": 8,
+    "whiteTook": [],
+    "blackTook": [],
+    "whitePromo": [
+     "q"
+    ],
+    "blackPromo": [],
+    "toMove": "b",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "White +8",
+     "whiteTook": "White took: nothing",
+     "blackTook": "Black took: nothing",
+     "whitePromo": "White promoted: queen (+8)",
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "White comes out ahead by 8."
+    }
+   }
+  },
+  {
+   "id": "promotion-taken-back",
+   "title": "Promotion, then the new queen is taken",
+   "fen": "r7/4P1k1/8/8/8/8/8/2K5 w - - 0 50",
+   "moves": [
+    "e8=Q",
+    "Rxe8"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "50. e8=Q",
+      "san": "e8=Q",
+      "side": "w",
+      "took": null,
+      "promo": "q",
+      "points": 8,
+      "text": "promotes to a queen",
+      "pointsText": "+8"
+     },
+     {
+      "label": "50...Rxe8",
+      "san": "Rxe8",
+      "side": "b",
+      "took": "q",
+      "promo": null,
+      "points": 9,
+      "text": "takes a queen",
+      "pointsText": "+9"
+     }
+    ],
+    "later": [],
+    "white": 8,
+    "black": 9,
+    "balance": -1,
+    "whiteTook": [],
+    "blackTook": [
+     "q"
+    ],
+    "whitePromo": [
+     "q"
+    ],
+    "blackPromo": [],
+    "toMove": "w",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "Black +1",
+     "whiteTook": "White took: nothing",
+     "blackTook": "Black took: queen (9)",
+     "whitePromo": "White promoted: queen (+8)",
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "Black comes out ahead by 1."
+    }
+   }
+  },
+  {
+   "id": "promotion-taken-back-step-back",
+   "title": "The same, stepped back to after the promotion: not finished",
+   "fen": "r7/4P1k1/8/8/8/8/8/2K5 w - - 0 50",
+   "moves": [
+    "e8=Q",
+    "Rxe8"
+   ],
+   "at": 1,
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "50. e8=Q",
+      "san": "e8=Q",
+      "side": "w",
+      "took": null,
+      "promo": "q",
+      "points": 8,
+      "text": "promotes to a queen",
+      "pointsText": "+8"
+     }
+    ],
+    "later": [
+     "50...Rxe8"
+    ],
+    "white": 8,
+    "black": 0,
+    "balance": 8,
+    "whiteTook": [],
+    "blackTook": [],
+    "whitePromo": [
+     "q"
+    ],
+    "blackPromo": [],
+    "toMove": "b",
+    "status": "open",
+    "square": "e8",
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "White +8",
+     "whiteTook": "White took: nothing",
+     "blackTook": "Black took: nothing",
+     "whitePromo": "White promoted: queen (+8)",
+     "blackPromo": null,
+     "status": "Not finished: Black can take back on e8.",
+     "verdict": null
+    }
+   }
+  },
+  {
+   "id": "promotion-with-capture",
+   "title": "A capturing promotion counts both (rook 5 + queen 8)",
+   "fen": "r2q2k1/1P3ppp/8/8/8/8/5PPP/6K1 w - - 0 40",
+   "moves": [
+    "bxa8=Q",
+    "Qxa8"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "40. bxa8=Q",
+      "san": "bxa8=Q",
+      "side": "w",
+      "took": "r",
+      "promo": "q",
+      "points": 13,
+      "text": "takes a rook, promotes to a queen",
+      "pointsText": "+13"
+     },
+     {
+      "label": "40...Qxa8",
+      "san": "Qxa8",
+      "side": "b",
+      "took": "q",
+      "promo": null,
+      "points": 9,
+      "text": "takes a queen",
+      "pointsText": "+9"
+     }
+    ],
+    "later": [],
+    "white": 13,
+    "black": 9,
+    "balance": 4,
+    "whiteTook": [
+     "r"
+    ],
+    "blackTook": [
+     "q"
+    ],
+    "whitePromo": [
+     "q"
+    ],
+    "blackPromo": [],
+    "toMove": "w",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "White +4",
+     "whiteTook": "White took: rook (5)",
+     "blackTook": "Black took: queen (9)",
+     "whitePromo": "White promoted: queen (+8)",
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "White comes out ahead by 4."
+    }
+   }
+  },
+  {
+   "id": "underpromotion",
+   "title": "Underpromotion to a knight with check, then the fork",
+   "fen": "8/4P1k1/3q4/8/8/8/8/K7 w - - 0 60",
+   "moves": [
+    "e8=N+",
+    "Kf8",
+    "Nxd6"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "60. e8=N+",
+      "san": "e8=N+",
+      "side": "w",
+      "took": null,
+      "promo": "n",
+      "points": 2,
+      "text": "promotes to a knight",
+      "pointsText": "+2"
+     },
+     {
+      "label": "60...Kf8",
+      "san": "Kf8",
+      "side": "b",
+      "took": null,
+      "promo": null,
+      "points": 0,
+      "text": "",
+      "pointsText": ""
+     },
+     {
+      "label": "61. Nxd6",
+      "san": "Nxd6",
+      "side": "w",
+      "took": "q",
+      "promo": null,
+      "points": 9,
+      "text": "takes a queen",
+      "pointsText": "+9"
+     }
+    ],
+    "later": [],
+    "white": 11,
+    "black": 0,
+    "balance": 11,
+    "whiteTook": [
+     "q"
+    ],
+    "blackTook": [],
+    "whitePromo": [
+     "n"
+    ],
+    "blackPromo": [],
+    "toMove": "b",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "White +11",
+     "whiteTook": "White took: queen (9)",
+     "blackTook": "Black took: nothing",
+     "whitePromo": "White promoted: knight (+2)",
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "White comes out ahead by 11."
+    }
+   }
+  },
+  {
+   "id": "checkmate-in-line",
+   "title": "Checkmate in the line (Legal\u2019s mate)",
+   "fen": "rn1qkbnr/ppp2p1p/3p2p1/4p3/2B1P1b1/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 5",
+   "moves": [
+    "Nxe5",
+    "Bxd1",
+    "Bxf7+",
+    "Ke7",
+    "Nd5#"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "5. Nxe5",
+      "san": "Nxe5",
+      "side": "w",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     },
+     {
+      "label": "5...Bxd1",
+      "san": "Bxd1",
+      "side": "b",
+      "took": "q",
+      "promo": null,
+      "points": 9,
+      "text": "takes a queen",
+      "pointsText": "+9"
+     },
+     {
+      "label": "6. Bxf7+",
+      "san": "Bxf7+",
+      "side": "w",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     },
+     {
+      "label": "6...Ke7",
+      "san": "Ke7",
+      "side": "b",
+      "took": null,
+      "promo": null,
+      "points": 0,
+      "text": "",
+      "pointsText": ""
+     },
+     {
+      "label": "7. Nd5#",
+      "san": "Nd5#",
+      "side": "w",
+      "took": null,
+      "promo": null,
+      "points": 0,
+      "text": "",
+      "pointsText": ""
+     }
+    ],
+    "later": [],
+    "white": 2,
+    "black": 9,
+    "balance": -7,
+    "whiteTook": [
+     "p",
+     "p"
+    ],
+    "blackTook": [
+     "q"
+    ],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "b",
+    "status": "mate",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "Black +7",
+     "whiteTook": "White took: pawn, pawn (2)",
+     "blackTook": "Black took: queen (9)",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Checkmate. The count doesn\u2019t matter now.",
+     "verdict": null
+    }
+   }
+  },
+  {
+   "id": "step-back-mid-sequence",
+   "title": "Stepping back: the same line at its second move (the queen can be taken back)",
+   "fen": "rn1qkbnr/ppp2p1p/3p2p1/4p3/2B1P1b1/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 5",
+   "moves": [
+    "Nxe5",
+    "Bxd1",
+    "Bxf7+",
+    "Ke7",
+    "Nd5#"
+   ],
+   "at": 2,
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "5. Nxe5",
+      "san": "Nxe5",
+      "side": "w",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     },
+     {
+      "label": "5...Bxd1",
+      "san": "Bxd1",
+      "side": "b",
+      "took": "q",
+      "promo": null,
+      "points": 9,
+      "text": "takes a queen",
+      "pointsText": "+9"
+     }
+    ],
+    "later": [
+     "6. Bxf7+",
+     "6...Ke7",
+     "7. Nd5#"
+    ],
+    "white": 1,
+    "black": 9,
+    "balance": -8,
+    "whiteTook": [
+     "p"
+    ],
+    "blackTook": [
+     "q"
+    ],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "w",
+    "status": "open",
+    "square": "d1",
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "Black +8",
+     "whiteTook": "White took: pawn (1)",
+     "blackTook": "Black took: queen (9)",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Not finished: White can take back on d1.",
+     "verdict": null
+    }
+   }
+  },
+  {
+   "id": "step-back-to-start",
+   "title": "Stepping back to the start of the sequence",
+   "fen": "rn1qkbnr/ppp2p1p/3p2p1/4p3/2B1P1b1/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 5",
+   "moves": [
+    "Nxe5",
+    "Bxd1",
+    "Bxf7+",
+    "Ke7",
+    "Nd5#"
+   ],
+   "at": 0,
+   "you": null,
+   "expect": {
+    "events": [],
+    "later": [
+     "5. Nxe5",
+     "5...Bxd1",
+     "6. Bxf7+",
+     "6...Ke7",
+     "7. Nd5#"
+    ],
+    "white": 0,
+    "black": 0,
+    "balance": 0,
+    "whiteTook": [],
+    "blackTook": [],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "w",
+    "status": "none",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "Even",
+     "whiteTook": null,
+     "blackTook": null,
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "No captures yet.",
+     "verdict": null
+    }
+   }
+  },
+  {
+   "id": "no-captures-yet",
+   "title": "Moves without a capture",
+   "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+   "moves": [
+    "e4",
+    "e5",
+    "Nf3"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "1. e4",
+      "san": "e4",
+      "side": "w",
+      "took": null,
+      "promo": null,
+      "points": 0,
+      "text": "",
+      "pointsText": ""
+     },
+     {
+      "label": "1...e5",
+      "san": "e5",
+      "side": "b",
+      "took": null,
+      "promo": null,
+      "points": 0,
+      "text": "",
+      "pointsText": ""
+     },
+     {
+      "label": "2. Nf3",
+      "san": "Nf3",
+      "side": "w",
+      "took": null,
+      "promo": null,
+      "points": 0,
+      "text": "",
+      "pointsText": ""
+     }
+    ],
+    "later": [],
+    "white": 0,
+    "black": 0,
+    "balance": 0,
+    "whiteTook": [],
+    "blackTook": [],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "b",
+    "status": "none",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, White to move",
+     "balance": "Even",
+     "whiteTook": null,
+     "blackTook": null,
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "No captures yet.",
+     "verdict": null
+    }
+   }
+  },
+  {
+   "id": "castling-with-check",
+   "title": "Castling with check is written O-O+ (both apps, as chess.js writes it)",
+   "fen": "5k2/8/8/8/n7/8/1P6/4K2R b K - 0 39",
+   "moves": [
+    "Nxb2",
+    "O-O+"
+   ],
+   "you": null,
+   "expect": {
+    "events": [
+     {
+      "label": "39...Nxb2",
+      "san": "Nxb2",
+      "side": "b",
+      "took": "p",
+      "promo": null,
+      "points": 1,
+      "text": "takes a pawn",
+      "pointsText": "+1"
+     },
+     {
+      "label": "40. O-O+",
+      "san": "O-O+",
+      "side": "w",
+      "took": null,
+      "promo": null,
+      "points": 0,
+      "text": "",
+      "pointsText": ""
+     }
+    ],
+    "later": [],
+    "white": 0,
+    "black": 1,
+    "balance": -1,
+    "whiteTook": [],
+    "blackTook": [
+     "p"
+    ],
+    "whitePromo": [],
+    "blackPromo": [],
+    "toMove": "b",
+    "status": "done",
+    "square": null,
+    "lines": {
+     "start": "Start: this position, Black to move",
+     "balance": "Black +1",
+     "whiteTook": "White took: nothing",
+     "blackTook": "Black took: pawn (1)",
+     "whitePromo": null,
+     "blackPromo": null,
+     "status": "Trades finished.",
+     "verdict": "Black comes out ahead by 1."
+    }
+   }
+  }
+ ]
+}

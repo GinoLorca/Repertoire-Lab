@@ -6478,6 +6478,109 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     .hv-pane-notes .hv-note{ min-height:140px; }
   }
 
+  /* ---- Capture Calculator (hvCalc*, 2026-11-19): its button pressed while it's on (filled in the ink with the
+     surface's color for its words, an accent ring inside: 11:1 or more on every skin, where the primary button's own
+     pair is under 4.5:1 on Felt, Hustler and Game Boy light), a thin accent round the board frame (an outline:
+     nothing moves), and its card in the accent. The card sits under the board's controls in one column, at the top
+     of the analysis column beside it. ---- */
+  #hv-controls .btn.hv-calc-btn[aria-pressed="true"]{ background-color:var(--ink); border-color:var(--ink); color:var(--surface); box-shadow:inset 0 0 0 2px var(--brass); }
+  #hv-controls .btn.hv-calc-btn[aria-pressed="true"]:hover{ background-color:color-mix(in srgb, var(--ink) 86%, var(--surface)); }
+  /* the row keeps its button on one line where it held the others (desktop, iPad: a row 600px wide and up): there
+     it reads "Calculator" (its whole name and V in its tooltip), every button slims as under 660px, the arrows a bit
+     more (most under 640px: a 1024 x 768 window), the gaps by a pixel; a phone's row wraps anyway, with the whole name */
+  @container (min-width:600px){ #hv-controls .hv-calc-btn-w{ display:none; } }
+  @container (min-width:600px) and (max-width:829px){
+    #hv-controls > .btn{ padding-left:14px; padding-right:14px; }
+    #hv-controls > :is(#hv-start, #hv-prev, #hv-next, #hv-end){ padding-left:11px; padding-right:11px; }
+    #hv-controls > .btn + .btn{ margin-left:-1px; }      /* (Play it out's 6px too) */
+  }
+  @container (min-width:600px) and (max-width:639px){ #hv-controls > :is(#hv-start, #hv-prev, #hv-next, #hv-end){ padding-left:8px; padding-right:8px; } }
+  #view-play-history.is-calc .hv-frame{ outline:2px solid var(--brass); outline-offset:3px; }
+  .hv-calc{ display:flex; flex-direction:column; gap:6px; padding:10px 12px 12px; border-color:var(--brass); border-top:3px solid var(--brass); }
+  .hv-calc[hidden]{ display:none; }
+  :root[data-skin="bauhaus"] .hv-calc{ border-top-width:4px; }
+  .hv-calc > *{ flex-shrink:0; }
+  /* its title and Done on one line (Done slimmer with a mouse), its start under them the card's whole width: a line
+     less for its moves than the start on a line of its own under a full-size Done (2026-11-19) */
+  .hv-calc-head{ display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:center; column-gap:10px; row-gap:2px; }
+  .hv-calc-head > .hv-calc-start{ grid-column:1 / -1; }
+  .hv-calc .btn.hv-calc-done{ padding-top:2px; padding-bottom:2px; }
+  .hv-calc-title{ margin:0; white-space:nowrap; }
+  :root:not([data-skin="uptown"]) .hv-calc-title{ color:var(--ink-soft); }      /* as the review's own eyebrow: the brass text is under 4.5:1 on Hustler light and Game Boy dark */
+  .hv-calc .btn{ padding:6px 12px; font-size:13px; }
+  .hv-calc-start{ margin:0; font-size:13px; line-height:1.35; color:var(--ink-soft); text-wrap:balance; }
+  .hv-calc-live{ display:flex; flex-direction:column; gap:3px; }
+  .hv-calc-bal{ margin:0; font-size:26px; font-weight:800; line-height:1.1; color:var(--ink); font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+  .hv-calc-bal.is-hidden{ font-size:14px; font-weight:700; line-height:1.35; color:var(--ink-soft); text-wrap:balance; }
+  .hv-calc-status{ margin:0; font-size:14px; font-weight:700; line-height:1.35; color:var(--ink); text-wrap:balance; }
+  .hv-calc-verdict{ display:inline-block; }
+  /* the two sides' bar: White's light share grows left from the middle, Black's dark share right (the eval bar's fixed colors) */
+  .hv-calc-bar{ display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; color:var(--ink-soft); }
+  .hv-calc-bar[hidden]{ display:none; }
+  .hv-calc-side{ flex:0 0 auto; white-space:nowrap; }
+  .hv-calc-track{ position:relative; flex:1 1 auto; min-width:60px; height:12px; border-radius:6px; overflow:hidden;
+    background:color-mix(in srgb, var(--ink) 10%, var(--surface)); box-shadow:inset 0 0 0 1px var(--line); }
+  .hv-calc-track::after{ content:''; position:absolute; left:50%; top:0; bottom:0; width:2px; margin-left:-1px; background:var(--ink-soft); }
+  .hv-calc-fill{ position:absolute; top:0; bottom:0; width:0; transition:width .25s ease; }
+  .hv-calc-fill.is-w{ right:50%; background:#f4f4f4; box-shadow:inset 0 0 0 1px #8a8a8a; }
+  .hv-calc-fill.is-b{ left:50%; background:#2b2b2b; box-shadow:inset 0 0 0 1px #8a8a8a; }
+  @media (prefers-reduced-motion:reduce){ .hv-calc-fill{ transition:none; } }
+  .hv-calc > .hv-calc-moves{ flex-shrink:1; list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px; min-height:58px; overflow-y:auto; max-height:240px; scrollbar-width:thin; }
+  .hv-calc-hint{ font-size:13px; line-height:1.4; color:var(--ink-soft); padding:2px 0; }
+  .hv-calc-mv{ display:grid; grid-template-columns:minmax(84px, max-content) 1fr auto; gap:10px; align-items:baseline; width:100%; box-sizing:border-box;
+    padding:4px 6px; border:0; border-radius:5px; background:none; color:var(--ink); font:inherit; font-size:13.5px; line-height:1.35; text-align:left; cursor:pointer; }
+  .hv-calc-mv:hover{ background:var(--surface-2); }
+  .hv-calc-mv:focus-visible{ outline:2px solid var(--focus); outline-offset:-1px; }
+  .hv-calc-mv[aria-current]{ background:color-mix(in srgb, var(--brass) 16%, var(--surface)); }
+  :root[data-skin="bauhaus"] .hv-calc-mv{ border-radius:0; }
+  .hv-calc-l{ font-family:"JetBrains Mono",monospace; font-weight:700; white-space:nowrap; }
+  .hv-calc-t{ color:var(--ink); }
+  .hv-calc-p{ font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .hv-calc-row.is-later .hv-calc-mv{ color:var(--ink-soft); }
+  .hv-calc-row.is-later :is(.hv-calc-l, .hv-calc-t){ color:var(--ink-soft); font-weight:600; }
+  .hv-calc-took{ display:flex; flex-direction:column; gap:2px; padding-top:5px; border-top:1px solid var(--line); }
+  .hv-calc-took[hidden]{ display:none; }
+  .hv-calc-tk{ margin:0; font-size:13px; line-height:1.4; color:var(--ink); }
+  .hv-calc-acts{ display:flex; flex-wrap:wrap; gap:8px; }
+  @media (pointer:coarse){ .hv-calc .btn{ min-height:44px; } .hv-calc-mv{ padding-top:9px; padding-bottom:9px; } }
+  /* scratch moves in the move list: the calculator's, gone when it ends unless kept */
+  #hv-movelist .is-calc .hv-var-line, #hv-movelist .mv-san.is-calc{ font-style:italic; }
+  #hv-movelist .hv-var.is-calc{ box-shadow:inset 2px 0 0 var(--brass); }
+  /* three columns: the top of the analysis column at its own height, up to about 70% of it (the engine and the tabs
+     take what's left). The Moves / Review / Explorer card keeps its tab strip and a few rows (150px; review 2026-11-19:
+     22-56 px were left at 1440 x 900), taking only what's left (its basis 0); when that's not enough the calculator's
+     moves give way first, down to one row (scrolling inside), so its count and its buttons stay whole at 1440 x 900; the
+     card itself scrolls only as a last resort */
+  .hv-calc{ --calc-row:28px; }
+  @media (pointer:coarse){ .hv-calc{ --calc-row:37px; } }
+  @media (min-width:1440px) and (min-height:561px){
+    .hv-calc{ flex:0 1 auto; min-height:200px; max-height:70%; overflow-y:auto; }
+    .hv-calc > .hv-calc-moves{ max-height:none; min-height:var(--calc-row); }
+    .hv-sidecol-analysis:has(> .hv-calc:not([hidden])) > #hv-tabs{ flex:1 1 0; min-height:150px; }
+  }
+  /* a laptop's 900 px (review, 2026-11-19: 1.6 of its rows at 1440 x 900): three of its rows, the tabs card a few less (four) */
+  @media (min-width:1440px) and (min-height:860px) and (pointer:fine){ .hv-calc > .hv-calc-moves{ min-height:81px; } }
+  @media (min-width:1440px) and (min-height:860px) and (max-height:939.98px){
+    .hv-sidecol-analysis:has(> .hv-calc:not([hidden])) > #hv-tabs{ min-height:128px; }
+  }
+  /* two columns (tabbed): over the first tabbed card, at most about 60% of the column; on top of the column, its Done
+     clear of the settings button in the corner (as the header card's words are). The same way: the first tabbed card
+     keeps 150px and takes what's left; the second keeps the engine's own height but the Explorer only about 30% of the
+     column (45% otherwise), its pane scrolling inside (an iPad at 1194 x 834 cut the calculator's buttons off) */
+  @media (min-width:900px){
+    #view-play-history.hv-tabbed .hv-calc{ flex:0 1 auto; min-height:200px; max-height:60%; overflow-y:auto; }
+    #view-play-history.hv-tabbed .hv-sidecol-analysis:has(> .hv-calc:not([hidden])) > #hv-tabs{ flex:1 1 0; min-height:150px; }
+    #view-play-history.hv-tabbed .hv-sidecol-analysis:has(> .hv-calc:not([hidden])) > #hv-card2{ max-height:max(150px, calc((100vh - 70px) * .3)); max-height:max(150px, calc((100dvh - 70px) * .3)); }
+    #view-play-history.hv-tabbed .hv-calc-head{ padding-right:max(0px, calc(48px - var(--fab-gutter))); }
+    #view-play-history.hv-tabbed .hv-calc > .hv-calc-moves{ max-height:none; min-height:var(--calc-row); }
+  }
+  /* one column: right under the board's controls, so the board and the count are seen together */
+  @media (max-width:899.98px){
+    #hv-calc{ order:5; }
+    .hv-calc > .hv-calc-moves{ max-height:none; overflow-y:visible; }      /* (the page scrolls, never the list: review, 2026-11-19) */
+    #view-play-history.is-calc .hv-frame{ outline-offset:2px; }
+  }
+
 
   /* Touch: the review's rows and small buttons are big enough for a
      finger (the line menu is the only way to delete a line on an iPhone). */
@@ -9686,6 +9789,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <button class="btn btn-ghost hv-px-here" id="hv-px-here" type="button" title="Play this position out against Stockfish, on this device">Play it out</button>
         <button class="btn btn-ghost hv-share" id="hv-share" type="button" aria-haspopup="menu" aria-expanded="false" title="Share the game at this move, or this position">Share</button>
         <button class="btn btn-ghost hv-copy-pgn" id="hv-copy-pgn" type="button" title="Copy the game&rsquo;s PGN as text">Copy PGN</button>
+        <button class="btn btn-ghost hv-calc-btn" id="hv-calc-btn" type="button" aria-pressed="false" aria-keyshortcuts="V" aria-label="Capture Calculator (V)" title="Capture Calculator (V)"><span class="hv-calc-btn-w">Capture </span>Calculator</button>
       </div>
       <!-- Only shown while an arrow color profile is on, so the profile label
            has a home under this board too; in Default the view is unchanged. -->
@@ -9798,6 +9902,30 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           <button type="button" class="btn btn-primary" id="hv-px-stop">Stop and analyze</button>
         </div>
       </div>
+      <!-- Capture Calculator (hvCalc*): the count of a sequence of captures played from the move where it was turned on (V) -->
+      <section class="hv-card hv-calc" id="hv-calc" aria-labelledby="hv-calc-title" hidden>
+        <div class="hv-calc-head">
+          <h2 class="eyebrow hv-calc-title" id="hv-calc-title">Capture Calculator</h2>
+          <button type="button" class="btn btn-ghost hv-calc-done" id="hv-calc-done">Done</button>
+          <p class="hv-calc-start" id="hv-calc-start"></p>
+        </div>
+        <div class="hv-calc-live" aria-live="polite" aria-atomic="true">
+          <p class="hv-calc-bal" id="hv-calc-bal"></p>
+          <p class="hv-calc-status" id="hv-calc-status"></p>
+        </div>
+        <div class="hv-calc-bar" id="hv-calc-bar" aria-hidden="true">
+          <span class="hv-calc-side" id="hv-calc-bar-w">White</span>
+          <span class="hv-calc-track"><span class="hv-calc-fill" id="hv-calc-fill"></span></span>
+          <span class="hv-calc-side" id="hv-calc-bar-b">Black</span>
+        </div>
+        <ol class="hv-calc-moves" id="hv-calc-moves" aria-label="Moves of the sequence"></ol>
+        <div class="hv-calc-took" id="hv-calc-took"></div>
+        <div class="hv-calc-acts">
+          <button type="button" class="btn btn-ghost" id="hv-calc-hide">Hide the count</button>
+          <button type="button" class="btn btn-ghost" id="hv-calc-keep" hidden>Keep as a side line</button>
+        </div>
+        <p class="tx-err hv-calc-full" id="hv-calc-full" hidden></p>
+      </section>
       <!-- The comment on the move on the board (hvComCard), over the engine card: only while that
            move has one. A region named by its move, never a live one (the move is announced already). -->
       <!-- The tactic on the move on the board (hvTacCard): above the comment card; in one column under the controls -->
@@ -38924,6 +39052,65 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     return { plyStates, sanMoves: sanTokens.slice(0, appliedCount), moves };
   }
 
+  /* ==== Capture Calculator: the count (hvCalcRun, hvCalcWords), 2026-11-19 ====
+     The calculator's arithmetic, with no page in it: from a start position and the moves played from it, what each
+     move took and its points (MATERIAL_VALUE: pawn 1, knight 3, bishop 3, rook 5, queen 9; a promotion earns the new
+     piece less its pawn, a queen +8, a rook +4, a bishop or knight +2, and a capturing one both; en passant takes a
+     pawn), each side's total, and where the trades stand: 'mate' (the side to move is checkmated), 'open' (the side
+     to move can take on the square of the last capture or promotion: pzAllLegalMoves, so a pinned piece can't),
+     'done' (after one) or 'none' (before any). a0: the half-moves before the start (hvNodeLabel's ply + off), for the
+     move numbers. test-kits/chess-arcade/calc/cases.json runs both in node; Repertoire Lab keeps the same rules and
+     words (its own copy of the cases). */
+  const HV_CALC_PIECE = { p:'pawn', n:'knight', b:'bishop', r:'rook', q:'queen' };
+  function hvCalcRun(start, moves, a0){
+    let st = start, last = null;
+    const events = [], tot = { w:0, b:0 }, took = { w:[], b:[] }, promo = { w:[], b:[] };
+    for(let i = 0; i < moves.length; i++){
+      const w = moves[i];
+      const mv = w ? pzAllLegalMoves(st).find(m=> m.from===w.from && m.to===w.to && (m.promotion || null)===(w.promotion || null)) : null;
+      if(!mv) break;          // (a move that isn't legal there ends the count)
+      const next = pzApplyMoveRaw(st, mv), side = st.turn;
+      const cap = mv.isEP ? 'p' : (mv.captured || null), pr = mv.promotion || null;
+      const pts = (cap ? MATERIAL_VALUE[cap] : 0) + (pr ? MATERIAL_VALUE[pr] - 1 : 0);
+      const a = (a0 || 0) + i + 1, num = Math.ceil(a / 2);
+      let san = pzMoveToSAN(st, mv, next);
+      if(mv.isCastle && pzIsInCheck(next, next.turn)) san += pzAllLegalMoves(next).length ? '+' : '#';      // (pzMoveToSAN writes castling bare)
+      events.push({ label: a % 2 ? num+'. '+san : num+'...'+san, san, side, took:cap, promo:pr, points:pts });
+      if(cap) took[side].push(cap);
+      if(pr) promo[side].push(pr);
+      tot[side] += pts;
+      if(pts) last = mv.to;
+      st = next;
+    }
+    const legal = pzAllLegalMoves(st);
+    let status = 'none', square = null;
+    if(!legal.length && pzIsInCheck(st, st.turn)) status = 'mate';
+    else if(last!=null && legal.some(m=> m.to===last && (m.captured || m.isEP))){ status = 'open'; square = idxToAlg(last); }
+    else if(last!=null) status = 'done';
+    return { events, white:tot.w, black:tot.b, balance:tot.w - tot.b, whiteTook:took.w, blackTook:took.b, whitePromo:promo.w, blackPromo:promo.b,
+      toMove:st.turn, status, square };
+  }
+  // ... and its words (the same in Repertoire Lab). you: 'w' or 'b' when the app knows the player's color: "(you)"
+  // after it in the balance and the took / promoted lines, never in the verdict
+  function hvCalcWords(R, you){
+    const SIDE = { w:'White', b:'Black' }, who = (s)=> SIDE[s]+(you===s ? ' (you)' : '');
+    const sum = (l)=> l.reduce((x, p)=> x + MATERIAL_VALUE[p], 0), name = (l)=> l.map(p=> HV_CALC_PIECE[p]).join(', ');
+    const any = R.events.some(e=> e.points > 0), b = R.balance;
+    const took = (s, l)=> who(s)+' took: '+(l.length ? name(l)+' ('+sum(l)+')' : 'nothing');
+    const promo = (s, l)=> l.length ? who(s)+' promoted: '+name(l)+' (+'+(sum(l) - l.length)+')' : null;
+    return {
+      events: R.events.map(e=> ({ label:e.label, pointsText: e.points ? '+'+e.points : '',
+        text: [e.took ? 'takes a '+HV_CALC_PIECE[e.took] : '', e.promo ? 'promotes to a '+HV_CALC_PIECE[e.promo] : ''].filter(Boolean).join(', ') })),
+      balance: b > 0 ? who('w')+' +'+b : b < 0 ? who('b')+' +'+(-b) : 'Even',
+      whiteTook: any ? took('w', R.whiteTook) : null, blackTook: any ? took('b', R.blackTook) : null,
+      whitePromo: promo('w', R.whitePromo), blackPromo: promo('b', R.blackPromo),
+      status: R.status==='mate' ? 'Checkmate. The count doesn\u2019t matter now.' : R.status==='open' ? 'Not finished: '+SIDE[R.toMove]+' can take back on '+R.square+'.'
+        : R.status==='done' ? 'Trades finished.' : 'No captures yet.',
+      verdict: R.status!=='done' ? null : b > 0 ? 'White comes out ahead by '+b+'.' : b < 0 ? 'Black comes out ahead by '+(-b)+'.' : 'It\u2019s an even trade.',
+    };
+  }
+  /* ==== end of the count ==== */
+
   // ---- prefs: engine switch, engine arrows (best, 2nd, 3rd), suggested moves
   //      hidden (E: the arrows and lines, never the eval), last tab, explorer database ----
   const HV_PREFS_KEY = 'wavyChessPrepReviewPrefs';
@@ -38937,7 +39124,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // tab1 / tab2 (2026-11-02): the two tabbed cards' tabs under three columns (Game review | Moves |
     // Notes, Engine | Explorer); tab is the three columns' own
     const p = { v:2, engine:true, arrows:[true, true, true], hide:false, tab:'moves', exDb:'masters', cards:{ head:true, phase:false, notes:true, comment:true, engine:true, tabs:true, larry:true }, phaseOpen:false,
-      fold:{ head:false, notes:false, larry:false }, tab1:'moves', tab2:'engine' };
+      fold:{ head:false, notes:false, larry:false }, tab1:'moves', tab2:'engine', calcHide:false };
     try{
       const raw = JSON.parse(localStorage.getItem(HV_PREFS_KEY) || 'null');
       if(raw && typeof raw==='object'){
@@ -38952,7 +39139,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         if(raw.cards && typeof raw.cards==='object') HV_CARDS.forEach(k=>{ if(typeof raw.cards[k]==='boolean') p.cards[k] = raw.cards[k]; });
         // saved before v2, cards.phase was the old default (every save wrote it): off now, once
         if(!(raw.v >= 2)) p.cards.phase = false;
-        if(typeof raw.phaseOpen==='boolean') p.phaseOpen = raw.phaseOpen;     // the phase card open (small by default)
+        if(typeof raw.phaseOpen==='boolean') p.phaseOpen = raw.phaseOpen;
+        if(typeof raw.calcHide==='boolean') p.calcHide = raw.calcHide;     // the Capture Calculator's "Hide the count" (2026-11-19)     // the phase card open (small by default)
         if(raw.fold && typeof raw.fold==='object') ['head', 'notes', 'larry'].forEach(k=>{ if(typeof raw.fold[k]==='boolean') p.fold[k] = raw.fold[k]; });
       }
     }catch(e){}
@@ -39050,13 +39238,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(!move) return null;
     }
     const uci = hvUci(move);
-    const ex = from.children.find(c=> c.uci===uci);
-    if(ex) return ex;
+    const ex = from.children.find(c=> c.uci===uci), calc = hvCalcAt(from);     // calc: from is in the Capture Calculator's sequence
+    if(ex){ if(calc!=null) hvCalcPush(calc, ex); return ex; }
     const next = pzApplyMoveRaw(from.state, move);
     const node = hvMkNode(from, move, next, pzMoveToSAN(from.state, move, next), 'v'+(++hvSeq), false);
     from.children.push(node);
     HV_STATE.nodes.set(node.id, node);
-    if(!hvAnnBusy) hvAnnSoon();         // a new side line is kept with the game (hvAnnSave)
+    if(calc!=null){ node.calc = true; hvCalcPush(calc, node); }       // scratch: never saved, gone when it ends (unless kept)
+    else if(!hvAnnBusy) hvAnnSoon();         // a new side line is kept with the game (hvAnnSave)
     return node;
   }
   // 'Start', '14. Nf5' or '14...Nf5'
@@ -39380,6 +39569,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function hvGoNode(node, opts){
     const S = HV_STATE;
     if(!S || !node) return;
+    if(CALC && CALC.S===S && node!==CALC.anchor && CALC.path.indexOf(node)<0) hvCalcEnd('away');     // left the Capture Calculator's sequence
     const prev = S.cur;
     S.cur = node;
     hvSelected = null;
@@ -39395,6 +39585,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hvRenderMoveList();
     hvRenderStrips();
     hvRenderControls();
+    if(CALC) hvCalcRender();
     hvUpdateSiteLink();
     hvLiveAnalyze();
     hvRenderEngineNow();
@@ -39449,6 +39640,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function hvStep(dir, rep){            // rep: a held key's repeat (a tactic's cue waits for its lift)
     const S = HV_STATE;
     if(!S) return;
+    if(hvCalcOn() && hvCalcStep(dir, rep)) return;      // the Capture Calculator: its own sequence
     const n = S.cur;
     if(dir<0){ if(n.parent) hvGoNode(n.parent); }
     else if(n.children.length) hvGoNode(n.children[0], { sound:true, rep:!!rep });
@@ -39518,7 +39710,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       } else { rd.textContent = ''; rd.hidden = true; }
       const captured = white ? capturedByWhite : capturedByBlack;
       const mine = white ? diff : -diff;
-      $('material').innerHTML = olMaterialHtml(captured, white ? 'b' : 'w', mine, mine>0);
+      // (the Capture Calculator's Hide the count: the lead and the pieces taken would give the answer away)
+      $('material').innerHTML = hvCalcOn() && hvPrefs.calcHide ? '' : olMaterialHtml(captured, white ? 'b' : 'w', mine, mine>0);
       const c = hvClockFor(n, white), clk = $('clock');
       clk.textContent = hvFmtClock(c.cs);
       clk.classList.toggle('active', n.state.turn===(white ? 'w' : 'b') && c.cs!=null);
@@ -39529,12 +39722,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function hvRenderControls(){
     const S = HV_STATE;
     if(!S) return;
-    const n = S.cur, back = !n.parent, fwd = !n.children.length;
+    const n = S.cur, c = hvCalcAt(n);
+    const back = c!=null ? c < 0 : !n.parent, fwd = c!=null ? !CALC.path[c+1] && !n.children.length : !n.children.length;
     const off = { 'hv-start':back, 'hv-prev':back, 'hv-next':fwd, 'hv-end':fwd };
     const a = document.activeElement, aid = a && a.id;
     Object.keys(off).forEach(id=>{ document.getElementById(id).disabled = off[id]; });
     // Play it out: not on a finished position, not while one is played, not while the game review runs (it would end it)
-    const ph = document.getElementById('hv-px-here'), phOff = !S.std || pxPlaying() || !!hvTerminal(n) || !!(hrJob && hrJob.S===S);
+    const ph = document.getElementById('hv-px-here'), phOff = !S.std || pxPlaying() || !!hvTerminal(n) || !!(hrJob && hrJob.S===S) || hvCalcOn();
+    // the Capture Calculator: on a board that takes moves, never while a position is played out
+    const cb = document.getElementById('hv-calc-btn'), cbOff = !hvCalcOk();
+    if(cbOff && document.activeElement===cb) try{ document.getElementById('hv-flip').focus({ preventScroll:true }); }catch(e){}
+    if(cb.hidden!==cbOff) cb.hidden = cbOff;
     if(phOff && document.activeElement===ph) try{ document.getElementById('hv-flip').focus({ preventScroll:true }); }catch(e){}
     if(ph.hidden!==phOff) ph.hidden = phOff;
     // the focused step button just ran out of moves: the keys stay on the
@@ -39694,7 +39892,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         host.appendChild(hvEl('span', 'hv-var-num', white ? num+'.' : num+'...'));
         if(white) host.appendChild(document.createTextNode(' '));
       }
-      const m = hvEl('span', 'mv-san'+(node===S.cur ? ' mv-viewed' : ''), node.san);
+      const m = hvEl('span', 'mv-san'+(node===S.cur ? ' mv-viewed' : '')+(node.calc ? ' is-calc' : ''), node.san);
       m.dataset.node = node.id;
       hvAddBadge(m, node);
       host.appendChild(m);
@@ -39716,7 +39914,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     });
   }
   function hvVarRow(branch){
-    const row = hvEl('div', 'hv-var'+hvHlClass(branch));
+    const row = hvEl('div', 'hv-var'+hvHlClass(branch)+(branch.calc ? ' is-calc' : ''));
     const btn = hvEl('button', 'hv-var-menu', '\u22ee');
     btn.type = 'button';
     btn.dataset.node = branch.id;
@@ -39863,22 +40061,23 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       b.addEventListener('click', (e)=>{ e.stopPropagation(); hvMenuClose(); fn(); });
       el.appendChild(b);
     };
-    if(com) hvBadgeRow(el, node, opener);      // a game's move, main line or side line: your badge on it
-    if(com && !node.main) hvHlRow(el, root, opener);        // a side line: its highlight (2026-11-04)
-    if(com && hvClampOk(node)) hvClampRow(el, node);        // a move of the game, either side's: its CLAMP letters
-    if(com && hvTacOk(node)) hvTacRow(el, node);            // any move of the game: a tactic it allowed (2026-11-03)
+    const kept = !node.calc;            // a Capture Calculator move (scratch): only Go to, Find games and Delete
+    if(com && kept) hvBadgeRow(el, node, opener);      // a game's move, main line or side line: your badge on it
+    if(com && !node.main && kept) hvHlRow(el, root, opener);        // a side line: its highlight (2026-11-04)
+    if(com && kept && hvClampOk(node)) hvClampRow(el, node);        // a move of the game, either side's: its CLAMP letters
+    if(com && kept && hvTacOk(node)) hvTacRow(el, node);            // any move of the game: a tactic it allowed (2026-11-03)
     if(!node.main) add('Go to this line', ()=>{ hvGoNode(node); hvRevealBoard(); }, 'hv-pop-go');
-    if(com){
+    if(com && kept){
       add(node.comment ? 'Edit comment' : 'Add a comment', ()=> hvComEdit(node), 'hv-pop-com');
       if(node.comment) add('Delete comment', ()=> hvComSet(node, ''), 'hv-pop-com-del');
     }
     // your games that reach this position or its pawn structure (Game History's Positions)
     if(S.std) add('Find games with this position', ()=> ghpFrom(node.fen, S.flipped), 'hv-pop-findpos');
     // Play it out: this position against Stockfish (not while one is being played)
-    if(S.std && !pxPlaying() && !hvTerminal(node) && !(hrJob && hrJob.S===S)) add('Play it out from here', ()=> pxFromBoard(node), 'hv-pop-px');
+    if(S.std && !pxPlaying() && !hvTerminal(node) && !(hrJob && hrJob.S===S) && !hvCalcOn()) add('Play it out from here', ()=> pxFromBoard(node), 'hv-pop-px');
     if(!node.main){
-      if(typeof nbInsertLine==='function' && !hvNotesOff()) add('Add this line to notes', ()=>{ try{ nbInsertLine(root); }catch(e){} }, 'hv-pop-notes');
-      if(!root.parent.main && root.parent.children[0]!==root) add('Promote this line', ()=> hvPromote(root), 'hv-pop-promote');
+      if(typeof nbInsertLine==='function' && !hvNotesOff() && kept) add('Add this line to notes', ()=>{ try{ nbInsertLine(root); }catch(e){} }, 'hv-pop-notes');
+      if(!root.parent.main && root.parent.children[0]!==root && kept) add('Promote this line', ()=> hvPromote(root), 'hv-pop-promote');
       add(node===root ? 'Delete this line' : 'Delete from this move', ()=> hvDeleteFrom(node), 'hv-pop-delete');
     } else {
       // a game move: the side lines that branch here (in its place, or in place of the next move) can be deleted from it too,
@@ -40859,7 +41058,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     let inside = false;
     (function drop(n){ if(n===S.cur) inside = true; S.nodes.delete(n.id); n.children.forEach(drop); })(node);
     p.children.splice(p.children.indexOf(node), 1);
-    if(inside) hvGoNode(p); else hvRenderMoveList();
+    hvCalcAfterDelete(S);
+    if(inside) hvGoNode(p); else { hvRenderMoveList(); if(CALC){ hvRenderControls(); hvCalcRender(); } }
     hvAnnSoon();
   }
   (function(){
@@ -40980,7 +41180,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(t2!==(head.parentNode===rp)){
       const fa = document.activeElement, had = fa && [tabs, card2, head, eng].some(e=> e.contains(fa)) ? fa : null;
       if(t2){
-        col.insertBefore(tabs, $('hv-px').nextSibling);
+        col.insertBefore(tabs, $('hv-calc').nextSibling);      // (under Play it out and the Capture Calculator)
         tl1.insertBefore($('hv-tab-review'), tl1.firstElementChild);
         rp.insertBefore(head, rp.firstChild);
         $('hv-pane-engine').appendChild(eng);
@@ -43100,6 +43300,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // opts: at ({ply} or {line}: where it opens), flip (which way up; else your side at the bottom)
   function hvOpen(game, username, opts){
     opts = opts || {};
+    if(CALC) hvCalcEnd('away');          // the Capture Calculator's moves go with the game they were played on
     try{ hvNoteFlush(); }catch(e){}      // the previous game's note, if one was open
     hvMenuClose();
     hvRemovePromo();
@@ -43138,10 +43339,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(hvTabbed() && hvPaneShown('explorer')) hvFire(hvPaneLs, 'explorer');       // card 2 on the Explorer
     if(hvTabbed() && hvPaneShown('similar')) hvFire(hvPaneLs, 'similar');         // or on Similar openings
   }
-  document.getElementById('hv-start').addEventListener('click', ()=>{ if(HV_STATE) hvGoNode(HV_STATE.root); });
+  document.getElementById('hv-start').addEventListener('click', hvGoStart);
   document.getElementById('hv-prev').addEventListener('click', ()=> hvStep(-1));
   document.getElementById('hv-next').addEventListener('click', ()=> hvStep(1));
-  document.getElementById('hv-end').addEventListener('click', ()=>{ if(HV_STATE) hvGoNode(hvLineEnd(HV_STATE.cur)); });
+  document.getElementById('hv-end').addEventListener('click', hvGoEnd);
   function hvFlip(){
     if(!HV_STATE) return;
     HV_STATE.flipped = !HV_STATE.flipped;
@@ -43260,9 +43461,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     if(k==='ArrowLeft'){ e.preventDefault(); hvStep(-1); }
     else if(k==='ArrowRight'){ e.preventDefault(); hvStep(1, e.repeat); }
-    else if(k==='Home' || k==='ArrowUp'){ e.preventDefault(); hvGoNode(HV_STATE.root); }
-    else if(k==='End' || k==='ArrowDown'){ e.preventDefault(); hvGoNode(hvLineEnd(HV_STATE.cur)); }
+    else if(k==='Home' || k==='ArrowUp'){ e.preventDefault(); hvGoStart(); }
+    else if(k==='End' || k==='ArrowDown'){ e.preventDefault(); hvGoEnd(); }
     else if(k==='x' || k==='X'){ e.preventDefault(); hvFlip(); }
+    else if(k==='v' || k==='V'){ e.preventDefault(); if(!e.repeat) hvCalcToggle(); }      // the Capture Calculator (X flips the board)
     else if(k==='l' || k==='L'){ e.preventDefault(); hvToggleEngine(); }
     else if(hvArrowKeyOf(e)){ e.preventDefault(); if(!e.repeat) hvToggleArrow(hvArrowKeyOf(e)); }
     else if(hvTabKeyOf(e)){ e.preventDefault(); if(!e.repeat) hvTabKey(hvTabKeyOf(e)); }
@@ -43272,6 +43474,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     else if(k==='b' || k==='B'){ e.preventDefault(); if(!e.repeat){ if(annoProfile()==='gamereview') hvBWait = true; else hvPlayBest(); } }
     // T marks a tactic on the move on the board, or edits the one there (2026-11-03)
     else if(k==='t' || k==='T'){ e.preventDefault(); if(!e.repeat) hvTacKey(); }
+    else if(k==='Escape' && hvCalcOn()){ e.preventDefault(); hvCalcToggle(); }      // Esc ends the Capture Calculator first
     else if(k==='Escape'){ e.preventDefault(); if(HV_STATE.game._practice) pxBack(); else if(HV_STATE.game._puzzle) pzaReturn(); else showView('history'); }
   });
   onLeavePlay(()=>{ try{ hvNoteFlush(); }catch(e){} try{ hvMenuClose(); }catch(e){} });   // before HV_STATE goes (and a menu open on the page goes with it)
@@ -43285,6 +43488,294 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(hve.state!=='off') hve.quit();
   });
   onLeavePlay(()=>{ HV_STATE = null; });
+  /* ---- Capture Calculator (2026-11-19): on the analysis board ----
+     V, or the Capture Calculator button under the board, starts it at the move on the board ("Start: after
+     14...Nd7, White to move"); you then play moves for both sides as usual and its card (hv-calc) keeps the count
+     along the moves from that start to the board: the arrow keys and buttons step through the sequence (at its end,
+     the right arrow plays the line's next move into it), and a different move replaces the rest. Its moves are
+     scratch: new nodes get n.calc, never saved (hvAnnText skips them), and they go when it ends with V, Esc or Done
+     (the board back at the start) unless "Keep as a side line" (a game's review only: hvAnnId) keeps them as an
+     ordinary side line. Moves that were already in the game or a line are followed, never marked, never dropped.
+     A move picked outside the sequence (the move list, a note's link), another game or leaving the review ends it,
+     dropping its moves, the board where it went. Not while a position is played out (Play it out) or on a board
+     that takes no moves (Chess960); the unsolved puzzles and Play Online have boards of their own and never show it.
+     CALC: { S, anchor, path } (path: the sequence's nodes after the anchor, in order); var: hvGoNode may read it
+     before this line has run. */
+  var CALC = null;
+  function hvCalcOk(){ const S = HV_STATE; return !!(S && S.std && !S.game._practice); }
+  function hvCalcOn(){ return !!(CALC && HV_STATE && CALC.S===HV_STATE); }
+  // where a node is in the sequence: -1 its start, 0.. one of its moves, null outside it (or while a saved record is put back)
+  function hvCalcAt(n){
+    if(!hvCalcOn() || !n || hvAnnBusy) return null;
+    if(n===CALC.anchor) return -1;
+    const i = CALC.path.indexOf(n);
+    return i>=0 ? i : null;
+  }
+  // the move n played after the sequence's move i (-1: from its start): it follows on, or replaces the rest
+  function hvCalcPush(i, n){
+    const P = CALC.path;
+    if(P[i+1]===n) return;
+    const drop = P.splice(i+1);
+    P.push(n);
+    CALC.full = false;
+    if(!n.calc && !CALC.snaps.has(n)) CALC.snaps.set(n, hvCalcMkSnap(n));      // a move of the game or a line it follows
+    const first = drop.find(x=> x.calc);
+    if(first) hvCalcCut(CALC.S, first);
+  }
+  // Drawings while it's on are scratch too (review, 2026-11-19: arrows drawn on its start were saved and synced at
+  // once): its start and the moves of the game or a line it follows keep, for the record (hvAnnMarkRow), what they had
+  // when it came to them (snaps), and get it back when it ends; Keep keeps what's drawn on them
+  function hvCalcMkSnap(n){
+    const m = n.marks, o = { arrows:[], squares:{}, sqMeta:{}, segs:[], n:0 };
+    if(m) Object.keys(m).forEach(k=>{ if(k!=='pos' && m[k]!==undefined && typeof m[k]!=='function') o[k] = JSON.parse(JSON.stringify(m[k])); });
+    return o;
+  }
+  function hvCalcMkBack(n, o){
+    const m = hvMarksOf(n), base = ['arrows', 'squares', 'sqMeta', 'segs', 'n'];
+    clearMarksObj(m);
+    if(!m.sqMeta) m.sqMeta = {};
+    if(!m.segs) m.segs = [];
+    (o.arrows || []).forEach(a=> m.arrows.push(a));
+    Object.assign(m.squares, o.squares || {});
+    Object.assign(m.sqMeta, o.sqMeta || {});
+    (o.segs || []).forEach(s=> m.segs.push(s));
+    m.n = o.n || 0;
+    Object.keys(m).forEach(k=>{ if(k!=='pos' && base.indexOf(k)<0 && typeof m[k]!=='function' && !(k in o)) delete m[k]; });
+    Object.keys(o).forEach(k=>{ if(base.indexOf(k)<0) m[k] = o[k]; });
+  }
+  // the marks the record has for n: while it's on, its start's and the followed moves' as they were
+  function hvCalcMarks(n){
+    const C = CALC;
+    return C && C.S===HV_STATE && C.snaps.has(n) ? C.snaps.get(n) : n.marks;
+  }
+  // Keep fits the game's record (as the tactic box: hvAnnFits), never by pushing your arrows out of it, and never
+  // "Kept" with nothing saved (review, 2026-11-19); with another device's version waiting, the record as it now is
+  function hvCalcKeepFits(){
+    const C = CALC, nodes = C.path.filter(n=> n.calc);
+    if(!nodes.length) return false;
+    if(hvTacStale()){ const t = hvCalcKeepRec(C, nodes); return !!t && t.length <= GN_MAX; }
+    const before = hvAnnText(false).length;
+    nodes.forEach(n=>{ delete n.calc; });
+    CALC = null;          // (as the record would be: the line and what's drawn meanwhile kept)
+    try{ return hvAnnFits(before); }
+    finally{ CALC = C; nodes.forEach(n=>{ n.calc = true; }); }
+  }
+  // the record as it now is with the kept line in it, and the drawings on its moves (as without another version);
+  // a move the record has drawings on already keeps those. null: no line
+  function hvCalcKeepRec(C, nodes){
+    const id = hvAnnId(), last = C.path[C.path.length-1], ref = last && !last.main ? hvNodeRef(last) : null, cur = gnNoteText(id);
+    if(!id || !ref || !ref.line) return null;
+    let A = null;
+    try{ A = cur ? JSON.parse(cur) : null; }catch(e){ A = null; }
+    if(!A || typeof A!=='object' || Array.isArray(A)) A = { v:1, l:[], c:[], m:[] };
+    const L = ref.line, pre = (x)=> Array.isArray(x) && x.length <= L.length && x.every((v, i)=> v===L[i]);
+    A.l = (Array.isArray(A.l) ? A.l : []).filter(x=> !pre(x)).concat([L]);          // (a line it went on from: now part of it)
+    const M = Array.isArray(A.m) ? A.m : [], has = new Set(M.map(x=> Array.isArray(x) ? JSON.stringify(x[0]) : '')), prof = annoProfile();
+    nodes.forEach(n=>{ const r = hvAnnMarkRow(n, prof); if(r && !has.has(JSON.stringify(r[0]))) M.push(r); });
+    A.m = M;
+    return JSON.stringify(gnAnCanon(A));
+  }
+  // a scratch line out of the tree, quietly (nothing saved, nothing drawn)
+  function hvCalcCut(S, node){
+    (function drop(x){ S.nodes.delete(x.id); x.children.forEach(drop); })(node);
+    const p = node.parent, i = p ? p.children.indexOf(node) : -1;
+    if(i>=0) p.children.splice(i, 1);
+  }
+  function hvCalcDropAll(S){
+    const tops = [];
+    S.nodes.forEach(n=>{ if(n.calc && !(n.parent && n.parent.calc)) tops.push(n); });
+    tops.forEach(n=> hvCalcCut(S, n));
+    return tops.length;
+  }
+  function hvCalcStartText(a){
+    const side = a.state.turn==='b' ? 'Black' : 'White';
+    return a.parent ? 'Start: after '+hvNodeLabel(a)+', '+side+' to move' : 'Start: this position, '+side+' to move';
+  }
+  function hvCalcStart(){
+    const S = HV_STATE;
+    if(!S || !hvViewActive()) return;
+    if(!hvCalcOk()){ hvSay('The Capture Calculator isn\u2019t available here'); return; }
+    hvMenuClose();
+    if(hvPromoOpen){ hvRemovePromo(); hvRenderBoard(); }
+    CALC = { S, anchor:S.cur, path:[], snaps:new Map([[S.cur, hvCalcMkSnap(S.cur)]]), full:false };
+    hvCalcUi();
+    hvRenderControls();
+    hvSay('Capture Calculator on. '+hvCalcStartText(S.cur));
+  }
+  // how: 'done' (V, Esc, Done: its moves go, the board back at the start), 'keep' (its moves stay as a side line, the
+  // board where it is), 'away' (the board left the sequence, another game, leaving: its moves go, nothing moves)
+  function hvCalcEnd(how){
+    const C = CALC;
+    if(!C) return;
+    CALC = null;
+    const S = C.S, here = S===HV_STATE;
+    if(how!=='keep') C.snaps.forEach((o, n)=> hvCalcMkBack(n, o));          // what was drawn meanwhile on its start, the followed moves: gone
+    // another device's version came meanwhile; edits: this device's own since the last save (its scratch moves aside)
+    const stale = here && hvTacStale(), edits = stale && hvAnnText(false)!==(S.annText || '');
+    const nodes = how==='keep' ? C.path.filter(n=> n.calc) : [];
+    if(how==='keep') nodes.forEach(n=>{ delete n.calc; });
+    else hvCalcDropAll(S);
+    const kept = stale && hvCalcStale(C, how, edits, nodes);
+    if(here && how!=='away'){
+      if(how==='done' && S.nodes.get(C.anchor.id)===C.anchor) hvGoNode(C.anchor);
+      else { hvRenderMoveList(); hvRenderControls(); }
+      if(how==='keep' && !stale) hvAnnSoon();         // kept with the game (and synced) like any line you play
+    }
+    hvCalcUi();
+    // another device's version of this game's analysis waited while it was on (hvAnnRefresh): the game opens again
+    // with it (on a kept line: at the move the board is on, the line now in the record)
+    if(here) setTimeout(()=>{
+      try{
+        if(HV_STATE!==S || CALC) return;
+        if(kept && hvViewActive() && hvTacStale()){ HV_TREES.delete(String(S.game.id)); hvOpen(S.game, S.username, { at:hvNodeRef(S.cur), flip:S.flipped }); }
+        else hvAnnRefresh();
+      }catch(e){}
+    }, 0);
+  }
+  // The record moved on while it was on (another device's version: hvAnnRefresh waited, hvAnnSave held this device's
+  // edits back): saving the tree now would write over that version (review, 2026-11-19). As the tactic box does
+  // (hvTacIntoRecord), a kept line goes into the record as it now is; this device's other edits meanwhile (a comment,
+  // a badge, arrows) wait beside it in the other-version notice (Add them to these / Keep only these), as a sync does
+  // with edits it couldn't send; the tree isn't kept for the next opening. True: the record has the kept line.
+  function hvCalcStale(C, how, edits, nodes){
+    const S = C.S, id = hvAnnId();
+    if(!id) return false;
+    clearTimeout(hvAnnTimer); hvAnnTimer = 0;
+    let kept = false;
+    if(how==='keep'){
+      const t = hvCalcKeepRec(C, nodes || []), cur = gnNoteText(id);         // (with the drawings on its moves: review, 2026-11-19)
+      if(t && t.length <= GN_MAX){ if(t!==cur) gnSetNote(id, t, S.game); kept = true; }
+    }
+    const mine = edits || (how==='keep' && !kept) ? hvAnnText(false) : '', n = GN.notes[id];
+    if(mine && n && mine!==n.text){ n.conflict = { text:mine, at:Date.now(), mine:true, lost:true }; gnPersist(); }
+    HV_TREES.delete(String(S.game.id));
+    S.annStale = true;          // (until it opens again on the record: hvAnnSave, hvOpen's flush included, holds what's new: hvAnnHold)
+    S.annHeld = hvAnnText(false);          // (the tree as it is now: in the record, or in the notice)
+    return kept;
+  }
+  function hvCalcToggle(){
+    if(!hvCalcOn()) return hvCalcStart();
+    hvCalcEnd('done');
+    clearTimeout(hvLiveT);          // (the start's own announcement gives way)
+    hvSay('Capture Calculator off');
+  }
+  // the arrows inside the sequence (false: not in it)
+  function hvCalcStep(dir, rep){
+    const S = HV_STATE, C = CALC, i = hvCalcAt(S.cur);
+    if(i==null) return false;
+    if(dir<0){ if(i>=0) hvGoNode(i===0 ? C.anchor : C.path[i-1]); return true; }
+    let n = C.path[i+1];
+    if(!n && S.cur.children.length){ n = S.cur.children[0]; hvCalcPush(i, n); }      // its end: the line's next move joins it
+    if(n) hvGoNode(n, { sound:true, rep:!!rep });
+    return true;
+  }
+  function hvGoStart(){ if(HV_STATE) hvGoNode(hvCalcOn() ? CALC.anchor : HV_STATE.root); }
+  function hvGoEnd(){
+    if(!HV_STATE) return;
+    if(hvCalcOn()) hvGoNode(CALC.path.length ? CALC.path[CALC.path.length-1] : CALC.anchor);
+    else hvGoNode(hvLineEnd(HV_STATE.cur));
+  }
+  // the button's pressed state, the view's edge and the card
+  function hvCalcUi(){
+    const on = hvCalcOn(), v = document.getElementById('view-play-history'), btn = document.getElementById('hv-calc-btn'), card = document.getElementById('hv-calc');
+    v.classList.toggle('is-calc', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if(!on && card.contains(document.activeElement)){
+      const to = !btn.hidden ? btn : document.getElementById('hv-flip');
+      try{ to.focus({ preventScroll:true }); }catch(e){}
+    }
+    if(card.hidden===on) card.hidden = !on;
+    if(on) hvCalcRender();
+    if(HV_STATE) hvRenderStrips();          // (Hide the count hides the strips' material while it's on)
+  }
+  function hvCalcRender(){
+    if(!hvCalcOn()) return;
+    const S = HV_STATE, C = CALC, $ = (id)=> document.getElementById(id), hide = !!hvPrefs.calcHide;
+    const at = hvCalcAt(S.cur), k = at==null ? 0 : at + 1, a0 = C.anchor.ply + (C.anchor.off || 0);
+    const you = S.me==='white' ? 'w' : S.me==='black' ? 'b' : null;
+    const R = hvCalcRun(C.anchor.state, C.path.slice(0, k).map(n=> n.move), a0), W = hvCalcWords(R, you);
+    const all = k < C.path.length ? hvCalcWords(hvCalcRun(C.anchor.state, C.path.map(n=> n.move), a0), you) : W;     // the moves after the board: shown, not counted
+    const set = (el, t)=>{ if(el.textContent!==t) el.textContent = t; };
+    set($('hv-calc-start'), hvCalcStartText(C.anchor));
+    const bal = $('hv-calc-bal');
+    set(bal, hide ? 'Count hidden: work it out in your head first.' : W.balance);
+    bal.classList.toggle('is-hidden', hide);
+    $('hv-calc-bar').hidden = hide;
+    set($('hv-calc-bar-w'), 'White'+(you==='w' ? ' (you)' : ''));
+    set($('hv-calc-bar-b'), 'Black'+(you==='b' ? ' (you)' : ''));
+    const fill = $('hv-calc-fill');
+    fill.className = 'hv-calc-fill'+(R.balance > 0 ? ' is-w' : R.balance < 0 ? ' is-b' : '');
+    fill.style.width = (Math.min(10, Math.abs(R.balance)) * 5)+'%';
+    // the verdict whole on a line of its own when it doesn't fit beside the status (never "by 1." alone)
+    const stEl = $('hv-calc-status'), vd = W.verdict && !hide ? W.verdict : '';
+    if(stEl.textContent!==W.status+(vd ? ' '+vd : '')){
+      stEl.textContent = W.status;
+      if(vd){ stEl.appendChild(document.createTextNode(' ')); stEl.appendChild(hvEl('span', 'hv-calc-verdict', vd)); }
+    }
+    const ol = $('hv-calc-moves'), fa = document.activeElement, fNode = fa && ol.contains(fa) && fa.dataset ? fa.dataset.node || '' : null;
+    ol.textContent = '';
+    if(!C.path.length) ol.appendChild(hvEl('li', 'hv-calc-hint', 'Play moves for both sides on the board.'));
+    C.path.forEach((n, i)=>{
+      const e = all.events[i], li = hvEl('li', 'hv-calc-row'+(i >= k ? ' is-later' : '')), b = hvEl('button', 'hv-calc-mv');
+      b.type = 'button';
+      b.dataset.node = n.id;
+      if(i===k-1) b.setAttribute('aria-current', 'step');
+      b.appendChild(hvEl('span', 'hv-calc-l', e ? e.label : hvNodeLabel(n)));
+      b.appendChild(hvEl('span', 'hv-calc-t', e ? e.text : ''));
+      b.appendChild(hvEl('span', 'hv-calc-p', e && i < k && !hide ? e.pointsText : ''));
+      li.appendChild(b);
+      ol.appendChild(li);
+    });
+    if(fNode!=null){          // (the keyboard's place: the move it was on, else the move the board is on, else Done)
+      const to = (fNode && ol.querySelector('.hv-calc-mv[data-node="'+fNode+'"]')) || ol.querySelector('[aria-current]') || $('hv-calc-done');
+      try{ to.focus({ preventScroll:true }); }catch(e){}
+    }
+    const tk = $('hv-calc-took');
+    tk.textContent = '';
+    [W.whiteTook, W.whitePromo, W.blackTook, W.blackPromo].forEach(t=>{ if(t) tk.appendChild(hvEl('p', 'hv-calc-tk', t)); });
+    tk.hidden = hide || !W.whiteTook;
+    set($('hv-calc-hide'), hide ? 'Show the count' : 'Hide the count');
+    const keep = $('hv-calc-keep'), kOff = !hvAnnId() || !C.path.some(n=> n.calc);
+    if(kOff && document.activeElement===keep) try{ $('hv-calc-done').focus({ preventScroll:true }); }catch(e){}
+    if(keep.hidden!==kOff) keep.hidden = kOff;
+    const full = $('hv-calc-full');          // (Keep found no room in the game's record: hvCalcKeepFits)
+    set(full, C.full && !kOff ? TAC_FULL : '');
+    full.hidden = !(C.full && !kOff);
+    const cur = ol.querySelector('[aria-current]');
+    if(cur && ol.scrollHeight > ol.clientHeight + 1){
+      const r = cur.getBoundingClientRect(), o = ol.getBoundingClientRect();
+      if(r.bottom > o.bottom) ol.scrollTop += r.bottom - o.bottom; else if(r.top < o.top) ol.scrollTop -= o.top - r.top;
+    }
+  }
+  // a line deleted from the move list (hvDeleteFrom): its start gone ends it; its moves gone leave the sequence
+  function hvCalcAfterDelete(S){
+    if(!CALC || CALC.S!==S) return;
+    if(S.nodes.get(CALC.anchor.id)!==CALC.anchor){ hvCalcEnd('away'); return; }
+    const j = CALC.path.findIndex(x=> S.nodes.get(x.id)!==x);
+    if(j>=0) CALC.path.length = j;
+  }
+  hvOnLeave(()=>{ if(CALC) hvCalcEnd('away'); });
+  document.getElementById('hv-calc-btn').addEventListener('click', ()=>{ if(HV_STATE) hvCalcToggle(); });
+  document.getElementById('hv-calc-done').addEventListener('click', ()=>{ if(hvCalcOn()) hvCalcToggle(); });
+  document.getElementById('hv-calc-keep').addEventListener('click', ()=>{
+    if(!hvCalcOn() || !hvAnnId()) return;
+    if(!hvCalcKeepFits()){ CALC.full = true; hvCalcRender(); hvSay(TAC_FULL); return; }      // (it stays on, nothing lost)
+    hvCalcEnd('keep');
+    hvSay('Kept as a side line. Capture Calculator off');
+  });
+  document.getElementById('hv-calc-hide').addEventListener('click', ()=>{
+    hvPrefs.calcHide = !hvPrefs.calcHide;
+    hvSavePrefs();
+    hvCalcRender();
+    hvRenderStrips();
+    hvSay(hvPrefs.calcHide ? 'Count hidden' : 'Count shown');
+  });
+  document.getElementById('hv-calc-moves').addEventListener('click', (e)=>{
+    const b = e.target.closest('.hv-calc-mv'), S = HV_STATE;
+    if(!b || !S || !hvCalcOn()) return;
+    const n = S.nodes.get(b.dataset.node);
+    if(n){ hvGoNode(n); hvRevealBoard(); }          // (a phone scrolled down to the card: the board back in view)
+  });
 
   views['history'] = document.getElementById('view-history');
   views['play-history'] = document.getElementById('view-play-history');
@@ -49753,7 +50244,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const lab = hvNodeLabel(node);
     const dg = { label: NB_LABEL_RE.test(lab) ? lab : '', fen:node.fen, arrows:[], squares:[], ply:null, line:null,
       flip: !!(HV_STATE && HV_STATE.flipped), extra:[] };
-    const ref = hvNodeRef(node);
+    let ref = hvNodeRef(node);
+    for(let x = node; x; x = x.parent) if(x.calc) ref = null;          // a Capture Calculator scratch move: its position only (its line goes when it ends)
     if(ref && ref.ply!=null) dg.ply = ref.ply;
     else if(ref && ref.line && ref.line.length >= 2 && ref.line.length <= 61) dg.line = ref.line.slice();
     const m = node.marks;
@@ -49826,7 +50318,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function nbInsertLine(varRoot){
     if(!varRoot || !varRoot.parent) return false;
     const base = varRoot.parent, ucis = [];
-    for(let n = varRoot; n && ucis.length < 60; n = n.children[0]) ucis.push(n.uci);
+    for(let n = varRoot; n && !n.calc && ucis.length < 60; n = n.children[0]) ucis.push(n.uci);      // (never into the Capture Calculator's scratch moves)
     const frag = [];
     const dg = nbDgFromNode(base);
     if(dg) frag.push({ t:'dg', dg });
@@ -50520,6 +51012,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // A move's ref as a word link stores it ('' for the start, or a side line longer than a ref's 60 moves).
   function hvWlRef(n){
+    for(let x = n; x; x = x.parent) if(x.calc) return '';         // a Capture Calculator scratch move: gone when it ends
     const r = n && n.parent ? hvNodeRef(n) : null;
     if(!r) return '';
     const s = r.ply!=null ? String(r.ply) : r.line.join('.');
@@ -50779,19 +51272,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const hadB = !!P && Array.isArray(P.b), hadK = !!P && Array.isArray(P.k), hadQ = !!P && Array.isArray(P.q), hadT = !!P && Array.isArray(P.t), hadH = !!P && Array.isArray(P.h), hadO = !!P && Array.isArray(P.o), hadZ = !!P && Array.isArray(P.z), extra = gnAnExtra(P);
     const prof = annoProfile();
     const marks = (n)=>{
-      const m = n.marks;
-      if(noMarks || !m || !hasMarks(m)) return;
-      const p = m.noProfile ? null : annoResolveColors(m, prof), ar = [], sq = [];
-      m.arrows.forEach((a, i)=>{ if(a.from==null || a.to==null || a.from===a.to || ar.length >= 24) return; ar.push(nbCodeOf(p ? p.arrows[i] : a.color)+idxToAlg(a.from)+idxToAlg(a.to)); });
-      Object.keys(m.squares).forEach(k=>{ if(sq.length < 32) sq.push(nbCodeOf(p ? p.squares[k] : m.squares[k])+idxToAlg(Number(k))); });
-      if(ar.length || sq.length) mk.push([hvAnnRef(n), ar.join(' '), sq.join(' ')]);
+      if(noMarks) return;
+      const r = hvAnnMarkRow(n, prof);
+      if(r) mk.push(r);
     };
     (function walk(n){
       if(n.comment) com.push([hvAnnRef(n), n.comment]);
       if(n.parent && hvOwnBadge(n)) bd.push([hvAnnRef(n), hvOwnBadge(n).code]);
       if(n.parent && !n.main && hvHlClass(n)) hl.push([hvAnnRef(n), n.hl]);
       marks(n);
-      n.children.forEach(c=>{ if(!c.main && !c.children.length) lines.push(hvNodeRef(c).line); walk(c); });
+      // (the Capture Calculator's scratch moves never: a line it went on from still ends where it did)
+      n.children.forEach(c=>{ if(c.calc) return; if(!c.main && !c.children.some(x=> !x.calc)) lines.push(hvNodeRef(c).line); walk(c); });
     })(S.root);
     if(!lines.length && !com.length && !mk.length && !bd.length && !hadB && !kd.length && !hadK && !qd.length && !hadQ && !td.length && !hadT && !hl.length && !hadH && !od.length && !hadO && !zd.length && !hadZ && !Object.keys(extra).length) return '';
     const A = { v:1, l:lines, c:com, m:mk };
@@ -50803,6 +51294,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(od.length || hadO) A.o = od;          // their CLAMP slips (2026-11-12), o:[] once they're all off
     if(zd.length || hadZ) A.z = zd;          // Larry's suggestions added or skipped (2026-11-19), z:[] once all are undone
     return JSON.stringify(Object.assign(A, extra));
+  }
+  // a move's arrows and squares as the record keeps them: [ref, arrows, squares], null for none (the Capture Calculator's
+  // start and followed moves while it's on: as they were, hvCalcMarks)
+  function hvAnnMarkRow(n, prof){
+    const m = hvCalcMarks(n);
+    if(!m || !hasMarks(m)) return null;
+    const p = m.noProfile ? null : annoResolveColors(m, prof), ar = [], sq = [];
+    m.arrows.forEach((a, i)=>{ if(a.from==null || a.to==null || a.from===a.to || ar.length >= 24) return; ar.push(nbCodeOf(p ? p.arrows[i] : a.color)+idxToAlg(a.from)+idxToAlg(a.to)); });
+    Object.keys(m.squares).forEach(k=>{ if(sq.length < 32) sq.push(nbCodeOf(p ? p.squares[k] : m.squares[k])+idxToAlg(Number(k))); });
+    return ar.length || sq.length ? [hvAnnRef(n), ar.join(' '), sq.join(' ')] : null;
   }
   // A record onto the tree: its side lines, comments, marks, badges and CLAMP marks. mine: this device's
   // comments, marks, badges and CLAMP notes stay, and a different comment from the other version is added
@@ -50909,12 +51410,27 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     clearTimeout(hvAnnTimer); hvAnnTimer = 0;
     const S = HV_STATE, id = hvAnnId();
     if(!S || !id) return;
+    // the record moved on while the Capture Calculator was on: its tree is from before it, never saved over it (hvCalcStale);
+    // an edit made since it ended waits in the other-version notice (hvAnnHold), never silently dropped
+    if(S.annStale && hvTacStale()){ if(!hvCalcOn()) hvAnnHold(S, id); return; }
+    if(hvCalcOn() && hvTacStale()) return;          // (its end holds what's new: hvCalcEnd)
     let t = hvAnnText(false);
     if(t.length > GN_MAX) t = hvAnnText(true);        // too much to keep: the arrows give way first
     if(t.length > GN_MAX || t===(S.annText || '')) return;
     if(!t && !GN.notes[id]) return;
     gnSetNote(id, t, S.game);
     S.annText = gnNoteText(id);
+  }
+  // The tree is from before another device's version (the Capture Calculator was on when it came) and an edit was made on
+  // it since (a comment written as it ended, review 2026-11-19): what's new is held as this device's own in the
+  // other-version notice (Add them to these / Keep only these), as hvCalcStale does, and the game opens again on the
+  // record as soon as nothing is open (hvAnnRefresh)
+  function hvAnnHold(S, id){
+    const t = hvAnnText(false), n = GN.notes[id];
+    if(t===(S.annHeld || '')) return;
+    S.annHeld = t;
+    if(n && t && t!==n.text && !(n.conflict && n.conflict.text===t)){ n.conflict = { text:t, at:Date.now(), mine:true, lost:true }; gnPersist(); }
+    setTimeout(()=>{ try{ if(HV_STATE===S) hvAnnRefresh(); }catch(e){} }, 0);
   }
   // Another device's analysis arrived (a sync, another tab): the game opens again with it, at
   // the same move of the game. An edit of this device's still waiting to be saved goes first.
@@ -50928,7 +51444,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(c!==!!document.querySelector('#hv-movelist .hv-ann-conflict:not(.is-note)')) hvRenderMoveList();
       return;
     }
-    if(hvAnnTimer || (hvMenu && hvMenu.kind==='com') || HV_TAC_BOX) return;          // (a tactic being marked: after it)
+    if(hvAnnTimer || (hvMenu && hvMenu.kind==='com') || HV_TAC_BOX || hvCalcOn()) return;          // (a tactic being marked, the Capture Calculator: after it)
     let n = S.cur;
     while(n && !n.main) n = n.parent;
     HV_TREES.delete(String(S.game.id));
@@ -50958,6 +51474,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // (2026-11-02: they were left out without a word)
   const HV_SQ_LEFT = 'Some of the other device\'s squares didn\'t fit. '+HV_SQ_FULL;
   function hvAnnResolve(merge){
+    // the Capture Calculator ends first (review, 2026-11-19: the other version's lines went on through its scratch moves,
+    // and went with them); its tree from before another version (hvCalcStale) opens again on the record first
+    if(hvCalcOn()){
+      hvCalcEnd('done');
+      const T = HV_STATE;
+      if(T && T.annStale && hvTacStale()){ HV_TREES.delete(String(T.game.id)); hvOpen(T.game, T.username, { at:hvNodeRef(T.cur), flip:T.flipped }); }
+    }
     const id = hvAnnId(), n = id ? GN.notes[id] : null, S = HV_STATE;
     if(!n || !n.conflict) return;
     const a = document.activeElement, kb = !!(a && a.closest && a.closest('#hv-movelist .hv-ann-conflict'));

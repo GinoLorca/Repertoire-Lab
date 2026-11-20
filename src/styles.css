@@ -6120,3 +6120,99 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .game-line .game-line-name, .book-line-link { font-weight: 700; color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; }
 .game-line .game-line-name:hover, .book-line-link:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .book-line-acts { display: inline-flex; gap: 12px; margin-left: 10px; font-size: 13px; }
+
+/* ---------- Capture Calculator (components/CaptureCalc) ----------
+   On: the button pressed (.primary), a thin accent ring round the board and
+   an accent edge on the card — every colour from the theme's own tokens, so
+   it reads in every theme, light or dark. The ring is drawn over the board's
+   own edge (Uptown and Court Cards draw one of up to 5px on the board) and
+   inside the 4px gap to the material bars, so nothing moves. */
+.board-frame.calc-on::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 2px solid var(--accent);
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 6;
+}
+/* Its button, in the bar under the board: one line, never broken in two.
+   On an iPad on its side the bar's gaps close up a little, so the button and
+   Full screen still share the line with the pens. */
+.annotate-bar .calc-toggle { white-space: nowrap; }
+.analysis-layout.tight .annotate-bar { gap: 6px; }
+.calc-panel {
+  display: flex; flex-direction: column; gap: 8px;
+  border-left: 3px solid var(--accent);
+}
+:root[data-skin="bauhaus"] .calc-panel { border-left-width: 4px; }
+/* A custom wallpaper gives every panel the picture's edge, and Court Cards
+   gilds them: the calculator's accent edge (its "on" mark) stays on the left. */
+:root.has-custom-bg .panel.calc-panel,
+:root[data-skin="cards"] .panel.calc-panel:not(.dock-placeholder) { border-left-color: var(--accent); }
+.calc-head { display: flex; align-items: center; gap: 8px; }
+.calc-panel .calc-head h3 { margin: 0; font-size: 15px; }
+.calc-head .spacer { flex: 1; }
+.calc-start,
+.calc-move {
+  display: block; width: 100%; text-align: left;
+  background: transparent; border: 1px solid transparent; border-radius: 6px;
+  padding: 3px 6px; font-size: 13.5px; color: inherit;
+}
+.calc-start { color: var(--muted); }
+.calc-start:hover, .calc-move:hover { background: var(--card-hover); }
+.calc-start.current, .calc-move.current {
+  background: var(--accent-dim); border-color: var(--accent-dim); color: #fff;
+}
+.calc-moves {
+  list-style: none; margin: 0; padding: 0;
+  max-height: 12.5em; overflow-y: auto; scrollbar-width: thin;
+}
+.calc-move {
+  display: grid; grid-template-columns: minmax(5.6em, max-content) 1fr auto; gap: 10px; align-items: baseline;
+}
+.calc-move .calc-san { font-weight: 600; font-variant-numeric: tabular-nums; }
+.calc-move .calc-what { color: var(--muted); }
+.calc-move.current .calc-what { color: inherit; }
+.calc-move .calc-pts { font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Played past, then stepped back from: still there, quieter. */
+.calc-move.ahead { opacity: 0.55; }
+.calc-hint, .calc-hidden-note { margin: 0; color: var(--muted); font-size: 13.5px; }
+.calc-count { display: flex; flex-direction: column; gap: 6px; }
+.calc-balance { font-size: 24px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+/* The bar: White's half on the left, Black's on the right, filled from the
+   middle toward whoever is ahead (full at 10). Fixed white and black on a
+   mid grey — the same in every theme, like the evaluation bar. */
+.calc-bar { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.calc-bar-track {
+  position: relative; flex: 1; height: 12px; border-radius: 6px;
+  background: #7d8594; overflow: hidden;
+}
+.calc-bar-fill { position: absolute; top: 0; bottom: 0; transition: width 0.2s ease; }
+.calc-bar-fill.w { background: #f4f4f4; }
+.calc-bar-fill.b { background: #1f1f1f; }
+.calc-bar-mid {
+  position: absolute; left: calc(50% - 1px); top: 0; bottom: 0; width: 2px; background: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .calc-bar-fill { transition: none; }
+}
+.calc-took { font-size: 13.5px; display: flex; flex-direction: column; gap: 2px; }
+.calc-status { margin: 0; font-size: 13.5px; }
+.calc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+/* Under the board (one column, a phone): the balance and the status first,
+   right under the board, then the moves — a shorter list. */
+.calc-panel.compact .calc-head { order: 0; }
+.calc-panel.compact .calc-start { order: 1; }
+.calc-panel.compact .calc-count { order: 2; }
+.calc-panel.compact .calc-status { order: 3; }
+.calc-panel.compact .calc-moves,
+.calc-panel.compact .calc-hint { order: 4; max-height: 7.6em; }
+.calc-panel.compact .calc-took { order: 5; }
+.calc-panel.compact .calc-actions { order: 6; }
+.calc-panel.compact { padding: 11px 12px; }
+.calc-panel.compact .calc-balance { font-size: 21px; }
+/* The bar no longer than it reads well: on an iPad upright the card is the
+   page's width, and a full-width bar ran its Black end under the Telestrator's
+   pencil (.tele-fab, fixed in the window's bottom right corner). */
+.calc-panel.compact .calc-bar { max-width: 480px; }

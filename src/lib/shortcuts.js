@@ -51,6 +51,10 @@ export const SHORTCUTS = [
   { id: 'backToMainLine', label: 'Jump back to the actual game, out of any variation', default: '9' },
   // Works on every board, not just this one — see components/Telestrator.jsx.
   { id: 'toggleTelestrator', label: 'Telestrator — draw on any board with a finger, on / off', default: 't' },
+  // Chess Arcade's key too. X (the capture sign) was taken in both apps (Flip
+  // the board), so V: the nearest free letter there and here — W and Y are
+  // Game Review pen letters, Z and C pens.
+  { id: 'captureCalc', label: 'Capture Calculator on / off (Esc also turns it off)', default: 'v' },
 ];
 
 // A numpad digit's own `code` never changes, but the `key` it reports does:
@@ -81,17 +85,27 @@ export function keyToken(e) {
 }
 
 export function shortcutKey(settings, id) {
-  const bound = settings?.shortcuts?.[id];
+  const saved = settings?.shortcuts ?? {};
+  const bound = saved[id];
   if (bound) return bound.toLowerCase();
-  return (SHORTCUTS.find((s) => s.id === id)?.default ?? '').toLowerCase();
+  const def = (SHORTCUTS.find((s) => s.id === id)?.default ?? '').toLowerCase();
+  // A key you gave another action yourself beats a default: a key a later
+  // update hands out by default (V, the Capture Calculator) never takes over
+  // one already in use — that action shows as unbound (—) in Settings
+  // → Keyboard instead, where a key can be given it.
+  if (def && SHORTCUTS.some((s) => s.id !== id && String(saved[s.id] || '').toLowerCase() === def)) return '';
+  return def;
 }
 
-// Lowercased-key → action-id, rebuilt whenever bindings change. If two
-// actions somehow land on the same key the later one wins — the Settings
-// editor prevents this by swapping instead of overwriting.
+// Lowercased-key → action-id, rebuilt whenever bindings change. A key you
+// set yourself beats a default (shortcutKey above); two keys you set can't
+// collide — the Settings editor swaps instead of overwriting.
 export function shortcutMap(settings) {
   const map = {};
-  for (const s of SHORTCUTS) map[shortcutKey(settings, s.id)] = s.id;
+  for (const s of SHORTCUTS) {
+    const key = shortcutKey(settings, s.id);
+    if (key) map[key] = s.id;   // no key, nothing to press
+  }
   return map;
 }
 

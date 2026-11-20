@@ -59,7 +59,7 @@ import {
   parseMarks, withMarks, drawingOf, marksOfDrawing, START,
 } from '../lib/marks';
 import {
-  startFenOf, newGameAt, canonicalStartFen, isStandardStart, fen4 as positionKey,
+  startFenOf, newGameAt, canonicalStartFen, isStandardStart, fen4 as positionKey, sideToMove,
 } from '../lib/startPos';
 import {
   makeTree, lineThrough, nodePath, addMove, promote, promoteOne, removeNode,
@@ -75,6 +75,11 @@ import { cleanMoments, momentMarks } from '../lib/moments';
 import MomentsPanel from '../components/MomentsPanel';
 import MomentBoards from '../components/MomentBoards';
 import MomentPresenter from '../components/MomentPresenter';
+import CaptureCalc, { readHideCount, writeHideCount } from '../components/CaptureCalc';
+import {
+  calcLine, calcCount, calcStart, calcPlay, calcStep, calcKeep, calcFollow, startText as calcStartText, moveLabel as calcMoveLabel,
+  calcKeepMarks, calcNodeAt, drawingsHere, applyDrawing,
+} from '../lib/captureCalc';
 import ArchiveDialog from '../components/PgnArchive';
 import { readPgnFiles, indexGames, openGame } from '../lib/pgnArchive';
 import { DockLayout, WorkspaceBar, useWorkspace } from '../components/Workspace';
@@ -244,12 +249,16 @@ export default function AnalysisView({
     document.addEventListener('fullscreenchange', left);
     return () => document.removeEventListener('fullscreenchange', left);
   }, []);
+  // Set as the Capture Calculator turns on and off (below): with it on, Esc
+  // turns it off first (the board's own keys), not full screen with it.
+  const calcOnRef = useRef(false);
   useEffect(() => {
     if (!fullOn) return undefined;
     const onKey = (e) => {
       if (e.key !== 'Escape' || e.defaultPrevented) return;
       const t = e.target;
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(t?.tagName) || t?.isContentEditable) return;
+      if (calcOnRef.current) return;
       exitFull();
     };
     window.addEventListener('keydown', onKey);
@@ -373,6 +382,14 @@ export default function AnalysisView({
   }, [noteHighlight]);
   const highlightNoteSquare = (square) => setNoteHighlight({ square, key: Date.now() });
   const [pendingPromotion, setPendingPromotion] = useState(null); // {from, to, color} awaiting a piece choice
+  // The Capture Calculator (lib/captureCalc, components/CaptureCalc): null
+  // when off. Its moves are its own — the board's tree and `head` stay where
+  // it was turned on, so turning it off puts the board back and saves
+  // nothing, unless "Keep as a side line" puts them into the tree.
+  const [calc, setCalc] = useState(null);
+  calcOnRef.current = Boolean(calc);
+  const [calcHidden, setCalcHidden] = useState(readHideCount); // "Hide the count", this device only
+  const calcCountHidden = Boolean(calc && calcHidden);   // ...and while it's on, the material bars too
   const [saving, setSaving] = useState(false); // "save to Games" dialog
   const [resetOpen, setResetOpen] = useState(false); // "Start a fresh board?"
   // Game Review: a full engine pass over the loaded game, badging every move
@@ -451,7 +468,10 @@ export default function AnalysisView({
     if ('ply' in r) return r.ply <= n ? r.ply : null;
     return r.line[0] <= n ? r.line : null;
   };
-  const reviewRefHere = useMemo(() => reviewRefAt(head), [reviewEditable, tree, head]); // eslint-disable-line react-hooks/exhaustive-deps
+  // None while the Capture Calculator is on: the board is showing its scratch
+  // moves (head stays where it was turned on), so a drawing, comment or badge
+  // then must never land on the game's move or reach a student.
+  const reviewRefHere = useMemo(() => (calc ? null : reviewRefAt(head)), [reviewEditable, tree, head, Boolean(calc)]); // eslint-disable-line react-hooks/exhaustive-deps
   // What the review says on the move on the board — and, editable, what can be changed there.
   const reviewHere = useMemo(() => {
     if (!review && reviewRefHere == null) return null;
@@ -732,7 +752,16 @@ export default function AnalysisView({
     }
     return c;
   }, [baseFen, moves, ply]);
-  const fen = game.fen();
+  // With the Capture Calculator on, the board shows its sequence: everything
+  // that reads the position (the engine, the explorer, legal moves, the
+  // material bars, playing a move) follows it.
+  const calcData = useMemo(
+    () => (calc ? calcLine(calc.anchorFen, calc.sans) : null),
+    [calc?.anchorFen, calc?.sans], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const calcAt = calc && calcData ? Math.min(calc.at, calcData.moves.length) : 0;
+  const fen = calcData ? calcData.fens[calcAt] : game.fen();
+  const calcNow = useMemo(() => (calcData ? calcCount(calcData, calcAt) : null), [calcData, calcAt]);
   const fenRef = useRef(fen); // read by the engine listener, which is set up once
   fenRef.current = fen;
 
@@ -756,6 +785,8 @@ export default function AnalysisView({
     const onKey = (e) => {
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      // Typing in an editable box is typing, not a shortcut.
+      if (e.target.isContentEditable) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       // Through eventKey (lib/shortcuts) so a numpad digit reaches the
       // shortcuts below as its printed digit whatever Num Lock is doing —
@@ -763,26 +794,37 @@ export default function AnalysisView({
       // jump-to-end case a few lines down, doing nothing visible at all.
       const key = eventKey(e);
       const settings = (patch) => dispatch({ type: 'setSettings', settings: patch });
+      // With the Capture Calculator on, the keys step through its moves.
+      const now = calc ? calcAt : ply;
+      const end = calc ? (calcData?.moves.length ?? 0) : moves.length;
       switch (key) {
-        case 'ArrowLeft': e.preventDefault(); setPly(ply - 1); return;
-        case 'ArrowRight': e.preventDefault(); setPly(ply + 1); return;
+        case 'ArrowLeft': e.preventDefault(); stepTo(now - 1); return;
+        case 'ArrowRight': e.preventDefault(); stepTo(now + 1); return;
         // A presenter clicker's back/forward buttons send ↑/↓, so with that
         // setting on they step one move; otherwise they jump to first/last,
         // the chess.com/Lichess convention. setPly clamps, so a held button
         // (key-repeat fires keydown again and again) stops at either end.
-        case 'ArrowUp': e.preventDefault(); setPly(clickerMode ? ply - 1 : 0); return;
-        case 'ArrowDown': e.preventDefault(); setPly(clickerMode ? ply + 1 : moves.length); return;
+        case 'ArrowUp': e.preventDefault(); stepTo(clickerMode ? now - 1 : 0); return;
+        case 'ArrowDown': e.preventDefault(); stepTo(clickerMode ? now + 1 : end); return;
         // Other clickers send PageUp/PageDown: one move, whatever the setting.
         // Engine mode only — Compare and the Board Editor are taller than the
         // window and these keys should still scroll them. A numpad 9/3 with
         // Num Lock off reports PageUp/PageDown too, but eventKey() has already
         // turned it into its digit by its `code`, so it never lands here.
-        case 'PageUp': if (mode !== 'engine') return; e.preventDefault(); setPly(ply - 1); return;
-        case 'PageDown': if (mode !== 'engine') return; e.preventDefault(); setPly(ply + 1); return;
-        case 'Home': e.preventDefault(); setPly(0); return;
-        case 'End': e.preventDefault(); setPly(moves.length); return;
+        case 'PageUp': if (mode !== 'engine') return; e.preventDefault(); stepTo(now - 1); return;
+        case 'PageDown': if (mode !== 'engine') return; e.preventDefault(); stepTo(now + 1); return;
+        case 'Home': e.preventDefault(); stepTo(0); return;
+        case 'End': e.preventDefault(); stepTo(end); return;
         case '?': setShortcutsOpen((o) => !o); return;
-        case 'Escape': setShortcutsOpen(false); setAnnotateHelpOpen(false); return;
+        // One thing at a time: the shortcut list or the help first, a piece
+        // waiting to promote (the picker cancels it), then the calculator.
+        case 'Escape':
+          // preventDefault tells full screen's own Esc (above) this one is
+          // taken: when this listener runs first, React has already turned
+          // calcOnRef off by the time that one runs, so the ref can't tell it.
+          if (shortcutsOpen || annotateHelpOpen) { e.preventDefault(); setShortcutsOpen(false); setAnnotateHelpOpen(false); return; }
+          if (calc && !pendingPromotion) { e.preventDefault(); calcOff(); }
+          return;
         default: break;
       }
       // Pen keys aren't here — they're held during a drag (see currentPenColor
@@ -811,6 +853,8 @@ export default function AnalysisView({
         case 'highlightBlue': pickAlternative(1); break;
         case 'highlightYellow': pickAlternative(2); break;
         case 'backToMainLine': setHead(lastMainLineAncestor(tree, head)); break;
+        // Once per press: a held V's key-repeat would flick it on and off.
+        case 'captureCalc': if (mode === 'engine' && !e.repeat) toggleCalc(); break;
         default: break;
       } };
       const tok = keyToken(e);
@@ -829,7 +873,8 @@ export default function AnalysisView({
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moves.length, ply, lineNodes, showEngineArrows, showEngineLines, showEvalBar, keyMap, head, tree,
-    variationHighlights, clickerMode, mode, hideSuggestions, arrowOn[0], arrowOn[1], arrowOn[2], state.settings.arrowProfile]);
+    variationHighlights, clickerMode, mode, hideSuggestions, arrowOn[0], arrowOn[1], arrowOn[2], state.settings.arrowProfile,
+    calc, calcData, calcAt, fen, annotations, pendingPromotion, shortcutsOpen, annotateHelpOpen, splitId]);
 
   // ---------- Repertoire awareness ----------
 
@@ -952,26 +997,43 @@ export default function AnalysisView({
 
   // ---------- Annotations ----------
 
-  const marks = annotations[fen] ?? EMPTY_MARKS;
-  // …and Game Review's on this move, drawn with them (drawing changes the board's own).
-  const shownMarks = useMemo(() => marksWith(marks, review?.marks?.[head]), [marks, review, head]);
-
   // On a saved game, the arrows and squares drawn at a move are its Game
   // Review's: what the board has of its own there and the review's drawn ones
   // are one set, and a change goes into the review (the board's own copy
   // goes, so there's one). A tactic's or a CLAMP letter's marks are theirs,
   // changed in Game Review.
-  const editableMarks = reviewRefHere != null ? marksWith(marks, review?.drawn?.[head]) : marks;
-  const updateMarks = (fn) => {
-    if (reviewRefHere != null) {
-      const next = fn(editableMarks);
-      if (writeReview((an) => setMarksAt(an, reviewRefHere, next)) && annotations[fen]) {
+  //
+  // The Capture Calculator comes first (lib/captureCalc drawingsHere): while
+  // it's on, what's drawn is its own scratch copy, like its moves — started
+  // from what the board has drawn on that position, so your drawings show
+  // and keeping the line adds to them — and never the game's Game Review,
+  // so nothing drawn then reaches the review or a student (reviewRefHere is
+  // null then too).
+  const drawn = drawingsHere({
+    calc, fen, annotations, reviewRef: reviewRefHere, reviewDrawn: review?.drawn?.[head], join: marksWith,
+  });
+  const { marks } = drawn;
+  const editableMarks = drawn.editable;
+  // …and Game Review's on this move, drawn with them (drawing changes the
+  // board's own). In the calculator: on its start, and on the game's own
+  // moves as long as it's following them.
+  const calcNode = useMemo(() => (calc ? calcNodeAt(tree, calc, calcAt) : null), [tree, calc, calcAt]);
+  const shownMarks = useMemo(
+    () => marksWith(marks, review?.marks?.[calc ? calcNode : head]),
+    [marks, review, head, calc, calcNode],
+  );
+  const updateMarks = (fn) => applyDrawing(drawn, {
+    fen,
+    annotations,
+    fn,
+    setCalc,
+    setAnnotations,
+    writeReviewMarks: (ref, next) => {
+      if (writeReview((an) => setMarksAt(an, ref, next)) && annotations[fen]) {
         setAnnotations((all) => { const n = { ...all }; delete n[fen]; return n; });
       }
-      return;
-    }
-    setAnnotations((all) => ({ ...all, [fen]: fn(all[fen] ?? EMPTY_MARKS) }));
-  };
+    },
+  });
 
   // The arrow colour profile (lib/arrowProfiles.js): with Sequential or
   // Strategic on, an arrow or square drawn without a pen key takes the
@@ -1110,7 +1172,8 @@ export default function AnalysisView({
   }));
 
   const clearMarks = () => {
-    if (reviewRefHere != null) { updateMarks(() => EMPTY_MARKS); return; }
+    // The calculator's copy (scratch) or the game's Game Review: as any change.
+    if (drawn.to !== 'board') { updateMarks(() => EMPTY_MARKS); return; }
     setAnnotations((all) => {
       const next = { ...all };
       delete next[fen];
@@ -1503,8 +1566,10 @@ export default function AnalysisView({
   const showLegal = state.settings.showLegalMoves !== false;
   // The move that produced this position, marked on the board.
   const lastMove = useMemo(
-    () => lastMoveOf(Chess, moves, ply, baseFen),
-    [moves, ply, baseFen],
+    () => (calc && calcAt > 0
+      ? lastMoveOf(Chess, calc.sans, calcAt, calc.anchorFen)
+      : lastMoveOf(Chess, moves, ply, baseFen)),
+    [moves, ply, baseFen, calc, calcAt],
   );
   // The move's CLAMP letters on the board (Board's top layer): on the squares
   // they're about, or the square the piece moved to — as Chess Arcade does.
@@ -1528,6 +1593,15 @@ export default function AnalysisView({
     const san = moves[ply - 1];
     if (san) playMoveSound(san);
   }, [ply, soundOn]); // eslint-disable-line react-hooks/exhaustive-deps
+  // …and through the Capture Calculator's moves.
+  const prevCalcAtRef = useRef(0);
+  useEffect(() => {
+    const prev = prevCalcAtRef.current;
+    prevCalcAtRef.current = calcAt;
+    if (!calc || !soundOn || calcAt === prev || calcAt === 0) return;
+    const san = calc.sans[calcAt - 1];
+    if (san) playMoveSound(san);
+  }, [calcAt, calc?.sans, soundOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep the move you're on in view: a long game scrolls itself as you step
   // through instead of leaving you looking at move 9 of 41.
@@ -1598,10 +1672,77 @@ export default function AnalysisView({
   // starts a variation there; replaying a move that's already recorded simply
   // follows it.
   const record = (san) => {
+    // The Capture Calculator's moves are its own, not the tree's.
+    if (calc) { setCalc((c) => calcPlay(c, san)); return; }
     const { tree: next, nodeId } = addMove(tree, head, san);
     setTree(next);
     setHead(nodeId);
   };
+
+  // ---------- Capture Calculator (lib/captureCalc) ----------
+  // On at the move the board is on; the board's own moves stay where they
+  // are. Off (Done, its key, Esc, or the board going anywhere else) puts the
+  // board back there and keeps nothing.
+  const calcOff = () => {
+    setCalc(null);
+    setPicked(null);
+    setPendingPromotion(null);
+  };
+  const toggleCalc = () => {
+    if (calc) { calcOff(); return; }
+    if (mode !== 'engine' || splitMoment) return;
+    setCalc(calcStart({
+      anchorId: head,
+      anchorFen: fen,
+      baseFen,
+      startLabel: ply > 0 ? calcMoveLabel(ply - 1, baseFen, moves[ply - 1]) : null,
+      // What's drawn on a position shows in it (lib/captureCalc calcMarksAt):
+      // a copy is taken the first time it's drawn on, changed only if kept.
+      marks: {},
+    }));
+    setPicked(null);
+    setPendingPromotion(null);
+  };
+  // The step keys and buttons: through the calculator's moves while it's on.
+  // One step on from the end of them, while they're still the board's own
+  // line, plays that line's next move into them — so → from the start counts
+  // the trades the game itself made.
+  const stepTo = (n) => {
+    if (calc) {
+      if (n === calcAt + 1 && calcAt === calc.sans.length) {
+        const next = calcFollow(tree, calc.anchorId, calc.sans).end?.children?.[0];
+        if (next) { setCalc((c) => calcPlay(c, next.san)); return; }
+      }
+      setCalc((c) => calcStep(c, n));
+      return;
+    }
+    setPly(n);
+  };
+  // Keep as a side line: its moves into the tree from where it started (a
+  // move already there is followed), what was drawn on them with them, and
+  // the board stays on the position it's showing.
+  const keepCalc = () => {
+    if (!calc || !calcData?.moves.length || !findNode(tree, calc.anchorId)) return;
+    const { tree: next, ids } = calcKeep(tree, calc.anchorId, calcData.moves.map((m) => m.san));
+    const kept = calc;
+    const target = calcAt > 0 ? ids[calcAt - 1] : calc.anchorId;
+    setTree(next);
+    // Its drawings on the positions kept, added to the board's own: yours
+    // are never replaced or taken away (lib/captureCalc calcKeepMarks).
+    setAnnotations((all) => calcKeepMarks(all, kept, calcData.fens));
+    calcOff();
+    setHead(target);
+  };
+  // Anywhere else — another move clicked in the list, something loaded, the
+  // board swapped for Compare, the Board Editor or a Before & After — and
+  // the calculator is off.
+  useEffect(() => {
+    if (!calc) return;
+    if (mode !== 'engine' || head !== calc.anchorId || baseFen !== calc.baseFen || splitId
+      || !findNode(tree, calc.anchorId)) calcOff();
+  }, [mode, head, baseFen, splitId, tree]); // eslint-disable-line react-hooks/exhaustive-deps
+  // "(you)" after your colour: your own game (not a student's).
+  const calcYou = liveGame && (reviewOwner?.kind ?? 'self') === 'self' ? sideOf(liveGame.meta?.color) : null;
 
   // Taking moves out of the tree takes any Before & After that stood on them:
   // asked first, then the moments put right — gone where their Before or
@@ -1906,16 +2047,18 @@ export default function AnalysisView({
     [initialLine, liveGame, moves, positionIndex, baseFen],
   );
   // At the start every line is "the same position": nothing to say yet.
-  const similarTooSoon = fromStart && ply === 0;
+  // The board's position is this many moves in (the Capture Calculator's on top).
+  const fenPly = ply + calcAt;
+  const similarTooSoon = fromStart && fenPly === 0;
   const similar = useMemo(() => {
     if (!similarVisible || positionIndex.size === 0 || similarTooSoon) return [];
     if (similarIndexRef.current.of !== positionIndex) {
       similarIndexRef.current = { of: positionIndex, index: buildSimilarIndex(positionIndex) };
     }
     return similarOpenings(similarIndexRef.current.index, fen, {
-      gamePly: fromStart ? ply : null, side: playingSide,
+      gamePly: fromStart ? fenPly : null, side: playingSide,
     });
-  }, [similarVisible, positionIndex, fen, fromStart, ply, playingSide, similarTooSoon]);
+  }, [similarVisible, positionIndex, fen, fromStart, fenPly, playingSide, similarTooSoon]);
   // The Stockfish check: each suggestion's move, played here, graded the way
   // Game Review grades a move — on an engine of its own, so the Engine tab's
   // lines carry on. A check still going when the board moves on is dropped
@@ -2239,6 +2382,27 @@ export default function AnalysisView({
   // out the way they always have been (classicLayout, below) or the way a
   // Studio workspace arranges them (components/Workspace.jsx).
 
+  // The Capture Calculator's card: beside the board in two and three
+  // columns (the top of the engine's column) and in a wide full screen (the
+  // top of the moves' column), under it otherwise.
+  const calcInBoard = fullOn ? !fullWide : layoutClass === 'stacked' || dockOn;
+  const calcPanel = () => (calc && calcData && calcNow ? (
+    <CaptureCalc
+      line={calcData}
+      count={calcNow}
+      start={calcStartText(calc.startLabel, sideToMove(calc.anchorFen))}
+      you={calcYou}
+      hidden={calcHidden}
+      onHide={(v) => { setCalcHidden(v); writeHideCount(v); }}
+      onGo={stepTo}
+      onDone={calcOff}
+      // Nothing to keep while every move is already on the board's tree.
+      onKeep={calcFollow(tree, calc.anchorId, calc.sans).all ? null : keepCalc}
+      keyName={keyName('captureCalc')}
+      compact={calcInBoard}
+    />
+  ) : null);
+
   // The board, its pen and the reminder under it.
   const boardPanel = () => (
     <>
@@ -2265,13 +2429,17 @@ export default function AnalysisView({
       />
     )}
     <div className="board-column" style={{ width: boardWidth }}>
+    {/* With the Capture Calculator's count hidden, the bars above and under
+        the board keep their room but show nothing: their pieces taken and
+        "+1" are the very answer the student is working out (Chess Arcade's
+        rule too). */}
     <MaterialBar
-      pieces={orientation === 'white' ? material.capturedByBlack : material.capturedByWhite}
+      pieces={calcCountHidden ? [] : orientation === 'white' ? material.capturedByBlack : material.capturedByWhite}
       capturedColor={orientation === 'white' ? 'white' : 'black'}
-      advantage={orientation === 'white' ? Math.max(0, -material.diff) : Math.max(0, material.diff)}
+      advantage={calcCountHidden ? 0 : orientation === 'white' ? Math.max(0, -material.diff) : Math.max(0, material.diff)}
     />
     <div
-      className="board-frame"
+      className={`board-frame${calc ? ' calc-on' : ''}`}
       style={{
         position: 'relative', width: boardWidth, height: boardWidth,
         // Otherwise a finger dragging to draw an arrow reads as a page
@@ -2304,8 +2472,8 @@ export default function AnalysisView({
       ownArrows={false}
       customSquareStyles={squareStyles}
       lastMove={lastMove}
-      badge={shownBadges[head]}
-      clampAt={boardClamp}
+      badge={calc && calcAt > 0 ? undefined : shownBadges[head]}
+      clampAt={calc && calcAt > 0 ? undefined : boardClamp}
       suitPick={cardsPick}
       boardOrientation={orientation}
       boardWidth={boardWidth}
@@ -2346,13 +2514,17 @@ export default function AnalysisView({
     )}
     </div>
     <MaterialBar
-      pieces={orientation === 'white' ? material.capturedByWhite : material.capturedByBlack}
+      pieces={calcCountHidden ? [] : orientation === 'white' ? material.capturedByWhite : material.capturedByBlack}
       capturedColor={orientation === 'white' ? 'black' : 'white'}
-      advantage={orientation === 'white' ? Math.max(0, material.diff) : Math.max(0, -material.diff)}
+      advantage={calcCountHidden ? 0 : orientation === 'white' ? Math.max(0, material.diff) : Math.max(0, -material.diff)}
     />
     </div>
     </div>
     )}
+    {/* One column (an iPad held upright, a phone) or Studio's dock: the
+        Capture Calculator right under the board, so the balance and the
+        board are seen together. */}
+    {calcInBoard && calcPanel()}
 
     {!splitMoment && (
     <div className="annotate-bar" style={{ maxWidth: boardWidth }}>
@@ -2449,6 +2621,26 @@ export default function AnalysisView({
       <button className="small ghost" disabled={!hasMarks} onClick={clearMarks}>
         Clear
       </button>
+      {/* The Capture Calculator: here in the bar right under the board, so
+          it's in sight beside the board at every size (the step buttons sit
+          under a saved game's Notes and Game Review cards). Pressed while
+          on, like Draw; its key (V) and the card's Done turn it off too. */}
+      {mode === 'engine' && (() => {
+        const calcKey = keyName('captureCalc');
+        const calcTitle = `Capture Calculator${calcKey ? ` (${calcKey})` : ''}`;
+        return (
+          <button
+            type="button"
+            className={`small calc-toggle${calc ? ' primary' : ''}`}
+            aria-pressed={Boolean(calc)}
+            title={calcTitle}
+            aria-label={calcTitle}
+            onClick={toggleCalc}
+          >
+            Capture Calculator
+          </button>
+        );
+      })()}
       {mode === 'engine' && (
         <button
           type="button"
@@ -2645,16 +2837,21 @@ export default function AnalysisView({
       </div>
     );
   };
-  const controlsPanel = () => (
-    <div className="viewer-controls">
-      <button title="Start" onClick={() => setPly(0)}><SkipStartIcon size={16} /></button>
-      <button onClick={() => setPly((p) => Math.max(0, p - 1))}>◀</button>
-      <button onClick={() => setPly((p) => Math.min(moves.length, p + 1))}>▶</button>
-      <button title="End" onClick={() => setPly(moves.length)}><SkipEndIcon size={16} /></button>
-      <button onClick={() => setOrientation((o) => (o === 'white' ? 'black' : 'white'))}>⇅ Flip</button>
-      <button disabled={boardIsFresh} onClick={() => setResetOpen(true)}>Reset</button>
-    </div>
-  );
+  const controlsPanel = () => {
+    // While the Capture Calculator is on these step through its moves.
+    const now = calc ? calcAt : ply;
+    const end = calc ? (calcData?.moves.length ?? 0) : moves.length;
+    return (
+      <div className="viewer-controls">
+        <button title="Start" onClick={() => stepTo(0)}><SkipStartIcon size={16} /></button>
+        <button onClick={() => stepTo(Math.max(0, now - 1))}>◀</button>
+        <button onClick={() => stepTo(calc ? now + 1 : Math.min(end, now + 1))}>▶</button>
+        <button title="End" onClick={() => stepTo(end)}><SkipEndIcon size={16} /></button>
+        <button onClick={() => setOrientation((o) => (o === 'white' ? 'black' : 'white'))}>⇅ Flip</button>
+        <button disabled={boardIsFresh} onClick={() => setResetOpen(true)}>Reset</button>
+      </div>
+    );
+  };
   const positionPanel = () => (
     <div className="fen-row">
       <input
@@ -2733,15 +2930,17 @@ export default function AnalysisView({
         — a coach's from Coaches Corner, or your own — pinned to the top
         of this column so it's visible whichever of Engine/Explorer/
         Annotate is open below, not just tucked under one tab. Nothing
-        renders here at all when there's nothing to say. */}
-    {currentNote && (
+        renders here at all when there's nothing to say. With the Capture
+        Calculator away from its start, the board isn't on that move: no
+        note, like the Game Review card below. */}
+    {currentNote && !(calc && calcAt > 0) && (
       <div className="side-note">
         <MoveNote key={currentNote.index} {...currentNote} startFen={baseFen} onMoveClick={highlightNoteSquare} />
       </div>
     )}
     {/* What Game Review says on this move: its comment, its badge, CLAMP
         letters and tactics (lib/reviewOnBoard). Changed in Game Review. */}
-    {reviewHere && (
+    {reviewHere && !(calc && calcAt > 0) && (
       <div className="side-note review-move-note">
         <div className="review-move-head">
           <span>Game Review</span>
@@ -3479,6 +3678,7 @@ export default function AnalysisView({
         {!fullWide && controlsPanel()}
       </div>
       <div className="analysis-full-side">
+        {!calcInBoard && calcPanel()}
         {fullWide && controlsPanel()}
         {movesPanel()}
       </div>
@@ -3514,6 +3714,7 @@ export default function AnalysisView({
       </div>
 
       <div className="analysis-engine" ref={setEngineColEl}>
+        {!calcInBoard && calcPanel()}
         {moveNotePanel()}
         {moves.length > 0 && ((initialLine?.meta || initialLine?.subtitle) || fromStart) && (
           <div className="analysis-cards">
@@ -3586,7 +3787,7 @@ export default function AnalysisView({
       case 'notes': return Boolean(liveGame);
       case 'game': return Boolean((initialLine?.meta || initialLine?.subtitle) && moves.length > 0);
       case 'repertoire': return Boolean(fromStart && moves.length > 0);
-      case 'movenote': return Boolean(currentNote || reviewHere);
+      case 'movenote': return Boolean((currentNote || reviewHere) && !(calc && calcAt > 0));
       case 'moves': return moves.length > 0 || baseFen !== START_FEN;
       case 'moments': return tree.children.length > 0 || moments.length > 0;
       case 'annotate': return Boolean(coachMode);
