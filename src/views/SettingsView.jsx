@@ -873,6 +873,20 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
           on={s.bookMoves !== false}
           onChange={(v) => set({ bookMoves: v })}
         />
+        {/* Touch screens: a rested finger draws (components/useHoldToDraw) —
+            from a piece too, unless this is off (lib/grab; the analysis board
+            and, through components/Board, Browse as a tree). No default in
+            lib/settingsDefaults: absent reads as on, as it has always been. */}
+        <Toggle
+          label="Hold a piece to draw an arrow from it"
+          hint="Touch screens, on the analysis board and in Browse as a tree. On: rest a finger on a
+            piece for a moment, then drag, and an arrow is drawn instead of the piece moving. Off: a
+            finger on a piece of the side to move always picks it up — holding still draws from
+            empty squares and the other side’s pieces. (In Learn and Practice your own piece always
+            picks up.)"
+          on={s.holdDrawFromPieces !== false}
+          onChange={(v) => set({ holdDrawFromPieces: v })}
+        />
         <div className="settings-row">
           <span>On a student’s game, check moves against</span>
           <select

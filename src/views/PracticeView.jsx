@@ -19,6 +19,7 @@ import LegalDots from '../components/LegalDots';
 import PromotionPicker from '../components/PromotionPicker';
 import { lastMoveOf, NOTE_HIGHLIGHT_STYLE, PICKED_STYLE } from '../lib/legalMoves';
 import { suitPick } from '../lib/suitMarks';
+import { ownPiece, takenSquare } from '../lib/grab';
 import { skinId } from '../lib/skins';
 import { badgeAt } from '../lib/badges';
 import BoardArrows from '../components/BoardArrows';
@@ -471,6 +472,19 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   // picked and slingshotting it home. The board itself never moves, so there's
   // no waiting on the board library to catch up.
   const [wrongMove, setWrongMove] = useState(null); // { from, to, html, phase }
+  // The reply that's on its way: { due (the move it answers), t (its timer) }.
+  // The pause before it is there to give you time to take the reply in — so
+  // reaching for your next piece (lifting it, or tapping it) brings the reply
+  // on at once: you're ready for it. Until this, nothing of yours could be
+  // picked up in that pause, which felt like the board not listening.
+  const replyRef = useRef(null);
+  const hastenReply = () => {
+    const r = replyRef.current;
+    if (!r) return;
+    clearTimeout(r.t);
+    replyRef.current = null;
+    setPly((p) => (p === r.due ? p + 1 : p));
+  };
   // A square glowed because a move reference in a note was clicked — see
   // MoveNote.jsx. `key` forces the CSS animation to restart even when the
   // same square is clicked again before the last glow finished fading.
@@ -659,6 +673,30 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   }, [current, ply, bookOpen]);
 
   const reviewing = reviewPly !== null;
+  // The reply to your move is on its way, with a move of yours to follow it:
+  // the pause before it (or before the first move of a line the other side
+  // opens). Not before the reply that ends the line — there's nothing of
+  // yours to reach for, and a piece held through the end of one line would
+  // come down in the next.
+  const replyDue = Boolean(current) && !completed && !bookOpen && !userTurn && ply + 1 < endPly;
+  // Your pieces can be lifted whenever the line is waiting on you, or is
+  // about to be — not once it's over, nor while you're looking back.
+  const canGrab = Boolean(current) && !completed && !reviewing && ply < endPly && (userTurn || replyDue);
+  // The one piece of yours that pause keeps down: the piece the reply is
+  // about to take (lib/grab takenSquare). Lifted, it would be taken out of
+  // your hand.
+  const replyTakes = useMemo(() => {
+    if (!replyDue) return null;
+    try { return takenSquare(new Chess(game.fen()).move(moves[ply])); } catch { return null; }
+  }, [replyDue, game]); // eslint-disable-line react-hooks/exhaustive-deps
+  // …yours, not the other side's (theirs only ever went back). One function
+  // for the session, reading what it needs from a ref: the board library
+  // holds on to the one it was given when a piece last moved.
+  const liftRef = useRef(null);
+  liftRef.current = { white: userIsWhite, taken: replyTakes };
+  const liftsMine = useMemo(() => ({ piece, sourceSquare }) => (
+    ownPiece(piece, liftRef.current.white) && sourceSquare !== liftRef.current.taken
+  ), []);
   const reviewFen = useMemo(() => {
     if (!reviewing) return null;
     return replay(moves.slice(0, reviewPly), startFenOf(current.variation)).game.fen();
@@ -948,11 +986,18 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
       // A line set up from a position, with the other side to move first:
       // time to take in the position before anything moves.
       const setUpOpening = ply === 0 && !isStandardStart(startFenOf(current.variation));
+      // (Only from this move: a reply brought forward — hastenReply, below —
+      // and the timer it replaced can't both play one.)
+      const due = ply;
       const t = setTimeout(
-        () => setPly((p) => p + 1),
+        () => setPly((p) => (p === due ? p + 1 : p)),
         lastOfLine ? quick : setUpOpening ? Math.max(pace.reply, pace.advance) : pace.reply,
       );
-      return () => clearTimeout(t);
+      replyRef.current = { due, t };
+      return () => {
+        clearTimeout(t);
+        if (replyRef.current?.t === t) replyRef.current = null;
+      };
     }
     return undefined;
   // bookOpen: the reply (and the end of the line, with its confetti) waits
@@ -1062,18 +1107,18 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
     };
   }, [wrongMove]);
 
-  // The real piece hides while its double is away, so there's never two of it.
+  // The real piece is out of sight while its double is away, so there's never
+  // two of it — out of sight, not gone: it can still be picked up (hidden
+  // outright, a finger went straight through it to the square). Marked on
+  // its square, which the board library leaves alone, rather than on the
+  // piece, whose own style the library writes as it's lifted.
   useEffect(() => {
-    const el = wrongMove
-      && boardRef.current?.querySelector(`[data-square="${wrongMove.from}"] [data-piece]`);
-    if (el) el.style.visibility = 'hidden';
+    const sq = wrongMove && boardRef.current?.querySelector(`[data-square="${wrongMove.from}"]`);
+    if (sq) sq.classList.add('piece-away');
     return () => {
-      if (el) el.style.visibility = '';
       // You can play on while the copy is still in the air, so make sure no
-      // piece is ever left invisible.
-      boardRef.current?.querySelectorAll('[data-piece]').forEach((p) => {
-        if (p.style.visibility === 'hidden') p.style.visibility = '';
-      });
+      // piece is ever left unseen.
+      boardRef.current?.querySelectorAll('.piece-away').forEach((el) => el.classList.remove('piece-away'));
     };
   }, [wrongMove?.from, !!wrongMove]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1241,8 +1286,21 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
     };
     const home = at(from);
     const away = at(to);
+    // The copy is taken as the piece is let go — when, after a drag, the board
+    // library still has the piece hidden (it shows the one in the air). A
+    // copy of that was unseen too, and with the real piece out of sight for
+    // the flight, a dragged wrong move made the piece vanish and come back.
+    // So the copy is always shown, where its own wrapper puts it.
+    let html = '';
+    if (el) {
+      const copy = el.cloneNode(true);
+      Object.assign(copy.style, {
+        opacity: '1', visibility: 'visible', transform: 'none', transition: 'none',
+      });
+      html = copy.outerHTML;
+    }
     setWrongMove({
-      from, to, size, home, away, html: el?.outerHTML ?? '', at: Date.now(),
+      from, to, size, home, away, html, at: Date.now(),
     });
   };
 
@@ -1271,7 +1329,19 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   // Tap/click a piece then its destination — works with a trackpad, a mouse
   // or a finger, and doesn't depend on drag support at all.
   const onSquareClick = (square) => {
-    if (!userTurn || completed) return;
+    // (Nor between the line's last move and its card: there's no move left.)
+    if (completed || ply >= endPly) return;
+    if (!userTurn) {
+      // The reply is on its way: a tap on one of your pieces says you're
+      // ready for it, and picks the piece up. (Not while you're looking
+      // back at an earlier move; nor the piece the reply is about to take.)
+      const mine = replyDue && !reviewing && square !== replyTakes && game.get(square);
+      if (mine && (mine.color === 'w') === userIsWhite) {
+        hastenReply();
+        setPickedSquare(square);
+      }
+      return;
+    }
     if (pickedSquare) {
       // Tapping the picked piece again puts it back down — see the same note
       // in AnalysisView's onSquareClick.
@@ -1342,7 +1412,10 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   };
 
   const onPieceDrop = (from, to) => {
-    if (!userTurn || completed) return false;
+    // Past the line's last move there's nothing to play — in the moment
+    // before its card comes up, a move made then was marked wrong against a
+    // line already finished.
+    if (!userTurn || completed || ply >= endPly) return false;
     setPickedSquare(null);
     let needsChoice = false;
     try {
@@ -1521,10 +1594,22 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             boardOrientation={orientation}
             onPieceDrop={onPieceDrop}
             onSquareClick={onSquareClick}
-            onPieceDragBegin={(piece, square) => setPickedSquare(square)}
+            // Lifting a piece brings on the reply it was waiting for, and
+            // ends the red flash of a wrong move: either way it's yours.
+            onPieceDragBegin={(piece, square) => {
+              hastenReply();
+              if (wrongMove) setWrongMove(null);
+              setPickedSquare(square);
+            }}
             onPieceDragEnd={() => setPickedSquare(null)}
             onPromotionCheck={() => false}
-            arePiecesDraggable={userTurn && !completed && !reviewing && !wrongMove}
+            // Your own pieces, from the moment you've moved: not only once
+            // the reply has been played, and through a wrong move's flash.
+            arePiecesDraggable={canGrab}
+            isDraggablePiece={liftsMine}
+            // …and a finger on one always lifts it: never a hold to draw
+            // (components/Board `liftFirst`).
+            liftFirst
             customSquareStyles={(() => {
               const base = reviewing
                 ? {}

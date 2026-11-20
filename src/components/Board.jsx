@@ -19,6 +19,7 @@ import {
   profileOf, drawArrow, drawSquare, applyColors, colorOfNext, squareMarkStyle, reviewPenColor,
 } from '../lib/arrowProfiles';
 import { watchHeldKeys, heldKeys, markDrawn } from '../lib/penHold';
+import { liftable, lateDrop, dropSquare } from '../lib/grab';
 
 export const DEFAULT_SQUARE_LIGHT = '#c6d3e1';
 export const DEFAULT_SQUARE_DARK = '#4a6a8f';
@@ -46,8 +47,10 @@ const dndProps = isTouchCapable
   ? {
     customDndBackend: TouchBackend,
     // A piece drag starts once a finger has travelled as far as gives up a
-    // hold to draw (useHoldToDraw), so a finger resting on a piece is never
-    // both lifting it and drawing from it.
+    // hold to draw (useHoldToDraw), so a finger resting on a square is never
+    // both lifting a piece and drawing from it. (Where a piece comes first
+    // there's no hold to give up on one that can be lifted: DrawableBoard's
+    // `skip`.)
     customDndBackendOptions: { enableMouseEvents: true, delayTouchStart: 0, touchSlop: HOLD_SLOP },
   }
   : {};
@@ -253,7 +256,7 @@ function BoardTopMarks({
 }
 
 export default function Board({
-  position, customSquareStyles, lastMove, badge, clampAt = null, suitPick = null, ownArrows = true, marks = null, telestrator = true, ...rest
+  position, customSquareStyles, lastMove, badge, clampAt = null, suitPick = null, ownArrows = true, marks = null, telestrator = true, liftFirst, ...rest
 }) {
   const { state } = useStore();
   // What's right-clicked onto this board (see DrawableBoard): its arrows and
@@ -348,6 +351,147 @@ export default function Board({
     suitPick, rest.boardOrientation, rest.showBoardNotation, sized]);
 
   const orientation = rest.boardOrientation === 'black' ? 'black' : 'white';
+
+  // ---------- A piece in the air ----------
+  //
+  // Two things the board library gets wrong about a piece let go while
+  // another is still sliding, both of which a quick player meets all the
+  // time (the reply comes as you reach for your next piece):
+  //   · it won't take the drop at all — its drop handler returns before
+  //     asking anyone, and the piece goes back to where it came from;
+  //   · just after the slide, it asks about the wrong square: a sliding piece
+  //     belongs to the square it left until it lands, so a recapture let go
+  //     under the capturer was asked about as a move to the capturer's old
+  //     square — a wrong move, counted against you.
+  // So each drag is followed here: where the piece was let go, and whether
+  // the board was asked about it. Asked, the answer is for the square the
+  // pointer was really on (lib/grab dropSquare); not asked, the question is
+  // put now (lateDrop), and the view's answer changes the position, which
+  // cuts the slide short, as an outside move arriving mid-slide always has.
+  //
+  // The three handlers below are the same functions for the board's whole
+  // life and read the view's own from `view`: react-chessboard keeps the
+  // ones it was given when a piece last moved, so a view's handler would
+  // otherwise act on what was true then.
+  const view = useRef({});
+  view.current = {
+    id: String(rest.id ?? 0),
+    onPieceDrop: rest.onPieceDrop,
+    onPieceDragBegin: rest.onPieceDragBegin,
+    onPieceDragEnd: rest.onPieceDragEnd,
+    onPromotionCheck: rest.onPromotionCheck,
+    premoves: Boolean(rest.arePremovesAllowed),
+  };
+  // { piece, from, at (where it was let go), last (where it was last seen),
+  //   off (called off), asked, answer, stop }
+  const carried = useRef(null);
+  const grab = useMemo(() => {
+    // As this board's drag backend hears of it. Let go: a finger or a mouse
+    // button coming up (touch screens), a native drag's drop (anywhere
+    // else). A drag that ends without one was called off — Escape; a touch
+    // the system took back — and that's not a move, whatever square the
+    // pointer was over. On the way: only a touch screen's backend can be
+    // ended by something other than the pointer that's carrying.
+    const RELEASE = isTouchCapable ? ['touchend', 'mouseup'] : ['drop'];
+    const WATCH = isTouchCapable ? [...RELEASE, 'touchcancel', 'touchmove', 'mousemove'] : RELEASE;
+    const follow = (e) => {
+      const c = carried.current;
+      if (!c) return;
+      let p = e;
+      if (e.type.startsWith('touch')) {
+        // Only the finger carrying the piece. A touch's events come from
+        // where it began — the square the piece was lifted off; another
+        // finger on the board says nothing about where this one is.
+        const began = e.target?.nodeType === 1 ? e.target : e.target?.parentElement;
+        if (began?.closest?.('[data-square]')?.getAttribute('data-square') !== c.from) return;
+        if (e.type === 'touchcancel') { c.off = true; return; }
+        p = e.changedTouches?.[0];
+      }
+      if (typeof p?.clientX !== 'number') return;
+      c.last = { x: p.clientX, y: p.clientY };
+      if (RELEASE.includes(e.type)) c.at = c.last;
+    };
+    // The square of this board at a point — the square itself, not whatever
+    // is on top of it (a piece sliding across, the marks drawn over it).
+    const squareUnder = ({ x, y }) => document.elementsFromPoint(x, y).find((n) => (
+      n.hasAttribute?.('data-square')
+      && n.closest('[data-boardid]')?.getAttribute('data-boardid') === view.current.id
+    ))?.getAttribute('data-square') ?? null;
+    const letGo = () => {
+      const c = carried.current;
+      carried.current = null;
+      c?.stop();
+      return c;
+    };
+    return {
+      letGo,
+      onPieceDragBegin: (piece, square) => {
+        letGo();
+        if (typeof window !== 'undefined') {
+          // On the window, first in line: before the backend ends the drag.
+          const opts = { capture: true, passive: true };
+          WATCH.forEach((type) => window.addEventListener(type, follow, opts));
+          carried.current = {
+            piece, from: square, at: null, last: null, off: false, asked: false, answer: false,
+            stop: () => WATCH.forEach((type) => window.removeEventListener(type, follow, opts)),
+          };
+        }
+        view.current.onPieceDragBegin?.(piece, square);
+      },
+      // (Three named arguments: react-chessboard only asks a function that takes some.)
+      onPieceDrop: (from, to, piece) => {
+        const play = (sq) => (view.current.onPieceDrop ? view.current.onPieceDrop(from, sq, piece) : true);
+        const c = carried.current;
+        if (!c) return play(to);
+        // One drop, one answer: the library asks once for every square it
+        // takes the piece to be over.
+        if (c.asked) return c.answer;
+        if (c.off) return false;
+        const target = dropSquare({
+          from,
+          asked: to,
+          released: c.at ? squareUnder(c.at) : undefined,
+          over: c.last ? squareUnder(c.last) : undefined,
+        });
+        if (!target) return false;
+        c.asked = true;
+        c.answer = play(target);
+        return c.answer;
+      },
+      onPieceDragEnd: (piece, square) => {
+        const c = letGo();
+        try {
+          if (!c?.at || !view.current.onPieceDrop) return;
+          const drop = lateDrop({
+            from: c.from,
+            to: squareUnder(c.at),
+            piece: c.piece,
+            asked: c.asked,
+            released: !c.off,
+            promotes: view.current.onPromotionCheck ?? undefined,
+            premoves: view.current.premoves,
+          });
+          if (drop) view.current.onPieceDrop(drop.from, drop.to, drop.piece);
+        } finally {
+          // The drop first, then the end of the drag: the order the library keeps.
+          view.current.onPieceDragEnd?.(piece, square);
+        }
+      },
+    };
+  }, []);
+  useEffect(() => () => { grab.letGo(); }, [grab]);
+  // A press here would lift a piece (lib/grab): the board lets pieces be
+  // dragged, there's one on the square, and it's one the board lets go.
+  const canLift = (sq) => liftable(sq, {
+    position, draggable: rest.arePiecesDraggable, isDraggablePiece: rest.isDraggablePiece,
+  });
+  // Whether a finger on such a piece always lifts it, or — rested a moment —
+  // draws from it. Learn and Practice say so themselves (`liftFirst`): there
+  // your own piece always comes up. Any other board whose pieces move (Browse
+  // as a tree) goes by Settings → Analysis, "Hold a piece to draw an arrow
+  // from it", as the analysis board does: on unless switched off.
+  const pieceFirst = liftFirst ?? state.settings.holdDrawFromPieces === false;
+
   // Uptown Express's coordinates are line signs (LineSigns above), on any
   // board with a size to draw them at; the board's own step aside for them.
   const coordScale = coordScaleOf(state.settings);
@@ -372,6 +516,9 @@ export default function Board({
       customSquareStyles={styles}
       {...rest}
       {...(lineSigns || bigCoords ? { showBoardNotation: false } : {})}
+      onPieceDragBegin={grab.onPieceDragBegin}
+      onPieceDragEnd={grab.onPieceDragEnd}
+      {...(rest.onPieceDrop ? { onPieceDrop: grab.onPieceDrop } : {})}
     />
   );
 
@@ -388,6 +535,7 @@ export default function Board({
       profile={profile}
       drawing={drawing}
       setDrawing={setDrawing}
+      canLift={pieceFirst ? canLift : null}
     >
       {board}
       {signs}
@@ -447,7 +595,7 @@ export default function Board({
 // touch screen has no right button) a tap on one square and then another is
 // an arrow, the same square twice a highlight.
 function DrawableBoard({
-  boardWidth, orientation, position, marks, settings, profile, drawing, setDrawing, children,
+  boardWidth, orientation, position, marks, settings, profile, drawing, setDrawing, canLift, children,
 }) {
   const [pending, setPending] = useState(null); // { from, to, color } while dragging
   const [held, setHeld] = useState(null); // the same, for a finger held to draw
@@ -488,6 +636,18 @@ function DrawableBoard({
   };
   const hold = useHoldToDraw({
     squareAt: ownSquareAt,
+    // Where a piece comes first (`canLift` — Learn and Practice, and other
+    // boards when holding a piece to draw is switched off): a finger on a
+    // piece that's about to be picked up is picking it up, however long it
+    // rests — not the start of a drawing. (A pencil still draws from
+    // anywhere; so does a finger held on an empty square, or on a piece
+    // that can't be moved.) What's drawn goes as the piece comes up, as it
+    // does on a click.
+    skip: (sq, e) => {
+      if (e.pointerType !== 'touch' || !canLift?.(sq)) return false;
+      if (!editing && hasDrawing) setDrawing(NO_DRAWING);
+      return true;
+    },
     onHold: (from) => {
       tapRef.current = null; // not a tap-to-draw tap as well
       setHeld({ from, to: from, color: colorNow(null, from, from) });

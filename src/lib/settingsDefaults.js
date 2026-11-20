@@ -39,6 +39,9 @@ export const DEFAULT_SETTINGS = {
   arrowThird: true, // …the third
   engineAuto: true, // start Stockfish as soon as the analysis board opens
   bookMoves: true, // your own lines shown above the engine's on the board
+  // (holdDrawFromPieces — touch screens: a finger rested on a piece draws an
+  // arrow from it, on the analysis board and Browse as a tree — has no default
+  // on purpose, like positionFolderOrders above: absent reads as on.)
   // Which repertoire the analysis board checks: on a student's game 'both'
   // (theirs + your whole library), 'mine', 'student' or 'none'.
   analysisRepertoire: 'both',

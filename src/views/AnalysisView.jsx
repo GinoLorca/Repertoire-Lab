@@ -25,6 +25,7 @@ import {
   watchHeldKeys, heldKeys, markDrawn, onRelease,
 } from '../lib/penHold';
 import { useHoldToDraw } from '../components/useHoldToDraw';
+import { movable } from '../lib/grab';
 import CompareView from './CompareView';
 import GameEditor from '../components/GameEditor';
 import EvalBar from '../components/EvalBar';
@@ -1158,6 +1159,12 @@ export default function AnalysisView({
   const hold = useHoldToDraw({
     enabled: !drawMode,
     squareAt: squareFromPoint,
+    // Settings → Analysis, "Hold a piece to draw an arrow from it": on (as it
+    // has always been), a finger rested on any square draws. Off, a finger on
+    // a piece that can move picks it up however long it rests (lib/grab) —
+    // holding still draws from an empty square or a piece that can't move,
+    // a pencil from anywhere, and Draw from everywhere.
+    skip: (sq, e) => state.settings.holdDrawFromPieces === false && e.pointerType === 'touch' && movable(fen, sq),
     onHold: (from) => { setDrawFrom(from); setHoldTo(null); },
     onMove: (from, to) => setHoldTo(to === from ? null : to),
     onDone: (from, to) => {
@@ -2663,7 +2670,9 @@ export default function AnalysisView({
     <div className="muted-note draw-hint" style={{ maxWidth: boardWidth }}>
       {COARSE ? (
         // A finger first (an iPad, a phone): the hold, not the right button.
-        <>Hold a square, then drag to draw · tap the board or <strong>Clear</strong> to take them off</>
+        // (With holding a piece to draw switched off — Settings → Analysis —
+        // a piece that can move picks up instead: an empty square it is.)
+        <>Hold {state.settings.holdDrawFromPieces === false ? 'an empty square' : 'a square'}, then drag to draw · tap the board or <strong>Clear</strong> to take them off</>
       ) : tight ? (
         <>Press <strong>Draw</strong>, then drag to mark up the board · tap it or <strong>Clear</strong> to take them off</>
       ) : (

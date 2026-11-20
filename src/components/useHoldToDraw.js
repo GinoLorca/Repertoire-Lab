@@ -8,6 +8,11 @@ import { useEffect, useRef } from 'react';
 // the board's own (`onTap` hears about it, for a board that clears its marks
 // on one). A mouse is left alone: it has the right button.
 //
+// A press a board says is a piece being picked up (`skip` — lib/grab) is that
+// piece's, however long it rests: no hold starts. Resting a finger on a piece
+// for a third of a second before moving it is how most people pick one up,
+// and it used to draw an arrow and leave the piece where it was.
+//
 // While a press is drawing, the page mustn't scroll under the finger and the
 // piece under it mustn't be dragged off. react-dnd's touch backend (see
 // Board.jsx) listens on the document, so one listener on the window, which
@@ -56,13 +61,14 @@ export function swallowClickAt(x, y) {
 // `onHold(from)` when a press turns into drawing; `onMove(from, to)` as the
 // finger crosses squares; `onDone(from, to)` at the lift (`to === from` for a
 // square); `onCancel()` if the browser takes the gesture back; `onTap(square)`
-// for a quick tap that never became a drawing.
+// for a quick tap that never became a drawing. `skip(square, event)`: true
+// for a press that isn't a hold's to take (a piece about to be picked up).
 export function useHoldToDraw({
-  enabled = true, squareAt, onHold, onMove, onDone, onCancel, onTap,
+  enabled = true, squareAt, onHold, onMove, onDone, onCancel, onTap, skip,
 }) {
   const handlers = useRef(null);
   handlers.current = {
-    enabled, squareAt, onHold, onMove, onDone, onCancel, onTap,
+    enabled, squareAt, onHold, onMove, onDone, onCancel, onTap, skip,
   };
   const live = useRef(null);
   useEffect(() => {
@@ -76,6 +82,7 @@ export function useHoldToDraw({
     const from = h.squareAt(e.clientX, e.clientY);
     if (!from) return;
     live.current?.();
+    if (h.skip?.(from, e)) return;
     const id = e.pointerId;
     const x0 = e.clientX;
     const y0 = e.clientY;
