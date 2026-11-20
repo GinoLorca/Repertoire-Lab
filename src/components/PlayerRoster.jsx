@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../store';
 import SendToStudent from './SendToStudent';
-import { buildPositionIndex, moveLabel, bookOpenings } from '../lib/repertoire';
+import { positionIndexFor, bookLineParts, moveLabel } from '../lib/repertoire';
 import {
-  categoryOf, categoryOptions, playerRecord, resultFor, EVENT_TYPES, OFFBEAT, tidyEvent,
+  categoryOf, categoryOptions, playerRecord, resultFor, EVENT_TYPES, tidyEvent,
 } from '../lib/games';
+import { positionsOf } from '../lib/positions';
+import { usePositionsReady } from '../lib/usePositions';
+import { useCardSummaries, gameItems } from './useCardSummaries';
 import MoveText from '../components/MoveText';
 import MiniBoard from '../components/MiniBoard';
-import { lineFens } from '../lib/pgn';
 import { fetchUscf, fetchChesscom, fetchLichess } from '../lib/ratings';
 import VariationViewer from '../components/VariationViewer';
 import GameEditor from '../components/GameEditor';
@@ -208,22 +210,61 @@ function reviewActionFor(game, player, players) {
   };
 }
 
+// A game's category picker. Every row has one, and each lists every chapter
+// of every opening — on a real library, hundreds of options times every game
+// on the page: most of what the page took to open. A long list is filled in
+// when its row is about to come into view (or the picker is reached by
+// keyboard), so by the time it can be opened it's whole; until then it holds
+// just the one chosen. Short lists are whole from the start, as always.
+const LAZY_OPTIONS_FROM = 40;
+function CategorySelect({ value, options, onChange }) {
+  const ref = useRef(null);
+  const lazy = options.length >= LAZY_OPTIONS_FROM;
+  const [filled, setFilled] = useState(false);
+  useEffect(() => {
+    if (!lazy || filled) return undefined;
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver !== 'function') { setFilled(true); return undefined; }
+    const seen = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) setFilled(true);
+    }, { rootMargin: '600px 0px' });
+    seen.observe(el);
+    return () => seen.disconnect();
+  }, [lazy, filled]);
+  const whole = !lazy || filled;
+  return (
+    <select
+      ref={ref}
+      className="cat-select"
+      value={value}
+      title="File this game under a different opening or one of your own categories"
+      // Not whole yet: the width it will have, so nothing moves when it is.
+      style={whole ? undefined : { width: 220 }}
+      onFocus={whole ? undefined : () => setFilled(true)}
+      onPointerDown={whole ? undefined : () => setFilled(true)}
+      onChange={(e) => onChange(e.target.value || null)}
+    >
+      <option value="">Automatic</option>
+      {(whole ? options : options.filter((c) => c.id === value))
+        .map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+    </select>
+  );
+}
+
 function GameRow({
-  game, playerId, category, index, state, onAnalyze, onGameStudio, onGameReview, onView, onEdit, onSetCategory, onSetPhoto,
+  game, playerId, category, options, state, onAnalyze, onGameStudio, onGameReview, onView, onEdit, onSetCategory, onSetPhoto,
   onDelete, onScan, onEditTags, onTagClick, linkStatus, partnerName, onLinkAction, review,
 }) {
   const m = game.meta ?? {};
   const res = resultFor(game);
   const match = category.match;
-  const options = useMemo(() => categoryOptions(state), [state]);
   const [openInfo, setOpenInfo] = useState(false);
   // A photo archived for later — grabbed in a hurry, moves not typed in yet.
   const unscanned = game.moves.length === 0 && !!m.photo;
-  // The position the game finished in, for the thumbnail.
-  const finalFen = useMemo(() => {
-    const fens = lineFens(game.moves);
-    return fens[fens.length - 1];
-  }, [game.moves]);
+  // The position the game finished in, for the thumbnail: already worked out
+  // with the rest of the game's positions (lib/positions), not played out
+  // again for each row.
+  const finalFen = useMemo(() => positionsOf(game.moves).last, [game.moves]);
 
   return (
     <div className={`game-card${res.kind !== 'none' ? ` res-${res.kind}` : ''}`}>
@@ -325,15 +366,7 @@ function GameRow({
           <TagIcon size={13} />
         </button>
         <span style={{ flex: 1 }} />
-        <select
-          className="cat-select"
-          value={m.categoryId ?? ''}
-          title="File this game under a different opening or one of your own categories"
-          onChange={(e) => onSetCategory(e.target.value || null)}
-        >
-          <option value="">Automatic</option>
-          {options.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-        </select>
+        <CategorySelect value={m.categoryId ?? ''} options={options} onChange={onSetCategory} />
       </div>
 
       <div className="variation-moves" title="Click to step through the game" onClick={onView}>
@@ -487,9 +520,27 @@ function PlayerPage({
   // to check": by default their lines and your whole library), so a game's
   // line is named — and opens in Learn — on every card, yours or a student's.
   const repSource = state.settings?.analysisRepertoire ?? 'both';
-  const index = useMemo(() => buildPositionIndex(bookOpenings(state.openings, {
-    studentId: player.kind === 'student' ? player.id : null, source: repSource,
-  })), [state.openings, player.kind, player.id, repSource]);
+  const book = useMemo(
+    () => ({ studentId: player.kind === 'student' ? player.id : null, source: repSource }),
+    [player.kind, player.id, repSource],
+  );
+  // The index is the one every card and board shares (positionIndexFor), read
+  // once the positions behind it are worked out (lib/positions) — as a rule
+  // they already are. When they aren't (the app has only just opened), the
+  // page opens all the same, and its games are sorted a moment later: `index`
+  // is null until then.
+  // (The book's lines come in one or two parts — theirs, yours — each the
+  // same array until that owner's lines change.)
+  const [bookA, bookB] = bookLineParts(state.openings, book);
+  const gameLines = gameItems(player.games);
+  const needed = useMemo(
+    () => [...(bookA ?? []), ...(bookB ?? []), ...gameLines],
+    [bookA, bookB, gameLines],
+  );
+  const sorted = usePositionsReady(needed);
+  const index = sorted ? positionIndexFor(state.openings, book) : null;
+  // For a button pressed in that moment: the index, whatever it takes.
+  const indexNow = () => index ?? positionIndexFor(state.openings, book);
   // What's on offer to send: the lines built for this student, and the coach's
   // own repertoire — a coach teaching their own openings shouldn't have to
   // copy them into the student's file first just to send them.
@@ -591,10 +642,16 @@ function PlayerPage({
     setRefreshing(false);
   };
 
-  // Classify every game once, then filter.
-  const rows = useMemo(() => player.games
+  // Classify every game once, then filter. Once: until the games, the lines
+  // they're checked against or the categories change — it used to be on
+  // every change to anything in the app.
+  const rows = useMemo(() => (index ? player.games
     .map((game) => ({ game, category: categoryOf(game, index, state) }))
-    .sort((a, b) => b.game.date - a.game.date), [player.games, index, state]);
+    .sort((a, b) => b.game.date - a.game.date) : []),
+  [player.games, index, state.openings, state.categories]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Every category a game can be filed under, for each row's picker: once
+  // for the page, not once per row.
+  const catOptions = useMemo(() => categoryOptions(state), [state.openings, state.categories]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = rows.filter(({ game, category }) => {
     const m = game.meta ?? {};
@@ -765,7 +822,7 @@ function PlayerPage({
           // The same hand-off as the Games tab's "Send to analysis board".
           onAnalyzeGame={(gameId) => {
             const game = player.games.find((g) => g.id === gameId);
-            if (game?.moves?.length) onAnalyze(lineFor(game, { subtitle: categoryOf(game, index, state)?.label }));
+            if (game?.moves?.length) onAnalyze(lineFor(game, { subtitle: categoryOf(game, indexNow(), state)?.label }));
           }}
           // The Games tab's Edit, from the round the game is linked to.
           onEditGame={(gameId) => {
@@ -793,7 +850,7 @@ function PlayerPage({
           // …and its "Send to studio".
           onStudioGame={onGameStudio && ((gameId) => {
             const game = player.games.find((g) => g.id === gameId);
-            if (game?.moves?.length) onGameStudio(lineFor(game, { subtitle: categoryOf(game, index, state)?.label }));
+            if (game?.moves?.length) onGameStudio(lineFor(game, { subtitle: categoryOf(game, indexNow(), state)?.label }));
           })}
           onEditProfile={onEditProfile}
           // A fresh look-up brings the card's own rating line up to date.
@@ -922,7 +979,15 @@ function PlayerPage({
         )}
 
 
-        {player.games.length > 0 && (
+        {/* Just after the app opens the games' openings may still be being
+            worked out (lib/positions): the page is here meanwhile. */}
+        {player.games.length > 0 && !sorted && (
+          <div className="empty-note" role="status">
+            Sorting {player.games.length} game{player.games.length === 1 ? '' : 's'} by opening…
+          </div>
+        )}
+
+        {player.games.length > 0 && sorted && (
           <div className="player-summary">
             <div className="ps-record">
               <strong>{record.wins}</strong>W <strong>{record.draws}</strong>D <strong>{record.losses}</strong>L
@@ -935,7 +1000,7 @@ function PlayerPage({
           </div>
         )}
 
-        {player.games.length > 0 && (
+        {player.games.length > 0 && sorted && (
           <div className="game-filters">
             <span className="gf-search">
               <SearchIcon size={15} />
@@ -980,7 +1045,7 @@ function PlayerPage({
           </div>
         )}
 
-        {player.games.length > 0 && filtered.length === 0 && (
+        {player.games.length > 0 && sorted && filtered.length === 0 && (
           <div className="empty-note">No games match those filters.</div>
         )}
 
@@ -990,6 +1055,7 @@ function PlayerPage({
             game={game}
             playerId={player.id}
             category={category}
+            options={catOptions}
             state={state}
             review={reviewActionFor(game, player, state.players)}
             onEdit={() => setEditing(game)}
@@ -1221,6 +1287,12 @@ export default function PlayerRoster({
   // A link to a card this account doesn't have (someone else's, or one not
   // synced here yet — it opens if it arrives).
   const missingLink = openPlayerId && !openPlayer ? openPlayerId : null;
+  // Each card's record, openings and off-beat count: worked out once and
+  // kept, never while the list waits (useCardSummaries). Only for the list —
+  // a card's own page has its own.
+  const summaries = useCardSummaries(players, state, {
+    studentBooks: kind === 'student', source: state.settings?.analysisRepertoire ?? 'both', on: !openPlayer,
+  });
 
   if (openPlayer) {
     return (
@@ -1303,12 +1375,10 @@ export default function PlayerRoster({
       )}
 
       {players.map((player) => {
-        const index = buildPositionIndex(bookOpenings(state.openings, {
-          studentId: kind === 'student' ? player.id : null, source: state.settings?.analysisRepertoire ?? 'both',
-        }));
-        const record = playerRecord(player.games);
-        const cats = new Set(player.games.map((g) => categoryOf(g, index, state).id));
-        const offbeat = player.games.filter((g) => categoryOf(g, index, state).id === OFFBEAT).length;
+        // openings and offbeat arrive a moment after the rest when the app
+        // has only just opened (null until then).
+        const { record, openings: openingCount, offbeat } = summaries.get(player.id)
+          ?? { record: playerRecord(player.games), openings: null, offbeat: null };
         return (
           <div key={player.id} className="scope-card" onClick={() => { setOpenPlayerId(player.id); setTab(null); }}>
             <Avatar avatar={player.avatar} seed={player.id} size={48} />
@@ -1318,9 +1388,12 @@ export default function PlayerRoster({
               <div className="sub">
                 {player.games.length} game{player.games.length === 1 ? '' : 's'}
                 {player.games.length > 0 && (
-                  <> · {record.wins}W {record.draws}D {record.losses}L · {cats.size} opening
-                    {cats.size === 1 ? '' : 's'}
-                    {offbeat > 0 ? ` · ${offbeat} off-beat` : ''}
+                  <> · {record.wins}W {record.draws}D {record.losses}L
+                    {openingCount != null && (
+                      <> · {openingCount} opening{openingCount === 1 ? '' : 's'}
+                        {offbeat > 0 ? ` · ${offbeat} off-beat` : ''}
+                      </>
+                    )}
                   </>
                 )}
               </div>

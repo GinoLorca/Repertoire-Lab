@@ -1312,3 +1312,38 @@ test('where you left off in a video: paused on the Mac, picked up on the iPad; b
   mac.do({ type: 'setVideoSpot', key: 'vid-caro', spot: null, t: 301 });
   assert.equal(mac.state, cleared, 'cleared again: no change');
 });
+
+// ---------------------------------------------------------------------------
+// An action that changes nothing is not a change (store.jsx mapPlayer,
+// mapOpening): the state is the very same object, so nothing is redrawn,
+// saved again or sent to sync for it. Leaving a student's page marks their
+// new games seen — every time, whether or not there were any.
+// ---------------------------------------------------------------------------
+test('an action that changes nothing leaves the state as it was', () => {
+  const st = reducer(null, {
+    type: 'hydrate',
+    state: {
+      ...emptyState(),
+      settings: { ...DEFAULT_SETTINGS, kidArtDone: true },
+      openings: [{ id: 'o1', name: 'Jobava', color: 'white', ownerId: null, chapters: [] }],
+      players: [{
+        id: 'p1', kind: 'student', name: 'Myla', profile: {}, games: [{ id: 'g1', name: 'A vs B', moves: ['d4'], link: { uid: 'u1', seen: true } }],
+      }],
+    },
+  });
+  assert.equal(reducer(st, { type: 'markLinkedGamesSeen', cardId: 'p1' }), st, 'no new games to mark seen');
+  assert.equal(reducer(st, { type: 'markLinkedGamesSeen', cardId: 'nobody' }), st, 'a card that isn’t there');
+  assert.equal(reducer(st, { type: 'renameGame', playerId: 'nobody', gameId: 'g1', name: 'X' }), st);
+  assert.equal(reducer(st, { type: 'setOpeningColor', openingId: 'nothing', color: 'black' }), st, 'an opening that isn’t there');
+  // One that does change something still does — and only what it names.
+  const news = { ...st, players: [{ ...st.players[0], games: [{ ...st.players[0].games[0], link: { uid: 'u1', unseen: true } }] }] };
+  const seen = reducer(news, { type: 'markLinkedGamesSeen', cardId: 'p1' });
+  assert.notEqual(seen, news);
+  assert.equal('unseen' in seen.players[0].games[0].link, false);
+  assert.equal(seen.openings, news.openings, 'the openings untouched');
+  const black = reducer(st, { type: 'setOpeningColor', openingId: 'o1', color: 'black' });
+  assert.equal(black.openings[0].color, 'black');
+  assert.equal(black.players, st.players, 'the cards untouched');
+  const renamed = reducer(st, { type: 'renameGame', playerId: 'p1', gameId: 'g1', name: 'Myla vs Lola' });
+  assert.equal(renamed.players[0].games[0].name, 'Myla vs Lola');
+});

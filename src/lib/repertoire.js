@@ -1,9 +1,12 @@
 import {
-  START_FEN, startFenOf, newGameAt, moveNumberLabel,
+  START_FEN, startFenOf, moveNumberLabel,
 } from './startPos';
+import {
+  fen4, positionsOf, positionsOnce, lineItem,
+} from './positions';
 
 // Position key: piece placement + side to move + castling + en passant.
-export const fen4 = (fen) => fen.split(' ').slice(0, 4).join(' ');
+export { fen4 };
 
 // Index every position reached in every repertoire line.
 // Map: fen4 -> [{ opening, chapter, variation, ply }]
@@ -11,20 +14,18 @@ export const fen4 = (fen) => fen.split(' ').slice(0, 4).join(' ');
 // the repertoire's next move from there, when it exists) — counted from where
 // the line starts, so a line set up from a position is joined at that
 // position, ply 0.
+// Each line's positions come from lib/positions, which plays a line out once
+// and remembers it: building this is then only filing them.
 export function buildPositionIndex(openings) {
   const map = new Map();
-  const add = (key, entry) => {
-    if (!map.has(key)) map.set(key, []);
-    map.get(key).push(entry);
-  };
   for (const opening of openings) {
     for (const chapter of opening.chapters) {
       for (const variation of chapter.variations) {
-        const chess = newGameAt(startFenOf(variation));
-        add(fen4(chess.fen()), { opening, chapter, variation, ply: 0 });
-        for (let i = 0; i < variation.moves.length; i += 1) {
-          try { chess.move(variation.moves[i]); } catch { break; }
-          add(fen4(chess.fen()), { opening, chapter, variation, ply: i + 1 });
+        const { keys } = positionsOf(variation.moves, startFenOf(variation));
+        for (let ply = 0; ply < keys.length; ply += 1) {
+          const entry = { opening, chapter, variation, ply };
+          const at = map.get(keys[ply]);
+          if (at) at.push(entry); else map.set(keys[ply], [entry]);
         }
       }
     }
@@ -32,10 +33,179 @@ export function buildPositionIndex(openings) {
   return map;
 }
 
+// ---------- The index a board or a card checks against, shared ----------
+//
+// "Their lines, then your whole library" used to be built from scratch by
+// whoever asked: once per student card on every redraw of Coaches Corner,
+// again each time a student's page or a board opened. Now each owner's lines
+// are indexed once — yours a single time for everyone — and kept until one
+// of their openings changes; a student's book is their own small index laid
+// over yours, hits in the order one index of both would give them (theirs
+// first).
+
+const NO_INDEX = new Map(); // nothing to check against; never written to
+const NO_LIST = [];
+
+// Reads like the Map buildPositionIndex([...theirs, ...mine]) would be —
+// get, has, size, and walking it — without copying either half.
+class LayeredIndex {
+  constructor(first, second) {
+    this.first = first;
+    this.second = second;
+    this.joined = new Map(); // positions both halves have, once asked for
+    this.count = -1;
+  }
+
+  get(key) {
+    const a = this.first.get(key);
+    const b = this.second.get(key);
+    if (!a) return b;
+    if (!b) return a;
+    let both = this.joined.get(key);
+    if (!both) {
+      both = a.concat(b);
+      this.joined.set(key, both);
+    }
+    return both;
+  }
+
+  has(key) { return this.first.has(key) || this.second.has(key); }
+
+  get size() {
+    if (this.count < 0) {
+      let n = this.second.size;
+      for (const key of this.first.keys()) if (!this.second.has(key)) n += 1;
+      this.count = n;
+    }
+    return this.count;
+  }
+
+  // In the order one index of both would hold them: the first half's
+  // positions, then the second's that the first doesn't have.
+  * entries() {
+    for (const key of this.first.keys()) yield [key, this.get(key)];
+    for (const [key, hits] of this.second) if (!this.first.has(key)) yield [key, hits];
+  }
+
+  [Symbol.iterator]() { return this.entries(); }
+
+  * keys() { for (const [key] of this.entries()) yield key; }
+
+  * values() { for (const [, hits] of this.entries()) yield hits; }
+
+  forEach(fn, thisArg) { for (const [key, hits] of this.entries()) fn.call(thisArg, hits, key, this); }
+}
+
+// Whose each opening is, worked out once per library (the openings array is
+// replaced whenever any opening changes, and only then).
+let splits = new WeakMap(); // openings → { mine, byOwner, owners }
+// What's kept for one owner — '' is you, otherwise a student's card id —
+// while their openings are the very same objects: their index, and their
+// lines as lib/positions takes them.
+const owners = new Map(); // key → { list, map, items }
+const layered = new Map(); // student's card id → LayeredIndex
+
+function splitOwners(openings) {
+  let split = splits.get(openings);
+  if (!split) {
+    const mine = [];
+    const byOwner = new Map();
+    for (const o of openings) {
+      const owner = o.ownerId ?? null;
+      if (owner === null) mine.push(o);
+      else if (byOwner.has(owner)) byOwner.get(owner).push(o);
+      else byOwner.set(owner, [o]);
+    }
+    split = { mine, byOwner, owners: new Map() };
+    splits.set(openings, split);
+    // A student with no lines left (or gone altogether) keeps nothing here.
+    for (const key of [...owners.keys()]) {
+      if (key !== '' && !byOwner.has(key)) { owners.delete(key); layered.delete(key); }
+    }
+  }
+  return split;
+}
+
+function ownerOf(split, key) {
+  let rec = split.owners.get(key);
+  if (rec) return rec;
+  const list = key === '' ? split.mine : (split.byOwner.get(key) ?? NO_LIST);
+  const kept = owners.get(key);
+  if (kept && kept.list.length === list.length && kept.list.every((o, i) => o === list[i])) {
+    rec = kept;
+  } else {
+    rec = { list, map: null, items: null };
+    if (list.length) owners.set(key, rec); else owners.delete(key);
+  }
+  split.owners.set(key, rec);
+  return rec;
+}
+
+function ownerIndex(split, key) {
+  const rec = ownerOf(split, key);
+  if (!rec.map) rec.map = rec.list.length ? buildPositionIndex(rec.list) : NO_INDEX;
+  return rec.map;
+}
+
+function ownerLines(split, key) {
+  const rec = ownerOf(split, key);
+  if (!rec.items) {
+    rec.items = [];
+    for (const o of rec.list) for (const c of o.chapters ?? []) for (const v of c.variations ?? []) rec.items.push(lineItem(v));
+  }
+  return rec.items;
+}
+
+// The index for bookOpenings(openings, { studentId, source }) — the same
+// positions and hits, in the same order, as building one from that list —
+// shared between everyone who asks, and the same object until the lines
+// behind it change. Read it (get, has, size, for…of); never write to it.
+// The first time, its lines are played out there and then: a screen that
+// mustn't wait checks bookLineParts first (lib/usePositions).
+export function positionIndexFor(openings, { studentId = null, source = 'both' } = {}) {
+  if (source === 'none' || !Array.isArray(openings)) return NO_INDEX;
+  const split = splitOwners(openings);
+  if (!studentId || source === 'mine') return ownerIndex(split, '');
+  const theirs = ownerIndex(split, studentId);
+  if (source === 'student') return theirs;
+  const mine = ownerIndex(split, '');
+  if (theirs.size === 0) return mine;
+  if (mine.size === 0) return theirs;
+  const kept = layered.get(studentId);
+  if (kept && kept.first === theirs && kept.second === mine) return kept;
+  const index = new LayeredIndex(theirs, mine);
+  layered.set(studentId, index);
+  return index;
+}
+
+// That book's lines, as lib/positions takes them ({ moves, startFen }), in
+// up to two parts — the student's, then yours — each the same array for as
+// long as its owner's openings are the same: what a screen checks
+// (allCached) and asks for (requestWarm) before it reads the index.
+const NO_PARTS = [];
+export function bookLineParts(openings, { studentId = null, source = 'both' } = {}) {
+  if (source === 'none' || !Array.isArray(openings)) return NO_PARTS;
+  const split = splitOwners(openings);
+  if (!studentId || source === 'mine') return [ownerLines(split, '')];
+  if (source === 'student') return [ownerLines(split, studentId)];
+  return [ownerLines(split, studentId), ownerLines(split, '')];
+}
+
+// For the tests: forget every index kept here.
+export function resetPositionIndexes() {
+  owners.clear();
+  layered.clear();
+  splits = new WeakMap();
+}
+
 // The repertoire's continuation(s) from one position: distinct next moves,
 // each with an example line it belongs to.
 export function bookMovesAt(index, fen) {
-  const hits = index.get(fen4(fen)) ?? [];
+  return bookMovesAtKey(index, fen4(fen));
+}
+
+function bookMovesAtKey(index, key) {
+  const hits = index.get(key) ?? [];
   const byMove = new Map();
   for (const h of hits) {
     const next = h.variation.moves[h.ply];
@@ -51,19 +221,21 @@ export function bookMovesAt(index, fen) {
 // which line does it match best, and where/how did it deviate? `startFen`:
 // where the game on the board begins (a position set up in Analysis).
 export function matchGameToRepertoire(moves, index, startFen = START_FEN) {
-  const chess = newGameAt(startFen);
+  // keys[i]: the position after i moves, as far as they can be played.
+  // (positionsOnce: the line on a board changes with every move you try.)
+  const { keys } = positionsOnce(moves, startFen);
   let depth = 0; // number of game moves that stayed within the repertoire
-  let lastHits = index.get(fen4(chess.fen())) ?? [];
+  let lastHits = index.get(keys[0]) ?? [];
   let deviation = null;
 
   for (let i = 0; i < moves.length; i += 1) {
-    const expected = bookMovesAt(index, chess.fen());
-    try { chess.move(moves[i]); } catch { break; }
-    const hits = index.get(fen4(chess.fen())) ?? [];
+    if (i + 1 >= keys.length) break; // a move that can't be played
+    const hits = index.get(keys[i + 1]) ?? [];
     if (hits.length > 0) {
       depth = i + 1;
       lastHits = hits;
     } else {
+      const expected = bookMovesAtKey(index, keys[i]);
       if (expected.length > 0) {
         deviation = { atPly: i, played: moves[i], expected: expected.map((e) => e.san) };
       }
@@ -92,12 +264,11 @@ export function matchGameToRepertoire(moves, index, startFen = START_FEN) {
 // reaches deepest are all played from the one side — the same position can
 // sit in a White repertoire and in a Black defence against it.
 export function repertoireSide(moves, index, startFen = START_FEN) {
-  const chess = newGameAt(startFen);
+  const { keys } = positionsOnce(moves ?? [], startFen);
   let hits = [];
   let depth = 0;
-  for (let i = 0; i < (moves?.length ?? 0); i += 1) {
-    try { chess.move(moves[i]); } catch { break; }
-    const here = index.get(fen4(chess.fen())) ?? [];
+  for (let i = 0; i + 1 < keys.length; i += 1) {
+    const here = index.get(keys[i + 1]) ?? [];
     if (!here.length) break;
     hits = here;
     depth = i + 1;
@@ -108,21 +279,14 @@ export function repertoireSide(moves, index, startFen = START_FEN) {
 }
 
 // Positions a line passes through, as position keys (index 0 = its start).
-function fenTrail(moves, startFen = START_FEN) {
-  const chess = newGameAt(startFen);
-  const trail = [fen4(chess.fen())];
-  for (const san of moves) {
-    try { chess.move(san); } catch { break; }
-    trail.push(fen4(chess.fen()));
-  }
-  return trail;
-}
+const fenTrail = (moves, startFen = START_FEN) => positionsOf(moves, startFen).keys;
 
 // Rank every variation by how far it walks in step with the given moves.
 // Compares positions rather than move text, so a different move order that
 // reaches the same position still counts as a match.
 export function rankVariationsByMoves(moves, openings, startFen = START_FEN) {
-  const inputTrail = fenTrail(moves, startFen);
+  // What was typed is only passing through; the library's lines are kept.
+  const inputTrail = positionsOnce(moves, startFen).keys;
   const results = [];
 
   for (const opening of openings) {

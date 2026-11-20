@@ -35,8 +35,8 @@ import {
   EVENT_TYPES, resultFor, tidyEvent, matchPlayerByName,
 } from '../lib/games';
 import {
-  buildPositionIndex, bookMovesAt, matchGameToRepertoire, moveLabel, repertoireSide,
-  bookOpenings, bookName, REPERTOIRE_SOURCES,
+  positionIndexFor, bookMovesAt, matchGameToRepertoire, moveLabel, repertoireSide,
+  bookName, REPERTOIRE_SOURCES,
 } from '../lib/repertoire';
 import { sideOf, sideFromNames } from '../lib/pov';
 import { lineFor } from '../lib/curate';
@@ -890,10 +890,11 @@ export default function AnalysisView({
   const repSource = state.settings.analysisRepertoire ?? 'both';
   const theirBook = repertoireOwner && repSource !== 'mine' && repSource !== 'none';
   const bookTitle = bookName(repSource, repertoireOwner?.name);
-  const positionIndex = useMemo(
-    () => buildPositionIndex(bookOpenings(state.openings, { studentId: repertoireOwnerId, source: repSource })),
-    [state.openings, repertoireOwnerId, repSource],
-  );
+  // The one index every board and card shares (lib/repertoire): the same
+  // object until the lines behind it change, so nothing here is built again
+  // when a board opens — it used to be the whole library, played out, every
+  // time.
+  const positionIndex = positionIndexFor(state.openings, { studentId: repertoireOwnerId, source: repSource });
   // The repertoire can be walked from here: the normal start, or a position a
   // line was set up from — not just any position one of its lines passes
   // through, which a board set up by hand would otherwise count as.

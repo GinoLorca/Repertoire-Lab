@@ -56,8 +56,9 @@ function rebuildItems(state, kept) {
 }
 import { topInset, bottomInset } from '../lib/safeArea';
 import {
-  startFenOf, newGameAt, replay, moveNumberLabel, isStandardStart,
+  startFenOf, replay, moveNumberLabel, isStandardStart,
 } from '../lib/startPos';
+import { positionsOf } from '../lib/positions';
 
 // Position key: piece placement + side to move + castling + en passant.
 const fen4 = (fen) => fen.split(' ').slice(0, 4).join(' ');
@@ -741,18 +742,14 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
       if (opening.color !== current.opening.color) continue;
       for (const chapter of opening.chapters) {
         for (const variation of chapter.variations) {
-          const c = newGameAt(startFenOf(variation));
+          // The line's positions, worked out once (lib/positions) — not
+          // played out again each time a practised line updates the library.
+          const { keys } = positionsOf(variation.moves, startFenOf(variation));
           // A line set up from a position is joined at that position too.
-          if (variation.startFen) {
-            const key = fen4(c.fen());
+          for (let ply = variation.startFen ? 0 : 1; ply < keys.length; ply += 1) {
+            const key = keys[ply];
             if (!map.has(key)) map.set(key, []);
-            map.get(key).push({ opening, chapter, variation, ply: 0 });
-          }
-          for (let i = 0; i < variation.moves.length; i += 1) {
-            try { c.move(variation.moves[i]); } catch { break; }
-            const key = fen4(c.fen());
-            if (!map.has(key)) map.set(key, []);
-            map.get(key).push({ opening, chapter, variation, ply: i + 1 });
+            map.get(key).push({ opening, chapter, variation, ply });
           }
         }
       }

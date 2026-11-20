@@ -1,5 +1,4 @@
-import { Chess } from 'chess.js';
-import { fen4 } from './repertoire';
+import { positionsOf } from './positions';
 import { plyOffset } from './startPos';
 
 export const OFFBEAT = 'offbeat';
@@ -29,7 +28,9 @@ export function tidyEvent(name, type) {
 // steering back) is still recognised.
 export function classifyGame(moves = [], index) {
   if (!index) return { matched: false };
-  const chess = new Chess();
+  // The game's positions from the normal start, as far as its moves can be
+  // played — worked out once per game (lib/positions), not on every look.
+  const { keys } = positionsOf(moves);
   let best = null;
   let contiguous = 0; // plies from move 1 that stayed in book
   let stillContiguous = true;
@@ -48,11 +49,10 @@ export function classifyGame(moves = [], index) {
     }
   };
 
-  consider(index.get(fen4(chess.fen())) ?? [], 0);
+  consider(index.get(keys[0]) ?? [], 0);
 
-  for (let i = 0; i < moves.length; i += 1) {
-    try { chess.move(moves[i]); } catch { break; }
-    const hits = index.get(fen4(chess.fen())) ?? [];
+  for (let i = 0; i + 1 < keys.length; i += 1) {
+    const hits = index.get(keys[i + 1]) ?? [];
     if (hits.length > 0) {
       consider(hits, i + 1);
       if (stillContiguous) contiguous = i + 1;
@@ -178,6 +178,21 @@ export function playerRecord(games) {
     else tally.losses += 1;
   }
   return tally;
+}
+
+// A card's line in Coaches Corner and in Games: the record, how many
+// openings the games fall into, and how many are off-beat. One look at each
+// game (the list used to take two, on every redraw).
+export function playerSummary(player, index, state) {
+  const games = player?.games ?? [];
+  const seen = new Set();
+  let offbeat = 0;
+  for (const game of games) {
+    const { id } = categoryOf(game, index, state);
+    seen.add(id);
+    if (id === OFFBEAT) offbeat += 1;
+  }
+  return { record: playerRecord(games), openings: seen.size, offbeat };
 }
 
 export function resultFor(game) {

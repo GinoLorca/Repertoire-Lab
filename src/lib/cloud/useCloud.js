@@ -6,20 +6,14 @@ import { useStore } from '../../store';
 import { cloudConfigured } from './config';
 import { watchAuth, signOutNow } from './auth';
 import { syncNow, readMeta, forgetMeta, watchRemoteChanges } from './sync';
-import { hashOf } from './shape';
+import { syncableHash } from './fingerprint';
 import { watchInbox, eligibleGameDelivery } from './share';
 import { eligibleReviewDelivery } from './reviews';
 import { watchStudentLinks } from './links';
 import { recordDevice } from './devices';
 
-// What sync cares about. The analysis draft is excluded on purpose (it's the
-// board in front of you on this device) and so is anything else that isn't
-// part of the record.
-const syncableHash = (state) => hashOf(JSON.stringify({
-  openings: state?.openings, players: state?.players, categories: state?.categories,
-  playlists: state?.playlists, labEntries: state?.labEntries,
-  savedPositions: state?.savedPositions, settings: state?.settings,
-}));
+// What sync cares about: lib/cloud/fingerprint.js (syncableHash) — read piece
+// by piece, so a change re-reads only what it replaced.
 
 // Long enough that a practice session's rapid-fire updates settle into one
 // sync rather than twenty, short enough that walking to the iPad is slower.
@@ -243,7 +237,9 @@ function useCloudEngine() {
       if (document.visibilityState === 'visible') {
         run();
         if (listenerDead) attach(deadSince);
-      } else if (stateRef.current && syncableHash(stateRef.current) !== lastHash.current) {
+      } else if (stateRef.current && syncableHash(stateRef.current, { fresh: true }) !== lastHash.current) {
+        // (Read afresh, not from what's remembered: on the way out is where
+        // nothing may be missed.)
         run();
       }
     };

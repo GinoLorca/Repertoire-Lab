@@ -124,11 +124,16 @@ function findOpening(state, openingId) {
   return state.openings.find((o) => o.id === openingId);
 }
 
+// (As mapPlayer below: nothing changed is the same state.)
 function mapOpening(state, openingId, fn) {
-  return {
-    ...state,
-    openings: state.openings.map((o) => (o.id === openingId ? fn(o) : o)),
-  };
+  let changed = false;
+  const openings = state.openings.map((o) => {
+    if (o.id !== openingId) return o;
+    const next = fn(o);
+    if (next !== o) changed = true;
+    return next;
+  });
+  return changed ? { ...state, openings } : state;
 }
 
 function mapChapter(state, openingId, chapterId, fn) {
@@ -234,11 +239,19 @@ function followLine(state, action) {
   return action;
 }
 
+// Nothing changed — the card isn't there, or `fn` handed it back as it was —
+// is the state as it was, the very same: leaving a student's page ("mark
+// their new games seen") used to count as a change every time, redrawing
+// every screen and saving the whole library again for nothing.
 function mapPlayer(state, playerId, fn) {
-  return {
-    ...state,
-    players: state.players.map((p) => (p.id === playerId ? fn(p) : p)),
-  };
+  let changed = false;
+  const players = state.players.map((p) => {
+    if (p.id !== playerId) return p;
+    const next = fn(p);
+    if (next !== p) changed = true;
+    return next;
+  });
+  return changed ? { ...state, players } : state;
 }
 
 // Every action that edits a game as a person would — as opposed to sync or a

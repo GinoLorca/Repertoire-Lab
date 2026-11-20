@@ -862,6 +862,9 @@ function RoundRow({
 function OpeningsInRatedGames({ match, gameById, index, state }) {
   const rows = useMemo(() => {
     const by = new Map();
+    // No index yet (the page has only just opened — PlayerRoster): nothing
+    // to say until the games can be named.
+    if (!index) return [];
     for (const m of Object.values(match.rounds)) {
       if (m.state === 'suggested') continue;
       const g = gameById.get(m.gameId);
@@ -875,7 +878,7 @@ function OpeningsInRatedGames({ match, gameById, index, state }) {
       by.set(id, row);
     }
     return [...by.values()].sort((a, b) => b.games - a.games);
-  }, [match, gameById, index, state]);
+  }, [match, gameById, index, state.openings, state.categories]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!rows.length) return null;
   return (
     <section className="dash-card">

@@ -32,6 +32,7 @@ import TouchTestView from './views/TouchTestView';
 import {
   loadSession, saveSessionPart, shouldRestore, markBootResume, boardsFromNav, subFromNav,
 } from './lib/session';
+import { warmLibrary } from './lib/positionsWarm';
 
 // What the dot on the Settings icon means.
 const SYNC_ALERT = {
@@ -39,9 +40,23 @@ const SYNC_ALERT = {
   error: 'Sync isn’t working — see Settings → Account',
 };
 
+// How long after the app opens — or a line or game last changed — before
+// the library's positions are worked out in the background (lib/positions).
+const WARM_AFTER_MS = 1500;
+
 function AppInner() {
   const { state, dispatch } = useStore();
   const { attention: syncAttention } = useCloud();
+  // Naming a game's opening needs the positions of every line and game, and
+  // working them out is seconds of chess on a big library. Done a few
+  // milliseconds at a time from just after the app opens (lib/positionsWarm),
+  // they're ready by the time Coaches Corner, a student's page or a board
+  // asks — and a new line or game is added to them as it arrives.
+  const { openings: libOpenings, players: libPlayers } = state;
+  useEffect(() => {
+    const t = setTimeout(() => warmLibrary({ openings: libOpenings, players: libPlayers }), WARM_AFTER_MS);
+    return () => clearTimeout(t);
+  }, [libOpenings, libPlayers]);
   // Where the URL says we are. Read once, at mount: after that the address bar
   // follows the app (see the sync effect below) rather than driving it, except
   // on back/forward, which restores state from our own stack anyway.
@@ -534,7 +549,33 @@ function AppInner() {
     // short clamps the scroll — so try again once things have settled.
     const t1 = setTimeout(settle, 80);
     const t2 = setTimeout(settle, 250);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    // …and a page that fills in later still — a student's games, sorted a
+    // moment after the app opens (lib/positions) — gets there when it has
+    // grown enough, unless you've started scrolling yourself by then.
+    let grown = null;
+    const INPUTS = ['wheel', 'touchstart', 'keydown', 'pointerdown'];
+    const giveUp = () => {
+      if (grown) grown.disconnect();
+      grown = null;
+      INPUTS.forEach((type) => window.removeEventListener(type, giveUp, true));
+    };
+    const late = () => {
+      const room = (document.scrollingElement || document.documentElement).scrollHeight - window.innerHeight;
+      if (room < y - 2) return;
+      window.scrollTo(0, y);
+      giveUp();
+    };
+    const t3 = setTimeout(() => {
+      if (y <= 0 || window.scrollY >= y - 2 || typeof ResizeObserver !== 'function') return;
+      grown = new ResizeObserver(late);
+      grown.observe(document.body);
+      INPUTS.forEach((type) => window.addEventListener(type, giveUp, { passive: true, capture: true }));
+    }, 300);
+    const t4 = setTimeout(giveUp, 10000);
+    return () => {
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4);
+      giveUp();
+    };
     // The chapter too: going from one chapter straight to another (a
     // sub-variation link) is a new page, and has to start at its top.
   }, [view, chapterNav?.openingId, chapterNav?.chapterId]);
