@@ -20,6 +20,7 @@ import { ratingAge } from '../lib/ratings';
 import {
   AlertIcon, CheckIcon, ClockIcon, PlayIcon, TargetIcon, PencilIcon, MonitorIcon, FlaskIcon,
 } from './Icons';
+import { isoDay } from '../lib/gameDate';
 
 // A player's US Chess dashboard — the rated history their card's USCF ID
 // points at, with the games recorded in the app lined up against it.
@@ -547,7 +548,7 @@ function Dashboard({
           <ul className="dash-list spare">
             {spare.slice(0, 12).map((g) => {
               const newestEnd = sections[0]?.end;
-              const d = g.meta?.date ?? (g.date ? new Date(g.date).toISOString().slice(0, 10) : null);
+              const d = g.meta?.date ?? isoDay(g.date);
               const why = !g.meta?.date ? 'no date on it — open it to add the event details'
                 : newestEnd && d > newestEnd ? 'played after the latest rated event — may be awaiting rating'
                   : 'an unrated or club game, or its details don’t match a round';

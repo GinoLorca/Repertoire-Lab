@@ -43,7 +43,8 @@ test('a game: SAN in one string, the players and their ratings, who won, and who
   assert.equal(g.status, undefined);
   assert.equal(g._me, 'black');
   assert.equal(g.variant, 'standard');
-  assert.equal(g.createdAt, Date.UTC(2026, 9, 12));
+  // A calendar day goes over as noon that day, local time (Chess Arcade shows it local).
+  assert.equal(g.createdAt, new Date(2026, 9, 12, 12).getTime());
 });
 
 test('results: a draw has no winner, an unknown one shows as *, and the side can be given', () => {
@@ -55,7 +56,7 @@ test('results: a draw has no winner, an unknown one shows as *, and the side can
   assert.equal(g._me, 'white');
   assert.equal(g.players.white.user.name, 'White');
   assert.equal(arcadeGame({ moves: ['d4'], meta: { color: 'none' } }, 'r_000001')._me, undefined);
-  assert.equal(arcadeGame({ moves: ['d4'], meta: { date: '2026.10.12' } }, 'r_000001').createdAt, Date.parse('2026-10-12'));
+  assert.equal(arcadeGame({ moves: ['d4'], meta: { date: '2026.10.12' } }, 'r_000001').createdAt, new Date(2026, 9, 12, 12).getTime());
 });
 
 test('a game from a set-up position starts there', () => {

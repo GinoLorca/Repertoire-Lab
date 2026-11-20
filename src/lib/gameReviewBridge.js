@@ -21,6 +21,7 @@ import { START_FEN } from './startPos';
 import {
   cleanGameReview, sameGameReview, parseDoc, docFromGame, serializeDoc,
 } from './analysisDoc';
+import { localMoment } from './gameDate';
 
 // Chess Arcade's own limit on one note (GN_MAX): a longer text it would cut.
 export const MAX_TEXT = 10000;
@@ -65,9 +66,10 @@ function ending(result) {
   return { status: 'started' }; // shown as "*"
 }
 
+// Chess Arcade shows createdAt in local time, so a game's calendar day goes
+// over as noon that day, not as its UTC midnight (the evening before here).
 const dateMs = (d) => {
-  if (typeof d === 'number' && Number.isFinite(d)) return d;
-  const t = d ? Date.parse(String(d).replace(/\./g, '-')) : NaN;
+  const t = localMoment(d);
   return Number.isFinite(t) ? t : undefined;
 };
 
@@ -225,7 +227,7 @@ export function insightSummary(game, player) {
   const moves = (game?.moves ?? []).filter((s) => typeof s === 'string' && s.trim());
   const opp = me === 'white' ? m.black : m.white;
   const { speed, tc } = speedOf(m.timeControl);
-  const at = typeof game?.date === 'number' ? game.date : Date.parse(String(m.date ?? '').replace(/\./g, '-'));
+  const at = typeof game?.date === 'number' ? localMoment(game.date) : localMoment(m.date);
   return {
     me,
     res: resultFor(m.result, me),

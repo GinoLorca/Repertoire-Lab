@@ -13,6 +13,7 @@ import { unzipSync } from 'fflate';
 import { splitPgnGames } from './pgn';
 import { gameEntries, pgnTextToEntries, setUpOf } from './pgnImport';
 import { RESULTS, tidyEvent } from './games';
+import { dayMs } from './gameDate';
 
 // More PGN than this in one upload is more than a board needs (a year of
 // TWIC is about 150 MB): what's past it is left out, and said so.
@@ -181,7 +182,7 @@ export function gameRecord(item, entry, section, now = Date.now()) {
     moves: entry.moves,
     comments: entry.comments ?? {},
     badges: entry.badges ?? {},
-    date: item.date ? new Date(item.date).getTime() : now,
+    date: dayMs(item.date) || now,
     meta: {
       white: item.white,
       whiteElo: item.whiteElo,

@@ -41,6 +41,7 @@ import { lineFor as lineToOpen } from '../lib/curate';
 import { parseDoc, docFromGame, docIsEmpty } from '../lib/analysisDoc';
 import { seedFor } from '../lib/studioSeed';
 import ReviewsInProgress from './ReviewsInProgress';
+import { formatGameDate } from '../lib/gameDate';
 
 // The handles a player is known by, with whatever live ratings we last fetched
 // for them, shown compactly wherever they're useful.
@@ -76,7 +77,7 @@ function SchoolLine({ profile }) {
 }
 
 const eventLabel = (type) => EVENT_TYPES.find((t) => t.value === type)?.label ?? 'Over the board';
-const fmtDate = (ms) => new Date(ms).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+const fmtDate = (ms) => formatGameDate(ms);
 
 // The chess.com-style header block: both players with ratings, and the result
 // between them.

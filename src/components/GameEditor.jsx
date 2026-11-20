@@ -4,8 +4,7 @@ import MoveText from './MoveText';
 import ScoresheetPhoto from './ScoresheetPhoto';
 import { EVENT_TYPES, RESULTS, categoryOptions, tidyEvent } from '../lib/games';
 import { useBackGuard } from '../lib/backGuard';
-
-const todayIso = () => new Date().toISOString().slice(0, 10);
+import { dayMs, todayIso } from '../lib/gameDate';
 
 // Pull what we can out of a pasted PGN's tag pairs, so a copied game fills the
 // form in rather than making you retype it.
@@ -178,7 +177,7 @@ export default function GameEditor({
       if ('categoryId' in meta) meta.categoryId = meta.categoryId || null;
       const out = {};
       if (Object.keys(meta).length) out.meta = meta;
-      if (date !== f0.date) out.date = date ? new Date(date).getTime() : Date.now();
+      if (date !== f0.date) out.date = dayMs(date) || Date.now();
       if (white !== f0.white || black !== f0.black) out.name = name;
       if (text !== f0.text) {
         const moves = parsed?.moves ?? [];
@@ -206,7 +205,7 @@ export default function GameEditor({
       moves: parsed?.moves ?? [],
       comments: parsed?.comments ?? {},
       badges: parsed?.badges ?? {},
-      date: date ? new Date(date).getTime() : Date.now(),
+      date: dayMs(date) || Date.now(),
       meta: {
         white, whiteElo, black, blackElo,
         event, eventType, round, result, color, date, timeControl, notes,

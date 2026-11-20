@@ -29,6 +29,7 @@ import { validateLine } from '../lib/pgn';
 import { RESULTS } from '../lib/games';
 import { sideFromNames } from '../lib/pov';
 import { UploadIcon, DownloadIcon, FolderIcon } from '../components/Icons';
+import { formatGameDate } from '../lib/gameDate';
 
 // The analysis screen's tabs, as AnalysisView draws them (Game Review last).
 const TABS = [
@@ -53,10 +54,7 @@ function findGame(players, playerId, gameId) {
   return game ? { player, game } : null;
 }
 
-const dateLabel = (d) => {
-  const t = typeof d === 'number' ? d : Date.parse(d ?? '');
-  return Number.isFinite(t) ? new Date(t).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
-};
+const dateLabel = (d) => formatGameDate(d);
 
 export default function GameReviewView({ open, onOpen, onBoard }) {
   const { state, dispatch } = useStore();

@@ -108,6 +108,7 @@ import {
   PENS, SHORTCUTS, defaultPen, shortcutKey, shortcutMap, isComboKey, comboMatchesEvent, formatShortcutKey,
   eventKey, keyToken,
 } from '../lib/shortcuts';
+import { formatGameDate } from '../lib/gameDate';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -4186,7 +4187,7 @@ function AnalysedGame({ line, hideSubtitle = false }) {
   const res = m.result && m.result !== '*' ? resultFor({ meta: m }) : null;
   const site = EVENT_TYPES.find((t) => t.value === m.eventType)?.label;
   const bits = [
-    line.date ? new Date(line.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : null,
+    formatGameDate(line.date ?? m.date) || null,
     site,
     tidyEvent(m.event, m.eventType),
     m.round ? `round ${m.round}` : null,
