@@ -608,6 +608,9 @@ function AppInner() {
         // A review continued from Coaches Corner opens on the move it was
         // left on (lib/reviewsInProgress.js).
         resumePath: line.resumePath ?? null,
+        // When it was put on the board: a reload or coming back is the same
+        // open, a click on the game's card a new one (lib/session sessionFor).
+        opened: Date.now(),
       };
       // Onto Studio's board, or the analysis board — never both.
       if (studio) {

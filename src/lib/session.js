@@ -25,6 +25,7 @@
 // Each board's own work is kept in the store: the analysis board's in
 // analysisSessionDraft and the blank board's analysisDraft, Studio's in
 // studioSessionDraft and studioDraft.
+import { mainLineFrom } from './moveTree';
 
 const KEY = 'repertoire-lab-session-v1';
 
@@ -81,6 +82,34 @@ export function analysisSourceKey(line, lab, studio) {
   if (!line) return null;
   if (line.gameId && line.playerId) return `game:${line.playerId}:${line.gameId}:${studio ? 'studio' : 'plain'}`;
   return `line:${line.startFen ?? ''}|${(line.moves ?? []).join(' ')}|${line.name ?? ''}`;
+}
+
+// A saved game's moves, as one string: what a board's work on it was built on.
+export const gameMovesKey = (moves) => (Array.isArray(moves) ? moves.join(' ') : '');
+
+// Whether the board's saved work on a game (analysisSessionDraft) comes back
+// when that game is opened — or the game opens as it is now. A board keeps
+// its work for when iOS reloads the app or you come back to it from another
+// screen, but it was coming back when it no longer belonged to the game:
+//   · the game changed since that board was opened from it — its moves
+//     finished or corrected on another device (the iPad's 31 moves, the Mac
+//     still showing its own 10), or by the student: the game as it is now;
+//   · the board was switched to other moves (a pasted PGN, a game from the
+//     explorer), and then the game was opened again from its card (`opened`,
+//     App's analyze, differs): the game, not what was pasted. Reloaded or
+//     come back to (the same `opened`), what was pasted is still there.
+// A Lab entry's or a repertoire line's board, as before. `game`: the game as
+// the store holds it now. A board saved before it kept the game's moves
+// (gameMoves) is checked by its own main line: it has to hold all of them.
+export function sessionFor(draft, { sourceKey, line, game } = {}) {
+  if (!sourceKey || !draft || draft.source !== sourceKey) return null;
+  if (!line?.gameId || !line?.playerId) return draft;
+  if (draft.detached) return (draft.opened ?? null) === (line.opened ?? null) ? draft : null;
+  if (!game) return draft;
+  if (typeof draft.gameMoves === 'string') return draft.gameMoves === gameMovesKey(game.moves) ? draft : null;
+  const trunk = mainLineFrom(draft.tree).map((n) => n.san);
+  const moves = Array.isArray(game.moves) ? game.moves : [];
+  return trunk.length >= moves.length && moves.every((m, i) => m === trunk[i]) ? draft : null;
 }
 
 // ---------- Analysis and Studio, two boards ----------

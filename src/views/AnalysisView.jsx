@@ -83,7 +83,7 @@ import {
   setCollapsed, resizeBetween,
 } from '../lib/workspace';
 import { reviewKey, pathTo, nodeAtPath } from '../lib/reviewsInProgress';
-import { analysisSourceKey } from '../lib/session';
+import { analysisSourceKey, sessionFor, gameMovesKey } from '../lib/session';
 import { openReview } from '../components/ReviewReader';
 import { holdSends, releaseSends, sendOnce } from '../lib/cloud/sendHold';
 import { cardHasRoom } from '../lib/cloud/reviews';
@@ -185,11 +185,22 @@ export default function AnalysisView({
   // on the game as you go, so only where you were comes back — unless the
   // board had been switched to something else, which then comes back whole
   // and not attached to the game.
+  // A game's, only while it still belongs to the game (lib/session
+  // sessionFor): the game changed since on another device, or opened again
+  // from its card after the board was switched to other moves, it opens as
+  // it is now.
   const sourceKey = analysisSourceKey(initialLine, initialLab, coachMode);
-  const [resumed] = useState(() => {
-    const d = coachMode ? state.studioSessionDraft : state.analysisSessionDraft;
-    return sourceKey && d?.source === sourceKey ? d : null;
-  });
+  const [savedGameNow] = useState(() => (initialLine?.gameId && initialLine?.playerId
+    ? state.players.find((p) => p.id === initialLine.playerId)?.games?.find((g) => g.id === initialLine.gameId) ?? null
+    : null));
+  const [resumed] = useState(() => sessionFor(
+    coachMode ? state.studioSessionDraft : state.analysisSessionDraft,
+    { sourceKey, line: initialLine, game: savedGameNow },
+  ));
+  // The game's moves this board was opened on, kept with its work: the next
+  // open can tell the game has changed since.
+  const [openedOnMoves] = useState(() => resumed?.gameMoves
+    ?? (savedGameNow ? gameMovesKey(savedGameNow.moves) : null));
   const studioGame = Boolean(coachMode && initialLine?.gameId && initialLine?.playerId);
   // Detached: the board was a saved game's and has since been switched to
   // something else (see detach below). Up here because the saved session
@@ -675,6 +686,8 @@ export default function AnalysisView({
         board: draftBoard,
         draft: {
           source: sourceKey,
+          opened: initialLine?.opened ?? null,
+          gameMoves: openedOnMoves,
           detached,
           baseFen,
           tree,
