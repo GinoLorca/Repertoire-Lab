@@ -5929,7 +5929,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   /* each letter centred under its file: past the eval bar, its gap, the
      rank labels and the board's border */
   #hv-file-labels{ padding-left:calc(var(--hv-eval-w) + var(--hv-eval-gap) + 18px); }
-  .hv-eng-svg{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:4; overflow:visible; }
+  /* The 8x8 layers on the review board (engine, tactic, step numbers, Larry) are exactly the squares' grid: as wide as the
+     board and as tall as wide. A board stretched to the eval bar's height (Chess Book, Court Cards: thinner borders) is a
+     px or two taller than its squares, and a layer at 100% height stretched with it, so its arrows missed the centers. */
+  .hv-eng-svg{ position:absolute; inset:0 0 auto 0; width:100%; height:auto; aspect-ratio:1 / 1; pointer-events:none; z-index:4; overflow:visible; }
 
   .hv-head, .hv-card{
     background:var(--surface); border:1px solid var(--line); border-radius:10px;
@@ -8316,8 +8319,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .hv-sq-tac.is-pick::before{ box-shadow:0 0 0 1.5px #fff, 0 0 0 4px var(--tac), 0 1px 3px rgba(0,0,0,.45); }
   .tx-pop{ animation:tx-pop .32s cubic-bezier(.2,1.4,.4,1) 1; }
   @keyframes tx-pop{ 0%{ transform:scale(.6); opacity:0; } 100%{ transform:scale(1); opacity:1; } }
-  .hv-tac-svg{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:2; overflow:visible; }
-  .hv-tac-num{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:4; overflow:visible; }
+  .hv-tac-svg{ position:absolute; inset:0 0 auto 0; width:100%; height:auto; aspect-ratio:1 / 1; pointer-events:none; z-index:2; overflow:visible; }      /* the squares' grid (.hv-eng-svg) */
+  .hv-tac-num{ position:absolute; inset:0 0 auto 0; width:100%; height:auto; aspect-ratio:1 / 1; pointer-events:none; z-index:4; overflow:visible; }
   .hv-tac-svg.is-anim .tx-ring{ animation:tx-ring .5s ease-out 1; transform-box:fill-box; transform-origin:center; }
   @keyframes tx-ring{ 0%{ transform:scale(1.18); opacity:0; } 60%{ opacity:1; } 100%{ transform:scale(1); } }
   @keyframes tx-arrow{ from{ opacity:0; } to{ opacity:1; } }
@@ -8797,7 +8800,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
      solid means added) */
   :root[data-skin="uptown"] #view-play-history .hv-movelist .mv-san.mv-viewed .lz-mvd{ background:#fff; color:color-mix(in srgb, var(--cw) 78%, #000); }
   /* the board: Larry's better move (dashed shaft, solid head) and the square his note names, in the letter's color */
-  .lz-svg{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:4; overflow:visible; }
+  .lz-svg{ position:absolute; inset:0 0 auto 0; width:100%; height:auto; aspect-ratio:1 / 1; pointer-events:none; z-index:4; overflow:visible; }      /* the squares' grid (.hv-eng-svg) */
   /* three columns: the card keeps room for the engine card and the tabs (at least 4 whole move rows); the tab is unused */
   @media (min-width:1440px) and (min-height:561px){
     .hv-sidecol-analysis > .lz-card{ flex:0 1 auto; min-height:110px; max-height:calc(100% - 262px); }
@@ -13622,14 +13625,19 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const fill = color==='#1a1a1a' ? '8c' : 'b3';
     return 'inset 0 0 0 3px '+color+', inset 0 0 0 '+halo+', inset 0 0 0 999px '+color+fill;
   }
-  // Every board's last renderMarks arguments, so a profile switch can
-  // repaint the marks already on screen. A board out of sight (another
-  // view) has no size to draw arrows at, so it is repainted when it shows.
+  // Every board's last renderMarks arguments (and the width its arrows were
+  // drawn at), so a profile switch can repaint the marks already on screen.
+  // A board out of sight (another view) has no size to draw arrows at, so it
+  // is repainted when it shows; one that changes size (a window resized, a
+  // panel opened) is repainted at its new size, as Repertoire Lab draws its
+  // arrows at the board's current width: they are in px, so left alone they
+  // would stay where the old size put them (2026-11-20).
   const annoBoards = new Map();
   const annoShowRO = typeof ResizeObserver==='function' ? new ResizeObserver(entries=>{
     entries.forEach(en=>{
-      const v = annoBoards.get(en.target);
-      if(v && v.stale && en.target.clientWidth){ v.stale = false; renderMarks(en.target, v.svgEl, v.marks, null, v.cols); }
+      const el = en.target, v = annoBoards.get(el), w = el.clientWidth;
+      if(!v || !w) return;
+      if(v.stale || (w!==v.w && hasMarks(v.marks))){ v.stale = false; renderMarks(el, v.svgEl, v.marks, null, v.cols); }
     });
   }) : null;
   function annoRepaintAll(){
@@ -13644,6 +13652,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     try{ lookPrefs.annoProfile = id; saveLookPrefs(); }catch(e){}
     annoSyncLabels();
     annoRepaintAll();
+    nbHaloSyncAll();          // the notes diagrams and Game History's small boards: their halos as the profile has them
   }
   function cycleAnnoProfile(){
     const i = ANNO_PROFILE_ORDER.indexOf(annoProfile());
@@ -13759,11 +13768,97 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     return svg;
   }
 
-  function squareCenterPx(boardEl, idx){
+  // A square's center in the overlay's px. With the board's square size given: the exact center of the grid cell its
+  // element sits in, (col + .5) * size as Repertoire Lab works it out (an element's offsets are whole px, a square often
+  // isn't); offsets, not the screen rect, so a transform on the board never moves it.
+  function squareCenterPx(boardEl, idx, sqSize){
     const el = boardEl.querySelector('[data-idx="'+idx+'"]');
     if(!el) return null;
-    return { x: el.offsetLeft + el.offsetWidth/2, y: el.offsetTop + el.offsetHeight/2 };
+    const x0 = el.offsetLeft + el.offsetWidth/2, y0 = el.offsetTop + el.offsetHeight/2;
+    if(!sqSize) return { x:x0, y:y0 };
+    const x = (Math.floor(x0/sqSize) + 0.5)*sqSize, y = (Math.floor(y0/sqSize) + 0.5)*sqSize;
+    return { x: Math.abs(x - x0) < 1 ? x : x0, y: Math.abs(y - y0) < 1 ? y : y0 };
   }
+
+  // ---- the arrow: ONE shape for every board, Repertoire Lab's (BoardArrows.jsx, 2026-11-20; its proportions "lifted
+  // from chess.com's own arrow polygons") ----
+  // In squares: a .22 shaft; a head .36 long and .52 across, its tip on the target square's center; the tail .36 up the
+  // FIRST leg, clear of the piece it leaves; the shaft stops exactly where the head begins. A knight's hop bends at a right
+  // angle, long leg first, the corner on the bend square's center, with a sharp (mitered) outer corner. Nothing rounded.
+  const ARROW_SHAFT = 0.22, ARROW_HEAD_LEN = 0.36, ARROW_HEAD_HALF = 0.26, ARROW_TAIL = 0.36;
+  // ax..by: the two squares' centers in any unit; dr, dc: the hop in ranks and files (a knight's is bent); sq: a square
+  // in that unit (1 in a viewBox of 0 0 8 8, the px of one on a board's own overlay); k: the head's scale (1 = RL's).
+  // -> null for one square, else { pts: the shaft's points (tail, [corner,] head base), head: [tip, wing, wing],
+  //    pathD: the shaft as a path, triPoints: the head's points, len1: the shaft's first leg (tail to corner or base) }
+  function annoArrowShape(ax, ay, bx, by, dr, dc, sq, k){
+    sq = sq || 1; k = k || 1;
+    if(ax===bx && ay===by) return null;
+    const headLen = sq*ARROW_HEAD_LEN*k, headHalf = sq*ARROW_HEAD_HALF*k;
+    const start = { x:ax, y:ay }, end = { x:bx, y:by };
+    const corner = KNIGHT_OFFSETS.some(([x,y])=> x===dr && y===dc)
+      ? (Math.abs(dr)>Math.abs(dc) ? { x:ax, y:by } : { x:bx, y:ay }) : null;
+    // the head aimed along the last leg
+    const legFrom = corner || start;
+    const vx = end.x - legFrom.x, vy = end.y - legFrom.y, len = Math.hypot(vx, vy) || 1;
+    const ux = vx/len, uy = vy/len;
+    // the tail walked up the first leg (only Larry's arrow into his ring is ever shorter than tail + head + a little
+    // shaft: its tail comes back toward the square's center)
+    const legTo = corner || end;
+    const tx = legTo.x - start.x, ty = legTo.y - start.y, tlen = Math.hypot(tx, ty) || 1;
+    let tail = sq*ARROW_TAIL;
+    if(!corner) tail = Math.max(0, Math.min(tail, tlen - headLen - sq*0.1));
+    const tailX = start.x + (tx/tlen)*tail, tailY = start.y + (ty/tlen)*tail;
+    const baseX = end.x - ux*headLen, baseY = end.y - uy*headLen;
+    const px = -uy, py = ux;
+    const pts = corner ? [[tailX, tailY], [corner.x, corner.y], [baseX, baseY]] : [[tailX, tailY], [baseX, baseY]];
+    const head = [[end.x, end.y], [baseX + px*headHalf, baseY + py*headHalf], [baseX - px*headHalf, baseY - py*headHalf]];
+    return { pts, head,
+      pathD: 'M '+pts.map(p=> p[0]+','+p[1]).join(' L '),
+      triPoints: head.map(p=> p[0]+','+p[1]).join(' '),
+      len1: Math.hypot(pts[1][0] - tailX, pts[1][1] - tailY) };
+  }
+  // Safari (WebKit) draws a mitered join as a bevel when the stroke is thin in its own element's user units: a .22 shaft
+  // in a viewBox of 0 0 8 8 lost the knight L's sharp corner on iPad and iPhone (2026-11-20; .44 wide, or x10, x100 or px
+  // numbers, were sharp; Chrome draws all of them sharp). So an arrow drawn in square units (the engine's, the tactic's,
+  // Larry's, the small boards') is drawn ARROW_UNIT_K times bigger inside its own group, scaled back by 1/K: every stroke
+  // in it 1 unit wide or more where it is drawn, the same picture on screen. The px boards (renderMarks) need none.
+  const ARROW_UNIT_K = 100;
+  // the one place that applies it: g (the arrow's group) scaled by 1/K -> geo (annoArrowShape, in square units) in g's own
+  // units, with K; the caller's widths, dash lengths and dash offset inside g are times K too
+  function annoArrowUnits(g, geo){
+    const K = ARROW_UNIT_K, s = (p)=> [p[0]*K, p[1]*K], pts = geo.pts.map(s), head = geo.head.map(s);
+    g.setAttribute('transform', 'scale('+(1/K)+')');
+    return { pts, head, K,
+      pathD: 'M '+pts.map(p=> p[0]+','+p[1]).join(' L '),
+      triPoints: head.map(p=> p[0]+','+p[1]).join(' '),
+      len1: geo.len1*K };
+  }
+  // RL's finish: each arrow its own group, faded as one (.85; Chess Arcade's transparent white .55), the shaft and head in
+  // it opaque (an engine arrow's color has RL's own alpha too, o.alpha, the same on both), so a halo never shows through
+  // the arrow and the corner and the head's joint have no darker seam; butt ends, a mitered corner (the default miter
+  // limit, 4, keeps a right angle sharp). Inside, always these four: [halo shaft, halo head, shaft, head]; the halo pair is
+  // stroke none where there is no halo.
+  // o: { shaft, halo (a color or null), haloShaft, haloHead (its widths), op (the group's), alpha (the color's own), units
+  //      (true: geo and the widths in square units, drawn at ARROW_UNIT_K, annoArrowUnits) }
+  function annoArrowG(geo, color, o){
+    const mk = (tag, attrs)=>{ const e = document.createElementNS(ARROW_SVG_NS, tag); Object.keys(attrs).forEach(k=> e.setAttribute(k, attrs[k])); return e; };
+    const g = mk('g', { opacity:String(o.op) }), h = o.halo || 'none';
+    if(o.units) geo = annoArrowUnits(g, geo);
+    const K = o.units ? geo.K : 1;
+    g.appendChild(mk('path', { d:geo.pathD, fill:'none', stroke:h, 'stroke-width':String(o.haloShaft*K), 'stroke-linecap':'butt', 'stroke-linejoin':'miter' }));
+    g.appendChild(mk('polygon', { points:geo.triPoints, fill:'none', stroke:h, 'stroke-width':String(o.haloHead*K), 'stroke-linejoin':'round' }));
+    const line = mk('path', { d:geo.pathD, fill:'none', stroke:color, 'stroke-width':String(o.shaft*K), 'stroke-linecap':'butt', 'stroke-linejoin':'miter' });
+    const tri = mk('polygon', { points:geo.triPoints, fill:color });
+    if(o.alpha!=null && o.alpha<1){ line.setAttribute('stroke-opacity', String(o.alpha)); tri.setAttribute('fill-opacity', String(o.alpha)); }
+    g.appendChild(line); g.appendChild(tri);
+    return g;
+  }
+  // the group's opacity: RL's .85, and the Game Review pens' transparent white (2026-11-10) see-through at .55
+  function annoArrowOp(color){ return String(color).toLowerCase()==='#ffffff' ? '0.55' : '0.85'; }
+  // RL's halo rule: a halo while an arrow profile is on (Sequential, Strategic, Game Review), never in Default; light for
+  // the two darkest colors, dark for the rest
+  function annoHaloOn(){ return annoProfile()!=='default'; }
+  function annoHaloOf(color){ return ANNO_LIGHT_HALO.indexOf(String(color).toLowerCase())>=0 ? 'rgba(255,255,255,.6)' : 'rgba(0,0,0,.45)'; }
 
   // sqMeta / segs / n are the profile bookkeeping (see ANNO_PROFILES); a
   // board adds marks.pos() for the position it shows.
@@ -13790,7 +13885,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function renderMarks(boardEl, svgEl, marks, board, cols){
     cols = cols || 8;
     if(annoShowRO && !annoBoards.has(boardEl)) annoShowRO.observe(boardEl);
-    annoBoards.set(boardEl, { svgEl, marks, cols, stale:false });
+    annoBoards.set(boardEl, { svgEl, marks, cols, stale:false, w:boardEl.clientWidth });
     // null in Default and on a board that opts out: every mark is drawn in
     // its stored color, exactly as before profiles existed.
     const prof = marks.noProfile ? null : annoResolveColors(marks, annoProfile());
@@ -13803,96 +13898,18 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
 
     while(svgEl.firstChild) svgEl.removeChild(svgEl.firstChild);
     const w = boardEl.clientWidth || 1;
-    const sqSize = w/cols;
-    const shaft = sqSize*0.26, headLen = sqSize*0.44, headHalf = sqSize*0.34, tipInset = sqSize*0.08;
+    const sqSize = w/cols, shaft = sqSize*ARROW_SHAFT;
+    // Repertoire Lab's arrows (annoArrowShape, annoArrowG) in px, so the halo's 3 px are px; the halo while a profile is
+    // on, never on a board that opts out of profiles. A knight-shaped hop on this board's own grid (cols) bends.
+    const halo = !marks.noProfile && annoHaloOn();
     marks.arrows.forEach(({from,to,color}, ai)=>{
       if(prof) color = prof.arrows[ai];
-      const halo = prof && ANNO_LIGHT_HALO.indexOf(color)>=0 ? 'rgba(255,255,255,.6)' : 'rgba(0,0,0,.45)';
-      const a = squareCenterPx(boardEl, from), b = squareCenterPx(boardEl, to);
+      const a = squareCenterPx(boardEl, from, sqSize), b = squareCenterPx(boardEl, to, sqSize);
       if(!a || !b) return;
-      const fr = Math.floor(from/cols), fc = from%cols, tr = Math.floor(to/cols), tc = to%cols;
-      const dr = tr-fr, dc = tc-fc;
-      // Knight-shaped deltas bend into an L, same as chess.com/lichess draw
-      // them — a straight line across a knight hop reads as wrong to anyone
-      // used to those sites. The bend is a smooth rounded elbow (quadratic
-      // curve through the corner point) rather than a sharp miter, which is
-      // what chess.com's own arrows look like.
-      const isKnightDelta = KNIGHT_OFFSETS.some(([x,y])=> x===dr && y===dc);
-      let pathPrefix, tipX, tipY, dirX, dirY;
-      if(isKnightDelta){
-        const corner = Math.abs(dr)>Math.abs(dc) ? {x:a.x,y:b.y} : {x:b.x,y:a.y};
-        const seg2dx = b.x-corner.x, seg2dy = b.y-corner.y;
-        const seg2len = Math.hypot(seg2dx,seg2dy) || 1;
-        dirX = seg2dx/seg2len; dirY = seg2dy/seg2len;
-        tipX = b.x-dirX*tipInset; tipY = b.y-dirY*tipInset;
-        const seg1dx = corner.x-a.x, seg1dy = corner.y-a.y;
-        const seg1len = Math.hypot(seg1dx,seg1dy) || 1;
-        const seg1dirX = seg1dx/seg1len, seg1dirY = seg1dy/seg1len;
-        const tipSegLen = Math.hypot(tipX-corner.x, tipY-corner.y) || 1;
-        const radius = Math.min(sqSize*0.32, seg1len*0.45, tipSegLen*0.45);
-        const p1x = corner.x - seg1dirX*radius, p1y = corner.y - seg1dirY*radius;
-        const p2x = corner.x + dirX*radius, p2y = corner.y + dirY*radius;
-        pathPrefix = 'M '+a.x+','+a.y+' L '+p1x+','+p1y+' Q '+corner.x+','+corner.y+' '+p2x+','+p2y;
-      } else {
-        const dx = b.x-a.x, dy = b.y-a.y, len = Math.hypot(dx,dy) || 1;
-        dirX = dx/len; dirY = dy/len;
-        tipX = b.x-dirX*tipInset; tipY = b.y-dirY*tipInset;
-        pathPrefix = 'M '+a.x+','+a.y;
-      }
-      const baseX = tipX-dirX*headLen, baseY = tipY-dirY*headLen;
-      // The shaft has to STOP where the arrowhead starts. Running it on to
-      // the tip is what produced the "blob": the head tapers to a point, so
-      // over the last stretch before the tip the head is narrower than the
-      // shaft, and the shaft's flat end pokes out past the point on both
-      // sides — a blunt, notched smear instead of a clean arrow. Ending a
-      // hair inside the head keeps the two shapes seamless.
-      const shaftEndX = tipX-dirX*headLen*0.92, shaftEndY = tipY-dirY*headLen*0.92;
-      const pathD = pathPrefix + ' L '+shaftEndX+','+shaftEndY;
-      const px = -dirY, py = dirX;
-      const triPoints = tipX+','+tipY+' '+(baseX+px*headHalf)+','+(baseY+py*headHalf)+' '+(baseX-px*headHalf)+','+(baseY-py*headHalf);
-      const g = document.createElementNS(ARROW_SVG_NS,'g');
-      // Nearly opaque (.88), matching chess.com's solid arrows -- a lot of
-      // transparency here is what let anything underneath (a legal-move
-      // dot, a highlight) bleed through and blend into a muddy smear at
-      // the overlap; a small amount reads as a slightly softer arrow
-      // without reintroducing that problem.
-      //
-      // Two arrows sharing a square (most often a fanned-out knight-move
-      // pair off the same origin, which both bend the same "long axis
-      // first" way and so share an identical leading shaft) used to fuse
-      // into one contorted shape -- same solid fill, same width, no visual
-      // seam, so overlapping shafts just read as one broken arrow with an
-      // extra head poking out of it. A thin dark halo underneath every
-      // arrow (outline pass first, colored arrow on top) fixes that the
-      // same way chess.com/lichess's own arrows do: wherever two arrows
-      // overlap, each one's own edge stays visible on top of the other,
-      // so the boundary between them never disappears.
-      const outline = document.createElementNS(ARROW_SVG_NS,'path');
-      outline.setAttribute('d', pathD);
-      outline.setAttribute('fill','none');
-      outline.setAttribute('stroke', halo);
-      outline.setAttribute('stroke-width', shaft+3);
-      outline.setAttribute('stroke-linecap','butt');
-      const outlineTri = document.createElementNS(ARROW_SVG_NS,'polygon');
-      outlineTri.setAttribute('points', triPoints);
-      outlineTri.setAttribute('fill','none');
-      outlineTri.setAttribute('stroke', halo);
-      outlineTri.setAttribute('stroke-width', 3);
-      outlineTri.setAttribute('stroke-linejoin','round');
-      const line = document.createElementNS(ARROW_SVG_NS,'path');
-      line.setAttribute('d', pathD);
-      line.setAttribute('fill','none');
-      line.setAttribute('stroke', color);
-      const op = color==='#ffffff' ? '.55' : '.88';          // transparent white is see-through
-      line.setAttribute('stroke-opacity', op);
-      line.setAttribute('stroke-width', shaft);
-      line.setAttribute('stroke-linecap','butt');
-      const tri = document.createElementNS(ARROW_SVG_NS,'polygon');
-      tri.setAttribute('points', triPoints);
-      tri.setAttribute('fill', color);
-      tri.setAttribute('fill-opacity', op);
-      g.appendChild(outline); g.appendChild(outlineTri); g.appendChild(line); g.appendChild(tri);
-      svgEl.appendChild(g);
+      const dr = Math.floor(to/cols) - Math.floor(from/cols), dc = to%cols - from%cols;
+      const geo = annoArrowShape(a.x, a.y, b.x, b.y, dr, dc, sqSize);
+      if(!geo) return;
+      svgEl.appendChild(annoArrowG(geo, color, { shaft, halo: halo ? annoHaloOf(color) : null, haloShaft:shaft + 3, haloHead:3, op:annoArrowOp(color) }));
     });
   }
 
@@ -13999,23 +14016,57 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         }
       }
     }
+    // What a mark from one square to another (the same square: a highlight)
+    // would make, drawn from a copy of the marks, so nothing (a drill's answer
+    // check) hears of it until it is made; to null: the marks as they are.
+    function annoPreview(from, to){
+      const ab = annoBoards.get(boardEl);
+      if(!ab) return;
+      const real = getMarks();
+      if(to==null){ renderMarks(boardEl, ab.svgEl, real, null, ab.cols); return; }
+      const copy = Object.assign({}, real, {
+        arrows: real.arrows.slice(), squares: Object.assign({}, real.squares),
+        sqMeta: real.sqMeta ? Object.assign({}, real.sqMeta) : undefined,
+        segs: real.segs ? real.segs.slice() : undefined,
+      });
+      applyMark(copy, from, to);
+      renderMarks(boardEl, ab.svgEl, copy, null, ab.cols);
+    }
+    // A right-drag shows its arrow as the pointer goes, square by square, as
+    // Repertoire Lab's drawing boards (Practice, Learn, Study, the line
+    // viewer) do, and is gone again over the start square or off the board.
+    // Not on the review board: RL's analysis board shows none either. Only
+    // while the right button is down (e.buttons); the release draws, as ever.
+    const dragLive = boardEl.id!=='hv-board';
+    let dragTo = null;
+    function dragShow(to){ if(to===dragTo) return; dragTo = to; annoPreview(fromIdx, to===fromIdx ? null : to); }
     boardEl.addEventListener('contextmenu', (e)=> e.preventDefault());
     boardEl.addEventListener('mousedown', (e)=>{
       if(e.button!==2) return;
       if(shouldSkip && shouldSkip(e)){ fromIdx=null; return; }
       const sqEl = e.target.closest('.sq');
       fromIdx = sqEl ? Number(sqEl.dataset.idx) : null;
+      dragTo = fromIdx;
     });
+    boardEl.addEventListener('mousemove', (e)=>{
+      if(!dragLive || fromIdx==null) return;
+      if(!(e.buttons & 2)){ dragShow(fromIdx); return; }
+      const sqEl = e.target.closest ? e.target.closest('.sq') : null;
+      dragShow(sqEl && boardEl.contains(sqEl) ? Number(sqEl.dataset.idx) : null);
+    });
+    boardEl.addEventListener('mouseleave', ()=>{ if(dragLive && fromIdx!=null) dragShow(null); });
     boardEl.addEventListener('mouseup', (e)=>{
       if(e.button!==2) return;
       if(fromIdx==null) return;
-      if(shouldSkip && shouldSkip(e)){ fromIdx=null; return; }
+      const shown = dragTo!=null && dragTo!==fromIdx;
+      dragTo = null;
+      if(shouldSkip && shouldSkip(e)){ if(shown) annoPreview(fromIdx, null); fromIdx=null; return; }
       const sqEl = e.target.closest('.sq');
       const toIdx = sqEl ? Number(sqEl.dataset.idx) : null;
       if(toIdx!=null){
         applyMark(getMarks(), fromIdx, toIdx);
         onChange();
-      }
+      } else if(shown) annoPreview(fromIdx, null);
       fromIdx = null;
     });
 
@@ -14034,16 +14085,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       return sq && boardEl.contains(sq) ? Number(sq.dataset.idx) : null;
     }
     function holdPreview(){
-      const ab = annoBoards.get(boardEl);
-      if(!hold || !ab) return;
-      const real = getMarks();
-      const copy = Object.assign({}, real, {
-        arrows: real.arrows.slice(), squares: Object.assign({}, real.squares),
-        sqMeta: real.sqMeta ? Object.assign({}, real.sqMeta) : undefined,
-        segs: real.segs ? real.segs.slice() : undefined,
-      });
-      applyMark(copy, hold.from, hold.to);
-      renderMarks(boardEl, ab.svgEl, copy, null, ab.cols);
+      if(hold) annoPreview(hold.from, hold.to);
     }
     function onHoldMove(e){
       if(!hold || e.pointerId!==hold.id) return;
@@ -17754,8 +17796,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         { x1:x2-d, y1:y2-d, x2:x2+d, y2:y2+d, w:0.1 },
         { x1:x2-d, y1:y2+d, x2:x2+d, y2:y2-d, w:0.1 }
       ];
-      // A thin dark halo under each stroke, as the house arrows have, so the
-      // red reads on every board color.
+      // A thin dark halo under each stroke, so the red reads on every board
+      // color (this board's own arrows have none: it keeps out of the arrow
+      // profiles, and Repertoire Lab's arrows have a halo only with one on).
       [true, false].forEach(halo=> strokes.forEach(s=>{
         const a = { x1:s.x1, y1:s.y1, x2:s.x2, y2:s.y2,
           stroke: halo ? 'rgba(0,0,0,.35)' : WL_ARROW.wrong, 'stroke-width': String(halo ? s.w+0.05 : s.w) };
@@ -44587,14 +44630,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     return ok;
   }
   // The tactic in square units (viewBox 0 0 8 8): rings round its pieces and its arrows, magenta with a white edge (3 px or
-  // more on screen each side, so they read on every skin's dark squares), wider than an engine arrow so one on the same
-  // move sits inside it; the step numbers (19 px or more across) in their own layer (numSvg), above the engine's arrows.
+  // more on screen each side, so they read on every skin's dark squares); the arrows Repertoire Lab's shape (annoArrowShape),
+  // 15% bigger on the review board (shaft and head) so an engine arrow on the same move sits inside one, RL's own size on
+  // the small boards; the step numbers (19 px or more across) in their own layer (numSvg), above the engine's arrows, on
+  // the shaft (along a knight's L).
   // o: { flip, sqPx (a square on screen), state (the position after the move; none: no numbers), numSvg, anim, mini }
   function hvTacPaint(svg, c, o){
     const NS = ARROW_SVG_NS, mk = (tag, attrs, kid)=>{ const e = document.createElementNS(NS, tag); Object.keys(attrs).forEach(k=> e.setAttribute(k, attrs[k])); kid.appendChild(e); return e; };
     const at = (s)=>{ const c = 'abcdefgh'.indexOf(s.charAt(0)), r = Number(s.charAt(1)) - 1; return { x:(o.flip ? 7-c : c) + 0.5, y:(o.flip ? r : 7-r) + 0.5, r, c }; };
     const sqPx = o.sqPx || 60, edge = Math.max(3 / sqPx, 0.035);
-    const shaft = o.mini ? 0.17 : 0.24, head = o.mini ? 1 : 1.15;
+    const big = o.mini ? 1 : 1.15, shaft = ARROW_SHAFT*big;
     c.sq.forEach((s, i)=>{
       const p = at(s), g = mk('g', { 'class':'tx-ring' }, svg);
       if(o.anim) g.style.animationDelay = (i * 60)+'ms';
@@ -44604,16 +44649,19 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const legal = o.state ? hvTacLegal(o.state, c.arrows) : [];
     let n = 0;
     c.arrows.forEach((a, i)=>{
-      const A = at(a[0]), Z = at(a[1]), sh = annoArrowShape(A.x, A.y, Z.x, Z.y, Z.r - A.r, Z.c - A.c, head);
-      const g = mk('g', { 'class':'tx-arrow' }, svg);
+      const A = at(a[0]), Z = at(a[1]), sh = annoArrowShape(A.x, A.y, Z.x, Z.y, Z.r - A.r, Z.c - A.c, 1, big);
+      if(!sh) return;
+      const g = mk('g', { 'class':'tx-arrow' }, svg), u = annoArrowUnits(g, sh), K = u.K;     // (drawn at K: Safari's sharp corner)
       if(o.anim){ g.style.opacity = '0'; g.style.animation = 'tx-arrow .25s ease-out forwards'; g.style.animationDelay = (180 + i * 160)+'ms'; }
-      mk('path', { d:sh.pathD, fill:'none', stroke:'#fff', 'stroke-opacity':'.92', 'stroke-width':String(shaft + 2 * edge), 'stroke-linecap':'butt' }, g);
-      mk('polygon', { points:sh.triPoints, fill:'#fff', 'fill-opacity':'.92', stroke:'#fff', 'stroke-opacity':'.92', 'stroke-width':String(2 * edge), 'stroke-linejoin':'round' }, g);
-      mk('path', { d:sh.pathD, fill:'none', stroke:TAC_COLOR, 'stroke-width':String(shaft), 'stroke-linecap':'butt' }, g);
-      mk('polygon', { points:sh.triPoints, fill:TAC_COLOR }, g);
+      mk('path', { d:u.pathD, fill:'none', stroke:'#fff', 'stroke-opacity':'.92', 'stroke-width':String((shaft + 2 * edge)*K), 'stroke-linecap':'butt', 'stroke-linejoin':'miter' }, g);
+      mk('polygon', { points:u.triPoints, fill:'#fff', 'fill-opacity':'.92', stroke:'#fff', 'stroke-opacity':'.92', 'stroke-width':String(2 * edge * K), 'stroke-linejoin':'round' }, g);
+      mk('path', { d:u.pathD, fill:'none', stroke:TAC_COLOR, 'stroke-width':String(shaft*K), 'stroke-linecap':'butt', 'stroke-linejoin':'miter' }, g);
+      mk('polygon', { points:u.triPoints, fill:TAC_COLOR }, g);
       if(o.mini || !legal[i] || !o.numSvg) return;
       n++;
-      const r = Math.max(0.165, 9.75 / sqPx), mx = A.x + (Z.x - A.x) * 0.42, my = A.y + (Z.y - A.y) * 0.42;
+      // 42% of the way along the move: on a knight's L (3 squares), 63% up its 2-square first leg
+      const C = sh.pts.length > 2 ? { x:sh.pts[1][0], y:sh.pts[1][1] } : Z, f = sh.pts.length > 2 ? 0.63 : 0.42;
+      const r = Math.max(0.165, 9.75 / sqPx), mx = A.x + (C.x - A.x) * f, my = A.y + (C.y - A.y) * f;
       const gn = mk('g', { 'class':'tx-num' }, o.numSvg);
       if(o.anim){ gn.style.opacity = '0'; gn.style.animation = 'tx-arrow .25s ease-out forwards'; gn.style.animationDelay = (180 + i * 160)+'ms'; }
       mk('circle', { cx:mx, cy:my, r:String(r), fill:TAC_COLOR, stroke:'#fff', 'stroke-width':String(Math.max(0.045, 1.6 / sqPx)) }, gn);
@@ -46259,49 +46307,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     bar.setAttribute('aria-label', aria);
     bar.dataset.pct = String(Math.round(pct*100)/100);
   }
-  // The arrow geometry renderMarks draws, as a pure helper (in any unit):
-  // shaft ending just inside the head, knight hops bent into an L with a
-  // rounded elbow.
-  function annoArrowShape(ax, ay, bx, by, dr, dc, sqSize){
-    const headLen = sqSize*0.44, headHalf = sqSize*0.34, tipInset = sqSize*0.08;
-    const a = { x:ax, y:ay }, b = { x:bx, y:by };
-    const isKnightDelta = KNIGHT_OFFSETS.some(([x,y])=> x===dr && y===dc);
-    let pathPrefix, tipX, tipY, dirX, dirY;
-    if(isKnightDelta){
-      const corner = Math.abs(dr)>Math.abs(dc) ? {x:a.x,y:b.y} : {x:b.x,y:a.y};
-      const seg2dx = b.x-corner.x, seg2dy = b.y-corner.y;
-      const seg2len = Math.hypot(seg2dx,seg2dy) || 1;
-      dirX = seg2dx/seg2len; dirY = seg2dy/seg2len;
-      tipX = b.x-dirX*tipInset; tipY = b.y-dirY*tipInset;
-      const seg1dx = corner.x-a.x, seg1dy = corner.y-a.y;
-      const seg1len = Math.hypot(seg1dx,seg1dy) || 1;
-      const seg1dirX = seg1dx/seg1len, seg1dirY = seg1dy/seg1len;
-      const tipSegLen = Math.hypot(tipX-corner.x, tipY-corner.y) || 1;
-      const radius = Math.min(sqSize*0.32, seg1len*0.45, tipSegLen*0.45);
-      const p1x = corner.x - seg1dirX*radius, p1y = corner.y - seg1dirY*radius;
-      const p2x = corner.x + dirX*radius, p2y = corner.y + dirY*radius;
-      pathPrefix = 'M '+a.x+','+a.y+' L '+p1x+','+p1y+' Q '+corner.x+','+corner.y+' '+p2x+','+p2y;
-    } else {
-      const dx = b.x-a.x, dy = b.y-a.y, len = Math.hypot(dx,dy) || 1;
-      dirX = dx/len; dirY = dy/len;
-      tipX = b.x-dirX*tipInset; tipY = b.y-dirY*tipInset;
-      pathPrefix = 'M '+a.x+','+a.y;
-    }
-    const baseX = tipX-dirX*headLen, baseY = tipY-dirY*headLen;
-    const shaftEndX = tipX-dirX*headLen*0.92, shaftEndY = tipY-dirY*headLen*0.92;
-    const px = -dirY, py = dirX;
-    return {
-      pathD: pathPrefix + ' L '+shaftEndX+','+shaftEndY,
-      triPoints: tipX+','+tipY+' '+(baseX+px*headHalf)+','+(baseY+py*headHalf)+' '+(baseX-px*headHalf)+','+(baseY-py*headHalf),
-    };
-  }
   // Repertoire Lab's engine arrows: the best move green, the 2nd blue, the
   // 3rd amber (three hues, so three candidates don't read as one plan),
   // each switched on its own from the cog or with 1, 2, 3 (none while E
-  // hides the suggested moves). Thinner than a user arrow (70%
-  // of its shaft) and translucent, with a light halo: never mistaken for
-  // one. Drawn 3rd, 2nd, best, so the best move's arrow is on top.
+  // hides the suggested moves). RL's look (AnalysisView): a user arrow's
+  // shape, no halo, the group at .85 and the color's own alpha (.92 the
+  // best, .85 the others). Drawn 3rd, 2nd, best, so the best move's arrow
+  // is on top.
   const HV_ARROW_COLORS = ['rgb(56,176,120)', 'rgb(59,132,235)', 'rgb(226,142,46)'];
+  const HV_ARROW_ALPHA = [0.92, 0.85, 0.85];
   const HV_ARROW_HUES = ['green', 'blue', 'amber'];
   const HV_ARROW_NAMES = ['Best move', '2nd best', '3rd best'];
   function hvDrawEngArrow(){
@@ -46310,8 +46324,6 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!S || hvHidden() || pxPlaying()) return;
     const cx = (i)=>{ const c = i%8; return (S.flipped ? 7-c : c) + 0.5; };
     const cy = (i)=>{ const r = Math.floor(i/8); return (S.flipped ? r : 7-r) + 0.5; };
-    const shaft = 0.26*0.7;
-    const mk = (tag, attrs)=>{ const e = document.createElementNS(ARROW_SVG_NS, tag); Object.keys(attrs).forEach(k=> e.setAttribute(k, attrs[k])); return e; };
     for(let k=3;k>=1;k--){
       if(!hvPrefs.arrows[k-1]) continue;
       const l = hvEngLine(k);
@@ -46319,12 +46331,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const from = pzAlgToIdx(l.firstUci.slice(0, 2)), to = pzAlgToIdx(l.firstUci.slice(2, 4));
       const dr = Math.floor(to/8)-Math.floor(from/8), dc = to%8-from%8;
       const shp = annoArrowShape(cx(from), cy(from), cx(to), cy(to), dr, dc, 1);
-      const color = HV_ARROW_COLORS[k-1];
-      const g = mk('g', { 'class':'hv-eng-arrow', 'data-uci':l.firstUci, 'data-mp':String(k), opacity:'.6' });
-      g.appendChild(mk('path', { d:shp.pathD, fill:'none', stroke:'rgba(255,255,255,.5)', 'stroke-width':shaft+0.07, 'stroke-linecap':'butt' }));
-      g.appendChild(mk('polygon', { points:shp.triPoints, fill:'none', stroke:'rgba(255,255,255,.5)', 'stroke-width':0.07, 'stroke-linejoin':'round' }));
-      g.appendChild(mk('path', { d:shp.pathD, fill:'none', stroke:color, 'stroke-width':shaft, 'stroke-linecap':'butt' }));
-      g.appendChild(mk('polygon', { points:shp.triPoints, fill:color }));
+      if(!shp) continue;
+      const g = annoArrowG(shp, HV_ARROW_COLORS[k-1], { shaft:ARROW_SHAFT, halo:null, haloShaft:ARROW_SHAFT, haloHead:0, op:'0.85', alpha:HV_ARROW_ALPHA[k-1], units:true });
+      g.setAttribute('class', 'hv-eng-arrow'); g.setAttribute('data-uci', l.firstUci); g.setAttribute('data-mp', String(k));
       hvEngSvg.appendChild(g);
     }
   }
@@ -51896,19 +51905,46 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       mk('rect', { x:p.x-0.5, y:p.y-0.5, width:1, height:1, fill:col, 'fill-opacity':'.45' });
       mk('rect', { x:p.x-0.46, y:p.y-0.46, width:0.92, height:0.92, fill:'none', stroke:col, 'stroke-width':'.08' });
     });
+    // a note's color code (NB_CODES), or a #hex color of the app's own (a CLAMP letter's, ct*): Repertoire Lab's arrows
+    // (annoArrowShape, annoArrowG) as the big boards draw them; the halo (while a profile is on) follows the profile and its
+    // 3 px this board's size (nbHaloFit)
+    const halo = annoHaloOn();
     dg.arrows.forEach(a=>{
-      // a note's color code (NB_CODES), or a #hex color of the app's own (a CLAMP letter's, ct*): with a light halo, as the review draws it
       const hex = /^#[0-9a-f]{6}$/i.test(String(a.c)), A = at(a.f), Z = at(a.t), col = hex ? String(a.c) : NB_CODES[a.c];
       const sh = annoArrowShape(A.x, A.y, Z.x, Z.y, Z.r-A.r, Z.c-A.c, 1);
-      const halo = hex || ANNO_LIGHT_HALO.indexOf(col) >= 0 ? 'rgba(255,255,255,.6)' : 'rgba(0,0,0,.45)';
-      mk('path', { d:sh.pathD, fill:'none', stroke:halo, 'stroke-width':'.36', 'stroke-linecap':'butt' });
-      mk('polygon', { points:sh.triPoints, fill:'none', stroke:halo, 'stroke-width':'.1', 'stroke-linejoin':'round' });
-      mk('path', { d:sh.pathD, fill:'none', stroke:col, 'stroke-opacity':'.88', 'stroke-width':'.26', 'stroke-linecap':'butt' });
-      mk('polygon', { points:sh.triPoints, fill:col, 'fill-opacity':'.88' });
+      if(!sh) return;
+      svg.appendChild(annoArrowG(sh, col, { shaft:ARROW_SHAFT, halo: halo ? annoHaloOf(col) : null, haloShaft:ARROW_SHAFT + 0.1, haloHead:0.1, op:annoArrowOp(col), units:true }));
     });
+    if(dg.arrows.length) nbHaloFit(svg);
     wrap.appendChild(svg);
     return wrap;
   }
+  // A mini board's arrow halos are 3 px on screen, as on the big boards (RL's are px). Their widths (square units times
+  // ARROW_UNIT_K, inside the arrow's own scaled group; see annoArrowUnits) follow the board's size (drawn at 30 px a
+  // square until it has one), and their color follows the arrow profile (none in Default). Every
+  // mini board with arrows is watched, from before it is on the page (one put on a frame or two later fits when it gets
+  // there) for as long as it lives: one taken off and put back (a moved diagram, a kept row) fits again, at its new size
+  // and the profile of the moment. A watched board that is dropped is still collected: a ResizeObserver holds its boards
+  // weakly (Chrome, Safari). A profile switch recolors the ones on the page at once (setAnnoProfile, nbHaloSyncAll).
+  var nbHaloRO = null;
+  function nbHaloSync(svg, w){
+    const on = annoHaloOn(), px = w > 0 ? 8 / w : 0;
+    Array.from(svg.children).forEach(g=>{
+      if(g.tagName!=='g' || g.hasAttribute('class') || g.children.length!==4) return;      // (the Tactics tab's tx-arrow: its own white edge)
+      const h = on ? annoHaloOf(g.children[2].getAttribute('stroke')) : 'none';
+      if(g.children[0].getAttribute('stroke')!==h){ g.children[0].setAttribute('stroke', h); g.children[1].setAttribute('stroke', h); }
+      if(px){ g.children[0].setAttribute('stroke-width', String((ARROW_SHAFT + 3*px)*ARROW_UNIT_K)); g.children[1].setAttribute('stroke-width', String(3*px*ARROW_UNIT_K)); }
+    });
+  }
+  function nbHaloFit(svg){
+    if(typeof ResizeObserver!=='function') return;
+    if(!nbHaloRO) nbHaloRO = new ResizeObserver(es=> es.forEach(en=>{
+      const w = en.contentRect.width;
+      if(w > 0 && en.target.isConnected) nbHaloSync(en.target, w);
+    }));
+    nbHaloRO.observe(svg);
+  }
+  function nbHaloSyncAll(){ document.querySelectorAll('svg.nb-board-svg').forEach(s=> nbHaloSync(s, 0)); }
   // ctx: 'review' (Go to position + remove), 'popup' (Open the game here + remove), 'ro' (read-only)
   function nbIsland(dg, ctx){
     const el = nbEl('div', 'nb-dg');
@@ -55754,18 +55790,25 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const dr = Math.floor(it.to / 8) - Math.floor(it.from / 8), dc = it.to % 8 - it.from % 8, ax = cx(it.from), ay = cy(it.from);
       let bx = cx(it.to), by = cy(it.to);
       if(sqs.indexOf(lzAlg(it.to)) >= 0){
-        // the tip stops at the ring's outside edge (annoArrowShape insets the tip .08 itself), along a knight's last leg
+        // the tip stops at the ring's outside edge, along a knight's last leg
         const knight = (Math.abs(dr)===1 && Math.abs(dc)===2) || (Math.abs(dr)===2 && Math.abs(dc)===1);
         let dx = bx - ax, dy = by - ay;
         if(knight){ if(Math.abs(dr) > Math.abs(dc)) dy = 0; else dx = 0; }
-        const len = Math.hypot(dx, dy) || 1, cut = RING + HALO / 2 - 0.08;
+        const len = Math.hypot(dx, dy) || 1, cut = RING + HALO / 2;
         bx -= dx / len * cut; by -= dy / len * cut;
       }
+      // Repertoire Lab's arrow shape (annoArrowShape), Larry's own finish: dashed in the letter's color over a light halo; a
+      // dash centered on a knight's corner (so the L's sharp corner shows), a straight one's last dash meeting the head
+      // (drawn at K in its group, annoArrowUnits: Safari's sharp corner; the ring and the cut above stay in squares)
       const shp = annoArrowShape(ax, ay, bx, by, dr, dc, 1), g = mk('g', { opacity:'.92' });
-      g.appendChild(mk('path', { d:shp.pathD, fill:'none', stroke:'rgba(255,255,255,.7)', 'stroke-width':0.28, 'stroke-linecap':'butt' }));
-      g.appendChild(mk('polygon', { points:shp.triPoints, fill:'none', stroke:'rgba(255,255,255,.7)', 'stroke-width':0.08, 'stroke-linejoin':'round' }));
-      g.appendChild(mk('path', { d:shp.pathD, fill:'none', stroke:col, 'stroke-width':0.2, 'stroke-linecap':'butt', 'stroke-dasharray':'0.17 0.09' }));
-      g.appendChild(mk('polygon', { points:shp.triPoints, fill:col }));
+      if(shp){
+        const u = annoArrowUnits(g, shp), K = u.K;
+        const DASH = 0.17, PER = 0.26, at0 = shp.pts.length > 2 ? DASH / 2 : DASH, off = ((at0 - shp.len1) % PER + PER) % PER;
+        g.appendChild(mk('path', { d:u.pathD, fill:'none', stroke:'rgba(255,255,255,.7)', 'stroke-width':(ARROW_SHAFT + 0.08)*K, 'stroke-linecap':'butt', 'stroke-linejoin':'miter' }));
+        g.appendChild(mk('polygon', { points:u.triPoints, fill:'none', stroke:'rgba(255,255,255,.7)', 'stroke-width':0.08*K, 'stroke-linejoin':'round' }));
+        g.appendChild(mk('path', { d:u.pathD, fill:'none', stroke:col, 'stroke-width':ARROW_SHAFT*K, 'stroke-linecap':'butt', 'stroke-linejoin':'miter', 'stroke-dasharray':(0.17*K)+' '+(0.09*K), 'stroke-dashoffset':off*K }));
+        g.appendChild(mk('polygon', { points:u.triPoints, fill:col }));
+      }
       svg.appendChild(g);
     }
     hvBoardEl.appendChild(svg);
