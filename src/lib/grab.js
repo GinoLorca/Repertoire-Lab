@@ -1,6 +1,6 @@
 // Picking a piece up — the rules, apart from the boards that follow them
-// (components/Board.jsx, views/PracticeView.jsx, views/AnalysisView.jsx) so
-// they can be tested: tests/grab.test.mjs.
+// (components/Board.jsx and useCarry.js, views/PracticeView.jsx,
+// views/AnalysisView.jsx) so they can be tested: tests/grab.test.mjs.
 //
 // A grab used to fail in four ways, each of which felt like the board not
 // listening:
@@ -12,6 +12,10 @@
 //   · a piece let go while the reply was still sliding was thrown away by
 //     the board library, and went back;
 //   · nor could one be lifted during the red flash after a wrong move.
+// And when it worked it felt sticky, set against lichess: nothing answered
+// the press, and the piece didn't move until the finger had gone a fifth of a
+// square (then jumped to catch up). So pieces are carried by the app itself
+// now — the last part of this file, and components/useCarry.js.
 
 const FILES = 'abcdefgh';
 const isSquare = (sq) => typeof sq === 'string' && /^[a-h][1-8]$/.test(sq);
@@ -144,4 +148,38 @@ export function lateDrop({
   let promo = false;
   try { promo = Boolean(promotes(from, to, piece)); } catch { promo = false; }
   return promo ? null : { from, to, piece };
+}
+
+// ---------- Carrying a piece (components/useCarry.js) ----------
+
+// How far a press travels before it's surely a carry — no longer a tap, nor,
+// where a rested finger draws, a hold. A finger's is what gives up a hold to
+// draw (useHoldToDraw's HOLD_SLOP is this number): the two can't both claim
+// a press. A mouse's is what the browser's own drag-and-drop asked of it.
+export const TOUCH_SLOP = 6;
+export const MOUSE_SLOP = 4;
+export const sureAfter = (kind) => (kind === 'mouse' ? MOUSE_SLOP : TOUCH_SLOP);
+
+// Where a carried piece's centre is drawn. It moves with the pointer from
+// the first pixel — no waiting for a threshold, and no jump: at first it
+// keeps the point it was taken by under the pointer, and over the first part
+// of the way it settles centred there, which is where it will be put down.
+// `grab`: the pointer's offset from the middle of the piece's square as it
+// pressed; `far`: the furthest the pointer has been from that point (so
+// coming back doesn't slide the piece off-centre again); `settle`: the
+// distance over which it centres — about half a square.
+export function carriedCentre({
+  x, y, grab, far, settle,
+}) {
+  const k = settle > 0 ? Math.min(1, Math.max(0, far / settle)) : 1;
+  return { x: x - (grab?.x ?? 0) * (1 - k), y: y - (grab?.y ?? 0) * (1 - k) };
+}
+
+// What letting go comes to. `sure`: the press travelled far enough to be a
+// carry (sureAfter). `to`: the square under the pointer, or null off the
+// board. 'tap' — the board's own click, as if the piece had never stirred;
+// 'back' — put back where it came from (or let go off the board); 'drop'.
+export function released({ sure, from, to } = {}) {
+  if (!sure) return 'tap';
+  return isSquare(to) && isSquare(from) && to !== from ? 'drop' : 'back';
 }

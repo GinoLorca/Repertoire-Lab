@@ -6,6 +6,7 @@ import { Chess } from 'chess.js';
 
 const {
   pieceAt, sideToMove, liftable, movable, ownPiece, defaultPromotionCheck, lateDrop, takenSquare, dropSquare,
+  TOUCH_SLOP, MOUSE_SLOP, sureAfter, carriedCentre, released,
 } = await import('../src/lib/grab.js');
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -140,4 +141,51 @@ test('the square a drop is for: where the piece was let go, not what was sliding
   assert.equal(dropSquare({ from: 'c3', asked: 'zz' }), null);
   assert.equal(dropSquare({ from: 'c3', asked: 'e4', released: 'nonsense' }), 'e4', 'a square that isn’t one is no square');
   assert.equal(dropSquare(), null);
+});
+
+test('a carried piece moves with the pointer from the first pixel, and settles under it', () => {
+  // Taken by its top-left corner area: 20 px left of, 15 px above, the middle of its square.
+  const grab = { x: -20, y: -15 };
+  const at = (x, y, far) => carriedCentre({ x, y, grab, far, settle: 30 });
+  // Pressed at (100, 100): the piece's middle is where its square's is — nothing has moved.
+  assert.deepEqual(at(100, 100, 0), { x: 120, y: 115 });
+  // One pixel of travel: the piece has moved one pixel too (and a hair towards the pointer) — no dead zone, no jump.
+  const one = at(101, 100, 1);
+  assert.ok(one.x > 120 && one.x < 121.1, `moved with the pointer: ${one.x}`);
+  assert.ok(Math.abs(one.y - 115) < 0.6);
+  // Each further pixel moves it by about a pixel: never a leap.
+  let prev = at(100, 100, 0);
+  for (let d = 1; d <= 60; d += 1) {
+    const now = at(100 + d, 100, d);
+    const step = Math.hypot(now.x - prev.x, now.y - prev.y);
+    assert.ok(step > 0.2 && step < 2, `pixel ${d}: a step of ${step}`);
+    prev = now;
+  }
+  // Half a square on, it's centred under the pointer — where it will be put down — and stays so.
+  assert.deepEqual(at(130, 100, 30), { x: 130, y: 100 });
+  assert.deepEqual(at(400, 250, 300), { x: 400, y: 250 });
+  // Coming back towards where it was taken doesn't slide it off-centre again.
+  assert.deepEqual(at(104, 100, 45), { x: 104, y: 100 });
+  // Taken dead centre: with the pointer throughout.
+  assert.deepEqual(carriedCentre({ x: 7, y: 9, grab: { x: 0, y: 0 }, far: 0, settle: 30 }), { x: 7, y: 9 });
+  assert.deepEqual(carriedCentre({ x: 7, y: 9, grab, far: 3, settle: 0 }), { x: 7, y: 9 }, 'nothing to settle over: centred');
+});
+
+test('a press is surely a carry at the distance that gives up a hold to draw', async () => {
+  const { HOLD_SLOP } = await import('../src/components/useHoldToDraw.js');
+  assert.equal(TOUCH_SLOP, HOLD_SLOP, 'a carry and a hold can never both claim a press');
+  assert.equal(sureAfter('touch'), TOUCH_SLOP);
+  assert.equal(sureAfter('pen'), TOUCH_SLOP);
+  assert.equal(sureAfter('mouse'), MOUSE_SLOP);
+  assert.ok(MOUSE_SLOP <= TOUCH_SLOP);
+});
+
+test('letting go: a tap, a piece put back, or a move', () => {
+  assert.equal(released({ sure: false, from: 'e2', to: 'e2' }), 'tap');
+  assert.equal(released({ sure: false, from: 'e2', to: 'e3' }), 'tap', 'a finger that never left its few pixels tapped, wherever it sits');
+  assert.equal(released({ sure: true, from: 'e2', to: 'e4' }), 'drop');
+  assert.equal(released({ sure: true, from: 'e2', to: 'e2' }), 'back', 'carried out and brought home');
+  assert.equal(released({ sure: true, from: 'e2', to: null }), 'back', 'let go off the board');
+  assert.equal(released({ sure: true, from: 'e2', to: 'z9' }), 'back');
+  assert.equal(released(), 'tap');
 });

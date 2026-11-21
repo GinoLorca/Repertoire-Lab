@@ -20,6 +20,7 @@ import {
 } from '../lib/arrowProfiles';
 import { watchHeldKeys, heldKeys, markDrawn } from '../lib/penHold';
 import { liftable, lateDrop, dropSquare } from '../lib/grab';
+import { useCarry } from './useCarry';
 
 export const DEFAULT_SQUARE_LIGHT = '#c6d3e1';
 export const DEFAULT_SQUARE_DARK = '#4a6a8f';
@@ -256,7 +257,7 @@ function BoardTopMarks({
 }
 
 export default function Board({
-  position, customSquareStyles, lastMove, badge, clampAt = null, suitPick = null, ownArrows = true, marks = null, telestrator = true, liftFirst, ...rest
+  position, customSquareStyles, lastMove, badge, clampAt = null, suitPick = null, ownArrows = true, marks = null, telestrator = true, liftFirst, eagerBegin = false, nativeDrag = false, ...rest
 }) {
   const { state } = useStore();
   // What's right-clicked onto this board (see DrawableBoard): its arrows and
@@ -353,6 +354,10 @@ export default function Board({
   const orientation = rest.boardOrientation === 'black' ? 'black' : 'white';
 
   // ---------- A piece in the air ----------
+  //
+  // (What follows is for a board still on the library's own drag-and-drop —
+  // the Board Editor. The others carry their pieces themselves: `carryOn`,
+  // further down, and components/useCarry.)
   //
   // Two things the board library gets wrong about a piece let go while
   // another is still sliding, both of which a quick player meets all the
@@ -492,6 +497,22 @@ export default function Board({
   // from it", as the analysis board does: on unless switched off.
   const pieceFirst = liftFirst ?? state.settings.holdDrawFromPieces === false;
 
+  // Pieces are carried by the app itself (components/useCarry) on every
+  // board where a view moves them and settles promotions itself — Learn and
+  // Practice, the analysis board, Browse as a tree: claimed at the touch,
+  // with the pointer from the first pixel. The library's drag-and-drop,
+  // which waited and trailed, is switched off there. The Board Editor keeps
+  // it (`nativeDrag`: its tray and its bin are the library's), as does a
+  // board with no host of its own to listen on.
+  const carryOn = sized && telestrator && !nativeDrag && Boolean(rest.onPieceDrop) && Boolean(rest.onPromotionCheck);
+  const hostRef = useRef(null);
+  // (`eagerBegin`: the view is told of a lift the moment it's certain, not
+  // when the pointer first rests — Learn and Practice, where the lift brings
+  // the reply on and the drop is judged after it.)
+  const { instant } = useCarry(carryOn, hostRef, {
+    id: view.current.id, position, canLift, pieceFirst, eager: eagerBegin, view,
+  });
+
   // Uptown Express's coordinates are line signs (LineSigns above), on any
   // board with a size to draw them at; the board's own step aside for them.
   const coordScale = coordScaleOf(state.settings);
@@ -519,6 +540,10 @@ export default function Board({
       onPieceDragBegin={grab.onPieceDragBegin}
       onPieceDragEnd={grab.onPieceDragEnd}
       {...(rest.onPieceDrop ? { onPieceDrop: grab.onPieceDrop } : {})}
+      // Carried by the app: nothing for the library to drag — and a piece
+      // just put down is there, not slid over from where it was.
+      {...(carryOn ? { arePiecesDraggable: false } : {})}
+      {...(instant ? { animationDuration: 0 } : {})}
     />
   );
 
@@ -562,7 +587,7 @@ export default function Board({
   // The telestrator's ink (components/Telestrator.jsx) sits over every sized
   // board; it's invisible and lets everything through until it's switched on.
   return (
-    <div className="tele-host" style={{ position: 'relative', width: rest.boardWidth, height: rest.boardWidth }}>
+    <div ref={hostRef} className="tele-host" style={{ position: 'relative', width: rest.boardWidth, height: rest.boardWidth }}>
       {drawn}
       {ownSigns}
       {top}

@@ -1608,8 +1608,11 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             arePiecesDraggable={canGrab}
             isDraggablePiece={liftsMine}
             // …and a finger on one always lifts it: never a hold to draw
-            // (components/Board `liftFirst`).
+            // (components/Board `liftFirst`). The lift is heard of at once
+            // (`eagerBegin`): it brings the reply on, and the move that's
+            // then put down is judged against the position after it.
             liftFirst
+            eagerBegin
             customSquareStyles={(() => {
               const base = reviewing
                 ? {}

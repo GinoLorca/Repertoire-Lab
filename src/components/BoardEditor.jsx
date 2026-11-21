@@ -839,6 +839,10 @@ export default function BoardEditor({
           // overlay's pointer handling would get in the way of dragging
           // pieces off the board.
           ownArrows={false}
+          // Pieces here come in from the tray and go out to the bin — the
+          // board library's own drag-and-drop, which this board keeps (the
+          // others carry their pieces themselves: components/useCarry).
+          nativeDrag
           boardWidth={boardWidth}
         />
         <BoardArrows arrows={marks.arrows} boardWidth={boardWidth} orientation={orientation} />

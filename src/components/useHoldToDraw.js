@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { TOUCH_SLOP } from '../lib/grab';
 
 // Hold to draw, on a touch screen or with a pencil — the gesture from the
 // Private Student Planner. There's no right button on a finger, so a finger
@@ -14,14 +15,24 @@ import { useEffect, useRef } from 'react';
 // and it used to draw an arrow and leave the piece where it was.
 //
 // While a press is drawing, the page mustn't scroll under the finger and the
-// piece under it mustn't be dragged off. react-dnd's touch backend (see
-// Board.jsx) listens on the document, so one listener on the window, which
-// hears every touchmove first, holds them back for as long as a press draws.
-// Its touchSlop, set to HOLD_SLOP there, is the other half: a finger has to
-// travel as far to start a piece drag as it does to give up a hold.
+// piece under it mustn't be dragged off. react-dnd's touch backend (the
+// Board Editor's — see Board.jsx) listens on the document, so one listener
+// on the window, which hears every touchmove first, holds them back for as
+// long as a press draws. Its touchSlop, set to HOLD_SLOP there, is the other
+// half: a finger has to travel as far to start a piece drag as it does to
+// give up a hold. The boards that carry their own pieces (useCarry) keep the
+// same bargain: a piece goes with the finger from the first pixel, but it's
+// only surely being carried at that distance — and a hold that begins first
+// says so (HOLD_EVENT), and the piece goes back.
 
 export const HOLD_MS = 350;
-export const HOLD_SLOP = 6;
+export const HOLD_SLOP = TOUCH_SLOP;
+// Sent on the window as a press turns into drawing.
+export const HOLD_EVENT = 'rl-hold-to-draw';
+// …and, the other way, as a press turns into a piece being carried: a hold
+// still waiting on that finger stands down. (It would have given up at the
+// same distance by itself; this is so that it can't be otherwise.)
+export const CARRY_EVENT = 'rl-carry';
 
 let drawingNow = false;
 let guarded = false;
@@ -71,9 +82,15 @@ export function useHoldToDraw({
     enabled, squareAt, onHold, onMove, onDone, onCancel, onTap, skip,
   };
   const live = useRef(null);
+  const waiting = useRef(null); // ends the press in hand, unless it's drawing by now
   useEffect(() => {
     guardTouchMoves();
-    return () => live.current?.();
+    const standDown = () => waiting.current?.();
+    window.addEventListener(CARRY_EVENT, standDown);
+    return () => {
+      window.removeEventListener(CARRY_EVENT, standDown);
+      live.current?.();
+    };
   }, []);
 
   const onPointerDown = (e) => {
@@ -97,6 +114,7 @@ export function useHoldToDraw({
       window.removeEventListener('pointercancel', cancel, true);
       if (held) drawingNow = false;
       live.current = null;
+      waiting.current = null;
     };
     const move = (ev) => {
       if (ev.pointerId !== id) return;
@@ -132,12 +150,15 @@ export function useHoldToDraw({
     timer = setTimeout(() => {
       held = true;
       drawingNow = true;
+      // A piece that had begun to follow this finger gives way (useCarry).
+      window.dispatchEvent(new Event(HOLD_EVENT));
       handlers.current.onHold?.(from);
     }, HOLD_MS);
     window.addEventListener('pointermove', move, true);
     window.addEventListener('pointerup', up, true);
     window.addEventListener('pointercancel', cancel, true);
     live.current = end;
+    waiting.current = () => { if (!held) end(); };
   };
 
   return { onPointerDown };

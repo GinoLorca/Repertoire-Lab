@@ -4068,6 +4068,30 @@ input[type="date"] {
    there under a finger — it can be picked straight back up. */
 .practice-board [data-square].piece-away [data-piece] { opacity: 0 !important; }
 
+/* ---------- A piece being carried (components/useCarry.js) ---------- */
+
+/* The copy that goes with the pointer: moved by the pointer's own events,
+   over everything on the board (the telestrator's ink is 40), and never in
+   the way of what's under it. */
+.carry-piece {
+  position: fixed; left: 0; top: 0; z-index: 60;
+  pointer-events: none; will-change: transform;
+  display: flex; align-items: center; justify-content: center;
+}
+.carry-piece [data-piece] { cursor: inherit; }
+/* …the piece itself, unseen on its square meanwhile. */
+[data-square].carry-away [data-piece] { opacity: 0 !important; }
+/* The square of a piece as it's pressed: marked at once, the way a picked
+   square is (lib/legalMoves PICKED_STYLE) — the view's own mark follows. */
+[data-square].carry-press > div { background: var(--picked-wash, rgba(59, 156, 255, 0.5)) !important; }
+/* A hand over a piece that will come up; a hand with one in it (on the
+   board only: a rule for the whole page would have every element on it
+   restyled as the piece is picked up). */
+.carry-over [data-square] [data-piece] { cursor: grab !important; }
+.carrying, .carrying * { cursor: grabbing !important; }
+/* Where "fixed" is measured from, round this board. */
+.carry-corner { position: fixed; left: 0; top: 0; width: 0; height: 0; pointer-events: none; visibility: hidden; }
+
 /* ---------- Game thumbnails ---------- */
 
 .game-card-body { display: flex; gap: 16px; align-items: flex-start; }
