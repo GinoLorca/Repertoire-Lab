@@ -5732,6 +5732,12 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .analysis-full .analysis-movelist-panel { display: flex; flex-direction: column; min-height: 0; flex: 1; }
 .analysis-full .movelist-scroll { max-height: none !important; flex: 1; overflow-y: auto; }
 .analysis-full.wide .movelist-scroll { max-height: calc(100vh - 120px) !important; }
+/* The moves put out of sight (Hide, on their card), or none played yet: the
+   card is its head, not a tall empty box beside the board. */
+.analysis-full .analysis-movelist-panel.head-only { flex: 0 0 auto; }
+/* At the right end of the head, or of a row of its own where the head wraps. */
+.movelist-eye { margin-left: auto; }
+.movelist-eye svg { vertical-align: -3px; }
 @media (max-width: 600px) {
   .board-full-btn .btn-label { display: none; }
   .analysis-full { padding-left: calc(6px + var(--safe-left)); padding-right: calc(6px + var(--safe-right)); }

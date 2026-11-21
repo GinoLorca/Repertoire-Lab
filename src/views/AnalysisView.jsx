@@ -103,7 +103,7 @@ import {
 import { openGameReview } from '../lib/openGameReview';
 import {
   BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon,
-  FlaskIcon, CommentIcon, TargetIcon, UploadIcon, CheckIcon, HelpIcon, FolderIcon, ResetIcon,
+  FlaskIcon, CommentIcon, TargetIcon, UploadIcon, CheckIcon, HelpIcon, FolderIcon, ResetIcon, EyeIcon, EyeOffIcon,
 } from '../components/Icons';
 import {
   PENS, SHORTCUTS, defaultPen, shortcutKey, shortcutMap, isComboKey, comboMatchesEvent, formatShortcutKey,
@@ -145,6 +145,7 @@ const EMPTY_MARKS = { arrows: [], squares: {} };
 // A finger is this device's main pointer (an iPad, a phone), not a mouse.
 const COARSE = typeof window !== 'undefined' && Boolean(window.matchMedia?.('(pointer: coarse)')?.matches);
 const FULL_KEY = 'rl.analysis.full';
+const HIDE_MOVES_KEY = 'rl.analysis.full.hideMoves';
 
 // Best move, second, third — three hues rather than three blues, so a glance at
 // the board tells you which arrow is which line. Read on light and dark squares.
@@ -251,6 +252,19 @@ export default function AnalysisView({
     document.addEventListener('fullscreenchange', left);
     return () => document.removeEventListener('fullscreenchange', left);
   }, []);
+  // Full screen's moves can be put out of sight (Hide, on their card): in a
+  // notation lesson the class reads the move off the board, and the list
+  // would say it for them. Only the notation goes: the step buttons and the
+  // arrow keys walk the moves as ever. Kept on this device, as full screen
+  // is, so a reload in the middle of a lesson doesn't give the moves away.
+  const [hideMovesAsked, setHideMovesAsked] = useState(() => {
+    try { return localStorage.getItem(HIDE_MOVES_KEY) === '1'; } catch { return false; }
+  });
+  const movesHidden = fullOn && hideMovesAsked;
+  const keepMovesHidden = (on) => {
+    setHideMovesAsked(on);
+    try { localStorage.setItem(HIDE_MOVES_KEY, on ? '1' : '0'); } catch { /* not kept: fine */ }
+  };
   // Set as the Capture Calculator turns on and off (below): with it on, Esc
   // turns it off first (the board's own keys), not full screen with it.
   const calcOnRef = useRef(false);
@@ -1633,7 +1647,9 @@ export default function AnalysisView({
       // Centre it, so you can see what came before and what's coming.
       box.scrollTo({ top: Math.max(0, top - (view - el.offsetHeight) / 2), behavior: 'instant' });
     }
-  }, [ply, moves.length]);
+    // (fullOn, movesHidden: into or out of full screen, or shown again there,
+    // the list is a new one and starts at its top.)
+  }, [ply, moves.length, fullOn, movesHidden]);
 
   // Stockfish's top moves as arrows. One colour each, matching the dot beside
   // the line in the panel, so three candidates don't read as one suggestion.
@@ -3595,14 +3611,22 @@ export default function AnalysisView({
       />
     </div>
   );
-  const movesPanel = () => (
+  // In full screen the card is always there, if only as its head: that's
+  // where Hide is, and it has to be reachable before the first move is made.
+  const movesPanel = () => {
+    const anyList = moves.length > 0 || baseFen !== START_FEN;
+    const listShown = anyList && !movesHidden;
+    return (
     <>
-    {(moves.length > 0 || baseFen !== START_FEN) && (
-      <div className="panel analysis-movelist-panel">
+    {(anyList || fullOn) && (
+      <div className={`panel analysis-movelist-panel${listShown ? '' : ' head-only'}`}>
         <div className="movelist-head">
           <span>Moves</span>
           <span className="muted-note">
-            {(() => {
+            {/* Hidden, the move you're on isn't spelled out either: only how
+                far along (short, so Show stays on the head's one row in the
+                narrowest column beside the board). */}
+            {!movesHidden && (() => {
               if (ply === 0) return 'start';
               // Matches MoveTree's own numFor exactly — virtualPly is
               // the real ply just played, shifted the same way.
@@ -3610,10 +3634,10 @@ export default function AnalysisView({
               const num = Math.floor((virtualPly - 1) / 2) + baseMeta.startNumber;
               return `${num}${virtualPly % 2 === 1 ? '.' : '…'}${moves[ply - 1]}`;
             })()}
-            {' · '}{ply} of {moves.length}
+            {!movesHidden && ' · '}{ply} of {moves.length}
           </span>
           <span style={{ flex: 1 }} />
-          {hasVariations(tree) && (
+          {listShown && hasVariations(tree) && (
             <button
               className="small ghost"
               title="Delete every variation, keeping the main line"
@@ -3627,7 +3651,21 @@ export default function AnalysisView({
               Clear variations
             </button>
           )}
+          {fullOn && (
+            <button
+              type="button"
+              className={`small movelist-eye${movesHidden ? ' primary' : ' ghost'}`}
+              title={movesHidden
+                ? 'Show the moves again'
+                : 'Hide the moves: the board and the step buttons carry on, the notation stays out of sight'}
+              onClick={() => keepMovesHidden(!movesHidden)}
+            >
+              {movesHidden ? <EyeIcon size={15} /> : <EyeOffIcon size={15} />}
+              {movesHidden ? ' Show' : ' Hide'}
+            </button>
+          )}
         </div>
+        {listShown && (
         <div
           className="movelist-scroll"
           ref={moveListRef}
@@ -3679,10 +3717,12 @@ export default function AnalysisView({
             }}
           />
         </div>
+        )}
       </div>
     )}
     </>
-  );
+    );
+  };
 
   // The screen as it has always been laid out: the board's column, the
   // engine's, the moves'.

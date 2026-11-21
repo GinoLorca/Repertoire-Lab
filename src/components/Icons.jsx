@@ -320,6 +320,23 @@ export const RecycleIcon = (p) => (
   </Icon>
 );
 
+// An eye, and one struck through: in sight / put out of sight.
+export const EyeIcon = (p) => (
+  <Icon {...p}>
+    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </Icon>
+);
+
+export const EyeOffIcon = (p) => (
+  <Icon {...p}>
+    <path d="M10 5.2A9.4 9.4 0 0 1 12 5c6.4 0 10 7 10 7a17.4 17.4 0 0 1-2.7 3.7" />
+    <path d="M6.4 6.4A17.2 17.2 0 0 0 2 12s3.6 7 10 7a9.6 9.6 0 0 0 5.6-1.8" />
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    <path d="M3 3l18 18" />
+  </Icon>
+);
+
 // A question mark in a circle: "how does this work?" beside a tool.
 export const HelpIcon = (p) => (
   <Icon {...p}>
