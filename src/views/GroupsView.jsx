@@ -530,7 +530,11 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
 
       {/* The Lab: analysis kept for its own sake, not because it's part of the
           repertoire. Sits alongside Favorites and themes because it's the same
-          question — "what did I set aside to come back to?" */}
+          question — "what did I set aside to come back to?" Only while there
+          is something in it: the analysis board no longer saves to the Lab
+          (its notes card went with Studio), so an empty one has nothing to
+          offer; what was saved before stays here to open, rename or delete. */}
+      {labEntries.length > 0 && (
       <GroupBlock
         title="Lab"
         icon={<FlaskIcon size={17} className="group-icon" />}
@@ -541,12 +545,7 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
         canPractice={false}
         onPracticeAll={() => {}}
       >
-        {labEntries.length === 0 ? (
-          <div className="muted-note" style={{ padding: '10px 4px' }}>
-            Nothing here yet. On the analysis board, write in <strong>Lab notes</strong> under the
-            board and press Save — the moves, your arrows and the notes all come with it.
-          </div>
-        ) : labEntries.map((entry) => (
+        {labEntries.map((entry) => (
           <div className="group-row group-row-lab" key={entry.id}>
             <button
               className="lab-row-main"
@@ -588,6 +587,7 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
           </div>
         ))}
       </GroupBlock>
+      )}
 
       {theming && (
         <ThemeLines

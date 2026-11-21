@@ -114,6 +114,8 @@ function AppInner() {
   // it — an old link, the screen the app was last on, a saved Lab entry —
   // lands on Game Review, and nothing offers it (no Studio tab, Coaches
   // Corner button, "Send to studio" or Reviews in progress). Its code stays.
+  // The analysis board's Lab notes card went with it (AnalysisView's
+  // labOffered; an empty Lab is left out of Collections, GroupsView).
   const noStudio = (s) => (s === 'studio' ? 'review' : s);
   const [sub, setSubState] = useState(noStudio(route.sub ?? null));
   const setSub = (s) => setSubState(typeof s === 'function' ? (p) => noStudio(s(p)) : noStudio(s));

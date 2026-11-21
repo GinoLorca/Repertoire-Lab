@@ -581,6 +581,9 @@
 }
 .lab-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .lab-panel .hint { margin: 0; }
+/* The analysis board without the card: "Save line to a chapter…" on its own
+   under the FEN row. */
+.save-line-row { display: flex; margin-top: 10px; }
 
 /* A saved session, in Collections → Lab. */
 .group-row-lab { align-items: flex-start; }

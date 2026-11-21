@@ -314,6 +314,10 @@ export default function AnalysisView({
   const [labId, setLabId] = useState(draft?.labId ?? initialLab?.id ?? null);
   const [labTitle, setLabTitle] = useState(draft?.labTitle ?? initialLab?.title ?? '');
   const [labNote, setLabNote] = useState(draft?.labNote ?? initialLab?.note ?? '');
+  // The notebook's card went with Studio (hidden: see App's noStudio): the
+  // analysis board doesn't offer it. Only a saved entry opened from
+  // Collections → Lab still brings it, so its notes can be read and kept up.
+  const labOffered = Boolean(coachMode || initialLab);
   const [saveLineOpen, setSaveLineOpen] = useState(false);
   // Coach's Corner: a badge and a note on the specific move currently
   // selected, keyed by its node id rather than a ply number — a tree has
@@ -2802,7 +2806,7 @@ export default function AnalysisView({
     const m = liveGame?.meta ?? initialLine?.meta ?? {};
     const home = seed?.studentCard ? `${seed.studentName}’s card in Coaches Corner` : 'Games';
     let off = null;
-    let kept = 'Nothing saved is deleted — your games, Lab entries and repertoire stay as they are.';
+    let kept = `Nothing saved is deleted — your games${(state.labEntries ?? []).length > 0 ? ', Lab entries' : ''} and repertoire stay as they are.`;
     if (initialLab) {
       off = <><strong>{initialLab.title || 'This Lab entry'}</strong> comes off this board.</>;
       kept = 'Nothing saved is deleted — it stays in the Lab as you last saved it.';
@@ -2834,7 +2838,7 @@ export default function AnalysisView({
                 {played > 0
                   ? `The ${played === 1 ? 'move' : `${played} moves`} on this board ${played === 1 ? 'isn’t' : 'aren’t'} saved anywhere`
                   : 'What’s on this board isn’t saved anywhere'}
-                {' '}— <strong>Save game</strong> or <strong>Save to Lab</strong> first to keep {played === 1 ? 'it' : 'them'}.
+                {' '}— <strong>Save game</strong> or <strong>{labOffered ? 'Save to Lab' : 'Save line to a chapter'}</strong> first to keep {played === 1 ? 'it' : 'them'}.
               </span>
             </p>
           )}
@@ -2935,6 +2939,21 @@ export default function AnalysisView({
     </div>
     </>
   );
+  // With the card away, the one button on it that was never the Lab's: the
+  // board's line into a chapter of the repertoire. Under the board where it
+  // was, once there's a line to save. (Tried beside Save game: it cost the
+  // page's head a row on an iPad and a laptop, and the board 40px with it.)
+  const saveLinePanel = () => (moves.length > 0 ? (
+    <div className="save-line-row" style={{ maxWidth: boardWidth }}>
+      <button
+        className="small"
+        title="Add the moves on the board to a chapter of your repertoire, as a new variation"
+        onClick={() => setSaveLineOpen(true)}
+      >
+        <BookIcon size={14} /> Save line to a chapter…
+      </button>
+    </div>
+  ) : null);
   const moveNotePanel = () => (
     <>
     {/* Whatever's been badged or written on the move that's on the board
@@ -3721,7 +3740,7 @@ export default function AnalysisView({
         {notesPanel()}
         {controlsPanel()}
         {positionPanel()}
-        {labPanel()}
+        {labOffered ? labPanel() : saveLinePanel()}
       </div>
 
       <div className="analysis-engine" ref={setEngineColEl}>
@@ -4102,7 +4121,7 @@ export default function AnalysisView({
         <SaveLineToChapter
           moves={moves}
           setUp={!isStandardStart(baseFen)}
-          suggestedName={labTitle.trim() || (initialLine?.name ?? '')}
+          suggestedName={(labOffered ? labTitle.trim() : '') || (initialLine?.name ?? '')}
           openings={state.openings}
           onClose={() => setSaveLineOpen(false)}
           onSave={({ openingId, chapterId, name }) => {
