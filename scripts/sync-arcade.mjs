@@ -106,11 +106,14 @@ const BRIDGE = String.raw`
       // Chess Arcade's home button and the Game Review button: only while the review has the whole
       // window (Repertoire Lab's own bars are hidden then; see "corners" below)
       'html.rl-embed:not(.rl-chrome) #home-fab', 'html.rl-embed:not(.rl-chrome) #rl-menu',
-      '#settings-overlay .field:has(#glass-row)', '#settings-overlay .field:has(#intro-row)', '#oj-field',
+      '#settings-overlay .field:has(#glass-row)', '#settings-overlay .field:has(#intro-row)', '#oj-field', '#gz-field',
       '#settings-overlay .field:has(#lichess-token-input)', '#gn-field', '#pz-sync-field', '#cc-field', '#rl-field',
       '#settings-overlay .field:has(#spotify-client-id-input)',
       // the Openings tab's "Connect Repertoire Lab": Repertoire Lab hands it the openings to sort by (repertoire)
       'html.rl-history #gho-connect',
+      // Game History's Puzzles tab (Chess Arcade 2026-11): puzzles from the player's own games, searched by Stockfish on
+      // Chess Arcade's own device; not part of the review Repertoire Lab embeds (its tab button goes with #gh-view)
+      'html.rl-history #gz',
       // the theme: always Repertoire Lab's own, dark or light as Repertoire Lab is (look)
       '#settings-overlay .field:has(#skin-row)', '#custom-colors-field'];
     const css = document.createElement('style');
