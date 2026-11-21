@@ -16,7 +16,8 @@
 //     comes back out as it went in, and goes when the record does
 //   · Repertoire Lab's theme, dark and light, is the one it wears, and its
 //     arrow colour profile, set from here and told back when picked in there
-//   · a repertoire goes in, and CLAMP, Tactics and Openings each open
+//   · a repertoire goes in, and CLAMP, Tactics and Openings each open; the Puzzles tab
+//     (its Settings field and its panel) stays out of the copy
 //   · with it, the review shows its book moves above the engine's, and its
 //     Similar openings tab finds the line the game is in, named whose it is
 //   · the corner buttons and flush() take what they're given
@@ -222,6 +223,17 @@ try {
       && !!document.getElementById('view-history')?.offsetParent);
     ok(res === true && shown, `${view === 'clamp' ? 'CLAMP' : view[0].toUpperCase() + view.slice(1)} opens${res === true ? '' : ` — ${res}`}`);
   }
+  // Chess Arcade's Puzzles tab (2026-11) stays out of the copy: its Settings field and its panel are hidden by the bridge
+  // (unhidden for a moment here, so the bridge's own rule is what's asked, not Game History's tab state)
+  const gzOut = await frame.evaluate(() => {
+    const f = document.getElementById('gz-field'), p = document.getElementById('gz');
+    if (!f || !p) return `not in this copy (${!f ? '#gz-field' : '#gz'})`;
+    const was = p.hidden; p.hidden = false;
+    const out = getComputedStyle(f).display === 'none' && getComputedStyle(p).display === 'none';
+    p.hidden = was;
+    return out;
+  });
+  ok(gzOut === true || /^not in this copy/.test(String(gzOut)), `Chess Arcade’s Puzzles tab stays out (its Settings field and its panel hidden)${gzOut === true ? '' : ` — ${gzOut}`}`);
   // back to a game, as the tab does
   await frame.evaluate((g) => window.__rlReview.open(g, {}), game);
   await frame.waitForFunction((gid) => window.__rlReview.current() === gid, gid, { timeout: 20000 }).catch(() => {});
