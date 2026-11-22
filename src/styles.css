@@ -5732,6 +5732,14 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .analysis-full .analysis-movelist-panel { display: flex; flex-direction: column; min-height: 0; flex: 1; }
 .analysis-full .movelist-scroll { max-height: none !important; flex: 1; overflow-y: auto; }
 .analysis-full.wide .movelist-scroll { max-height: calc(100vh - 120px) !important; }
+/* What the move is about, in full screen: read from across a room or over a
+   call, so a size up; its own height, and the moves take what's left. */
+.analysis-full .side-note { margin-bottom: 0; flex: 0 0 auto; font-size: 15.5px; }
+.analysis-full .review-move-note { padding: 10px 14px; gap: 8px; }
+.analysis-full .review-move-row { font-size: 15.5px; }
+.analysis-full .review-move-row .mt-chip { min-width: 21px; height: 21px; border-radius: 11px; font-size: 12px; }
+.analysis-full .review-move-badge { font-size: 14.5px; }
+.analysis-full:not(.wide) .analysis-full-side { gap: 10px; }
 /* The moves put out of sight (Hide, on their card), or none played yet: the
    card is its head, not a tall empty box beside the board. */
 .analysis-full .analysis-movelist-panel.head-only { flex: 0 0 auto; }

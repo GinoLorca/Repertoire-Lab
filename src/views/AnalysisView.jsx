@@ -2970,7 +2970,9 @@ export default function AnalysisView({
       </button>
     </div>
   ) : null);
-  const moveNotePanel = () => (
+  // `toRead`: full screen, where it's shown to a class or over a call — what
+  // the move is about, without the tools for changing it.
+  const moveNotePanel = ({ toRead = false } = {}) => (
     <>
     {/* Whatever's been badged or written on the move that's on the board
         — a coach's from Coaches Corner, or your own — pinned to the top
@@ -2986,7 +2988,10 @@ export default function AnalysisView({
     )}
     {/* What Game Review says on this move: its comment, its badge, CLAMP
         letters and tactics (lib/reviewOnBoard). Changed in Game Review. */}
-    {reviewHere && !(calc && calcAt > 0) && (
+    {reviewHere && !(calc && calcAt > 0)
+      // To be read, a move nothing is said about has no card (it's only
+      // there, empty, as somewhere to write).
+      && !(toRead && !reviewHere.note && !reviewHere.badge && !reviewHere.clamp.length && !reviewHere.tactics.length) && (
       <div className="side-note review-move-note">
         <div className="review-move-head">
           <span>Game Review</span>
@@ -2998,10 +3003,10 @@ export default function AnalysisView({
             </span>
           )}
         </div>
-        {reviewHere.editable ? (
+        {reviewHere.editable && !toRead ? (
           <ReviewComment key={`${liveGame?.id}:${head}`} text={reviewHere.note} onSave={setReviewComment} />
         ) : reviewHere.note && <p className="review-move-text">{reviewHere.note}</p>}
-        {reviewHere.editable && head !== 'root' && (
+        {reviewHere.editable && !toRead && head !== 'root' && (
           <div className="review-badges" role="group" aria-label="Your badge on this move">
             {BADGES.filter((b) => reviewBadge(b.id)).map((b) => (
               <button
@@ -3750,6 +3755,11 @@ export default function AnalysisView({
       <div className="analysis-full-side">
         {!calcInBoard && calcPanel()}
         {fullWide && controlsPanel()}
+        {/* What the move on the board is about — its note, its badge, CLAMP
+            letters, the tactic by name — where whoever is watching can read
+            it: the arrows alone don't say "discovered check". Not with
+            the moves hidden: a note would spell what the list isn't to. */}
+        {!movesHidden && moveNotePanel({ toRead: true })}
         {movesPanel()}
       </div>
     </div>
