@@ -107,7 +107,10 @@ import { openGameReview } from '../lib/openGameReview';
 import {
   BookIcon, PencilIcon, AlertIcon, PlayIcon, SkipStartIcon, SkipEndIcon, DownloadIcon, GearIcon,
   FlaskIcon, CommentIcon, TargetIcon, UploadIcon, CheckIcon, HelpIcon, FolderIcon, ResetIcon, EyeIcon, EyeOffIcon,
+  ClipboardIcon,
 } from '../components/Icons';
+import { treeToPgn } from '../lib/pgn';
+import { copyText } from '../lib/clipboard';
 import {
   PENS, SHORTCUTS, defaultPen, shortcutKey, shortcutMap, isComboKey, comboMatchesEvent, formatShortcutKey,
   eventKey, keyToken,
@@ -1960,6 +1963,37 @@ export default function AnalysisView({
     } finally {
       setStudyBusy(false);
     }
+  };
+
+  // Copy PGN: everything on the board as plain PGN text, to paste anywhere —
+  // the game's own names, date and result where the board knows them, the
+  // moves with their side lines in brackets, each move's note (the board's
+  // and Game Review's, arrows and all) and its badge as a glyph. The text and
+  // nothing else: no share sheet, no file.
+  const [pgnCopied, setPgnCopied] = useState(null); // 'yes' | 'no' for a moment after a press
+  const pgnCopiedTimer = useRef(0);
+  useEffect(() => () => clearTimeout(pgnCopiedTimer.current), []);
+  const copyPgn = async () => {
+    const meta = liveGame?.meta ?? initialLine?.meta ?? {};
+    const said = review?.notes ?? {};
+    const notes = { ...moveNotes };
+    for (const [id, text] of Object.entries(said)) {
+      if (!text || notes[id] === text) continue;
+      notes[id] = notes[id] ? `${text} ${notes[id]}` : text;
+    }
+    const text = treeToPgn(tree, {
+      notes,
+      badges: shownBadges,
+      startFen: baseFen,
+      tags: {
+        event: meta.event, site: meta.site, round: meta.round, white: meta.white, black: meta.black, result: meta.result,
+        date: meta.date ?? liveGame?.date ?? initialLine?.date,
+      },
+    });
+    const ok = await copyText(text);
+    setPgnCopied(ok ? 'yes' : 'no');
+    clearTimeout(pgnCopiedTimer.current);
+    pgnCopiedTimer.current = setTimeout(() => setPgnCopied(null), 1600);
   };
 
   // A PGN (or plain movetext) pasted straight in — no fetch, no chapter to
@@ -4074,6 +4108,14 @@ export default function AnalysisView({
           onClick={() => setPgnOpen((o) => !o)}
         >
           <UploadIcon size={14} /> Paste PGN
+        </button>
+        <button
+          className="small copy-pgn"
+          title="Copy everything on the board as PGN text — moves, side lines, notes — to paste anywhere"
+          disabled={!tree.children.length}
+          onClick={copyPgn}
+        >
+          <ClipboardIcon size={14} /> {pgnCopied === 'yes' ? 'Copied' : pgnCopied === 'no' ? 'Couldn’t copy' : 'Copy PGN'}
         </button>
         {pgnOpen && (
           <div className="study-import">

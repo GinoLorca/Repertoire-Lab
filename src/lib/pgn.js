@@ -336,6 +336,86 @@ export function movesToMovetext(moves, comments = {}, badges = {}, startFen = ST
   return parts.join(' ');
 }
 
+// A whole board as movetext: the main line with every side line in brackets
+// where it leaves, the way any PGN reader takes it — notes in braces (their
+// arrow codes with them, which Lichess and ChessBase draw), a badge as its
+// glyph and NAG. `root` is a move tree (lib/moveTree: { id, san, children },
+// the first child the main line); notes and badges are by node id, the
+// start's note under 'root'.
+export function treeToMovetext(root, { notes = {}, badges = {}, startFen = START_FEN } = {}) {
+  const out = [];
+  const say = (text) => {
+    const clean = String(text ?? '').replace(/[{}]/g, '').trim();
+    if (clean) out.push(`{${clean}}`);
+    return Boolean(clean);
+  };
+  const move = (node, i, numbered) => {
+    const badge = BADGE_BY_ID[badges?.[node.id]];
+    const suffix = badgeSuffix(badge);
+    const san = suffix ? `${node.san}${suffix}` : node.san;
+    const n = moveNumberOf(i, startFen);
+    if (isWhiteMove(i, startFen)) out.push(`${n}.${san}`);
+    else out.push(numbered ? `${n}...${san}` : san);
+    if (suffix && badge.nag != null) out.push(`$${badge.nag}`);
+    return say(notes?.[node.id]);
+  };
+  // Down one line (a loop: a long game is not a deep recursion); into each
+  // side line as it leaves (as deep as side lines nest, which is not far).
+  const line = (from, ply, numberFirst) => {
+    let node = from;
+    let i = ply;
+    let numbered = numberFirst;
+    while (node.children?.length) {
+      const [main, ...alts] = node.children;
+      numbered = move(main, i, numbered);
+      for (const alt of alts) {
+        out.push('(');
+        line({ children: [alt] }, i, true);
+        out.push(')');
+        numbered = true;
+      }
+      node = main;
+      i += 1;
+    }
+  };
+  say(notes?.root ?? notes?.[root?.id]);
+  line(root ?? { children: [] }, 0, true);
+  return out.join(' ').split('( ').join('(').split(' )').join(')');
+}
+
+// …and as a PGN: the seven tags every reader expects (the game's own where
+// the board knows them), where it starts if not from the first move, the
+// moves, the result. `date`: 'YYYY.MM.DD' as a PGN has it, or a time in ms.
+export function treeToPgn(root, {
+  notes, badges, startFen = null, tags = {},
+} = {}) {
+  const day = (d) => {
+    if (typeof d === 'string' && /^[\d?]{4}[.\-/][\d?]{2}[.\-/][\d?]{2}$/.test(d.trim())) return d.trim().replace(/[-/]/g, '.');
+    if (typeof d === 'number' && d > 86400000) {
+      const t = new Date(d);
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${t.getFullYear()}.${pad(t.getMonth() + 1)}.${pad(t.getDate())}`;
+    }
+    return '????.??.??';
+  };
+  const result = ['1-0', '0-1', '1/2-1/2'].includes(tags.result) ? tags.result : '*';
+  const word = (v, none = '?') => (String(v ?? '').trim() || none);
+  const headers = [
+    ['Event', word(tags.event)],
+    ['Site', word(tags.site)],
+    ['Date', day(tags.date)],
+    ['Round', word(tags.round, '-')],
+    ['White', word(tags.white)],
+    ['Black', word(tags.black)],
+    ['Result', result],
+  ];
+  const from = canonicalStartFen(startFen);
+  if (from) headers.push(['SetUp', '1'], ['FEN', from]);
+  const head = headers.map(([k, v]) => `[${k} "${v.split('\\').join('').split('"').join("'")}"]`).join('\n');
+  const movetext = treeToMovetext(root, { notes, badges, startFen: from ?? START_FEN });
+  return `${head}\n\n${movetext ? `${movetext} ` : ''}${result}\n`;
+}
+
 function pgnDate() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
