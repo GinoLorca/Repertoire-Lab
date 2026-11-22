@@ -4991,7 +4991,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
      641px, cards on a phone. ---- */
   @media (min-width:960px){ .wrap:has(#view-history.active.is-gho){ max-width:1180px; } }
   .history-head > .gh-view{ align-self:center; }
-  #gh-view .toggle{ min-width:92px; }
+  #gh-view .toggle{ min-width:84px; }          /* six tabs from 641px (Puzzles, 2026-11-21): 84, not 92, so they fit at 641-654 and Game Boy's title at 800-818 */
   #gh-view .toggle.active{ background:var(--ink); border-color:var(--ink); color:var(--surface); }
   /* the Games view's own views (All games, Groups, Positions): a quieter row under the site tabs, shown only there
      (2026-10-30: the top switch is Games | Openings) */
@@ -5438,7 +5438,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     .history-head > .gh-view{ width:100%; }
     .history-head > .gh-view .toggle{ flex:1 1 0; }
     /* Games | Openings | CLAMP, side by side across the phone */
-    #view-history .gh-view{ display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); }
+    #view-history .gh-view{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); }      /* six tabs: two rows of three (below) */
     .gh-sub{ gap:0; }
     .gh-sub-b{ flex:1 1 0; min-width:0; padding:8px 4px 7px; }
     #view-history .gh-view .toggle{ min-width:0; }
@@ -8471,6 +8471,90 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
      Two columns from 960px (the page widens to 1180px for it), one below; on a phone cards fold to their title, number and
      sentence. Selectors end in a class, an id or a tag. ---- */
   @media (min-width:960px){ .wrap:has(#view-history.active.is-gha){ max-width:1180px; } }
+  /* ---- Puzzles from your games (Game History's sixth tab, 2026-11-21): the card system's parts (.ct-card, .ct-src, the
+     chips), so every skin's card rules apply. The top card: heading and lines left, Solve right (one column from 834px,
+     Solve full width on a phone) ---- */
+  @media (min-width:960px){ .wrap:has(#view-history.active.is-ghz){ max-width:1180px; } }
+  #view-history .gz[hidden], .gz-need[hidden], .gz-showrow[hidden], .gz-more[hidden], .gz-go[hidden], .gz-empty[hidden]{ display:none; }
+  .ct-card.gz-top{ display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:16px; row-gap:4px; align-items:center; }
+  .gz-top > .ct-h, .gz-top > .gz-what, .gz-top > .gz-due{ grid-column:1; margin:0; }
+  .gz-top > .gz-go{ grid-column:2; grid-row:1 / span 3; align-self:end; }
+  .gz-due{ font-size:13px; line-height:1.4; color:var(--ink); }
+  .gz-need{ margin:0; font-size:13px; line-height:1.4; color:var(--ink); }
+  .gz-showrow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; min-width:0; }
+  /* the needs-you line and the Show row on the card surface, so they read on every wallpaper */
+  .gz-need, .gz-showrow{ align-self:flex-start; max-width:100%; box-sizing:border-box; padding:6px 12px; background:var(--surface); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
+  :root[data-skin="bauhaus"] .gz-need, :root[data-skin="bauhaus"] .gz-showrow{ border-radius:0; }
+  .gz-more{ align-self:center; }
+  #gz .gz-more{ background-color:var(--surface); }      /* on the wallpaper (Felt, Game Boy): its words on the card color */
+  :root:not([data-skin="cards"]) #gz .gz-more{ box-shadow:var(--shadow); }
+  :root[data-skin="bauhaus"] #gz .gz-more{ border-radius:0; }
+  @media (max-width:834px){ .ct-card.gz-top{ grid-template-columns:minmax(0,1fr); } .gz-top > .gz-go{ grid-column:1; grid-row:auto; justify-self:start; } }
+  @media (max-width:520px){ .gz-top > .gz-go{ justify-self:stretch; } }
+  @media (pointer:coarse){ .gz-go, .gz-more{ min-height:44px; } }
+  /* the cards: Analytics' boards (.ct-m, .ct-mbd), 4 across on a wide page, 3 from 641px, 2 from 521px; on a phone one a row,
+     a 112px board left of its four lines. Kind colors: Finish the job --bad, Missed mate --partial */
+  .ct-mgrid.gz-grid{ grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
+  .gz-m{ --c:var(--bad); }
+  .gz-m.is-mate{ --c:var(--gz-mate, var(--partial)); }
+  .gz-m .gz-l1 b{ font-size:13px; line-height:1.3; }
+  .gz-m .ct-mft{ font-size:13px; line-height:1.35; }
+  .gz-m .gz-l2{ color:var(--ink); }
+  .gz-tt{ color:var(--gz-tt, var(--bad)); }
+  .gz-rec.is-due{ color:var(--ink); font-weight:600; }
+  .gz-rec.is-learned{ color:var(--gz-learned, var(--gho-win, var(--good))); font-weight:600; }
+  /* where a skin's own token falls short on the cards (t_layout L2): Missed mate's edge 3:1, "time trouble" and "Learned" 4.5:1 */
+  :root[data-skin="bauhaus"]{ --gz-mate:#a87800; }
+  :root[data-skin="gameboy"]{ --gz-tt:#a52a2a; --gz-learned:#1b5e2e; }
+  @media (prefers-color-scheme:dark){
+    :root[data-skin="bauhaus"]:not([data-theme="light"]){ --gz-mate:var(--partial); --gz-tt:#f06a62; --gz-learned:#6b9be0; }
+    :root[data-skin="gameboy"]:not([data-theme="light"]){ --gz-tt:#ee7f74; --gz-learned:var(--gho-win); }
+  }
+  :root[data-skin="bauhaus"][data-theme="dark"]{ --gz-mate:var(--partial); --gz-tt:#f06a62; --gz-learned:#6b9be0; }
+  :root[data-skin="gameboy"][data-theme="dark"]{ --gz-tt:#ee7f74; --gz-learned:var(--gho-win); }
+  @media (max-width:959px){ .ct-mgrid.gz-grid{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
+  @media (max-width:640px){ .ct-mgrid.gz-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; } }
+  @media (max-width:520px){
+    .ct-mgrid.gz-grid{ grid-template-columns:minmax(0,1fr); }
+    .gz-m{ display:grid; grid-template-columns:112px minmax(0,1fr); column-gap:10px; row-gap:3px; align-content:start; }
+    .gz-m > .ct-mbd{ grid-column:1; grid-row:1 / span 4; width:112px; }
+    .gz-m > :not(.ct-mbd){ grid-column:2; }
+    .gz-m .gz-l1 b, .gz-m .ct-mft{ font-size:12.5px; }
+  }
+  /* a puzzle from your game on the puzzle board (is-gz): the scoreboard keeps its box, hidden (the board never moves); Link and
+     Save hidden; the HUD's line one line; the rating card's words fit its box at its own height */
+  #view-play-puzzle.is-gz .scoreboard{ visibility:hidden; }
+  #view-play-puzzle.is-gz .pz-meta-pills, #view-play-puzzle.is-gz .gz-hide{ display:none; }
+  #view-play-puzzle:not(.is-gz) .gz-only{ display:none; }
+  #view-play-puzzle.is-gz #pz-hud-round{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  #view-play-puzzle.is-gz .pz-rating-label, #view-play-puzzle.is-gz .pz-rating-value{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pz-rating-value .gz-words{ font-size:.55em; }
+  /* text on the tab at least 13px (12.5px on a phone, spec 15.1): the shared card parts it borrows are smaller */
+  #gz .ct-src, #gz .gz-what, #gz .gz-show .toggle, #gz .ghv-chip-n, #gz .ga-rl{ font-size:13px; }
+  @media (max-width:520px){ #gz .ct-src, #gz .gz-what, #gz .gz-show .toggle, #gz .ghv-chip-n, #gz .ga-rl{ font-size:12.5px; } }
+  /* Solve on Felt light: the primary button's brass is 2.6:1 there; the tab's own ink pair (the active tab's) */
+  @media (prefers-color-scheme:light){ :root:not([data-skin]):not([data-theme="dark"]) #gz .gz-go{ background:var(--ink); border-color:var(--ink); color:var(--surface); } }
+  :root:not([data-skin])[data-theme="light"] #gz .gz-go{ background:var(--ink); border-color:var(--ink); color:var(--surface); }
+  /* a game puzzle's way back and Open the game on the card color: bare text can't be read on Felt's green or Game Boy's
+     wallpaper (a spread shadow, so nothing moves and the board stays centered) */
+  #view-play-puzzle.is-gz > .back-link, #view-play-puzzle.is-gz #pz-gzgame{ background:var(--surface); border-radius:999px; box-shadow:0 0 0 5px var(--surface), var(--shadow); }
+  #view-play-puzzle.is-gz > .back-link{ color:var(--ink-soft); }
+  /* the room it keeps clear of the home button as a margin, not padding: the words stay where they were and the pill hugs
+     them (on a phone or an iPad standing it showed an empty end ~50px wide) */
+  .wrap.play-mode #view-play-puzzle.is-gz > .back-link{ padding-left:0; margin-left:var(--fab-clear-link, 0px); }
+  #view-play-puzzle.is-gz #pz-gzgame{ color:var(--ink); }      /* the brass link color is 4.0:1 on Game Boy dark's card color */
+  /* the board's words ("Your move.", "Not the move", your game's move) on the card color as well, only while it has words */
+  #view-play-puzzle.is-gz #pz-status:not(:empty){ width:fit-content; max-width:100%; margin-left:auto; margin-right:auto; padding:0 6px; background:var(--surface); border-radius:999px; box-shadow:0 0 0 5px var(--surface), var(--shadow); }
+  :root[data-skin="bauhaus"] #view-play-puzzle.is-gz > .back-link, :root[data-skin="bauhaus"] #view-play-puzzle.is-gz #pz-gzgame, :root[data-skin="bauhaus"] #view-play-puzzle.is-gz #pz-status{ border-radius:0; }
+  /* a card's board: their last move lit under the pieces (NB_CODES Y), so a piece keeps its own color */
+  .gz-m .nb-board .sq.gz-lit{ box-shadow:inset 0 0 0 2px #e8b339, inset 0 0 0 99px rgba(232,179,57,.45); }
+  /* a finger's 44px on a touch screen: Open the game (its tap area grows, the row doesn't) and the solved box's buttons */
+  @media (pointer:coarse){
+    #pz-gzgame{ position:relative; }
+    #pz-gzgame::after{ content:""; position:absolute; left:-8px; right:-8px; top:-15px; bottom:-15px; }
+    body:has(#view-play-puzzle.is-gz) #next-overlay .btn{ min-height:44px; }
+  }
+  #view-play-puzzle.is-gz .pz-meta-card .pz-meta-title{ padding-right:0; }      /* no pills to make room for */
   #view-history .ga[hidden], .ga-rows[hidden], .ga-ct[hidden], .ga-empty[hidden]{ display:none; }
   .ct-card.ga-rows{ flex-direction:row; flex-wrap:wrap; gap:8px 28px; align-items:center; padding:10px 16px; }
   .ga-row{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; min-width:0; }
@@ -8548,15 +8632,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     .ga-ctr{ grid-template-columns:minmax(0,1fr); padding:8px 0; }
     .ga-r3{ grid-template-columns:70px minmax(40px,1fr) auto 34px; gap:8px; }
   }
-  /* the five tabs on a narrow phone: each as wide as its word (the row still fills the width), smaller text as the screen
-     narrows, never a clipped or shortened "Analytics" (measured at 390, 360, 340 and 320) */
-  @media (max-width:400px){
-    #view-history .gh-view{ grid-template-columns:repeat(5, auto); column-gap:3px; }
-    #view-history .gh-view .toggle{ font-size:12px; padding-left:3px; padding-right:3px; }
+  /* the six tabs up to 640px (Puzzles, 2026-11-21, spec 3.3): two rows of three, Games Openings CLAMP / Tactics Analytics
+     Puzzles, one width each, the words whole at 12.5px down to 320px (no smaller steps); in the DOM's order for the keyboard.
+     Up to 640, not 520: one row at 521px left about 3px a tab, and a wider stand-in font clipped "Openings" there (the
+     spec's fallback, decided before the build) */
+  @media (max-width:640px){
+    #view-history .gh-view{ grid-template-columns:repeat(3, minmax(0,1fr)); gap:4px; }
+    #view-history .gh-view .toggle{ font-size:12.5px; padding-left:4px; padding-right:4px; }
   }
-  @media (max-width:360px){ #view-history .gh-view .toggle{ font-size:11px; } }
-  @media (max-width:340px){ #view-history .gh-view{ column-gap:2px; } #view-history .gh-view .toggle{ font-size:10.5px; padding-left:2px; padding-right:2px; } }
-  @media (max-width:330px){ #view-history .gh-view .toggle{ font-size:10px; } }
+  /* the title beside six 84px tabs (Game Boy's Press Start 2P, Court Cards', Chess Book's, Felt's and Bauhaus' heads) wraps at
+     800-899px, the iPad in portrait included: there the tabs are as wide as their words (the narrowest about 66px), one row */
+  @media (min-width:800px) and (max-width:899px){ #gh-view .toggle{ min-width:0; } }
   /* the missed mates: the ring beside the number; the boards (4 across, 3 under 1180px, 2 on a phone); Your marks' lines */
   .ga-num.ga-mtop{ flex-direction:row; align-items:center; gap:14px; }
   .ga-mtop .tt-ring{ grid-column:auto; grid-row:auto; width:72px; height:72px; flex:0 0 auto; }
@@ -8949,6 +9035,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       <button class="btn btn-primary next-go" id="next-go">Next position</button>
       <button class="btn btn-ghost" id="next-review">Look at the board</button>
       <button class="btn btn-ghost" id="next-analyze" style="display:none;">Analyze</button>
+      <button class="btn btn-ghost" id="next-gzgame" style="display:none;">Open the game</button>
       <button class="btn btn-ghost" id="next-settings">Change settings</button>
       <button class="btn btn-ghost" id="next-save" style="display:none;">&#9734; Save puzzle</button>
       <button class="btn btn-ghost" id="next-link" style="display:none;">Copy link</button>
@@ -9215,6 +9302,19 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
 
     <div class="modal-sep"></div>
 
+    <!-- Puzzles from your games (gz*): Stockfish 16 looks through your games for puzzles, in the background -->
+    <div class="field" id="gz-field">
+      <div class="field-label" id="gz-label">Puzzle search</div>
+      <div class="toggle-row" id="gz-row" role="group" aria-labelledby="gz-label">
+        <button type="button" class="toggle" data-val="on" aria-pressed="false">On</button>
+        <button type="button" class="toggle" data-val="off" aria-pressed="false">Off</button>
+      </div>
+      <div class="bg-status" id="gz-status" aria-live="polite"></div>
+      <div class="field-hint">Stockfish 16 looks through your games for puzzles on this device while Game History&#8217;s Puzzles tab is open: newest games first, games you didn&#8217;t win first.</div>
+    </div>
+
+    <div class="modal-sep"></div>
+
     <div class="field">
       <div class="field-label">Sound Effects</div>
       <div class="toggle-row" id="sound-enabled-row">
@@ -9445,12 +9545,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           <h1 class="title" style="font-size:26px;">Game History</h1>
           <div class="subtitle" id="history-subtitle">Connect your Lichess account in Settings to see your games.</div>
         </div>
-        <div class="toggle-row gh-seg gh-view" id="gh-view" role="group" aria-label="Show"><button type="button" class="toggle active" data-val="games" aria-pressed="true">Games</button><button type="button" class="toggle" data-val="openings" aria-pressed="false">Openings</button><button type="button" class="toggle" data-val="clamp" aria-pressed="false">CLAMP</button><button type="button" class="toggle" data-val="tactics" aria-pressed="false">Tactics</button><button type="button" class="toggle" data-val="analytics" aria-pressed="false">Analytics</button></div>
+        <div class="toggle-row gh-seg gh-view" id="gh-view" role="group" aria-label="Show"><button type="button" class="toggle active" data-val="games" aria-pressed="true">Games</button><button type="button" class="toggle" data-val="openings" aria-pressed="false">Openings</button><button type="button" class="toggle" data-val="clamp" aria-pressed="false">CLAMP</button><button type="button" class="toggle" data-val="tactics" aria-pressed="false">Tactics</button><button type="button" class="toggle" data-val="analytics" aria-pressed="false">Analytics</button><button type="button" class="toggle" data-val="puzzles" aria-pressed="false">Puzzles</button></div>
       </div>
       <div class="gh-sites" id="gh-site" role="tablist" aria-label="Games from">
-        <button type="button" role="tab" id="gh-site-all" class="gh-site-tab" data-site="all" aria-selected="true" aria-controls="history-list gho ct tt ga cc-setup">All <span class="gh-site-n"></span></button>
-        <button type="button" role="tab" id="gh-site-lichess" class="gh-site-tab" data-site="lichess" aria-selected="false" tabindex="-1" aria-controls="history-list gho ct tt ga cc-setup">Lichess <span class="gh-site-n"></span></button>
-        <button type="button" role="tab" id="gh-site-chesscom" class="gh-site-tab" data-site="chesscom" aria-selected="false" tabindex="-1" aria-controls="history-list gho ct tt ga cc-setup">Chess.com <span class="gh-site-n"></span></button>
+        <button type="button" role="tab" id="gh-site-all" class="gh-site-tab" data-site="all" aria-selected="true" aria-controls="history-list gho ct tt ga gz cc-setup">All <span class="gh-site-n"></span></button>
+        <button type="button" role="tab" id="gh-site-lichess" class="gh-site-tab" data-site="lichess" aria-selected="false" tabindex="-1" aria-controls="history-list gho ct tt ga gz cc-setup">Lichess <span class="gh-site-n"></span></button>
+        <button type="button" role="tab" id="gh-site-chesscom" class="gh-site-tab" data-site="chesscom" aria-selected="false" tabindex="-1" aria-controls="history-list gho ct tt ga gz cc-setup">Chess.com <span class="gh-site-n"></span></button>
       </div>
       <div class="gh-sub" id="gh-sub" role="group" aria-label="Games: what to show"><button type="button" class="gh-sub-b is-on" data-val="games" aria-pressed="true">All games</button><button type="button" class="gh-sub-b" data-val="groups" aria-pressed="false">Groups</button><button type="button" class="gh-sub-b" data-val="positions" aria-pressed="false">Positions</button></div>
       <div class="gh-sub" id="gho-sub" role="group" aria-label="Openings: what to show" hidden><button type="button" class="gh-sub-b is-on" data-val="overview" aria-pressed="true">Overview</button><button type="button" class="gh-sub-b" data-val="variations" aria-pressed="false">Variations</button></div>
@@ -9824,6 +9924,23 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       <div class="ct-card ct-empty ga-empty" id="ga-empty" hidden></div>
       <div class="ga-body" id="ga-body"></div>
       <p class="ct-src" id="ga-src" hidden>Games against people, standard chess, loaded in Game History. Days and hours: this device&rsquo;s time.</p>
+    </section>
+    <!-- Puzzles from your games (2026-11-21, Game History's sixth tab): positions from your own games, found and checked by
+         Stockfish 16 on this device, never Lichess's puzzle database and never reported to Lichess. The top card, the
+         needs-you line (text only), the Show chips, the grid, Show 12 more and the source card; built in the script (gzRender). -->
+    <section class="ct gz" id="gz" role="tabpanel" aria-labelledby="gh-site-all" hidden>
+      <div class="ct-card gz-top" id="gz-top" hidden>
+        <h2 class="ct-h">Puzzles from your games</h2>
+        <p class="ct-sub gz-what">Positions from your own games, checked by Stockfish 16 on this device.</p>
+        <p class="gz-due" id="gz-due"></p>
+        <button type="button" class="btn btn-primary gz-go" id="gz-go" data-act="solve" hidden>Solve</button>
+      </div>
+      <p class="gz-need" id="gz-need" hidden></p>
+      <div class="ct-card ct-empty gz-empty" id="gz-empty" hidden></div>
+      <div class="gz-showrow" id="gz-showrow" hidden><span class="ga-rl" aria-hidden="true">Show</span><div class="toggle-row ghv-chips ga-chips gz-show" id="gz-show" role="group" aria-label="Show"></div></div>
+      <div class="ct-mgrid gz-grid" id="gz-grid"></div>
+      <button type="button" class="btn btn-ghost gz-more" id="gz-more" data-act="more" hidden>Show 12 more</button>
+      <p class="ct-src" id="gz-src" hidden></p>
     </section>
     <div class="history-footer">
       <div class="history-loading" id="history-loading" style="display:none;">Loading&#8230;</div>
@@ -11801,8 +11918,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <div class="pz-meta-row">
           <span class="pz-meta-icon">&#127919;</span>
           <div class="pz-meta-text">
-            <div class="pz-meta-title">Puzzle <span id="pz-meta-id">&#8212;</span></div>
-            <div class="pz-meta-sub">Rating <span id="pz-meta-rating">&#8212;</span> &middot; Played <span id="pz-meta-plays">&#8212;</span> times</div>
+            <div class="pz-meta-title gz-hide">Puzzle <span id="pz-meta-id">&#8212;</span></div>
+            <div class="pz-meta-sub gz-hide">Rating <span id="pz-meta-rating">&#8212;</span> &middot; Played <span id="pz-meta-plays">&#8212;</span> times</div>
+            <!-- a puzzle from your game (Game History's Puzzles): where it comes from, never a Lichess id or rating -->
+            <div class="pz-meta-title gz-only" id="pz-meta-gz"></div>
+            <div class="pz-meta-sub gz-only" id="pz-meta-gzsub"></div>
           </div>
           <div class="pz-meta-pills">
             <button class="pz-save-btn pz-link-btn" id="pz-link" type="button" title="Copy a link to this puzzle">Link</button>
@@ -11830,6 +11950,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <button class="btn-link" id="pz-view-solution">View the solution</button>
         <!-- once the puzzle is done, in their place (the same one-line row) -->
         <button class="btn-link" id="pz-analyze" type="button" title="Open this puzzle on the analysis board" hidden>Analyze</button>
+        <!-- a puzzle from your game, once done: the review just before your move -->
+        <button class="btn-link" id="pz-gzgame" type="button" hidden>Open the game</button>
       </div>
 
       <div class="arcade-prompt" id="pz-status">&nbsp;</div>
@@ -13969,7 +14091,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     setTimeout(done, 700);
   }
 
-  function wireAnnotations(boardEl, getMarks, onChange, shouldSkip, forceColor){
+  function wireAnnotations(boardEl, getMarks, onChange, shouldSkip, forceColor, moveFirst){
     let fromIdx = null;
     boardEl.addEventListener('touchmove', annoHoldNoScroll, { passive:false });
     // A mark from one square to another (the same square: a highlight) onto
@@ -14154,7 +14276,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(hasMarks(marks)){
         clearMarksObj(marks);
         onChange();
-        e.stopImmediatePropagation();
+        // the puzzle board only (moveFirst): with a piece picked this click is its move (after a hint, the target square)
+        if(!(moveFirst && moveFirst())) e.stopImmediatePropagation();
       }
     }, true);
   }
@@ -22984,7 +23107,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   let pzMyRatingProv = false;
   function pzRefreshMyRating(){
     const el = document.getElementById('pz-my-rating');
-    if(!el) return;
+    if(!el || gzRoundOn()) return;           // a puzzle from your game shows its score there
     el.textContent = pzMyRating!=null ? (pzMyRating + (pzMyRatingProv ? '?' : '')) : '\u2014';
   }
 
@@ -23154,6 +23277,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
 
   function pzRefreshMeta(){
     if(!roundPz) return;
+    if(gzRoundOn()){ gzMeta(); return; }
     spRefreshPlaySave();
     document.getElementById('pz-meta-id').textContent = '#'+roundPz.id;
     document.getElementById('pz-meta-rating').textContent = roundPz.rating;
@@ -23193,6 +23317,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // board never moves (pzCentreBoard); an unfinished puzzle never offers it.
     hintBtn.hidden = solBtn.hidden = roundPz.done;
     document.getElementById('pz-analyze').hidden = !roundPz.done;
+    const gz = gzRoundOn();
+    document.getElementById('pz-gzgame').hidden = !(gz && roundPz.done);
+    if(!gz) return;
+    document.getElementById('pz-analyze').hidden = true;
+    if(!roundPz.done) document.getElementById('pz-turn-sub').textContent = gzTurnWords(roundPz.replay);
+    gzMeta();
   }
 
   function pzGetHint(){
@@ -23203,6 +23333,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!roundPz || roundPz.done || roundPz.locked || !pzIsLiveView()) return;
     const uci = roundPz.solution[roundPz.solIndex];
     const fromIdx = pzAlgToIdx(uci.slice(0,2));
+    if(roundPz.replay){ roundPz.hinted = true; if(gzRoundOn()) gzRecord(); }     // help: a later solve is "solved with help"
     marksPz.squares[fromIdx] = '#e8b339';
     renderMarks(pzBoardEl, arrowSvgPz, marksPz, roundPz.state.board);
   }
@@ -23219,12 +23350,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // browsing when they clicked this -- "view the solution" is explicit
     // enough that it shouldn't matter what was on screen a moment ago.
     roundPz.viewPly = null;
+    if(gzRoundOn()) gzRecord();              // a puzzle from your game: "Solution shown", kept now (leaving during the steps keeps it)
     // Skips the report/stats entirely if an earlier wrong guess already
     // sealed this puzzle's result (see roundPz.failed in pzTryMove) --
     // otherwise clicking "View the solution" after already guessing wrong
     // once would report a second loss for the same puzzle id and double-
     // count the attempt in rounds/streak.
-    if(!roundPz.failed){
+    if(!roundPz.failed && !gzRoundOn()){
       roundPz.failed = true;
       pzReportResult(roundPz.id, false);
       statsPz.rounds++; statsPz.streak=0;
@@ -23240,7 +23372,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         pzStatusEl.textContent = '';
         pzRefreshTurnCard();
         pzResultLine.textContent = 'Solution shown';
-        pzResultSub.textContent = 'Rating '+roundPz.rating+' \u00b7 '+(roundPz.replay ? roundPz.replay.label : pzThemeLabel(settingsPz.theme));
+        pzResultSub.textContent = gzRoundOn() ? gzSubLine(roundPz) : 'Rating '+roundPz.rating+' \u00b7 '+(roundPz.replay ? roundPz.replay.label : pzThemeLabel(settingsPz.theme));
         pzResultBanner.style.display='flex';
         renderBoardPz();
         return;
@@ -24840,7 +24972,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     pzBoardEl,
     ()=>marksPz,
     ()=>renderMarks(pzBoardEl, arrowSvgPz, marksPz, roundPz ? pzViewState().board : []),
-    null, null
+    null, null,
+    ()=> pzSelected!=null && !!roundPz && !roundPz.done
   );
 
   // 'x' flips the board -- roundPz.flipped already drives renderBoardPz's
@@ -24857,7 +24990,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const tag = document.activeElement && document.activeElement.tagName;
     if(tag==='INPUT' || tag==='TEXTAREA' || tag==='SELECT') return;
     if(e.ctrlKey || e.metaKey || e.altKey) return;
-    if(e.key==='s' || e.key==='S'){ e.preventDefault(); spOpenSave(); return; }
+    // H: a hint, on rounds that are never reported only (a rated puzzle's result isn't sealed by a hint)
+    if(e.key==='h' || e.key==='H'){ if(roundPz.replay && !e.repeat){ e.preventDefault(); pzGetHint(); } return; }
+    if(e.key==='s' || e.key==='S'){ e.preventDefault(); if(gzRoundOn()){ pzStatusEl.textContent = 'Puzzles from your games stay in Game History.'; return; } spOpenSave(); return; }
     if(e.key==='x' || e.key==='X'){
       e.preventDefault();
       roundPz.flipped = !roundPz.flipped;
@@ -24971,6 +25106,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
 
   function pzTryMove(move){
+    if(gzRoundOn()) return gzTryMove(move);       // a puzzle from your game: any mate, the step's alternate, castling either way
     const uci = idxToAlg(move.from)+idxToAlg(move.to)+(move.promotion||'');
     if(uci !== roundPz.solution[roundPz.solIndex]){
       // Used to just flash red and let the user keep guessing forever, with
@@ -25055,7 +25191,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // result for a puzzle id Lichess already has a result for) keeps the
     // rating/streak/solved-count matching what actually happened: one
     // attempt, wrong on the first try.
-    if(!roundPz.failed){
+    const gz = gzRoundOn();
+    if(gz){ roundPz.gzSolved = true; gzRecord(); }           // a puzzle from your game: s or h, kept now; nothing counted or reported
+    else if(!roundPz.failed){
       statsPz.rounds++; statsPz.solved++; statsPz.streak++;
       statsPz.best = Math.max(statsPz.best, statsPz.streak);
       refreshStatsPz();
@@ -25064,11 +25202,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     spRoundEnded(!roundPz.failed);
     const mate = pzIsInCheck(roundPz.state, roundPz.state.turn) && pzAllLegalMoves(roundPz.state).length===0;
     if(!mate) playSolvedSound();
-    pzStatusEl.textContent = '';
-    pzResultLine.textContent = roundPz.failed
+    pzStatusEl.textContent = gz ? (roundPz.gzWords || '') : '';
+    pzResultLine.textContent = gz ? gzResultWords(mate) : roundPz.failed
       ? (mate ? 'Checkmate \u2014 found it after a miss' : 'Found it \u2014 already marked wrong')
       : (mate ? 'Checkmate \u2014 solved!' : 'Solved!');
-    pzResultSub.textContent = 'Rating '+roundPz.rating+' \u00b7 '+(roundPz.replay ? roundPz.replay.label : pzThemeLabel(settingsPz.theme));
+    pzResultSub.textContent = gz ? gzSubLine(roundPz) : 'Rating '+roundPz.rating+' \u00b7 '+(roundPz.replay ? roundPz.replay.label : pzThemeLabel(settingsPz.theme));
     pzResultBanner.style.display='flex';
     pzRefreshTurnCard();
     renderBoardPz();
@@ -25099,6 +25237,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // A saved puzzle's practice run is never reported: Lichess already has
     // its first result, and a replay mustn't move the rating.
     if(roundPz && roundPz.replay){ pzPendingReport = Promise.resolve(); return pzPendingReport; }
+    if(!/^\w{5}$/.test(String(id || ''))){ pzPendingReport = Promise.resolve(); return pzPendingReport; }      // only a Lichess puzzle id (a game puzzle's is gz:...)
     const token = getLichessToken();
     if(!token || !id){ pzPendingReport = Promise.resolve(); return pzPendingReport; }
     pzPendingReport = fetch('https://lichess.org/api/puzzle/batch/'+encodeURIComponent(settingsPz.theme)+'?nb=0', {
@@ -25213,6 +25352,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     roundPz = null;
     document.getElementById('pz-analyze').hidden = true;     // Hint and View the solution are back (pzRefreshTurnCard)
     document.getElementById('pz-hint').hidden = document.getElementById('pz-view-solution').hidden = false;
+    document.getElementById('pz-gzgame').hidden = true;
+    gzBadge(null);
     pzSideBadgeLoading();
     clearMarksObj(marksPz);
     pzBoardEl.innerHTML='';
@@ -25336,9 +25477,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       pzRenderMoveList();
       document.getElementById('pz-side-dot').className = 'side-dot ' + roundPz.solverColor;
       document.getElementById('pz-hud-mode-text').textContent = (roundPz.solverColor==='w'?'WHITE':'BLACK') + ' TO MOVE';
-      document.getElementById('pz-hud-round').textContent = replay
+      document.getElementById('pz-hud-round').textContent = replay && replay.kind==='game' ? gzHudLine(replay) : replay
         ? (replay.kind==='history' ? 'Practice' : replay.kind==='misses' ? 'Practice '+replay.pos+' of '+replay.total : 'Saved '+replay.pos+' of '+replay.total)+' \u00b7 rating '+roundPz.rating+' \u00b7 '+replay.label
         : 'Puzzle '+roundNumPz+' \u00b7 rating '+roundPz.rating+' \u00b7 '+pzThemeLabel(settingsPz.theme);
+      gzBadge(replay);           // a puzzle from your game: its words, the scoreboard hidden (before the board is measured)
       pzRefreshMeta();
       pzRefreshTurnCard();
       pzStatusEl.textContent = '';
@@ -25426,10 +25568,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     showView('play-puzzle');
     fetchNewPuzzle();
   });
-  document.getElementById('pz-next').addEventListener('click', ()=> SP_PLAY ? spAdvance() : fetchNewPuzzle());
-  document.getElementById('pz-retry').addEventListener('click', ()=> SP_PLAY ? spStartCurrent() : fetchNewPuzzle());
+  document.getElementById('pz-next').addEventListener('click', ()=> SP_PLAY ? spAdvance() : gzRoundOn() ? gzHome(false) : fetchNewPuzzle());
+  document.getElementById('pz-retry').addEventListener('click', ()=> SP_PLAY ? spStartCurrent() : gzRoundOn() ? gzHome(false) : fetchNewPuzzle());
   document.getElementById('pz-skip').addEventListener('click', ()=>{
     if(SP_PLAY){ spAdvance(); return; }
+    if(gzRoundOn()){ gzHome(false); return; }
     if(!roundPz || roundPz.done) return;
     // A wrong guess already reported this puzzle as a loss and counted it;
     // skipping afterwards doesn't report or count it a second time.
@@ -29226,7 +29369,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   const GH_REP_RE = /^(?:w\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}\.(?:[0-9a-f]{32}|n)\.[0-9a-z]{1,12}|[ot]\.[A-Za-z0-9_-]{1,64}|[kc]\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}|l(?:\.[A-Za-z0-9_-]{1,64}){3}|x\.[wb](?:\.(?:none|[a-z0-9]+(?:-[a-z0-9]+)*))?|s\.[0-9a-f]{8}(?:\.(?:t\.[A-Za-z0-9_-]{1,64}|c\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}|x\.[wb]))?)$/;
   const GH_SECONDARY = ['rated','gap','end','eg','oj','len','date','opp','variant'];
   let GH_FILTERS = Object.assign({}, GH_F_DEFAULT);
-  const GH_UI = { more:false, open:false, view:'games', osort:'games', site:'all', osub:'overview', vrank:'played', vlvl:'c', gaf:{} };   // site: the All | Lichess | Chess.com tab (chesscom SPEC B.1)
+  const GH_UI = { more:false, open:false, view:'games', osort:'games', site:'all', osub:'overview', vrank:'played', vlvl:'c', gaf:{}, gzk:'all' };   // site: the All | Lichess | Chess.com tab (chesscom SPEC B.1)
   // Typed text: what a link can carry safely (the hash is decoded twice).
   function ghCleanText(s){ return ghFold(s).replace(/[^A-Za-z0-9 _.:'-]/g, '').replace(/\s{2,}/g, ' ').replace(/^\s+/, '').slice(0, 40); }
   function ghValidFilters(f){
@@ -29252,7 +29395,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const d = JSON.parse(localStorage.getItem(GH_FILTERS_KEY) || 'null');
       if(d && typeof d==='object'){
         GH_FILTERS = ghValidFilters(d.f); GH_FILTERS.ga = ''; GH_UI.more = !!(d.ui && d.ui.more);
-        GH_UI.view = d.ui && (d.ui.view==='openings' || d.ui.view==='groups' || d.ui.view==='positions' || d.ui.view==='clamp' || d.ui.view==='tactics' || d.ui.view==='analytics') ? d.ui.view : 'games';
+        GH_UI.view = d.ui && (d.ui.view==='openings' || d.ui.view==='groups' || d.ui.view==='positions' || d.ui.view==='clamp' || d.ui.view==='tactics' || d.ui.view==='analytics' || d.ui.view==='puzzles') ? d.ui.view : 'games';
+        GH_UI.gzk = gzValidK(d.ui && d.ui.gzk);                             // Puzzles: the Show chip
         if(d.ui && typeof d.ui.osort==='string' && /^[a-z]{1,8}$/.test(d.ui.osort)) GH_UI.osort = d.ui.osort;
         if(d.ui && /^(all|lichess|chesscom)$/.test(String(d.ui.site))) GH_UI.site = d.ui.site;
         GH_UI.boards = !!(d.ui && d.ui.boards); GH_UI.bmom = d.ui && (d.ui.bmom==='b' || d.ui.bmom==='k') ? d.ui.bmom : 'a';
@@ -29264,7 +29408,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }catch(e){}
   })();
   function ghSaveFilters(){
-    try{ localStorage.setItem(GH_FILTERS_KEY, JSON.stringify({ v:1, f:Object.assign({}, GH_FILTERS, { ga:'' }), ui:{ more:!!GH_UI.more, view:GH_UI.view, osort:GH_UI.osort, site:GH_UI.site, boards:!!GH_UI.boards, bmom:GH_UI.bmom==='b' || GH_UI.bmom==='k' ? GH_UI.bmom : 'a', osub:GH_UI.osub==='variations' ? 'variations' : 'overview', vrank:GH_UI.vrank, vlvl:GH_UI.vlvl==='l' ? 'l' : 'c', gaf:gaFoldsValid(GH_UI.gaf) } })); }catch(e){}
+    try{ localStorage.setItem(GH_FILTERS_KEY, JSON.stringify({ v:1, f:Object.assign({}, GH_FILTERS, { ga:'' }), ui:{ more:!!GH_UI.more, view:GH_UI.view, osort:GH_UI.osort, site:GH_UI.site, boards:!!GH_UI.boards, bmom:GH_UI.bmom==='b' || GH_UI.bmom==='k' ? GH_UI.bmom : 'a', osub:GH_UI.osub==='variations' ? 'variations' : 'overview', vrank:GH_UI.vrank, vlvl:GH_UI.vlvl==='l' ? 'l' : 'c', gaf:gaFoldsValid(GH_UI.gaf), gzk:gzValidK(GH_UI.gzk) } })); }catch(e){}
   }
   function ghIsOn(k){ return k==='oq' ? (!GH_FILTERS.opening && !!GH_FILTERS.oq) : !!GH_FILTERS[k]; }
   function ghActiveCount(){ return GH_PARAM_KEYS.filter(ghIsOn).length; }
@@ -30252,6 +30396,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(ghoTimer){ clearTimeout(ghoTimer); ghoTimer = 0; ghoLastAt = Date.now(); }
     if(ghCcT){ clearTimeout(ghCcT); ghCcT = 0; ghCcAt = Date.now(); }
     if(GA_SOON){ clearTimeout(GA_SOON); GA_SOON = 0; GA_SOON_AT = Date.now(); }
+    if(GZ_SOON){ clearTimeout(GZ_SOON); GZ_SOON = 0; GZ_SOON_AT = Date.now(); }
     const t0 = performance.now();
     const u = ghMe();
     GH_MARKS = ghMixed();                            // All with chess.com in it: rows say their site
@@ -30265,19 +30410,20 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     ghShowSub();
     // the Chess.com tab with no account: the setup card instead of the list (chesscom SPEC B.4)
     const only = ghCcPanel(base);
-    const ov = ghoOn(), gv = ghgOn(), pv = GH_UI.view==='positions', cv = ctOn(), tv = ttOn(), av = gaOn();
+    const ov = ghoOn(), gv = ghgOn(), pv = GH_UI.view==='positions', cv = ctOn(), tv = ttOn(), av = gaOn(), zv = gzOn();
     document.getElementById('ga').hidden = !av || only;
+    document.getElementById('gz').hidden = !zv || only;
     document.getElementById('gho').hidden = !ov || only;
     document.getElementById('ghg').hidden = !gv || only;
     document.getElementById('ghp').hidden = !pv || only;
     document.getElementById('ct').hidden = !cv || only;
     document.getElementById('tt').hidden = !tv || only;
-    const bv = ghbOn() && !(ov || gv || pv || tv || av || only);
-    listEl.hidden = ov || gv || pv || cv || tv || av || only || bv;
+    const bv = ghbOn() && !(ov || gv || pv || tv || av || zv || only);
+    listEl.hidden = ov || gv || pv || cv || tv || av || zv || only || bv;
     document.getElementById('ghb').hidden = !bv;
-    document.getElementById('gh-bv').hidden = ov || gv || pv || cv || tv || av || only;
+    document.getElementById('gh-bv').hidden = ov || gv || pv || cv || tv || av || zv || only;
     ghbSyncToggle();
-    if(ov || gv || pv || cv || tv || av || only) ghLineCard(null);
+    if(ov || gv || pv || cv || tv || av || zv || only) ghLineCard(null);
     ['.gh-filters', '.history-footer'].forEach(q=>{ const el = document.querySelector('#view-history '+q); if(el) el.hidden = only || gv || (pv && q==='.gh-filters'); });
     document.getElementById('view-history').classList.toggle('is-gho', ov);
     document.getElementById('view-history').classList.toggle('is-ghg', gv);
@@ -30285,6 +30431,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     document.getElementById('view-history').classList.toggle('is-ghc', cv);
     document.getElementById('view-history').classList.toggle('is-ght', tv);
     document.getElementById('view-history').classList.toggle('is-gha', av);
+    document.getElementById('view-history').classList.toggle('is-ghz', zv);
     if(only){
       document.getElementById('gh-list-note').hidden = true;
       document.getElementById('gh-count').textContent = '';
@@ -30322,6 +30469,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       document.getElementById('gh-list-note').hidden = true;
       gaRender(base);
       ghRenderFooter(0, false);
+      try{ ghOpeningCombo.refresh(); ghOppCombo.refresh(); }catch(e){}
+      return;
+    }
+    if(zv){
+      document.getElementById('gh-list-note').hidden = true;
+      gzRender(base);
+      ghRenderFooter(0, false);          // Load more games: Puzzles looks at the games loaded so far
       try{ ghOpeningCombo.refresh(); ghOppCombo.refresh(); }catch(e){}
       return;
     }
@@ -30387,7 +30541,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function ghRpBatchIdle(){
     if(currentView==='history' && ghbOn() && !GH_FILTERS.rep && !ghoOn()) return true;     // Boards shows no repertoire lines
     if(currentView==='history' && (ctOn() || ttOn()) && !GH_FILTERS.rep) return true;       // nor do CLAMP and Tactics (their games don't change)
-    if(currentView==='history' && gaOn() && !GH_FILTERS.rep) return true;                   // nor Analytics
+    if(currentView==='history' && (gaOn() || gzOn()) && !GH_FILTERS.rep) return true;       // nor Analytics and Puzzles
     if(currentView!=='history' || ghoOn() || ghgOn() || GH_UI.view==='positions' || GH_FILTERS.rep || !RP_JOB || !GH_DRAWN) return false;
     const L = document.getElementById('history-list');
     if(!L || L.hidden) return false;
@@ -30464,7 +30618,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     else if(GH_STATE.error==='load' && GH_STATE.games.length) msg = 'Couldn\u2019t load more games. Try again in a moment.';
     else if(GH_STATE.capped) msg = 'Showing your newest '+GH_CAP.toLocaleString('en-US')+' games.';
     // the opening's job: the games this list would show that it can't place yet (never a silent gap)
-    if(!ghoOn() && !gaOn() && GH_FILTERS.oj && GH_OJ_WAIT > 0){
+    if(!ghoOn() && !gaOn() && !gzOn() && GH_FILTERS.oj && GH_OJ_WAIT > 0){
       msg = (msg ? msg+' ' : '')+ghoN(GH_OJ_WAIT, 'game')+' not scored yet. '+(OJ_NOENG ? 'Stockfish can\u2019t run here.' : OJ_ON ? 'They join this list once the Openings tab has checked them.' : 'Turn on Opening checks in Settings to score them.');
     }
     // Analytics' drill-down key: the games it can't place yet (never a silent gap)
@@ -30476,7 +30630,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     load.style.display = showLoad ? '' : 'none';
     load.textContent = GH_STATE.games.length ? (mix ? 'Load more Lichess games' : 'Load more games') : 'Try again';
     load.disabled = backoff;
-    if(ghoOn() || GH_UI.view==='positions' || ctOn() || ttOn() || gaOn()){ more.style.display = 'none'; empty.style.display = 'none'; }
+    if(ghoOn() || GH_UI.view==='positions' || ctOn() || ttOn() || gaOn() || gzOn()){ more.style.display = 'none'; empty.style.display = 'none'; }
     if(ghbOn()) more.style.display = 'none';         // Boards shows every listed game, by structure
     clearTimeout(ghBackoffTimer);
     if(backoff && showLoad) ghBackoffTimer = setTimeout(()=>{ if(currentView==='history') ghRender(); }, spBackoffUntil - Date.now() + 100);
@@ -32271,13 +32425,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     try{ (first || (chip && !chip.hidden ? chip : null) || document.getElementById('gh-count')).focus({ preventScroll:true }); }catch(e){}
   }
   function ghoSetView(v){
-    v = v==='openings' || v==='groups' || v==='positions' || v==='clamp' || v==='tactics' || v==='analytics' ? v : 'games';
+    v = v==='openings' || v==='groups' || v==='positions' || v==='clamp' || v==='tactics' || v==='analytics' || v==='puzzles' ? v : 'games';
     if(v==='groups' && GH_UI.view==='groups' && GH_UI.group){ ghgOpen(''); return; }     // Groups again: back to all of them
     if(GH_UI.view===v) return;
     // Analytics' drill-down key works on the Games list only: any other view drops it (never a leak into their counts), and
     // Analytics itself (its drill-down's other filters put back below)
     if(v!=='games' && GH_FILTERS.ga) GH_FILTERS = Object.assign({}, GH_FILTERS, { ga:'' });
     if(GH_UI.view==='analytics') GA.y = window.scrollY;      // back to Analytics: where you were on it
+    if(GH_UI.view==='puzzles') GZ.y = window.scrollY;        // and to Puzzles
     if(v==='analytics') gaUndrill();                          // back from a drill-down: its filters as they were
     if(GH_UI.view==='groups') ghgLeave();
     if(v==='games' && GH_UI.view==='openings') GHO_Y = window.scrollY;
@@ -32298,6 +32453,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       GHO_DRILL = null;
       if(Object.keys(back).length) GH_FILTERS = ghValidFilters(Object.assign({}, GH_FILTERS, back));
     }
+    // the running job of the other kind ends (spec 9.3): Puzzles' search on leaving its tab, the Opening checks on entering
+    // it; ojEnsure (in the redraw below) starts the kind this tab wants
+    if(OJ_JOB && OJ_JOB.kind!==(v==='puzzles' ? 'z' : 'oj')) ojStop();
     GH_UI.view = v;
     ghSaveFilters();
     ghSyncHash();
@@ -32309,6 +32467,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(v==='clamp' && CT.y!=null){ const y = CT.y; CT.y = null; window.scrollTo({ top:y }); }
     if(v==='tactics' && TT.y!=null){ const y = TT.y; TT.y = null; window.scrollTo({ top:y }); }
     if(v==='analytics' && GA.y!=null && !GA.back){ const y = GA.y; GA.y = null; window.scrollTo({ top:y }); }
+    if(v==='puzzles' && GZ.y!=null && !GZ.back){ const y = GZ.y; GZ.y = null; window.scrollTo({ top:y }); }
   }
   /* ---- Openings -> Variations (ghv*, 2026-10-31): your chapters (or their lines; signed out, Lichess's openings or
      their variations) in one ranked list: by games, by score (Best: highest first; Struggling: lowest first) or by how
@@ -33433,6 +33592,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     else if(ctOn()) p.set('view', 'clamp');
     else if(ttOn()) p.set('view', 'tactics');
     else if(gaOn()){ p.set('view', 'analytics'); p.delete('ga'); }
+    else if(gzOn()){ p.set('view', 'puzzles'); p.delete('ga'); if(GH_UI.gzk!=='all') p.set('gzk', gzValidK(GH_UI.gzk)); }
     else if(ghgOn()){ p.set('view', 'groups'); if(GH_UI.group) p.set('group', GH_UI.group); }
     else if(GH_UI.view==='positions'){ p.set('view', 'positions'); const f = ghpPlacement(); if(f!=='8/8/8/8/8/8/8/8') p.set('fen', f); }
     return p;
@@ -33440,21 +33600,25 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // site: a link with one sets the tab (anything else = All); a link with filters or a view but
   // no site opens All; a bare #history keeps the remembered tab
   function ghApplyViewParams(p){
-    if(p && p.get('view')==='analytics' && p.has('ga')) p.delete('ga');        // the drill-down key works on the Games list only
+    if(p && (p.get('view')==='analytics' || p.get('view')==='puzzles') && p.has('ga')) p.delete('ga');        // the drill-down key works on the Games list only
     const v = p ? p.get('view') : null, hasF = !!p && GH_PARAM_KEYS.some(k=> p.has(k));
     const sp = p ? p.get('site') : null;
     const site = sp!=null ? (sp==='lichess' || sp==='chesscom' ? sp : 'all') : (hasF || v!=null ? 'all' : GH_UI.site);
     const siteChanged = site!==GH_UI.site;
     if(siteChanged){ GH_UI.site = site; GH_STATE.shown = GH_WINDOW; }
-    const want = v==='openings' || v==='groups' || v==='positions' || v==='clamp' || v==='tactics' || v==='analytics' ? v : (v==='games' || hasF) ? 'games' : GH_UI.view;
+    const want = v==='openings' || v==='groups' || v==='positions' || v==='clamp' || v==='tactics' || v==='analytics' || v==='puzzles' ? v : (v==='games' || hasF) ? 'games' : GH_UI.view;
     if(want!=='games' && GH_FILTERS.ga && !hasF) GH_FILTERS = Object.assign({}, GH_FILTERS, { ga:'' });      // the Games list's key only (as ghoSetView)
     let fenSet = false;            // a link's position: shown and searched (the first call can come before GHP exists)
     if(want==='positions' && p && p.get('fen')){ const was = ghpPlacement(); fenSet = ghpLoadFen(p.get('fen')) && ghpPlacement()!==was; }
     const grp = want==='groups' && p && /^gp-[0-9a-f]{8}$/.test(p.get('group') || '') ? p.get('group') : (want==='groups' && v==='groups' ? '' : GH_UI.group || '');
-    const changed = want!==GH_UI.view || grp!==(GH_UI.group || '');
+    // Puzzles' Show chip: a link naming the view says it (none: All); a link without the view keeps the one you're on
+    const gzk = want!=='puzzles' ? GH_UI.gzk : p && p.has('gzk') ? gzValidK(p.get('gzk')) : v==='puzzles' ? 'all' : GH_UI.gzk;
+    const changed = want!==GH_UI.view || grp!==(GH_UI.group || '') || gzk!==GH_UI.gzk;
     if(GH_UI.view==='groups' && (want!=='groups' || grp!==GH_UI.group)) ghgLeave();
     GH_UI.view = want;
     GH_UI.group = want==='groups' ? grp : '';
+    GH_UI.gzk = gzk;
+    if(OJ_JOB && OJ_JOB.kind!==(want==='puzzles' ? 'z' : 'oj')) ojStop();      // ghoSetView's rule: the other kind's job ends
     if(changed || siteChanged) ghSaveFilters();
     const applied = ghApplyFilterParams(p);
     if((changed || siteChanged || fenSet) && !applied){ ghRender(); ghSyncHash(); }
@@ -33508,20 +33672,20 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   var GH_GSUB = 'games';           // the Games view last shown (All games, Groups, Positions): the top Games button goes back to it
   function ghoSyncControls(){
-    const on = ghoOn(), cv = ctOn(), tv = ttOn(), av = gaOn();
-    if(!on && !cv && !tv && !av) GH_GSUB = GH_UI.view==='groups' || GH_UI.view==='positions' ? GH_UI.view : 'games';
-    // the top switch: Games (any of its three views) | Openings | CLAMP | Tactics | Analytics
+    const on = ghoOn(), cv = ctOn(), tv = ttOn(), av = gaOn(), zv = gzOn();
+    if(!on && !cv && !tv && !av && !zv) GH_GSUB = GH_UI.view==='groups' || GH_UI.view==='positions' ? GH_UI.view : 'games';
+    // the top switch: Games (any of its three views) | Openings | CLAMP | Tactics | Analytics | Puzzles
     document.querySelectorAll('#gh-view .toggle').forEach(b=>{
-      const a = b.dataset.val===(on ? 'openings' : cv ? 'clamp' : tv ? 'tactics' : av ? 'analytics' : 'games');
+      const a = b.dataset.val===(on ? 'openings' : cv ? 'clamp' : tv ? 'tactics' : av ? 'analytics' : zv ? 'puzzles' : 'games');
       b.classList.toggle('active', a);
       b.setAttribute('aria-pressed', a ? 'true' : 'false');
     });
     // under the site tabs, in the Games view only: All games / Groups / Positions
     const sub = document.getElementById('gh-sub');
     if(sub){
-      sub.hidden = on || cv || tv || av;
+      sub.hidden = on || cv || tv || av || zv;
       sub.querySelectorAll('.gh-sub-b').forEach(b=>{
-        const a = !on && !cv && !tv && !av && b.dataset.val===GH_GSUB;
+        const a = !on && !cv && !tv && !av && !zv && b.dataset.val===GH_GSUB;
         b.classList.toggle('is-on', a);
         b.setAttribute('aria-pressed', a ? 'true' : 'false');
       });
@@ -33555,7 +33719,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       // leaving Analytics: Variant always back (Openings never holds it); Result unless Openings holds it now
       else if(el.dataset.gaOff){ delete el.dataset.gaOff; if(!on || el.id==='gh-variant'){ el.disabled = false; el.removeAttribute('title'); } }
     });
-    ctSyncChip(on, cv ? 'CLAMP' : tv ? 'Tactics' : av ? 'Analytics' : '');
+    // Puzzles: standard chess only, so Variant isn't used there (its value kept); Result is (2026-11-21)
+    const vr = document.getElementById('gh-variant');
+    if(vr){
+      if(zv){ if(!vr.disabled) vr.disabled = true; if(vr.title!=='Not used in the Puzzles view') vr.title = 'Not used in the Puzzles view'; if(!vr.dataset.gzOff) vr.dataset.gzOff = '1'; }
+      else if(vr.dataset.gzOff){ delete vr.dataset.gzOff; if(!av){ vr.disabled = false; vr.removeAttribute('title'); } }
+    }
+    ctSyncChip(on, cv ? 'CLAMP' : tv ? 'Tactics' : av ? 'Analytics' : zv ? 'Puzzles' : '');
     gaSyncChip();
     const chip = document.getElementById('gh-rep-chip');
     if(!chip) return;
@@ -34269,8 +34439,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     document.getElementById('gh-view').addEventListener('click', e=>{
       const b = e.target.closest('.toggle');
       if(!b) return;
-      if(b.dataset.val==='openings' || b.dataset.val==='clamp' || b.dataset.val==='tactics' || b.dataset.val==='analytics') ghoSetView(b.dataset.val);
-      else ghoSetView(ghoOn() || ctOn() || ttOn() || gaOn() ? GH_GSUB : 'games');
+      if(b.dataset.val==='openings' || b.dataset.val==='clamp' || b.dataset.val==='tactics' || b.dataset.val==='analytics' || b.dataset.val==='puzzles') ghoSetView(b.dataset.val);
+      else ghoSetView(ghoOn() || ctOn() || ttOn() || gaOn() || gzOn() ? GH_GSUB : 'games');
     });
     document.getElementById('gh-sub').addEventListener('click', e=>{ const b = e.target.closest('.gh-sub-b'); if(b) ghoSetView(b.dataset.val); });
     document.getElementById('gh-rep-chip').addEventListener('click', ()=>{ if(!ghoOn()){ ghSetFilters({ rep:'' }); ctFocusList(); } });
@@ -35041,7 +35211,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // the games without an endgame yet get one; only when the filter or the Openings tab wants them, and only when the
   // games changed (a draw costs nothing otherwise)
   function egEnsure(){
-    if(!GH_FILTERS.eg && !ghoOn() && !((GH_UI.view==='games' || ctOn() || ttOn()) && (GH_FILTERS.oj || ghbOn())) && !gaOn() && !gaNeedsEg(GH_FILTERS.ga)) return;
+    if(!GH_FILTERS.eg && !ghoOn() && !((GH_UI.view==='games' || ctOn() || ttOn()) && (GH_FILTERS.oj || ghbOn())) && !gaOn() && !gzOn() && !gaNeedsEg(GH_FILTERS.ga)) return;
     if(EG_JOB){ EG_JOB.more = true; return; }
     const sig = GH_STATE.games.length+'|'+(ghCcUp() ? ccGames().length : 0)+'|'+(typeof GN==='object' && GN && GN.notes ? Object.keys(GN.notes).length : 0);
     if(sig===EG_SIG) return;
@@ -35060,7 +35230,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       EG_DONE = true;
       if(job.added) OJ_VER++;                                  // games read: the opening's job grades them (oj*)
       // drawn once with the new endgames: right away the first time, else after a pause (never while you type a search)
-      const draw = ()=>{ if(currentView!=='history' || !(GH_FILTERS.eg || GH_FILTERS.oj || ghoOn() || GH_UI.boards || gaOn() || gaNeedsEg(GH_FILTERS.ga))) return; if(Date.now() - GHO_QAT < 900){ setTimeout(draw, 900); return; } OJ_VER++; ghRender(); };
+      const draw = ()=>{ if(currentView!=='history' || !(GH_FILTERS.eg || GH_FILTERS.oj || ghoOn() || GH_UI.boards || gaOn() || gzOn() || gaNeedsEg(GH_FILTERS.ga))) return; if(Date.now() - GHO_QAT < 900){ setTimeout(draw, 900); return; } OJ_VER++; ghRender(); };
       setTimeout(draw, first ? 0 : 400);
     };
     setTimeout(tick, 0);
@@ -35087,9 +35257,25 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function ojTakeEvals(g){
     const A = g && g.analysis;
     if(!Array.isArray(A)) return;
-    g._ev = A.map(x=> x && typeof x.eval==='number' ? { type:'cp', value:x.eval } : x && typeof x.mate==='number' ? { type:'mate', value:x.mate } : null);
+    // a mate 0 ("the side to move is mated") can only be a final position, which is scored from the status (ojLiSeries): null here
+    g._ev = A.map(x=> x && typeof x.eval==='number' ? { type:'cp', value:x.eval } : x && typeof x.mate==='number' && x.mate ? { type:'mate', value:x.mate } : null);
     g._evj = A.map(x=>{ const n = x && x.judgment && x.judgment.name; return n==='Inaccuracy' ? 'inaccuracy' : n==='Mistake' ? 'mistake' : n==='Blunder' ? 'blunder' : null; });
     delete g.analysis;
+  }
+  // Lichess's analysis of a game as one score per position 0..n (the checkmate-scoring fix, 2026-11-21): every reader of
+  // Lichess's evals goes through here. Lichess sends a score after each of the n plies, or n - 1 of them when the game ended
+  // in mate or stalemate, and a mated final position can come as {} or {mate:0}: so the final position is always scored from
+  // the status (gaLiFinal), never read from Lichess. Position 0 gets +0.20, as before (Lichess sends none for it).
+  // Interior gaps stay null (a position Lichess left unscored): callers must test for them and never read one as 0.00.
+  // null when the analysis doesn't fit the game's n plies.
+  function ojLiSeries(g, n){
+    const A = g && g._ev;
+    if(!Array.isArray(A) || !(n > 0)) return null;
+    const st = g.status || '';
+    if(A.length!==n && !(A.length===n - 1 && (st==='mate' || st==='stalemate'))) return null;
+    const ev = [{ type:'cp', value:20 }].concat(A.slice(0, n - 1).map(x=> x || null));
+    ev[n] = gaLiFinal(g, n);
+    return ev;
   }
   function ojMine(g){ const u = ghMe(), c = g._me || (u ? ghMyColor(g, u) : null); return c==='white' ? 'w' : c==='black' ? 'b' : null; }
   // the reviews on this device, read again at most every 5 s
@@ -35102,7 +35288,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(p < 1 || p > x.n) return null;
     const e = ojRevs()[g.id];
     if(e && e.h===x.h && e.n===x.n && typeof e.e==='string'){ const t = e.e.split(',')[p]; if(t!=null && t!=='') return { s:hrDecScore(t), src:'review' }; }
-    if(Array.isArray(g._ev) && g._ev.length===x.n && g._ev[p - 1]) return { s:g._ev[p - 1], src:'lichess' };
+    const L = ojLiSeries(g, x.n);
+    if(L && L[p]) return { s:L[p], src:'lichess' };
     const r = OJ_DB.get(String(g.id));
     if(r && r.h===x.h && r.v===OJ_V){ const c = r.a && r.a.p===p ? r.a : r.b && r.b.p===p ? r.b : null; if(c) return { s:hrDecScore(c.s), src:c.src || 'sf' }; }
     return null;
@@ -35173,8 +35360,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     ojPut(rec);
   }
   // ---- the background checks ----
-  function ojWanted(){
-    return OJ_ON && !OJ_NOENG && OJ_LOADED && egReady() && currentView==='history' && !document.hidden && (ghoOn() || (GH_UI.view==='games' && (ghbOn() || !!GH_FILTERS.oj)) || ((ctOn() || ttOn()) && !!GH_FILTERS.oj));
+  var OJ_DOG = 60000;                                  // a search's watchdog (ms): stopped, no answer
+  // the gate (spec 9.2), shared by the two kinds of job: the Opening checks ('oj': the Openings tab, Boards, the Job done
+  // filter) and Puzzles ('z': its tab, its switch, games left to look at); `kind` asks about one of them
+  function ojWanted(kind){
+    if(OJ_NOENG || !egReady() || currentView!=='history' || document.hidden) return false;
+    const oj = ()=> OJ_ON && OJ_LOADED && (ghoOn() || (GH_UI.view==='games' && (ghbOn() || !!GH_FILTERS.oj)) || ((ctOn() || ttOn()) && !!GH_FILTERS.oj));
+    const z = ()=> GZ_ON && GZ_LOADED && gzOn() && gzHasWork();
+    return kind==='oj' ? oj() : kind==='z' ? z() : oj() || z();
   }
   // what's left to score: each game's checkpoint, then (games that did their job and were lost) the endgame's; newest first
   // (so the numbers on screen are fair while the checks run). A score from a review or Lichess is kept too, so it outlasts
@@ -35198,27 +35391,60 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   function ojEnsure(){
     ojLoad(); kmLoad();
-    if(OJ_JOB || !ojWanted() || OJ_IDLE===ojIdleSig()) return;
+    const z = gzOn();
+    if(z) gzLoad();
+    // on the Puzzles tab the idle test is skipped (ojIdleSig has no Puzzles term: an Opening checks job that ended empty
+    // would keep the search from ever starting); there gzHasWork, in the gate, decides, in the timer's own task (it can
+    // be a pass over every game), never inside this redraw
+    if(OJ_JOB || (z ? !(GZ_ON && GZ_LOADED && !OJ_NOENG) : (!ojWanted() || OJ_IDLE===ojIdleSig()))) return;
     clearTimeout(ojEnsure.t);
     ojEnsure.t = setTimeout(()=>{ if(!OJ_JOB && ojWanted()) ojRun(); }, 1500);          // after the lists have drawn
   }
   async function ojRun(){
-    const job = OJ_JOB = { wake:null, todo:ojTodo(), i:0, done:0 };
-    ojStatus();
-    // one position to Stockfish: its info, false (it couldn't start, or the engine failed), null (no answer)
-    const ask = async (fen, nodes)=>{
+    // the job's kind, fixed at its start (spec 9.3): Puzzles on its tab ('z', its work from gzNext), else the Opening checks
+    // and key moments ('oj'). One loop and one worker: two loops would cancel each other's searches (_thinkSeq)
+    const kind = gzOn() ? 'z' : 'oj';
+    const job = OJ_JOB = { kind, wake:null, todo:kind==='oj' ? ojTodo() : [], i:0, done:0, games:0, found:0, at:null, revs:kind==='z' ? ojRevs() : null };
+    ojStatus(); gzStatus(); gzWakeSync();
+    // one position to Stockfish: its info, false (it couldn't start, or the engine failed), null (no answer). With `mo`
+    // (Puzzles: { k }), hve.multi's answer ({ lines, nodes, ms }; null when stopped) or 'dog' (the watchdog fired)
+    const ask = async (fen, nodes, mo)=>{
       hveBoot();
       let off = null, dog = 0;
       const info = await new Promise(resolve=>{
         job.wake = resolve;
         off = hve.onState((st)=>{ if(st==='failed' || st==='off') resolve(st==='failed' ? false : null); });
-        dog = setTimeout(()=>{ if(hve.kind==='ck') hve.stop(); resolve(null); }, 60000);
-        hve.check(fen, nodes, (f, best, ci)=> resolve(ci || null)).then(ok=>{ if(!ok) resolve(false); });
+        const arm = ()=>{ dog = setTimeout(()=>{ if(hve.kind==='ck' || hve.kind==='mk') hve.stop(); resolve(mo ? 'dog' : null); }, OJ_DOG); };
+        if(mo){
+          // the watchdog counts from the engine being ready (the first visit downloads the 40 MB network); multi settles on
+          // every ending, and starts nothing once this call is over (live)
+          Promise.resolve(hve.ready).then(()=>{ if(job.wake===resolve) arm(); }, ()=>{});
+          hve.multi(fen, { k:mo.k, nodes, fresh:true, live:()=> OJ_JOB===job && job.wake===resolve }).then(resolve, ()=> resolve(null));
+        } else {
+          arm();
+          hve.check(fen, nodes, (f, best, ci)=> resolve(ci || null)).then(ok=>{ if(!ok) resolve(false); });
+        }
       });
       job.wake = null; clearTimeout(dog); if(off) off();
       return info;
     };
-    while(OJ_JOB===job && ojWanted()){
+    while(OJ_JOB===job && ojWanted(kind)){
+      if(kind==='z'){
+        // Puzzles: one step of the current game (a slice of its replay, or one engine call), the gate checked between steps
+        let t;
+        try{ t = gzNext(job); }
+        catch(e){ if(!GZ.cur){ job.empty = true; job.err = true; break; } gzFail(GZ.cur); t = 'cpu'; }      // that game left for this visit
+        if(!t){ job.empty = true; break; }
+        if(t==='cpu'){ await new Promise(r=> setTimeout(r, 0)); continue; }
+        const a = await ask(t.fen, t.nodes, t);
+        if(OJ_JOB!==job) return;
+        if((a===false || a==null) && hve.state==='failed'){ if(hve.failWhy!=='slow') OJ_NOENG = true; break; }       // Stockfish can't run here: the rules' mates only
+        try{ gzTake(job, a===false ? null : a); }catch(e){ if(GZ.cur) gzFail(GZ.cur); }
+        // a task of its own for what comes next (the gate, the next game's pick and first replay slice): the answer's own task
+        // (the engine's message, the generator's step, a finished game's store) stays short too (spec 17: a slice <= 12 ms)
+        await new Promise(r=> setTimeout(r, !a || a==='dog' ? (a==='dog' ? 500 : 250) : 0));
+        continue;
+      }
       // the list done: what's left now (an endgame to score for a game that just turned out to be "did its job, then
       // lost"); with every checkpoint scored, the key moments, a position at a time (kmNext)
       if(job.i >= job.todo.length){
@@ -35260,7 +35486,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       ojStatus();
       ojSoonDraw();
     }
-    if(OJ_JOB===job){ OJ_JOB = null; OJ_IDLE = job.empty ? ojIdleSig() : ''; ojStatus(); if(job.done || OJ_NOENG) ojSoonDraw(true); }      // Stockfish can't run: once, so the lines say why
+    if(OJ_JOB===job){
+      OJ_JOB = null;
+      if(kind==='oj'){ OJ_IDLE = job.empty ? ojIdleSig() : ''; ojStatus(); if(job.done || OJ_NOENG) ojSoonDraw(true); }      // Stockfish can't run: once, so the lines say why
+      else { ojStatus(); gzStatus(); gzWakeSync(); gzCountLine(); if(job.games || OJ_NOENG) gzSoon(true); }                // OJ_IDLE: only an Opening checks job sets it
+      if(currentView==='history' && !job.err) setTimeout(ojEnsure, 0);     // the tab may have changed meanwhile: its own job, if it has work
+    }
   }
   // what an empty to-do list depended on: while it's the same, there's nothing to check (no job, no redraw)
   function ojIdleSig(){ return OJ_VER+'|'+EG.size+'|'+OJ_FAIL.size+'|'+OJ_ON+'|'+OJ_DB.size+'|'+KM_VER+'|'+KM_FAIL.size+'|'+KM_LOADED; }
@@ -35268,8 +35499,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const j = OJ_JOB;
     OJ_JOB = null;
     if(j && j.wake) j.wake(false);
-    if(hve.kind==='ck') hve.stop();
+    if(hve.kind==='ck' || hve.kind==='mk') hve.stop();          // an opening check, or a Puzzles search (hve.multi settles null)
     ojStatus();
+    if(j && j.kind==='z'){ gzStatus(); gzWakeSync(); gzCountLine(); }
   }
   // leaving Game History: the checks stop, and the engine goes too unless a review is opening (it uses it)
   function ojLeave(name){
@@ -35318,7 +35550,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       else if(OJ_NOENG) t = 'Stockfish can\u2019t run here: '+n(c.scored)+' of '+ghoN(c.all, 'game')+' scored, from your reviews and Lichess\u2019s analysis.';
       else if(c.scored >= c.all) t = 'All '+ghoN(c.all, 'game')+' scored.';
       else if(!OJ_ON) t = 'Off: '+n(c.scored)+' of '+ghoN(c.all, 'game')+' scored.';
-      else t = (OJ_JOB ? 'Checking: ' : '')+n(c.scored)+' of '+ghoN(c.all, 'game')+' scored'+(OJ_JOB ? '.' : '. Checks run while the Openings tab is open.');
+      else { const ck = !!(OJ_JOB && OJ_JOB.kind==='oj'); t = (ck ? 'Checking: ' : '')+n(c.scored)+' of '+ghoN(c.all, 'game')+' scored'+(ck ? '.' : '. Checks run while the Openings tab is open.'); }      // a Puzzles search leaves this line still
       const k = c.all ? kmCounts() : { all:0 };
       if(k.all) t += ' Key moments: '+n(k.done)+' of '+ghoN(k.all, 'game')+' looked at.';
     }
@@ -35434,8 +35666,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const E = R.e.split(',');
       return kmScan(g, x, mine, (p)=> E[p]!=null && E[p]!=='' ? hrDecScore(E[p]) : null, 'review');
     }
-    if(Array.isArray(g._ev) && g._ev.length===x.n){
-      const r = kmScan(g, x, mine, (p)=> p >= 1 ? g._ev[p - 1] || null : null, 'lichess');
+    const L = ojLiSeries(g, x.n);
+    if(L){
+      const r = kmScan(g, x, mine, (p)=> p >= 1 ? L[p] || null : null, 'lichess');
       if(r.k!=='gap') return r;                                                       // a gap in Lichess's analysis: Stockfish for the whole game
     }
     const rec = KM_DB.get(id), run = KM_RUN.get(id);
@@ -35537,7 +35770,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       OJ_ON = b.dataset.val==='on';
       if(OJ_ON) OJ_NOENG = false;
       try{ localStorage.setItem(OJ_KEY, OJ_ON ? 'on' : 'off'); }catch(e2){}
-      if(!OJ_ON) ojStop(); else ojEnsure();
+      if(!OJ_ON){ if(!OJ_JOB || OJ_JOB.kind==='oj') ojStop(); } else ojEnsure();       // a Puzzles search goes on
       ojStatus();
       if(currentView==='history' && ghbOn() && GH_UI.bmom==='k') ghRender();          // Boards at Key moment says why some aren't looked at
     });
@@ -35564,8 +35797,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // [opening, middlegame, endgame] from Lichess's evals of game g (its phases from the endgames pass), or null
   function ojLiGrades(g){
     const x = EG.get(String(g.id)), mine = ojMine(g);
-    if(!x || !x.all || !mine || !Array.isArray(g._ev) || g._ev.length!==x.n) return null;
-    const ev = [{ type:'cp', value:20 }].concat(g._ev);                   // the start position: no score from Lichess
+    if(!x || !x.all || !mine) return null;
+    const ev = ojLiSeries(g, x.n);                                          // the start position +0.20, the final from the status
+    if(!ev) return null;
     return ojGradeGaps(ev, g._evj || null, { mid:x.m, end:x.s, N:x.n }, mine);
   }
   /* ---- Boards (2026-10-31, the user: "a tool that creates snapshots of the piece setup heading into the middle game /
@@ -38124,11 +38358,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // the tab's empty states (spec 4.5): null when the cards show; chips: whether the Window and Speed rows still show
   function gaEmpty(md){
-    if(md.loading) return { t:'Loading your games\u2026', chips:false };
-    if(!md.nBase){
-      if(!getLichessToken() && !(ghCcUp() && ccUser())) return { t:'', chips:false };      // signed out: the subtitle and setup say it
-      return { t:'No games against people yet.', chips:false };
+    // no account at all, or the Lichess tab with no Lichess token: say so, never "Loading" (2026-11-21, Puzzles fold-in 16.1)
+    if(!getLichessToken()){
+      if(!(ghCcUp() && ccUser())) return { t:'No account connected. Connect Lichess in Settings, or add your chess.com name on the Chess.com tab.', b:['Open Settings', 'settings', 'li'], chips:false };
+      if(GH_UI.site==='lichess') return { t:'No Lichess account connected. Connect Lichess in Settings.', b:['Open Settings', 'settings', 'li'], chips:false };
     }
+    if(md.loading) return { t:'Loading your games\u2026', chips:false };
+    if(!md.nBase) return { t:'No games against people yet.', chips:false };
     if(!md.nB) return { t:'Analytics counts standard games only.', chips:false };
     if(!md.A.length) return { t:'No games match the Filters.', b:['Clear filters', 'clear', ''], chips:true };
     if(!md.W.length){
@@ -38363,6 +38599,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       else if(a==='clear'){ ghClearFilters(); const f = document.querySelector('#ga-win .toggle[aria-pressed="true"]') || document.querySelector('#gh-view .toggle[aria-pressed="true"]'); if(f) try{ f.focus({ preventScroll:true }); }catch(err){} }
       else if(a==='date'){ ghSetFilters({ date:t.dataset.val }); const f = document.querySelector('#ga-win .toggle[aria-pressed="true"]'); if(f) try{ f.focus({ preventScroll:true }); }catch(err){} }
       else if(a==='loadmore') ghLoadMoreClick();
+      else if(a==='settings') ghOpenSettingsAt(t.dataset.val || 'li');
       else if(a==='oj') gaToOpenings('gho-oj', t.dataset.fid);
       else if(a==='opn') gaToOpenings(t.dataset.val==='black' ? 'gho-black' : 'gho-white', t.dataset.fid);
       else if(a==='clkt') gaClkTable(t);
@@ -38382,9 +38619,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       tabs[j].focus();
       tabs[j].click();
     });
-    // [ and ] while Analytics is on screen (never while typing, with a modifier, in a dialog; a held key once)
+    // [ and ] while Analytics or Puzzles is on screen (never while typing, with a modifier, in a dialog; a held key once)
     document.addEventListener('keydown', (e)=>{
-      if(currentView!=='history' || !gaOn() || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+      if(currentView!=='history' || !(gaOn() || gzOn()) || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
       const d = e.key==='[' ? -1 : e.key===']' ? 1 : (e.key==='{' || e.key==='}') ? 0 : e.code==='BracketLeft' ? -1 : e.code==='BracketRight' ? 1 : 0;
       if(!d) return;
       const T = e.target, tag = T && T.tagName;
@@ -38809,10 +39046,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         f.acc = typeof a==='number' ? a : null;
       } else ev = null;
     }
-    if(!ev && n && Array.isArray(g._ev) && (g._ev.length===n || (g.status==='mate' && g._ev.length===n - 1))){
-      ev = [{ type:'cp', value:20 }].concat(g._ev.slice(0, n - 1));
-      ev[n] = gaLiFinal(g, n);                          // the final position: from the status, else Lichess's own score (never {} or mate 0)
-      f.src = 'l';
+    if(!ev && n){
+      ev = ojLiSeries(g, n);                            // the final position: from the status, else Lichess's own score (never {} or mate 0)
+      if(ev) f.src = 'l';
     }
     if(f.src){
       f.n = n; f.me = me; f.ev = ev;
@@ -39296,7 +39532,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         };
         q.onerror = ()=> res();
       }catch(e){ res(); }
-    })).catch(()=>{}).then(()=>{ GA_MM_LOADED = true; GA_MM_LOADING = false; if(currentView==='history' && gaOn()){ gaMmNews(); gaMmKick(); } });
+    })).catch(()=>{}).then(()=>{ GA_MM_LOADED = true; GA_MM_LOADING = false; if(currentView==='history' && (gaOn() || gzOn())){ if(gzOn()) gzMmNews(); else gaMmNews(); gaMmKick(); } });
   }
   function gaMmPut(list){
     if(!list.length) return;
@@ -39363,7 +39599,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     return m;
   }
   function gaMmMe(g, u){ return ghMyColor(g, u)==='white' ? 'w' : 'b'; }
-  function gaMmWant(){ return currentView==='history' && !document.hidden && gaOn() && GA_MM_LOADED; }
+  function gaMmWant(){ return currentView==='history' && !document.hidden && (gaOn() || gzOn()) && GA_MM_LOADED; }
   // the row's "checking N of M games" while the window's games are read (its text only: no redraw)
   function gaMmProgress(){
     const md = GA.model, el = document.getElementById('ga-mm1-w');
@@ -39374,20 +39610,25 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(el.textContent!==t) el.textContent = t;
   }
   function gaMmKick(){
-    if(GA_MM_JOB || GA_JOB || !gaMmWant()) return;
-    const u = ghMe(), md = GA.model, seen = new Set(), list = [];
+    // on the Puzzles tab (z): its scope first (site tab, Filters, Date), newest first, then the rest of your games; it never
+    // waits on Analytics' facts job there (that job doesn't run on this tab)
+    const z = gzOn();
+    if(GA_MM_JOB || (GA_JOB && !z) || !gaMmWant()) return;
+    const u = ghMe(), md = z ? null : GA.model, seen = new Set(), list = [], by = (a, b)=> (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
     const add = (g)=>{ const id = String(g.id); if(seen.has(id)) return; seen.add(id); list.push(g); };
-    const W = md ? md.W.slice().sort((a, b)=> b.at - a.at).map(e=> e.g) : [];
+    const W = z ? gzScope(u).sort(by) : md ? md.W.slice().sort((a, b)=> b.at - a.at).map(e=> e.g) : [];
     W.forEach(add);
     const nW = list.length;
-    ghBaseList().filter(gaInBase).sort((a, b)=> (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0)).forEach(add);
-    if(!list.length){ GA.mmk = GA.pk; return; }
-    const job = GA_MM_JOB = { list, i:0, u, out:[], nW, told:!nW || !(md && md.mm && md.mm.wait), at:0, n:0, pk:GA.pk };
+    (z ? ghBaseList('all').filter(gzInBase) : ghBaseList().filter(gaInBase)).sort(by).forEach(add);
+    const pk = z ? gzQKey() : GA.pk;
+    if(!list.length){ if(z) GZ.mmk = pk; else GA.mmk = GA.pk; return; }
+    const job = GA_MM_JOB = { list, i:0, u, out:[], nW, told:!nW || (!z && !(md && md.mm && md.mm.wait)), at:0, n:0, pk, z };
+    const news = ()=> z ? gzMmNews() : gaMmNews();
     const flush = ()=>{ if(job.out.length){ gaMmPut(job.out); job.out = []; } };
     const tick = ()=>{
       if(GA_MM_JOB!==job) return;
-      if(!gaMmWant()){ flush(); GA_MM_JOB = null; return; }          // picked up again by the next redraw on Analytics
-      if(GA_JOB){ setTimeout(tick, 100); return; }                     // the facts first (the cards wait for them)
+      if(!gaMmWant() || gzOn()!==z){ flush(); GA_MM_JOB = null; return; }          // picked up again by the next redraw on its tab
+      if(GA_JOB && !z){ setTimeout(tick, 100); return; }                     // the facts first (the cards wait for them)
       const t = performance.now();
       while(job.i < job.list.length && performance.now() - t < 10){
         const g = job.list[job.i++], me = gaMmMe(g, job.u);
@@ -39405,12 +39646,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(job.out.length >= 200) flush();
       const end = job.i >= job.list.length;
       // the window's games all read: one redraw (the row's numbers); then the rest of the history, quietly
-      if(!job.told && (job.i >= job.nW || end)){ job.told = true; flush(); gaMmNews(); }
-      else if(!job.told && performance.now() - job.at > 500){ job.at = performance.now(); gaMmProgress(); }
+      if(!job.told && (job.i >= job.nW || end)){ job.told = true; flush(); news(); }
+      else if(!job.told && !z && performance.now() - job.at > 500){ job.at = performance.now(); gaMmProgress(); }
       if(!end){ setTimeout(tick, 0); return; }
       flush();
       GA_MM_JOB = null;
-      if(job.n) gaMmNews(); else if(GA.pk===job.pk) GA.mmk = job.pk;       // nothing needed checking: no kick again until something changes
+      if(job.n) news(); else if(z) GZ.mmk = job.pk; else if(GA.pk===job.pk) GA.mmk = job.pk;       // nothing needed checking: no kick again until something changes
     };
     setTimeout(tick, 0);
   }
@@ -40244,6 +40485,1636 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   GA_ACTS.ends = (t)=> gaToOpenings('gho-ends', t.dataset.fid);
   GA_DRAW_CARDS.push(['ga-more', gaDrawMoreH], ['ga-opp', gaDrawOpp], ['ga-end', gaDrawEnd], ['ga-acc', gaDrawAcc], ['ga-cas', gaDrawCas], ['ga-cal', gaDrawCal]);
+  /* ---- Puzzles from your games (2026-11-21; the user: "something ... where it would go through the game and it would have
+     me play the position again", spec ~/puzzles-work/SPEC.md): Game History's sixth tab. Positions from your own games
+     (Lichess and chess.com, people only) where a big swing came, found and checked by Stockfish 16 on this device: never
+     Lichess's puzzle database, never reported to Lichess, nothing saved to Saved Puzzles, Puzzle History, game notes or the
+     review store. This part: the tab, its link and remembered Show chip, the keys, the empty states, the count line ---- */
+  var GZ = { y:null, back:null, sig:'', model:null, emp:false, ms:0, shown:0, P:new Map(), G:new Map(), A:new Map(),
+    M:{}, run:new Map(), cur:null, hw:null, rk:'', mmk:'', sp:{ n:0, ms:0 }, wl:null };
+  var GZ_SOON = 0, GZ_SOON_AT = 0, GZ_FV = 0;
+  var GZ_KS = ['all', 'job', 'mate'];                 // the Show chip (Win it again's 'win' comes with the second release)
+  var GZ_ON_KEY = 'wavyChessPrepGamePuzzlesOn';
+  // a phone: a touch screen under 600px on its short side (the iPad, 834, is not one, with or without its trackpad)
+  function gzPhone(){ try{ return matchMedia('(pointer:coarse)').matches && Math.min(screen.width, screen.height) < 600; }catch(e){ return false; } }
+  // the Puzzle search switch: on by default on the Mac and the iPad, off on a phone (the user's answer, 2026-11-21)
+  var GZ_ON = (function(){ let v = null; try{ v = localStorage.getItem(GZ_ON_KEY); }catch(e){} if(v==='on' || v==='off') return v==='on'; return !gzPhone(); })();
+  function gzOn(){ return GH_UI.view==='puzzles'; }
+  // (ghLoadFilters runs at load, before this block's vars are set: no var here)
+  function gzValidK(k){ return k==='job' || k==='mate' ? k : 'all'; }
+  // the games Puzzles looks at: people only (ghBaseList), a real result, standard chess from the start, never a `cheat` game
+  function gzInBase(g){ return gaInBase(g) && g.status!=='cheat'; }
+  // ---- the list (build step 6; spec 4, 10, 13.4, 17): the model joins the found items (GZ.P), the game records (GZ.G) and the
+  // attempts (GZ.A) with the games in scope, no replay and no engine. An item whose Lichess game isn't loaded this visit (past
+  // the first 200 after a reload) is drawn from its stored card facts, and matched only on the Filters those facts answer ----
+  var GZ_AV = 0;                                      // the attempts' stamp (bumped on each write)
+  var GZ_MB = new Map(), GZ_MBK = '', GZ_IO = null;   // the mini boards: an LRU of 60 (FEN, flip), cleared when the piece set changes
+  var GZ_LEARNED = 5;                                 // the ladder's top: Learned (13.2)
+  var GZ_KW = { job:'Finish the job', mate:'Missed mate' };
+  var GZ_RW = { s:'Solved', h:'Solved with help', x:'Missed', v:'Solution shown' };
+  var GZ_FONLY = ['opening', 'oq', 'tc', 'rated', 'gap', 'end', 'eg', 'oj', 'len', 'notes', 'rep'];     // Filters stored facts can't answer
+  var GZ_LDF = null;
+  // a local day as a number (the ladder's "today" is ghoBriefNow's: the kits' fake clock), and back to a time at its noon
+  function gzDay(ts){ const d = new Date(Number(ts) || 0); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5); }
+  function gzDayTs(n){ const u = new Date(n * 864e5); return new Date(u.getUTCFullYear(), u.getUTCMonth(), u.getUTCDate(), 12).getTime(); }
+  function gzLongDay(ts){
+    try{ if(!GZ_LDF) GZ_LDF = new Intl.DateTimeFormat(undefined, { month:'long', day:'numeric' }); return GZ_LDF.format(new Date(Number(ts) || 0)); }catch(e){ return ctDay(ts); }
+  }
+  // an item's game not loaded this visit: this account's (u: another account's stored puzzles never show; an entry from before
+  // the account was kept is left out until its game loads), its site tab, the Date, Result, speed, color and opponent from its
+  // stored facts
+  function gzFactsOk(G, f, from, u){
+    if(!G.u || G.u!==String(u || '').toLowerCase()) return false;
+    if(G.site!=='l' || GH_UI.site==='chesscom') return false;
+    if((Number(G.at) || 0) < from) return false;
+    if(f.result && G.res!==f.result) return false;
+    if(f.speed && G.speed!==f.speed) return false;
+    if(f.color && (G.me==='w' ? 'white' : 'black')!==f.color) return false;
+    if(f.opp && ghFold(G.opp || '').toLowerCase().indexOf(ghFold(f.opp).toLowerCase()) < 0) return false;
+    return true;
+  }
+  // what the model reads (an unchanged key reuses it): the site, the Filters, the hour and day, the games loaded, the store
+  // and attempts stamps, the rules check's records, the chip
+  function gzPreKey(base, f, now, u){
+    const a = base[0], z = base[base.length - 1];
+    return [GH_UI.site, JSON.stringify(f), now, gzDay(ghoBriefNow()), u || '', base.length, a ? a.id : '', z ? z.id : '', GH_STATE.games.length,
+      ghCcUp() ? ccGames().length : 0, ghTabBusy() ? 1 : 0, GZ_FV, GZ_AV, GZ.P.size, GA_MM.size, MM_V, GZ_V, gzValidK(GH_UI.gzk)].join('|');
+  }
+  function gzModelOf(base, u, now, f, pk){
+    const f0 = Object.assign({}, f, { date:'' });
+    const B = base.filter(gzInBase);
+    const v = f.date || '', from = gaFrom(v, now), today = gzDay(ghoBriefNow());
+    const md = { pk, u, now, f, v, from, today, nBase:base.length, nB:B.length, A:[], W:[], items:[], ent:[], list:[], n:{ all:0, job:0, mate:0 },
+      looked:0, src:{ r:0, l:0, s:0 }, mm:0, due:0, nw:0, next:0, loading:!base.length && ghTabBusy() };
+    B.forEach(g=>{
+      if(!ghMatch(g, u, f0)) return;
+      md.A.push(g);
+      if((Number(g.createdAt) || 0) >= from) md.W.push(g);
+    });
+    const inW = new Map();
+    md.W.forEach(g=>{
+      const id = String(g.id);
+      inW.set(id, g);
+      if(gzLookedG(g, u)){ md.looked++; const r = GZ.G.get(id); if(r && md.src[r.src]!=null) md.src[r.src]++; }
+      if(gaMmOf(g, gzMeOf(g, u))) md.mm++;
+    });
+    // the items found (GZ.P, by fen4) with a game in scope; R1 lists the puzzles (Finish the job, Missed mate), not Win it again.
+    // A card names the newest of its games in scope (else the newest not loaded)
+    const other = GZ_FONLY.some(k=> !!f[k]), rk = { loss:0, draw:1, win:2 };
+    let loaded = null;
+    GZ.P.forEach(it=>{
+      if(it.kind!=='job' && it.kind!=='mate') return;
+      const games = Array.isArray(it.games) ? it.games : [];
+      let G = null, g = null;
+      for(const x of games){ const y = inW.get(String(x.id)); if(y){ G = x; g = y; break; } }
+      if(!G && !other){
+        if(!loaded){ loaded = new Set(GH_STATE.games.map(x=> String(x.id))); if(ghCcUp()) ccGames().forEach(x=> loaded.add(String(x.id))); }
+        G = games.find(x=> !loaded.has(String(x.id)) && gzFactsOk(x, f, from, u)) || null;
+      }
+      if(!G) return;
+      // the order (10.3): lost, drawn, won (a "still winning" mate with the won); the newest game first; then by move
+      md.ent.push({ it, G, g, fid:'gz|'+it.f, r:G.mo==='w' ? 2 : rk[G.res]!=null ? rk[G.res] : 1, at:Number(G.at) || (g ? Number(g.createdAt) || 0 : 0), q:Number(G.q) || 0 });
+      md.n[it.kind]++;
+    });
+    md.ent.sort((a, b)=> (a.r - b.r) || (b.at - a.at) || (a.q - b.q));
+    md.items = md.ent.map(e=> e.it);
+    md.n.all = md.items.length;
+    md.k = gzValidK(GH_UI.gzk);
+    md.list = md.k==='all' ? md.ent : md.ent.filter(e=> e.it.kind===md.k);
+    // Due today and New (10.2, 13.2), of this chip: the next due day when nothing is
+    md.list.forEach(e=>{
+      const A = GZ.A.get(e.it.f);
+      if(!A || !Array.isArray(A.t) || !A.t.length){ md.nw++; return; }
+      if(A.lv >= GZ_LEARNED) return;
+      if(A.due > 0 && A.due <= today) md.due++;
+      else if(A.due > today && (!md.next || A.due < md.next)) md.next = A.due;
+    });
+    return md;
+  }
+  // a score from your side, read out: "plus 3.10", "minus 0.40", "mate in 3"
+  function gzSay(sc, me){
+    if(!sc) return 'no score';
+    const sg = me==='w' ? 1 : -1;
+    if(sc.type==='mate'){ const v = sc.value * sg; return v > 0 ? 'mate in '+v : 'mated in '+(-v); }
+    const v = sc.value * sg / 100;
+    return (v > 0 ? 'plus ' : v < 0 ? 'minus ' : '')+Math.abs(v).toFixed(2);
+  }
+  // a card's four lines, from the item's stored card facts only (10.4): what happened, the game, kind and facts, your record
+  function gzCardWords(e){
+    const it = e.it, G = e.G, me = G.me==='b' ? 'b' : 'w', q = Number(G.q) || 0;
+    const lab = ghClampLabel(q + 1, G.san || '', 0), sc = Array.isArray(it.sc) ? it.sc : [];
+    const dec = (t)=> t ? hrDecScore(String(t)) : null;
+    let l1, say1;
+    if(it.kind==='job'){
+      const a = dec(sc[0]), z = dec(sc[2]);
+      l1 = lab+': '+ghbScoreText(a, me)+' \u2192 '+ghbScoreText(z, me);
+      say1 = 'You played '+lab+', '+gzSay(a, me)+' to '+gzSay(z, me);
+    } else {
+      const n = Number(it.n) || 1, w = G.mo==='w' ? (n <= 2 ? 'mate in '+n : 'a mate')+' not played, still winning' : gzMateWords(n).missed;
+      l1 = lab+': '+w;
+      say1 = 'You played '+lab+', '+w;
+    }
+    const site = G.site==='c' ? 'chess.com' : 'Lichess', sp = String(gaSpeedW(G.speed) || '').toLowerCase(), opp = G.opp || 'Anonymous';
+    const also = (Array.isArray(it.games) ? it.games.length : 1) - 1;
+    const l2 = ctRes(G.res)+' vs '+opp+(G.oppR!=null ? ' ('+G.oppR+')' : '')+' \u00b7 '+ctDay(G.at)+' \u00b7 '+site+(sp ? ' '+sp : '')+(also > 0 ? ' \u00b7 also in '+ghoN(also, 'other game') : '');
+    const bits = [GZ_KW[it.kind]], ph = { o:0, m:1, e:2 }[G.ph], C = Array.isArray(G.clk) ? G.clk : null;
+    if(ph!=null) bits.push(CT_PHASES[ph]);
+    if(C && G.speed!=='correspondence') bits.push(gaClockW(C[0])+' left, took '+gaTookW(C[1]));
+    let fact = '';
+    if(it.kind==='job'){
+      const toks = String(G.toks || '').split(' ');
+      if(G.fl==='their' && q >= 1) fact = 'after their mistake '+ghClampLabel(q, toks[q - 1] || '', 0);
+      else if(G.fl==='since' && G.since) fact = 'winning since move '+G.since;
+    }
+    const say = GZ_KW[it.kind]+'. '+say1+'. '+ctRes(G.res)+' vs '+opp+', '+gzLongDay(G.at)+', '+site+(sp ? ' '+sp : '')+(also > 0 ? ', also in '+ghoN(also, 'other game') : '')+'.';
+    return { l1, l2, l3:bits.join(' \u00b7 '), tt:!!(C && C[2] && G.speed!=='correspondence'), fact, say };
+  }
+  // your record on a puzzle (10.4, 13.2): New, Due today, Learned, or the last result and its day; no levels or streaks
+  function gzRecWords(f, today){
+    const A = GZ.A.get(f);
+    if(!A || !Array.isArray(A.t) || !A.t.length) return { t:'New' };
+    if(A.lv >= GZ_LEARNED) return { t:'Learned', learned:true };
+    if(A.due > 0 && A.due <= today) return { t:'Due today', due:true };
+    // the day's FIRST try, the one the ladder counted (gzLadder), so a miss then a solve in the run's again pass says "Missed"
+    // and matches the puzzle coming back tomorrow (the user's choice, 2026-11-22); a try the trim folded into A.b reads from it
+    const L = A.t[A.t.length - 1], d = gzDay(L[0]), F = A.t.find(y=> gzDay(y[0])===d) || L;
+    const b = Array.isArray(A.b) && A.b.length===3 && Number(A.b[2])===d ? A.b : null;
+    const r = b ? (Number(b[0]) > 0 ? 's' : 'x') : F[1];
+    return { t:(GZ_RW[r] || 'Tried')+' '+ctDay(F[0]) };
+  }
+  // one card: a button with its board (drawn lazily) and four lines; nothing on it gives the answer away
+  function gzCard(e, md, W, rw){
+    const it = e.it;
+    W = W || gzCardWords(e); rw = rw || gzRecWords(it.f, md.today);
+    const b = ghEl('button', 'ct-m gz-m is-'+it.kind);
+    b.type = 'button'; b.dataset.act = 'open'; b.dataset.fid = e.fid;
+    b.appendChild(ghEl('span', 'ct-mbd'));
+    const l1 = ghEl('span', 'ct-mmv gz-l1');
+    l1.appendChild(ghEl('b', '', W.l1));
+    b.appendChild(l1);
+    b.appendChild(ghEl('span', 'ct-mft gz-l2', W.l2));
+    const l3 = ghEl('span', 'ct-mft gz-l3', W.l3);
+    if(W.tt){ l3.appendChild(document.createTextNode(' \u00b7 ')); l3.appendChild(ghEl('span', 'gz-tt', 'time trouble')); }
+    if(W.fact) l3.appendChild(document.createTextNode(' \u00b7 '+W.fact));
+    b.appendChild(l3);
+    b.appendChild(ghEl('span', 'ct-mft gz-rec'+(rw.learned ? ' is-learned' : rw.due ? ' is-due' : ''), rw.t));
+    b.setAttribute('aria-label', W.say+' '+rw.t+'.');
+    return b;
+  }
+  // the piece set the boards were drawn with (a change redraws them)
+  function gzPieceKey(){ try{ return gnFnv(String(PIECE_SVG.wK || '')+String(PIECE_SVG.bP || '')); }catch(e){ return ''; } }
+  // the boards (10.8): from the stored FEN, your side at the bottom, their last move lit; the ones on screen (and 600px around
+  // it) in this same task, the rest as they come near (one IntersectionObserver); an LRU of 60
+  function gzFill(root, only){
+    const pk = gzPieceKey();
+    if(pk!==GZ_MBK){ GZ_MB.clear(); GZ_MBK = pk; }
+    const fill = (bd)=>{
+      if(bd.firstChild || !bd.isConnected) return;
+      const card = bd.closest('.gz-m'), e = card && GZ.mby ? GZ.mby.get(card.dataset.fid) : null;
+      if(!e || typeof e.it.fen!=='string') return;
+      const flip = e.G.me==='b', key = e.it.fen+'|'+(flip ? 1 : 0);
+      let mb = GZ_MB.get(key);
+      if(mb) GZ_MB.delete(key);
+      else {
+        const pm = String(e.G.pm || ''), lit = /^[a-h][1-8][a-h][1-8]/.test(pm) ? [pm.slice(0, 2), pm.slice(2, 4)] : [];
+        try{ mb = nbMiniBoard({ fen:e.it.fen, flip, arrows:[], squares:[], label:'', ply:null, line:null, extra:[] }); }catch(err){ return; }
+        // their last move lit UNDER the pieces (the board's own squares, .gz-lit): nbMiniBoard's square tint is drawn over
+        // the piece, which made a black piece on a lit square look light
+        const cells = mb.querySelector('.nb-board');
+        lit.forEach(a=>{ const f = 'abcdefgh'.indexOf(a.charAt(0)), r = Number(a.charAt(1)) - 1, row = flip ? r : 7 - r, col = flip ? 7 - f : f, sq = cells && cells.children[row*8 + col]; if(sq) sq.classList.add('gz-lit'); });
+      }
+      GZ_MB.set(key, mb);
+      if(GZ_MB.size > 60) GZ_MB.delete(GZ_MB.keys().next().value);
+      bd.appendChild(mb);
+    };
+    const list = Array.from(root.querySelectorAll('.ct-mbd'));
+    if(!('IntersectionObserver' in window)){ list.forEach(fill); return; }
+    if(!GZ_IO){
+      const cb = (ents)=>{ ents.forEach(en=>{ if(en.isIntersecting){ GZ_IO.unobserve(en.target); fill(en.target); } }); };
+      try{ GZ_IO = new IntersectionObserver(cb, { root:document, rootMargin:'600px 0px' }); }catch(e){ GZ_IO = new IntersectionObserver(cb, { rootMargin:'600px 0px' }); }
+    }
+    // only (a Set of the cards just built): the kept cards' empty boards are the observer's already (no layout read for them)
+    const empty = list.filter(bd=> !bd.firstChild), read = only ? empty.filter(bd=> only.has(bd.parentElement)) : empty, rd = new Set(read);
+    const vh = window.innerHeight || 800, rs = read.map(bd=> bd.getBoundingClientRect());      // read first, then write
+    read.forEach((bd, i)=>{ const r = rs[i]; if(r.height && r.bottom > -600 && r.top < vh + 600) fill(bd); else GZ_IO.observe(bd); });
+    if(only) empty.forEach(bd=>{ if(!rd.has(bd)) GZ_IO.observe(bd); });
+  }
+  // the top card's solve line (10.2): Due today and New, or when the next one is due; Solve only when there is one to run
+  function gzDrawTop(md){
+    const el = document.getElementById('gz-due'), go = document.getElementById('gz-go'), n = md.due + md.nw, N = md.items.length;
+    // a chip with none in it (a link, or Filters that left none of its kind): say so, and what to press
+    const none = !md.list.length && N ? 'No '+(md.k==='mate' ? 'missed mates' : 'Finish the job puzzles')+(md.v || ghActiveCount() > 0 ? ' in these Filters' : ' yet')
+      +'. Press All to see '+(N===1 ? 'the 1 puzzle' : 'all '+N.toLocaleString('en-US')+' puzzles')+'.' : '';
+    const t = none || (n ? 'Due today '+md.due.toLocaleString('en-US')+' \u00b7 New '+md.nw.toLocaleString('en-US')+' \u00b7 On this device'
+      : 'Nothing due today.'+(md.next ? ' Next: '+ctDay(gzDayTs(md.next))+'.' : ''));
+    if(el.textContent!==t) el.textContent = t;
+    go.hidden = !n;
+    go.dataset.fid = 'gz-go';
+  }
+  // the grid: 12 cards (6 on a phone), then Show 12 more (6)
+  function gzDrawGrid(md){
+    const grid = document.getElementById('gz-grid'), more = document.getElementById('gz-more');
+    const N = gaPhone() ? 6 : 12, shown = Math.min(md.list.length, Math.max(N, GZ.shown || 0)), rest = md.list.length - shown;
+    // the cards kept by data-fid (the review round): an unchanged card keeps its node, its board and its focus; only new or
+    // changed cards are built, gone ones removed, the order mended in place (a background redraw costs a card, not the grid).
+    // Another piece set draws every board again
+    const pk = String(gzPieceKey()), old = new Map();
+    if(grid.dataset.pk===pk) Array.from(grid.children).forEach(b=>{ if(b.dataset && b.dataset.fid) old.set(b.dataset.fid, b); });
+    else grid.textContent = '';
+    grid.dataset.pk = pk;
+    GZ.mby = new Map();
+    const want = [], fresh = new Set();
+    md.list.slice(0, shown).forEach(e=>{
+      GZ.mby.set(e.fid, e);
+      const W = gzCardWords(e), rw = gzRecWords(e.it.f, md.today);
+      const ws = [e.it.kind, W.l1, W.l2, W.l3, W.tt ? 1 : 0, W.fact, W.say, rw.t, rw.learned ? 1 : 0, rw.due ? 1 : 0, e.G.me, e.G.pm || '', e.it.fen].join('|');
+      let b = old.get(e.fid);
+      if(b && b._gzs===ws) old.delete(e.fid);
+      else { b = gzCard(e, md, W, rw); b._gzs = ws; fresh.add(b); }
+      want.push(b);
+    });
+    old.forEach(b=> b.remove());
+    for(let i = 0; i < want.length; i++) if(grid.children[i]!==want[i]) grid.insertBefore(want[i], grid.children[i] || null);
+    while(grid.children.length > want.length) grid.lastChild.remove();
+    more.hidden = rest <= 0;
+    more.dataset.fid = 'gz-more';
+    if(rest > 0){ const k = Math.min(N, rest); more.textContent = 'Show '+k+' more'; more.setAttribute('aria-label', 'Show '+k+' more of '+md.list.length.toLocaleString('en-US')); }
+    // the new cards' boards near the screen at the end of this task (still this task: nothing on screen is drawn empty), after
+    // the redraw's caller has done its own layout work (a tab press scrolls), so the board fill never forces a layout of its own
+    if(fresh.size) queueMicrotask(()=>{ if(grid.isConnected) gzFill(grid, fresh); });
+  }
+  // the source card, in the spec's exact form (10.5)
+  function gzDrawSrc(md){
+    const el = document.getElementById('gz-src'), N = (n)=> Number(n || 0).toLocaleString('en-US'), W = md.W.length;
+    const t = 'Games against people, standard chess, in these Filters. Looked at: '+N(md.looked)+' of '+N(W)+', newest first, games you didn\u2019t win first. '
+      +'Found in: your reviews '+N(md.src.r)+' \u00b7 Lichess\u2019s analysis '+N(md.src.l)+' \u00b7 Stockfish 16 on this device '+N(md.src.s)+' ('+N(GZ_NODES.scan)+' nodes a position). '
+      +'Every puzzle checked by Stockfish 16 on this device ('+N(GZ_NODES.multi)+' nodes, the 2 best moves). '
+      +'Mates in 1: '+N(md.mm)+' of '+N(W)+' games checked by Chess Arcade\u2019s rules. '
+      +'Winning = +2.00 or better; a slip costs 15+ points of Lichess\u2019s winning chances. '+(GZ_MEM ? 'Kept for this visit only.' : 'Kept on this device.');
+    if(el.textContent!==t) el.textContent = t;
+  }
+  // Show 12 more: the keyboard goes to the first new card
+  function gzMore(){
+    const md = GZ.model;
+    if(!md) return;
+    const N = gaPhone() ? 6 : 12, had = Math.min(md.list.length, Math.max(N, GZ.shown || 0)), next = md.list[had];
+    GZ.shown = had + N;
+    ghUserGo = true; try{ ghRender(); } finally{ ghUserGo = false; }
+    const el = next ? Array.from(document.querySelectorAll('#gz-grid [data-fid]')).find(x=> x.dataset.fid===next.fid) : null;
+    if(el) try{ el.focus({ preventScroll:true }); }catch(e){}
+  }
+  // ---- solving (build step 7; spec 11, 13.1-13.3): Find the move and Missed mate on the puzzle board (#view-play-puzzle), as a
+  // practice run that is never reported: spPlayQueue with { home:'gz', kind:'game' }, every round's `replay` { kind:'game' }, ids
+  // 'gz:' + the fen4's hash (never 5 word characters). Results are written here at the moment they happen (gzRecord), never
+  // by spRoundEnded; nothing goes to Lichess, Saved Puzzles, Puzzle History, the Dashboard's practice log, notes or reviews ----
+  var GZ_RUN = 10;                                    // a run: up to 10 puzzles
+  var GZ_STEP = [0, 3, 7, 14, 30];                    // the ladder's waits in days after a clean solve at levels 1-4 (13.2)
+  var GZ_SRCW = { r:'Found in your review', l:'Found in Lichess\u2019s analysis', s:'Found by Stockfish 16 on this device', m:'Found by Chess Arcade\u2019s rules' };
+  function gzRoundOn(){ return !!(roundPz && roundPz.replay && roundPz.replay.kind==='game'); }
+  // an item that can be played: a puzzle with its start and its line; the game named is the card's (else its newest), the game
+  // object when it is in memory
+  function gzRunItem(f, e){
+    const it = GZ.P.get(f);
+    if(!it || (it.kind!=='job' && it.kind!=='mate') || typeof it.fen!=='string' || !Array.isArray(it.line) || !it.line.length) return null;
+    const games = Array.isArray(it.games) ? it.games : [];
+    const G = (e && e.G && games.some(x=> x===e.G || String(x.id)===String(e.G.id)) ? e.G : null) || games[0];
+    if(!G || !(Number(G.q) > 0)) return null;
+    const id = String(G.id);
+    let g = e && e.g && String(e.g.id)===id ? e.g : null;
+    if(!g) g = GH_STATE.games.find(x=> String(x.id)===id) || (ghCcUp() && ccIsId(id) ? ccGameById(id) : null) || null;
+    return { it, G, g };
+  }
+  // "3+2" from the stored "180+2"
+  function gzTcW(tc){
+    const m = /^(\d+)\+(\d+)$/.exec(String(tc || ''));
+    if(!m) return '';
+    const s = Number(m[1]);
+    return (s % 60 ? String(Math.round(s / 6) / 10) : String(s / 60))+'+'+m[2];
+  }
+  // both players with their ratings, White first (the game's own names when it is in memory, else the stored facts)
+  function gzNames(G, g){
+    let mine = { name:ghMe() || 'You', rating:G.myR!=null ? G.myR : null }, opp = { name:G.opp || 'Anonymous', rating:G.oppR!=null ? G.oppR : null };
+    if(g && g.players){
+      const P = ghPlayers(g, ghMe());
+      mine = { name:ghOppName(P.mine), rating:P.mine.rating!=null ? Number(P.mine.rating) : mine.rating };
+      opp = { name:ghOppName(P.opp), rating:P.opp.rating!=null ? Number(P.opp.rating) : opp.rating };
+    }
+    const w = G.me==='b' ? opp : mine, b = G.me==='b' ? mine : opp;
+    return [Object.assign({ color:'white' }, w), Object.assign({ color:'black' }, b)];
+  }
+  // the round's entry, in the shape spRoundEntry returns (11.1): your game's moves up to q (from the game, else the stored plies),
+  // the line as the solution, an id that is never a Lichess id
+  function gzEntry(P, G, g){
+    const q = Number(G.q) || 0;
+    const toks = g && g.moves ? gaToks(g).slice(0, q) : String(G.toks || '').split(' ').filter(Boolean);
+    if(!q || toks.length!==q || !Array.isArray(P.line) || !P.line.length) throw new Error('gz: no moves');
+    return {
+      game:{ id:String(G.id), pgn:toks.join(' '), perf:{ name:gaSpeedW(G.speed) }, clock:gzTcW(G.tc), players:gzNames(G, g) },
+      puzzle:{ id:'gz:'+gnFnv(P.f), rating:null, plays:null, initialPly:q - 1, solution:P.line.slice(), themes:[] }
+    };
+  }
+  // the HUD's line: "Puzzle 3 of 10 . Finish the job . from your game" (one line)
+  function gzHudLine(rp){
+    return (rp.again ? 'Again: '+rp.total+' you missed \u00b7 '+rp.pos+' of '+rp.total : 'Puzzle '+rp.pos+' of '+rp.total)+' \u00b7 '+(GZ_KW[rp.P.kind] || 'Puzzle')+' \u00b7 from your game';
+  }
+  // the board's dress for a game puzzle (11.2): the class that hides the scoreboard (its box kept), Link and Save; the rating
+  // card says "Before your move" and the score (or the mate) in the same box; a Lichess puzzle gets its own words back
+  function gzBadge(rp){
+    const view = document.getElementById('view-play-puzzle'), on = !!(rp && rp.kind==='game');
+    if(view) view.classList.toggle('is-gz', on);
+    const lab = document.querySelector('#pz-rating-badge .pz-rating-label'), val = document.getElementById('pz-my-rating');
+    if(!on){ if(lab && lab.textContent!=='Your Rating') lab.textContent = 'Your Rating'; pzRefreshMyRating(); return; }
+    if(lab) lab.textContent = 'Before your move';
+    const P = rp.P, me = rp.G.me==='b' ? 'b' : 'w', n = Number(P.n) || 1;
+    if(!val) return;
+    val.textContent = '';
+    if(P.kind==='job') val.textContent = ghbScoreText(Array.isArray(P.sc) && P.sc[0] ? hrDecScore(String(P.sc[0])) : null, me) || '\u2014';
+    else val.appendChild(ghEl('span', 'gz-words', n <= 2 ? 'Mate in '+n : 'A mate'));
+  }
+  function gzTurnWords(rp){
+    if(rp.P.kind==='mate') return gzMateWords(Number(rp.P.n) || 1).find;
+    return rp.G.fl==='their' ? 'They just slipped. Find the move that wins.' : 'You were winning. Find the move that keeps it.';
+  }
+  // the meta card (11.2, 11.6): "From your game . move 23 . Middlegame", then the kind; once done, where it was found
+  function gzMeta(){
+    const R = roundPz, rp = R.replay, G = rp.G, P = rp.P, q = Number(G.q) || 0, ph = { o:0, m:1, e:2 }[G.ph];
+    const t = document.getElementById('pz-meta-gz'), sub = document.getElementById('pz-meta-gzsub');
+    if(t) t.textContent = 'From your game \u00b7 move '+Math.ceil((q + 1) / 2)+(ph!=null ? ' \u00b7 '+CT_PHASES[ph] : '');
+    const src = G.mo==='r' ? 'm' : G.src;
+    if(sub) sub.textContent = R.done ? (GZ_SRCW[src] || GZ_SRCW.s)+(src!=='m' ? ' \u00b7 checked by Stockfish 16 on this device ('+GZ_NODES.multi.toLocaleString('en-US')+' nodes)' : '') : (GZ_KW[P.kind] || '');
+    const row = document.getElementById('pz-meta-game-row'), tc = gzTcW(G.tc);
+    row.style.display = '';
+    document.getElementById('pz-meta-game').textContent = (G.site==='c' ? 'chess.com' : 'Lichess')+' \u00b7 '+gaSpeedW(G.speed)+(tc && G.speed!=='correspondence' ? ' '+tc : '')+' \u00b7 '+ghFormatDate(G.at);
+    const pl = document.getElementById('pz-meta-players');
+    pl.textContent = '';
+    (R.players || []).forEach((p, i)=>{
+      if(i) pl.appendChild(document.createElement('br'));
+      pl.appendChild(document.createTextNode((p.name || '?')+(p.rating!=null ? ' ('+p.rating+')' : '')));
+    });
+  }
+  // a run (13.3): the keys (fen4s) in the grid's order from a card, or due then new from Solve; each one's card remembered
+  function gzRun(keys, list){
+    if(!keys.length) return;
+    const ents = new Map((list || []).map(e=> [e.it.f, e]));
+    spPlayQueue(keys, 0, 'Puzzles from your games', { home:'gz', kind:'game', n0:keys.length, first:new Map(), again:0, ents });
+  }
+  // a card pressed: a run from it, on through the next puzzle cards of the grid, up to 10
+  function gzOpenCard(t){
+    const md = GZ.model, fid = t.dataset.fid;
+    if(!md) return;
+    const i = md.list.findIndex(e=> e.fid===fid);
+    if(i < 0) return;
+    const keys = md.list.slice(i).filter(e=> !!gzRunItem(e.it.f, e)).slice(0, GZ_RUN).map(e=> e.it.f);
+    if(!keys.length) return;
+    GZ.back = { y:window.scrollY, fid };
+    GZ.y = null;
+    GZ.shown = Math.max(GZ.shown || 0, document.querySelectorAll('#gz-grid .gz-m').length);      // drawn again on the way back, any width
+    gzRun(keys, md.list);
+  }
+  // Solve: up to 10 of this chip and these Filters, the due ones first (the most overdue first), then new, in the grid's order
+  function gzSolve(){
+    const md = GZ.model;
+    if(!md) return;
+    const due = [], nw = [];
+    md.list.forEach(e=>{
+      const A = GZ.A.get(e.it.f);
+      if(!A || !Array.isArray(A.t) || !A.t.length) nw.push(e);
+      else if(A.lv < GZ_LEARNED && A.due > 0 && A.due <= md.today) due.push(e);
+    });
+    due.sort((a, b)=> GZ.A.get(a.it.f).due - GZ.A.get(b.it.f).due);
+    const L = due.concat(nw).filter(e=> !!gzRunItem(e.it.f, e)).slice(0, GZ_RUN);
+    if(!L.length) return;
+    GZ.back = { y:window.scrollY, fid:'gz-go', fid2:L[0].fid };
+    GZ.y = null;
+    GZ.shown = Math.max(GZ.shown || 0, document.querySelectorAll('#gz-grid .gz-m').length);
+    gzRun(L.map(e=> e.it.f), md.list);
+  }
+  // the run's current puzzle on the board (spStartCurrent's branch): an item gone since is skipped
+  function gzStartCurrent(){
+    const S = SP_PLAY;
+    if(!S || S.kind!=='game') return;
+    let X = null;
+    while(S.index < S.queue.length && !(X = gzRunItem(S.queue[S.index], S.ents.get(S.queue[S.index])))) S.index++;
+    if(!X){ gzHome(true); return; }
+    const myFetch = pzResetForRound();
+    spPlayUi();
+    const again = !!S.again && S.index >= S.n0;
+    const rp = { kind:'game', key:X.it.f, P:X.it, G:X.G, g:X.g, label:'Puzzles from your games', again,
+      pos:again ? S.index - S.n0 + 1 : S.index + 1, total:again ? S.queue.length - S.n0 : S.n0 };
+    try{ pzStartRound(gzEntry(X.it, X.G, X.g), myFetch, rp); roundPz.gzT0 = Date.now(); }
+    catch(e){ pzShowError('This puzzle wouldn\u2019t load.', 'Skip it, or go back to Puzzles from your games.'); }
+  }
+  // the missed ones of the first pass (13.2: a hint, a wrong move or the solution shown) and whether this is the run's last round
+  function gzRunMissed(S){ return S.queue.slice(0, S.n0).filter((k, i, a)=> a.indexOf(k)===i && /^[hvx]$/.test(S.first.get(k) || '')); }
+  function gzRunLast(){
+    const S = SP_PLAY;
+    return !!S && S.kind==='game' && S.index >= S.queue.length - 1 && (!!S.again || !gzRunMissed(S).length);
+  }
+  // Next (spAdvance's branch): the next puzzle; after the last, the missed ones once more ("Again"), then back to the tab
+  function gzRunNext(){
+    const S = SP_PLAY;
+    S.index++;
+    if(S.index >= S.queue.length && !S.again){
+      const miss = gzRunMissed(S);
+      if(miss.length){ S.again = miss.length; S.queue = S.queue.slice(0, S.n0).concat(miss); S.index = S.n0; }
+    }
+    if(S.index >= S.queue.length){ gzHome(true); return; }
+    gzStartCurrent();
+  }
+  // back to Game History's Puzzles tab (its scroll and the card, or Solve after a whole run)
+  function gzHome(end){
+    if(SP_PLAY && SP_PLAY.kind==='game'){ SP_PLAY = null; spPlayUi(); }
+    if(end && GZ.back) GZ.back = Object.assign({}, GZ.back, { fid:'gz-go', fid2:GZ.back.fid2 || GZ.back.fid });
+    showView('history');
+  }
+  // the banner and the back link for a run (spPlayUi's branch): Next puzzle / Back to Puzzles, Skip, "<- Puzzles from your games";
+  // home is written as data-nav="history" (GH_UI.view is still 'puzzles', so Game History opens on the tab)
+  function gzPlayUi(){
+    const last = gzRunLast();
+    document.getElementById('pz-next').textContent = last ? 'Back to Puzzles' : 'Next puzzle';
+    document.getElementById('pz-skip').textContent = 'Skip';
+    [pzResultBanner, pzErrorBanner].forEach(b=>{
+      const btn = b.querySelector('.btn-row button[data-nav]');
+      if(!btn) return;
+      btn.dataset.nav = 'history';
+      btn.textContent = 'Back to Puzzles';
+      btn.style.display = last && b===pzResultBanner ? 'none' : '';          // Next says it already
+    });
+    const back = document.querySelector('#view-play-puzzle > .back-link');
+    if(back){ back.dataset.nav = 'history'; back.innerHTML = '&larr; Puzzles from your games'; }
+  }
+  // castling written either way (the king two squares, or onto its rook): the king two squares
+  function gzCastleNorm(st, uci){
+    uci = String(uci || '');
+    if(!/^[a-h][1-8][a-h][1-8]/.test(uci) || !st || !st.board) return uci;
+    const p = st.board[pzAlgToIdx(uci.slice(0, 2))];
+    if(!p || p.type!=='k' || uci[1]!==uci[3]) return uci;
+    const a = 'abcdefgh'.indexOf(uci[0]), b = 'abcdefgh'.indexOf(uci[2]);
+    if(Math.abs(b - a) < 2) return uci;
+    return uci.slice(0, 2)+'abcdefgh'[a + (b > a ? 2 : -2)]+uci[3];
+  }
+  // a move on a game puzzle (pzTryMove's branch, 8.6 and 11.3): the line's move as today; any checkmate, or this step's stored
+  // alternate, solves it at once; anything else is "Not the move" (your own game move says so), the first one sealed and
+  // written at once as a miss (x); no score kept for these rounds
+  function gzTryMove(move){
+    const R = roundPz, rp = R.replay, want = R.solution[R.solIndex];
+    const uci = idxToAlg(move.from)+idxToAlg(move.to)+(move.promotion || ''), nu = gzCastleNorm(R.state, uci);
+    if(want && nu===gzCastleNorm(R.state, want)){ pzApplySolverMove(move); return; }
+    let nx = null;
+    try{ nx = pzApplyMoveRaw(R.state, move); }catch(e){ nx = null; }
+    const mate = !!nx && pzIsInCheck(nx, nx.turn) && pzAllLegalMoves(nx).length===0;
+    const step = Math.floor(R.solIndex / 2) + 1;
+    const alt = (Array.isArray(rp.P.alt) ? rp.P.alt : []).some(a=> Array.isArray(a) && Number(a[0])===step && gzCastleNorm(R.state, String(a[1]))===nu);
+    if(mate || alt){ gzEndSolved(move, alt ? 'That mates too.' : ''); return; }
+    if(R.tries.length < 20) R.tries.push({ at:R.solIndex, uci });
+    if(!R.failed){ R.failed = true; gzRecord(); }
+    pzWrongFeedback();
+    if(R.solIndex===0 && nu===gzCastleNorm(R.state, String(rp.G.gm || ''))) pzStatusEl.textContent = 'That\u2019s the move you played in the game.';
+  }
+  // a move that ends the puzzle as solved although it isn't the line's (a mate, a stored alternate)
+  function gzEndSolved(move, words){
+    const R = roundPz, before = R.state, cap = !!move.captured || !!move.isEP;
+    R.state = pzApplyMoveRaw(before, move);
+    R.sanMoves.push(pzMoveToSAN(before, move, R.state));
+    R.plyStates.push(R.state);
+    pzRenderMoveList();
+    animatePieceMove(pzBoardEl, move.from, move.to, renderBoardPz);
+    playSoundSequence(pzMoveSoundKeys(R.state, move, cap));
+    R.solIndex = R.solution.length;
+    R.gzWords = words || '';
+    pzFinishSolved();
+  }
+  // the ladder (13.2), from the attempts: the first attempt of each day counts; a clean solve climbs (3 days, 1 week, 2 weeks,
+  // 1 month, then Learned), anything else starts again tomorrow. A.b, when the newest 20 left older attempts out: the ladder
+  // where those older ones had left it [level, due, their last day], so a trimmed record keeps its level
+  function gzLadder(A){
+    const b = Array.isArray(A.b) && A.b.length===3 ? A.b : null;
+    let lv = b ? Number(b[0]) || 0 : 0, due = b ? Number(b[1]) || 0 : 0, last = b ? Number(b[2]) || null : null;
+    (Array.isArray(A.t) ? A.t : []).forEach(e=>{
+      const d = gzDay(e[0]);
+      if(d===last) return;
+      last = d;
+      if(e[1]==='s'){ if(lv >= GZ_LEARNED - 1){ lv = GZ_LEARNED; due = 0; } else { lv++; due = d + GZ_STEP[lv]; } }
+      else { lv = 0; due = d + 1; }
+    });
+    A.lv = lv; A.due = due;
+    return A;
+  }
+  // this round's attempt, written or upgraded the moment it happens (11.5): [at, r, ms, dv, x?]; r from the round itself: v the
+  // solution shown, s solved first try with no hint, h solved with help, x a wrong move or a hint not (yet) solved. One attempt a
+  // round; the newest 20 kept per puzzle (by fen4, so every copy shares them); x keeps the first wrong move (a later theme tagger
+  // reads it with the item's start, line, your game move and theirs before it)
+  function gzRecord(){
+    const R = roundPz;
+    if(!gzRoundOn() || !R.replay.key) return null;
+    const ru = R.replay.G && R.replay.G.u;
+    if(ru && ru!==String(ghMe() || '').toLowerCase()) return null;      // another account's puzzle (the account changed during the run)
+    const r = R.phRevealed ? 'v' : R.gzSolved ? (R.failed || R.hinted ? 'h' : 's') : (R.failed || R.hinted) ? 'x' : '';
+    if(!r) return null;
+    const f = R.replay.key, now = Date.now(), old = GZ.A.get(f);
+    const A = old ? Object.assign({}, old, { t:Array.isArray(old.t) ? old.t.slice() : [] }) : { f, lv:0, due:0, t:[] };
+    const e = [R.gzAt || now, r, Math.max(0, now - (R.gzT0 || now)), GZ.M.dv && typeof GZ.M.dv.v==='string' ? GZ.M.dv.v : ''];
+    if(R.tries && R.tries.length) e.push(R.tries[0].uci);
+    const i = R.gzAt ? A.t.findIndex(y=> y[0]===R.gzAt) : -1;
+    if(i >= 0) A.t[i] = e; else { A.t.push(e); R.gzAt = e[0]; }
+    if(A.t.length > 20){
+      const cut = A.t.slice(0, A.t.length - 20), B = gzLadder({ b:A.b, t:cut });
+      A.b = [B.lv, B.due, gzDay(cut[cut.length - 1][0])]; A.t = A.t.slice(-20);
+    }
+    gzLadder(A);
+    GZ.A.set(f, A);
+    GZ_AV++;
+    gzPut({ a:[A] });
+    const S = SP_PLAY;
+    if(S && S.kind==='game' && !R.replay.again) S.first.set(f, r);
+    if(S && S.kind==='game') gzPlayUi();
+    return A;
+  }
+  // the line in SAN with move numbers, from the puzzle's start ("23...Qxf2+ 24. Kh1 Rd8")
+  function gzLineSan(fen, line, q){
+    let st = null;
+    try{ st = hvStateFromFen(fen); }catch(e){ return ''; }
+    const out = [];
+    for(let i = 0; i < line.length; i++){
+      let x = null;
+      try{ x = pzApplyUCI(st, line[i]); }catch(e){ break; }
+      const san = pzMoveToSAN(st, x.move, x.next), p = q + 1 + i, n = Math.ceil(p / 2);
+      out.push(p % 2 ? n+'. '+san : (i===0 ? n+'...' : '')+san);
+      st = x.next;
+    }
+    return out.join(' ');
+  }
+  // the result banner's lines (11.6), never "Rating": what you played and how the game ended, Stockfish's line, the next day
+  function gzResultWords(mate){
+    const R = roundPz;
+    return R.failed ? 'Solved after a miss' : R.hinted ? 'Solved with a hint' : mate ? 'Checkmate \u2014 solved!' : 'Solved!';
+  }
+  function gzSubLine(R){
+    const rp = R.replay, P = rp.P, G = rp.G, me = G.me==='b' ? 'b' : 'w', q = Number(G.q) || 0;
+    const sc = Array.isArray(P.sc) ? P.sc : [], dec = (t)=> t ? hrDecScore(String(t)) : null;
+    const lab = ghClampLabel(q + 1, G.san || '', 0), len = Number(G.len) || (rp.g && rp.g.moves ? gaToks(rp.g).length : 0);
+    const res = { loss:'lost', draw:'drew', win:'won' }[G.res];
+    const end = res ? ', '+res+(len ? ' on move '+Math.ceil(len / 2) : '') : '';
+    let t = 'In the game: '+lab+(P.kind==='job' ? ', '+ghbScoreText(dec(sc[0]), me)+' \u2192 '+ghbScoreText(dec(sc[2]), me) : '')+end+'.';
+    const ln = gzLineSan(P.fen, P.line || [], q);
+    if(G.mo==='r' || P.games && P.games.every(x=> x.mo==='r')) t += ln ? ' The mate: '+ln+'.' : '';
+    else if(ln){
+      const z = dec(sc[3]);
+      t += ' Stockfish 16: '+ln+(P.kind==='job' && z ? ', '+ghbScoreText(z, me)+' after it' : '')+'.';
+      if(P.kind==='mate' && Number(P.n) >= 3) t += ' Stockfish 16: mate in '+P.n+'.';
+    }
+    const A = GZ.A.get(P.f);
+    if(A && A.lv >= GZ_LEARNED) t += ' Learned.';
+    else if(A && A.due > 0) t += ' Next: '+ctDay(gzDayTs(A.due))+'.';
+    const S = SP_PLAY;
+    if(gzRunLast()) t += ' Run done: '+Array.from(S.first.values()).filter(c=> c==='s').length+' of '+S.n0+' on the first try.';
+    return t;
+  }
+  // Open the game (after it's tried): the review just before your move; it ends the run (the results are already kept); the
+  // review's back link goes to Game History, where the tab puts back its scroll and the card (GZ.back)
+  function gzOpenGame(){
+    const R = roundPz;
+    if(!gzRoundOn() || !R.done) return;
+    const G = R.replay.G, id = String(G.id);
+    let g = R.replay.g && R.replay.g.moves ? R.replay.g : null;
+    if(!g) g = GH_STATE.games.find(x=> String(x.id)===id) || (ghCcUp() && ccIsId(id) ? ccGameById(id) : null) || { id, _summary:true, _me:G.me==='b' ? 'black' : 'white' };
+    if(SP_PLAY && SP_PLAY.kind==='game'){ SP_PLAY = null; spPlayUi(); }
+    ghOpenGame(g, { at:{ ply:Number(G.q) || 0 } });
+  }
+  (function(){
+    const b = document.getElementById('pz-gzgame');
+    if(b) b.addEventListener('click', gzOpenGame);
+  })();
+  // the tab's scope: the site tab, the Filters (Result included; Variant, the CLAMP chip and Analytics' key not used) and
+  // the Date (from gaNow(), the hour, so a link and its list count the same games); a forced redraw builds it again
+  function gzModel(base){
+    const u = ghMe(), now = gaNow(), F = GH_FILTERS;
+    const f = Object.assign({}, F, { ck:'', variant:'', ga:'' });
+    const pk = gzPreKey(base, f, now, u);
+    const md = GZ.model && GZ.model.pk===pk && GZ.sig ? GZ.model : gzModelOf(base, u, now, f, pk);
+    md.countText = gzCountWords(md);
+    return md;
+  }
+  // "18 puzzles from 50 of 212 games looked at \u00b7 last 30 days \u00b7 blitz" (text only, as Analytics' count line)
+  function gzCountWords(md){
+    if(md.loading) return '';
+    const J = OJ_JOB;            // while the search runs (spec 9.8): text only, no redraw
+    if(J && J.kind==='z' && J.at) return 'Looking for puzzles: game '+J.at.i.toLocaleString('en-US')+' of '+J.at.n.toLocaleString('en-US')+' \u00b7 '+J.found.toLocaleString('en-US')+' found so far';
+    const bits = [ghoN(md.items.length, 'puzzle')+' from '+md.looked.toLocaleString('en-US')+' of '+ghoN(md.W.length, 'game')+' looked at'];
+    if(md.v) bits.push(md.v==='year' ? 'this year' : 'last '+md.v+' days');
+    if(md.f.speed) bits.push(gaSpeedW(md.f.speed).toLowerCase());
+    if(md.f.color) bits.push('as '+(md.f.color==='white' ? 'White' : 'Black'));
+    if(md.f.result) bits.push(md.f.result==='win' ? 'games won' : md.f.result==='loss' ? 'games lost' : 'games drawn');
+    const hint = ghActiveCount() > 0 ? ghCountHintText() : '';      // as Game History's own count line: with Filters set
+    return bits.join(' \u00b7 ')+(hint ? '. '+hint : '');
+  }
+  // the empty states, in this order (spec 10.7): no account first (the Analytics fix), never "Loading" without one
+  function gzEmpty(md){
+    if(!getLichessToken()){
+      if(!(ghCcUp() && ccUser())) return { t:'No account connected. Connect Lichess in Settings, or add your chess.com name on the Chess.com tab.', b:['Open Settings', 'settings', 'li'] };
+      if(GH_UI.site==='lichess') return { t:'No Lichess account connected. Connect Lichess in Settings.', b:['Open Settings', 'settings', 'li'] };
+    }
+    if(md.loading) return { t:'Loading your games\u2026' };
+    if(!md.nBase) return { t:'No games against people yet.' };
+    if(!md.nB) return { t:'Puzzles come from standard games only.' };
+    if(!md.A.length) return { t:'No games match the Filters.', b:['Clear filters', 'clear', ''] };
+    if(!md.W.length){
+      const days = (v)=> v==='' ? 1e9 : v==='year' ? (md.now - gaYear0(md.now)) / 864e5 : Number(v), cur = days(md.v);
+      const nx = ['30', '90', ''].filter(v=> days(v) > cur).find(v=> md.A.some(g=> (Number(g.createdAt) || 0) >= gaFrom(v, md.now)));
+      return { t:'No games in '+gaWinWords(md.v)+'.', b:nx==null ? null : [nx ? 'Show '+nx+' days' : 'Show all dates', 'date', nx] };
+    }
+    if(md.items.length) return null;
+    if(OJ_NOENG) return { t:'Stockfish can\u2019t run here, so only mates in 1 found by the rules are listed.' };
+    if(!GZ_ON) return { t:'No puzzles yet. Turn on Puzzle search in Settings to look through your games with Stockfish 16 on this device.', b:['Open Settings', 'settings', 'gz-field'] };
+    return { t:'No puzzles in the '+ghoN(md.looked, 'game')+' looked at so far.' };
+  }
+  // the needs-you line: puzzles are listed, but the search can't run (text only, no button: spec 10.6)
+  function gzNeed(md){
+    if(!md.items.length) return '';
+    if(OJ_NOENG) return 'Stockfish can\u2019t run here, so only mates in 1 found by the rules are listed.';
+    if(!GZ_ON) return 'Puzzle search is off on this device. Turn it on in Settings.';
+    return '';
+  }
+  // what the tab draws from: an unchanged signature touches no DOM
+  function gzSig(md, em){
+    return [md.pk, md.nBase, md.nB, md.A.length, md.W.length, md.looked, md.items.length, md.k, GZ.shown, gaPhone() ? 1 : 0, gzPieceKey(),
+      GZ_ON ? 1 : 0, OJ_NOENG ? 1 : 0, GZ_MEM ? 1 : 0, em ? em.t : ''].join('|');
+  }
+  function gzRender(base){
+    const t0 = performance.now(), sec = document.getElementById('gz');
+    gzLoad(); gaMmLoad();
+    const md = gzModel(base);
+    const sk = GH_UI.site+'|'+JSON.stringify(md.f)+'|'+md.k;
+    if(GZ.sk!==sk){ GZ.sk = sk; GZ.shown = 0; }            // another scope or chip: back to the first 12
+    const cnt = document.getElementById('gh-count');
+    if(cnt.textContent!==md.countText) cnt.textContent = md.countText;
+    const em = gzEmpty(md), sig = gzSig(md, em);
+    if(sig!==GZ.sig || !GZ.model){
+      const fa = document.activeElement, fid = fa && sec.contains(fa) && fa.dataset ? fa.dataset.fid || '' : '';
+      GZ.sig = sig; GZ.model = md; GZ.emp = !!em;
+      gzDrawAll(md, em);
+      if(fid){ const el = Array.from(sec.querySelectorAll('[data-fid]')).find(x=> x.dataset.fid===fid); if(el && el!==document.activeElement) try{ el.focus({ preventScroll:true }); }catch(e){} }
+    } else GZ.model = md;
+    gzBack();
+    GZ.ms = performance.now() - t0;
+    // the rules' mates in 1, free and at once (spec 9.4): the check over this scope first (gaMmKick), then their items
+    if(GA_MM_LOADED && !GA_MM_JOB && GZ.mmk!==gzQKey()) setTimeout(gaMmKick, 0);
+    gzRulesKick();
+  }
+  function gzDrawAll(md, em){
+    const top = document.getElementById('gz-top'), empty = document.getElementById('gz-empty'), need = document.getElementById('gz-need');
+    const row = document.getElementById('gz-showrow'), grid = document.getElementById('gz-grid'), more = document.getElementById('gz-more'), src = document.getElementById('gz-src');
+    empty.textContent = '';
+    empty.hidden = !em;
+    top.hidden = !!em; row.hidden = !!em; src.hidden = !!em; more.hidden = true;
+    const nt = em ? '' : gzNeed(md);
+    if(need.textContent!==nt) need.textContent = nt;
+    need.hidden = !nt;
+    if(em){
+      grid.textContent = ''; grid.dataset.pk = '';
+      empty.appendChild(ghEl('p', 'ct-k', 'Puzzles from your games'));
+      empty.appendChild(ghEl('h3', 'ct-h', em.t));
+      if(em.b){ const b = gaBtn('btn btn-ghost ct-empty-b', em.b[0], em.b[1], 'empty'); b.dataset.val = em.b[2]; empty.appendChild(b); }
+      return;
+    }
+    gzDrawChips(md);
+    gzDrawTop(md);
+    gzDrawGrid(md);
+    gzDrawSrc(md);
+  }
+  // the Show chips: All, Finish the job, Missed mates (a chip with 0 hidden, except All and the one pressed); one Tab stop
+  function gzDrawChips(md){
+    const wr = document.getElementById('gz-show'), cur = md.k;
+    const items = [['all', 'All', 'All puzzles'], ['job', 'Finish the job', 'Finish the job'], ['mate', 'Missed mates', 'Missed mates']]
+      .filter(([v])=> v==='all' || v===cur || md.n[v] > 0);
+    const sig = cur+'|'+items.map(([v])=> v+':'+(md.n[v] || 0)).join(',');
+    if(wr.dataset.sig===sig) return;
+    const fa = document.activeElement, fv = fa && wr.contains(fa) ? fa.dataset.val : null;
+    wr.dataset.sig = sig;
+    wr.textContent = '';
+    items.forEach(([val, chip, words])=>{
+      const on = val===cur, c = md.n[val] || 0, b = ghEl('button', 'toggle'+(on ? ' active' : ''));
+      b.type = 'button'; b.dataset.act = 'show'; b.dataset.val = val; b.dataset.fid = 'gzk|'+val;
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+      b.appendChild(document.createTextNode(chip));
+      b.appendChild(ghEl('span', 'ghv-chip-n', c.toLocaleString('en-US')));
+      b.setAttribute('aria-label', words+': '+ghoN(c, 'puzzle'));
+      wr.appendChild(b);
+    });
+    if(fv!=null){ const b = Array.from(wr.children).find(x=> x.dataset.val===cur); if(b) try{ b.focus({ preventScroll:true }); }catch(e){} }
+  }
+  // a Show chip pressed: kept (the filters key) and in the link, the hash written before the redraw
+  function gzSetK(k){
+    k = gzValidK(k);
+    if(GH_UI.gzk===k) return;
+    GH_UI.gzk = k;
+    GZ.shown = 0;
+    ghSaveFilters();
+    ghSyncHash();
+    ghUserGo = true; try{ ghRender(); } finally{ ghUserGo = false; }
+  }
+  // back from a puzzle or the game: where you were, the keyboard on the card you pressed (gaBack's pattern)
+  function gzBack(){
+    const B = GZ.back;
+    if(!B || currentView!=='history' || !gzOn()) return;
+    GZ.back = null;
+    const put = ()=>{
+      if(currentView!=='history' || !gzOn()) return;
+      window.scrollTo({ top:B.y });
+      const find = (fid)=> fid ? Array.from(document.querySelectorAll('#gz [data-fid]')).find(x=> x.dataset.fid===fid && !!x.offsetParent) : null;
+      const el = find(B.fid) || find(B.fid2);            // after a whole run, Solve (when it shows), else the card
+      if(el) try{ el.focus({ preventScroll:true }); }catch(e){}
+    };
+    put();
+    requestAnimationFrame(put);
+  }
+  (function gzWire(){
+    const sec = document.getElementById('gz');
+    if(!sec) return;
+    const focusTab = ()=>{ const f = document.querySelector('#gz-show .toggle[aria-pressed="true"]') || document.querySelector('#gh-view .toggle[aria-pressed="true"]'); if(f && !f.closest('[hidden]')) try{ f.focus({ preventScroll:true }); }catch(err){} };
+    sec.addEventListener('click', (e)=>{
+      const t = e.target.closest('button');
+      if(!t || !sec.contains(t) || t.disabled) return;
+      const a = t.dataset.act;
+      if(a==='show') gzSetK(t.dataset.val);
+      else if(a==='clear'){ ghClearFilters(); focusTab(); }
+      else if(a==='date'){ ghSetFilters({ date:t.dataset.val }); focusTab(); }
+      else if(a==='settings') ghOpenSettingsAt(t.dataset.val || 'li');
+      else if(a==='more') gzMore();
+      else if(a==='open') gzOpenCard(t);
+      else if(a==='solve') gzSolve();
+    });
+    // the Show chips: Left / Right (Home / End on a Mac) move and press (Analytics' roving code, in a listener of its own)
+    sec.addEventListener('keydown', (e)=>{
+      const row = e.target.closest && e.target.closest('#gz-show');
+      if(!row || e.altKey || e.ctrlKey || e.metaKey) return;
+      const tabs = Array.from(row.querySelectorAll('.toggle')), i = tabs.indexOf(document.activeElement);
+      if(i < 0) return;
+      const j = e.key==='ArrowRight' ? (i + 1) % tabs.length : e.key==='ArrowLeft' ? (i + tabs.length - 1) % tabs.length
+        : e.key==='Home' ? 0 : e.key==='End' ? tabs.length - 1 : -1;
+      if(j < 0) return;
+      e.preventDefault();
+      tabs[j].focus();
+      tabs[j].click();
+    });
+  })();
+  /* ---- Puzzles: the rules (build step 4; spec 5-8), as pure functions over an engine interface. A game's whole check is one
+     generator, gzGame(g, o): it yields one engine request at a time, { fen, k, nodes, why }, and takes back hve.multi's
+     answer, { lines:[{ score (White's side), ucis, depth }], nodes, ms }; it returns what the game gives. gzDrive runs one
+     over any `ask` (the kit's fake engine, or the job's own loop, which keeps the generator across stops and asks again).
+     One scale: Lichess's winning chances (Win%) from your side, capped at +-10.00, a mate for either side +-10.00, a missing
+     score null (never 0.00). The lines are Win% at their centipawn anchors, so "+2.00 or better" counts +2.00 itself ---- */
+  function gzW(cp){ return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * cp)) - 1); }
+  var GZ_WIN = gzW(200), GZ_CRUSH = gzW(700), GZ_SLIP = 15, GZ_GAP = 15, GZ_RISE = 15;
+  var GZ_CAND = { q:gzW(150), drop:7, after:gzW(250) };              // a candidate before the check: looser than the lines
+  var GZ_CAP = { items:2, checks:4, line:3, mate:5, tries:3 };        // per game; your moves in a line; a mate's length; (b)'s tries
+  var GZ_NODES = { scan:20000, multi:250000, one:150000, judge:60000 };
+  var GZ_V = 1, GZ_SV = 1;                                            // the rules' version, the scan's version (spec 9.6)
+  // a score capped at +-10.00 (cp), a mate for either side as +-10.00; nothing (or "mated", mate 0) is null
+  function gzCap(s){
+    if(!s || typeof s.value!=='number' || !isFinite(s.value)) return null;
+    if(s.type==='mate') return s.value ? { type:'cp', value:s.value > 0 ? 1000 : -1000 } : null;
+    return { type:'cp', value:Math.max(-1000, Math.min(1000, s.value)) };
+  }
+  function gzWin(s, me){ const c = gzCap(s); return c ? hpfWinPct(c, me) : null; }
+  // a mate for `me` in N (N > 0), against `me` (N < 0), or null (no mate)
+  function gzMateFor(s, me){ return s && s.type==='mate' && s.value ? (me==='w' ? s.value : -s.value) : null; }
+  // the clean test (8.3): no second move, or the second best is a slip too by the same line
+  function gzClean(W1, W2){ return W2==null || (W2 < GZ_WIN && W1 - W2 >= GZ_GAP); }
+  // the slip rule (6.2): the move cost 15+ points and left you under +2.00
+  function gzSlip(W1, Wp){ return W1!=null && Wp!=null && W1 - Wp >= GZ_SLIP && Wp < GZ_WIN; }
+  function gzUci(m){ return idxToAlg(m.from) + idxToAlg(m.to) + (m.promotion || ''); }
+  // a terminal position, scored off the board (hvTerminal's scores): the side to move mated, else 0.00
+  function gzOff(x){ return x.term==='mate' ? { type:'mate', value:x.turn==='w' ? -1 : 1 } : { type:'cp', value:0 }; }
+  function gzFirst(a){ return a && a.lines && a.lines[0] ? a.lines[0].score : null; }
+  function gzFirstUci(a){ return a && a.lines && a.lines[0] && a.lines[0].ucis ? a.lines[0].ucis[0] || '' : ''; }
+  // a position from its FEN (a line's own positions): its legal-move count and terminal kind (no legal move, dead position)
+  function gzNodeOf(st, ply, half){
+    const f = pzStateToFEN(st, ply).split(' ');
+    f[4] = String(half);
+    const legal = pzAllLegalMoves(st).length;
+    const term = !legal ? (pzIsInCheck(st, st.turn) ? 'mate' : 'stalemate') : hvInsufficient(st.board) ? 'insufficient' : '';
+    return { st, ply, half, fen:f.join(' '), f:f.slice(0, 4).join(' '), turn:st.turn, legal, term };
+  }
+  function gzStateAt(fen, ply){ const st = hvStateFromFen(fen); return gzNodeOf(st, ply, Number(String(fen).split(' ')[4]) || 0); }
+  function gzPlay(x, uci){
+    if(!x || !uci) return null;
+    const m = pzAllLegalMoves(x.st).find(y=> gzUci(y)===uci);
+    if(!m) return null;
+    const pc = x.st.board[m.from], cap = !!x.st.board[m.to] || !!m.isEP;
+    return gzNodeOf(pzApplyMoveRaw(x.st, m), x.ply + 1, (pc && pc.type==='p') || cap ? 0 : x.half + 1);
+  }
+  // one replay of a game (spec 9.5): each position's FEN with its real counters, fen4, side to move, legal-move count, the
+  // terminal kind (mate, stalemate, insufficient, threefold, fifty: hvTerminal's rules) and how often it has come up; each
+  // move as UCI. In slices: `until` (a performance.now() time) stops it, and calling it again with the same `A` goes on
+  function gzPositions(g, A, until){
+    if(!A){
+      const toks = gaToks(g);
+      A = { toks, n:toks.length, P:[], ucis:[], seen:new Map(), st:pzStartPosition(), half:0, i:0, done:false, ok:true };
+      gzPosPush(A);
+    }
+    while(A.i < A.n){
+      const mv = rpSanToMove(A.st, A.toks[A.i]);
+      if(!mv){ A.ok = false; break; }                     // a move it can't read: no puzzles from this game
+      A.ucis.push(gzUci(mv));
+      A.half = mv.piece==='p' || mv.captured || mv.isEP ? 0 : A.half + 1;
+      A.st = pzApplyMoveRaw(A.st, mv);
+      A.i++;
+      gzPosPush(A);
+      if(until && A.i < A.n && performance.now() > until) return A;      // at least one move a slice
+    }
+    A.done = true;
+    A.st = null;
+    return A;
+  }
+  function gzPosPush(A){
+    const st = A.st, p = A.P.length, f = pzStateToFEN(st, p).split(' ');
+    f[4] = String(A.half);
+    const f4 = f.slice(0, 4).join(' '), rep = (A.seen.get(f4) || 0) + 1;
+    A.seen.set(f4, rep);
+    const legal = pzAllLegalMoves(st).length;
+    const term = !legal ? (pzIsInCheck(st, st.turn) ? 'mate' : 'stalemate') : hvInsufficient(st.board) ? 'insufficient' : rep >= 3 ? 'threefold' : A.half >= 100 ? 'fifty' : '';
+    A.P.push({ fen:f.join(' '), f:f4, turn:st.turn, legal, term, rep });
+  }
+  // the series (spec 7), one source a game: your review on this device, else Lichess's analysis (through ojLiSeries; a
+  // gap at one of your turns or right after your move: not used), else the Stockfish scan (your turns and the final
+  // position; `todo` lists what the engine must score). A terminal position is always scored off the board
+  function gzSeries(g, me, A, R){
+    const P = A.P, n = A.n, id = String(g.id), e = (R || ojRevs())[id];
+    const fix = (S)=>{ for(let p = 0; p <= n; p++) if(P[p].term) S[p] = gzOff(P[p]); return S; };
+    if(n && e && e.n===n && typeof e.e==='string' && e.h===gnFnv(A.toks.join(' '))){
+      const t = e.e.split(',');
+      if(t.length===n + 1) return { src:'r', S:fix(t.map(x=> x==='' ? null : hrDecScore(x))) };
+    }
+    const ev = n ? ojLiSeries(g, n) : null;               // interior gaps stay null: tested here
+    if(ev){
+      let gap = false;
+      for(let q = 1; q < n && !gap; q++) if(P[q].turn===me && (ev[q]==null || ev[q + 1]==null)) gap = true;
+      if(!gap) return { src:'l', S:fix(ev.slice()) };
+    }
+    const S = new Array(n + 1).fill(null), todo = [];
+    for(let p = 1; p <= n; p++){
+      if(P[p].turn!==me && p!==n) continue;
+      if(P[p].term){ S[p] = gzOff(P[p]); continue; }
+      todo.push(p);
+    }
+    return { src:'s', S, todo };
+  }
+  // the score after your move at q: the next position for a full series; your next turn for a scan (their reply can't raise
+  // your true score), or the final position when the game ended there
+  function gzAfter(J, q){ return J.full || q + 1===J.n ? J.S[q + 1] : J.S[q + 2]; }
+  // the slip candidates (6.1): +1.50 or better, a drop of 7+, under +2.50 after; a repeated position only at its biggest drop
+  function gzCandidates(J){
+    const P = J.P, me = J.me, out = [];
+    for(let q = 1; q < J.n; q++){
+      const x = P[q];
+      if(x.turn!==me || x.legal < 2 || x.term) continue;
+      const Wq = gzWin(J.S[q], me), Wa = gzWin(gzAfter(J, q), me);
+      if(Wq==null || Wa==null) continue;
+      if(Wq >= GZ_CAND.q && Wq - Wa >= GZ_CAND.drop && Wa < GZ_CAND.after) out.push({ q, drop:Wq - Wa });
+    }
+    const best = new Map();
+    out.forEach(c=>{ const f = P[c.q].f, b = best.get(f); if(!b || c.drop > b.drop) best.set(f, c); });
+    return out.filter(c=> best.get(P[c.q].f)===c);
+  }
+  // the mate candidates: Analytics' own rule on a full series (gaMates, your side, missed x / drawn d / still winning w),
+  // else the scan's: a mate in 5 or fewer for you, none after your move (w when you were still +7.00 or better after it)
+  function gzMateCands(J){
+    const P = J.P, me = J.me, n = J.n, out = [];
+    // q < n: a draw agreed with you to move and a mate on the board (gaMates' d closed at n + 1) is left out in R1, as the kit's
+    // oracle (I10) reads it: no game move at that position, so no step 2 and no "your move" words (open for the user, 2026-11-21)
+    const ok = (q)=> q >= 1 && q < n && P[q].turn===me && !P[q].term && P[q].legal >= 2;
+    if(J.full){
+      gaMates(J.S, n, J.g, me).forEach(it=>{
+        if(it.side!=='m' || !(it.out==='x' || it.out==='d' || it.out==='w')) return;
+        const q = gaMateQ(it);
+        if(ok(q)) out.push({ q, bucket:it.out==='w' ? 'w' : 'x' });
+      });
+    } else {
+      for(let q = 1; q < n; q++){
+        if(!ok(q)) continue;
+        const m = gzMateFor(J.S[q], me), a = gzAfter(J, q), ma = gzMateFor(a, me);
+        if(m!=null && m >= 1 && m <= GZ_CAP.mate && !(ma!=null && ma > 0)) out.push({ q, bucket:(gzWin(a, me) || 0) >= GZ_CRUSH ? 'w' : 'x' });
+      }
+    }
+    return out;
+  }
+  // every mating move of the side to move, as UCI, sorted (gaMates1's loop, collecting): a rules mate's stored answer
+  function gzMate1Moves(st){
+    const c = st.turn, o = c==='w' ? 'b' : 'w', B = st.board, out = [];
+    for(let i = 0; i < 64; i++){
+      const p = B[i];
+      if(!p || p.color!==c) continue;
+      const ms = pzPseudoMovesFor(st, i);
+      for(let j = 0; j < ms.length; j++){
+        const nx = pzApplyMoveRaw(st, ms[j]);
+        if(!gaMmChk(nx.board, o) || gaMmChk(nx.board, c)) continue;          // gives check, and legal
+        if(!gaMmAny(nx)) out.push(gzUci(ms[j]));
+      }
+    }
+    return out.sort();
+  }
+  // the mates in 1 by Chess Arcade's rules (6.3; gaMmCheck's [p, played]): not played, not mated one move later (a slower
+  // mate, kept), not converted on the spot (the game ended at that ply in your win by resignation, time or abandonment)
+  function gzRulesMates(J, mm){
+    const P = J.P, n = J.n, played = new Set((mm || []).filter(x=> x[1]).map(x=> x[0])), out = [];
+    const conv = J.res==='win' && /^(resign|outoftime|timeout|abandoned)$/.test(J.g.status || '');
+    (mm || []).forEach(([p, pl])=>{
+      if(pl || played.has(p + 2) || (p===n && conv)) return;
+      const q = p - 1;
+      if(q < 1 || !P[q] || P[q].turn!==J.me) return;
+      const mates = gzMate1Moves(hvStateFromFen(P[q].fen));
+      if(mates.length) out.push({ q, mates });
+    });
+    return out;
+  }
+  // the order the candidates are checked in (6.5): the decisive slip (games you didn't win: your last candidate after which
+  // the series never again reached +2.00), the missed mates (engine and rules, by move), the biggest other drops, the
+  // still-winning mates
+  function gzOrder(J, cands, mates, rules){
+    const S = J.S, me = J.me, won = J.res==='win', order = [];
+    let dec = null;
+    if(!won) for(let i = cands.length - 1; i >= 0 && !dec; i--){
+      const c = cands[i];
+      let ok = true;
+      for(let x = c.q + 1; x <= J.n && ok; x++){ const w = gzWin(S[x], me); if(w!=null && w >= GZ_WIN) ok = false; }
+      if(ok) dec = c;
+    }
+    if(dec) order.push(['slip', dec]);
+    const pri2 = mates.filter(m=> m.bucket==='x').map(m=> ['mate', m]).concat(rules.map(r=> ['rules', r]));
+    pri2.sort((a, b)=> a[1].q - b[1].q);                 // stable: an engine mate before a rules mate at the same move
+    pri2.forEach(x=> order.push(x));
+    cands.filter(c=> c!==dec).sort((a, b)=> b.drop - a.drop || a.q - b.q).forEach(c=> order.push(['slip', c]));
+    mates.filter(m=> m.bucket==='w').forEach(m=> order.push(['mate', m]));
+    return order;
+  }
+  // a slip candidate checked (8.2): step 1 at q (k=2), step 2 after your game move (k=1), the clean test, then the line
+  // (a Finish the job puzzle) or the (a) guard (a Win it again item)
+  function* gzCheckSlip(J, q){
+    const P = J.P, me = J.me, x = P[q];
+    const A = yield { fen:x.fen, k:2, nodes:GZ_NODES.multi, why:'step 1' };
+    const L1 = A.lines[0], L2 = A.lines[1] || null, gm = J.ucis[q];
+    if(!L1){ J.why.push('q'+q+': no line'); return null; }
+    if(gm===L1.ucis[0]){ J.why.push('q'+q+': the engine\u2019s move'); return null; }
+    const m = gzMateFor(L1.score, me);
+    if(m!=null && m > 0 && m <= GZ_CAP.mate) return yield* gzCheckMate(J, q, A);
+    const W1 = gzWin(L1.score, me), W2 = L2 ? gzWin(L2.score, me) : null;
+    if(!(W1 >= GZ_WIN)){ J.why.push('q'+q+': not winning at the check'); return null; }
+    const p = q + 1, sp = P[p].term ? gzOff(P[p]) : gzFirst(yield { fen:P[p].fen, k:1, nodes:GZ_NODES.one, why:'step 2' });
+    const Wp = gzWin(sp, me);
+    if(!gzSlip(W1, Wp)){ J.why.push('q'+q+': no slip at the check'); return null; }
+    const it = { q, f:x.f, fen:x.fen, gm, w1:L1.score, w2:L2 ? L2.score : null, wp:sp, d:[A.nodes || 0, L1.depth || 0], term:P[p].term };
+    if(gzClean(W1, W2)){
+      const ln = yield* gzLineJob(J, q, L1.ucis[0]);
+      if(!ln.line){ J.why.push('q'+q+': the line dropped it ('+ln.why+')'); return null; }
+      return Object.assign(it, { kind:'job', line:ln.line, end:ln.end });
+    }
+    // (a), several moves keep the win: their best reply to L1, then a check at your next turn must still read +2.00
+    const n1 = gzPlay(gzStateAt(x.fen, q), L1.ucis[0]);
+    if(n1 && !n1.term){
+      const n2 = gzPlay(n1, gzFirstUci(yield { fen:n1.fen, k:1, nodes:GZ_NODES.one, why:'(a) reply' }));
+      if(n2 && !n2.term){
+        const w = gzWin(gzFirst(yield { fen:n2.fen, k:1, nodes:GZ_NODES.one, why:'(a) guard' }), me);
+        if(w!=null && w >= GZ_WIN) return Object.assign(it, { kind:'win', wb:'a', w0:L1.score, crush:W1 >= GZ_CRUSH });
+      }
+    }
+    J.why.push('q'+q+': the (a) guard failed');
+    return null;
+  }
+  // the line (8.4, lichess-puzzler's cook_advantage): their best reply, then step 1 again at your next turn (always: the
+  // abort guard). Repeated (in the game up to q, or in the line) or under +2.00: the whole puzzle dropped; the clean test
+  // failing, a terminal position or 3 of your moves: the line ends. A last move that was your only legal one is trimmed
+  function* gzLineJob(J, q, first){
+    const P = J.P, me = J.me, seen = new Set();
+    for(let i = 0; i <= q; i++) seen.add(P[i].f);
+    let b = gzPlay(gzStateAt(P[q].fen, q), first), mine = 1, end = null;
+    const line = [first], legalAt = [P[q].legal];
+    while(b && !b.term){
+      const r = gzFirstUci(yield { fen:b.fen, k:1, nodes:GZ_NODES.one, why:'reply' });
+      const b2 = gzPlay(b, r);
+      if(!b2) break;
+      if(b2.term){ if(!(gzWin(gzOff(b2), me) >= GZ_WIN)) return { line:null, why:'a draw at the next turn' }; break; }      // scored off the board (8.4)
+      const c = yield { fen:b2.fen, k:2, nodes:GZ_NODES.multi, why:'next turn' };
+      const C1 = c.lines[0], C2 = c.lines[1] || null;
+      if(!C1) break;
+      const W1 = gzWin(C1.score, me), W2 = C2 ? gzWin(C2.score, me) : null;
+      end = C1.score;
+      if(seen.has(b2.f)) return { line:null, why:'it repeats a position' };
+      if(!(W1 >= GZ_WIN)) return { line:null, why:'not winning at the next turn' };
+      if(!gzClean(W1, W2) || mine >= GZ_CAP.line) break;
+      seen.add(b.f); seen.add(b2.f);
+      legalAt.push(b2.legal);
+      line.push(r, C1.ucis[0]);
+      b = gzPlay(b2, C1.ucis[0]);
+      mine++;
+    }
+    if(mine > 1 && legalAt[legalAt.length - 1] < 2) line.length -= 2;
+    return { line, end };
+  }
+  // a mate checked (8.5): L1 a mate in N <= 5; step 2 after your game move says how it ended (kept a mate of any length:
+  // none, asked first; drawn d; still winning w; x); for a mate in 2 or more, when L2 mates no slower, a k=3 look (a third:
+  // Win it again c), else L2 is step 1's alternate. A mate in 1 never gets that look: the puzzle board takes any checkmate
+  // (8.6), so every mating move is an answer
+  function* gzCheckMate(J, q, A){
+    const P = J.P, me = J.me, x = P[q], gm = J.ucis[q];
+    if(!A) A = yield { fen:x.fen, k:2, nodes:GZ_NODES.multi, why:'mate step 1' };
+    const L1 = A.lines[0], L2 = A.lines[1] || null, N = L1 ? gzMateFor(L1.score, me) : null;
+    if(L1 && gm===L1.ucis[0]){ J.why.push('q'+q+': you played the mate'); return null; }
+    if(N==null || N <= 0 || N > GZ_CAP.mate){ J.why.push('q'+q+': no mate at the check'); return null; }
+    const p = q + 1, sp = P[p].term ? gzOff(P[p]) : gzFirst(yield { fen:P[p].fen, k:1, nodes:GZ_NODES.one, why:'mate step 2' });
+    const mp = gzMateFor(sp, me);
+    if(mp!=null && mp > 0){ J.why.push('q'+q+': your move kept a mate'); return null; }
+    const m2 = L2 ? gzMateFor(L2.score, me) : null;
+    if(N > 1 && m2!=null && m2 > 0 && m2 <= N){
+      const A3 = yield { fen:x.fen, k:3, nodes:GZ_NODES.multi, why:'mate k=3' };
+      const m3 = A3.lines[2] ? gzMateFor(A3.lines[2].score, me) : null;
+      if(m3!=null && m3 > 0 && m3 <= N) return { q, f:x.f, fen:x.fen, gm, kind:'win', wb:'c', w0:L1.score, crush:true, n:N, w1:L1.score, d:[A.nodes || 0, L1.depth || 0] };
+    }
+    const mo = P[p].term && P[p].term!=='mate' ? 'd' : (gzWin(sp, me) || 0) >= GZ_CRUSH ? 'w' : 'x';
+    const ml = yield* gzMateLine(J, q, L1, L2, N);
+    if(!ml.line){ J.why.push('q'+q+': the mate line broke'); return null; }
+    return { q, f:x.f, fen:x.fen, gm, kind:'mate', n:N, line:ml.line, alt:ml.alt, mo, w1:L1.score, w2:L2 ? L2.score : null, wp:sp, end:ml.end, d:[A.nodes || 0, L1.depth || 0] };
+  }
+  // the mate's line: your moves are each check's best, their replies Stockfish's; at each later step a k=2 check must still
+  // mate within the moves left (else dropped), and a second move that mates no slower is that step's alternate; at most 5
+  function* gzMateLine(J, q, L1, L2, N){
+    const P = J.P, me = J.me, alt = [];
+    if(L2){ const m2 = gzMateFor(L2.score, me); if(m2!=null && m2 > 0 && m2 <= N) alt.push([1, L2.ucis[0]]); }
+    let b = gzPlay(gzStateAt(P[q].fen, q), L1.ucis[0]), left = N - 1, step = 1, end = L1.score;
+    const line = [L1.ucis[0]];
+    while(left > 0 && step < GZ_CAP.mate && b && !b.term){
+      const R = gzFirstUci(yield { fen:b.fen, k:1, nodes:GZ_NODES.one, why:'mate reply' });
+      const b2 = gzPlay(b, R);
+      if(!b2) break;
+      if(b2.term) return { line:null };                    // their reply ended the game (a stalemate, a dead position): no mate left
+      const c = yield { fen:b2.fen, k:2, nodes:GZ_NODES.multi, why:'mate next' };
+      step++;
+      const C1 = c.lines[0], m1 = C1 ? gzMateFor(C1.score, me) : null;
+      if(m1==null || m1 <= 0 || m1 > left) return { line:null };
+      const C2 = c.lines[1], m2 = C2 ? gzMateFor(C2.score, me) : null;
+      if(m2!=null && m2 > 0 && m2 <= m1) alt.push([step, C2.ucis[0]]);
+      line.push(R, C1.ucis[0]);
+      end = C1.score;
+      b = gzPlay(b2, C1.ucis[0]);
+      left = m1 - 1;
+    }
+    return { line, alt, end };
+  }
+  // Win it again (b) (6.4): a game you lost or drew with a turn at +2.00 or better and nothing kept: a leak starts at your
+  // last winning turn, a time loss at the first turn of the final unbroken winning run; one k=1 check must confirm +2.00
+  // (else the next turn back, or on, at most 3 tries)
+  function* gzCheckB(J){
+    const P = J.P, S = J.S, n = J.n, me = J.me, mineT = [];
+    for(let p = 1; p <= n; p++) if(P[p].turn===me) mineT.push(p);
+    const win = mineT.filter(p=> S[p]!=null && gzWin(S[p], me) >= GZ_WIN);
+    if(!win.length) return null;
+    const timeloss = J.g.status==='outoftime' && J.res==='loss';
+    let tries;
+    if(timeloss){
+      let cur = [], last = [];
+      mineT.forEach(p=>{ const w = gzWin(S[p], me); if(w!=null && w >= GZ_WIN){ cur.push(p); last = cur; } else cur = []; });
+      tries = last.slice(0, GZ_CAP.tries);
+    } else tries = win.slice().reverse().slice(0, GZ_CAP.tries);
+    for(const t of tries){
+      if(P[t].term) continue;
+      const c = gzFirst(yield { fen:P[t].fen, k:1, nodes:GZ_NODES.one, why:'(b)' }), w = gzWin(c, me);
+      if(w!=null && w >= GZ_WIN) return { q:t, f:P[t].f, fen:P[t].fen, gm:J.ucis[t] || '', kind:'win', wb:'b', w0:c, crush:w >= GZ_CRUSH, timeloss, since:Math.floor(t / 2) + 1 };
+    }
+    J.why.push('(b) not confirmed');
+    return null;
+  }
+  // one game, the whole check (spec 6-8). o: { me ('w'|'b'), R (the reviews), mm (the rules check's [[p, played]]; default
+  // gaMmCheck), series ({ src, S } kept from an earlier look: no scan), pos (gzPositions' result, or a part of it) }
+  function* gzGame(g, o){
+    o = o || {};
+    const me = o.me || (ghMyColor(g, ghMe())==='white' ? 'w' : 'b');
+    const A = o.pos && o.pos.done ? o.pos : gzPositions(g, o.pos);
+    const J = { g, me, P:A.P, ucis:A.ucis, toks:A.toks, n:A.n, res:ghGameResult(g, ghMe()), why:[], S:null, src:'', full:false };
+    const out = { id:String(g.id), me, n:A.n, ucis:A.ucis, src:'', S:null, checks:0, checked:[], unchecked:[], items:[], cands:[], mates:[], rules:[], why:J.why, res:J.res };
+    if(!A.ok || !A.n){ out.err = 'moves'; return out; }
+    if(o.series && Array.isArray(o.series.S) && o.series.S.length===A.n + 1){ J.src = o.series.src; J.S = o.series.S.slice(); }
+    else {
+      const sr = gzSeries(g, me, A, o.R);
+      J.src = sr.src; J.S = sr.S;
+      if(sr.src==='s') for(const p of sr.todo) J.S[p] = gzFirst(yield { fen:A.P[p].fen, k:1, nodes:GZ_NODES.scan, why:'scan' });
+    }
+    J.full = J.src!=='s';
+    out.src = J.src; out.S = J.S;
+    let cands = gzCandidates(J);
+    const mates = gzMateCands(J), mq = new Set(mates.map(m=> m.q));
+    cands = cands.filter(c=> !mq.has(c.q));
+    const rules = gzRulesMates(J, o.mm!==undefined ? o.mm : gaMmCheck(g, me));
+    out.cands = cands.map(c=> c.q); out.mates = mates.map(m=> m.q).sort((a, b)=> a - b); out.rules = rules.map(r=> r.q);
+    // one position, one item a game (6.5: a position that comes up again is never a second item); a rules mate in 1 at a move the
+    // engine also checks waits for that look and is used only when it gives nothing (6.3: the engine's record wins), so it never
+    // takes the game's second slot from a later candidate
+    const order = gzOrder(J, cands, mates, rules), engQ = new Set(order.filter(x=> x[0]!=='rules').map(x=> x[1].q));
+    const wait = new Map(order.filter(x=> x[0]==='rules' && engQ.has(x[1].q)).map(x=> [x[1].q, x[1]]));
+    const has = (q)=> out.items.some(i=> i.f===A.P[q].f);
+    const rulesItem = (c)=> ({ q:c.q, f:A.P[c.q].f, fen:A.P[c.q].fen, gm:A.ucis[c.q], kind:'mate', n:1, src:'m', line:[c.mates[0]], mates:c.mates, rules:true });
+    const fallback = (q)=>{ const r = wait.get(q); if(r && out.items.length < GZ_CAP.items && !has(q)) out.items.push(rulesItem(r)); wait.delete(q); };
+    for(const [kind, c] of order){
+      if(has(c.q)) continue;
+      if(kind==='rules' && engQ.has(c.q)) continue;
+      if(out.items.length >= GZ_CAP.items){ out.unchecked.push(c.q); continue; }
+      if(kind==='rules'){ out.items.push(rulesItem(c)); continue; }
+      if(out.checks >= GZ_CAP.checks){ out.unchecked.push(c.q); fallback(c.q); continue; }
+      out.checks++; out.checked.push(c.q);
+      const it = kind==='mate' ? yield* gzCheckMate(J, c.q, null) : yield* gzCheckSlip(J, c.q);
+      if(it){ it.src = J.src; out.items.push(it); } else fallback(c.q);
+    }
+    if(J.res!=='win' && !out.items.length){ const b = yield* gzCheckB(J); if(b){ b.src = J.src; out.items.push(b); } }
+    out.items.forEach(it=> gzFacts(J, it));
+    return out;
+  }
+  // how you got there (6.2), read from the series (a null ends it): "after their mistake" (your previous turn under +2.00,
+  // a rise of 15+ to q) or "winning since move N" (the first of your unbroken run of turns at +2.00 or better ending at q)
+  function gzFacts(J, it){
+    const S = J.S, me = J.me, q = it.q, Wq = gzWin(S[q], me), Wpr = q >= 2 ? gzWin(S[q - 2], me) : null;
+    if(Wq!=null && Wpr!=null && Wpr < GZ_WIN && Wq - Wpr >= GZ_RISE){ it.fl = 'their'; delete it.since; return it; }
+    let t = q;
+    if(Wq!=null && Wq >= GZ_WIN) while(t - 2 >= 1 && S[t - 2]!=null && gzWin(S[t - 2], me) >= GZ_WIN) t -= 2;
+    it.fl = 'since'; it.since = Math.floor(t / 2) + 1;
+    return it;
+  }
+  // a generator run to its end over `ask(request) -> Promise<answer | null>`; a null (a stopped search) asks again, twice
+  // at most, then gives up (null)
+  async function gzDrive(gen, ask){
+    let r = gen.next();
+    while(!r.done){
+      let a = null;
+      for(let i = 0; i < 3 && !a; i++) a = await ask(r.value);
+      if(!a) return null;
+      r = gen.next(a);
+    }
+    return r.value;
+  }
+  // the series kept with the game record (spec 9.6, 13.4): hrEncScore tokens, '' for a position with no score
+  function gzEncS(S){ return (S || []).map(x=> x ? hrEncScore(x) : '').join(','); }
+  function gzDecS(t){ return String(t || '').split(',').map(x=> x==='' ? null : hrDecScore(x)); }
+  // the card facts an item keeps (13.4), so a card, a due count and "Open the game" never need the game in memory
+  function gzCardFacts(g, me, q, u){
+    const P = ghPlayers(g, u), C = kmClock(g, q + 1), x = EG.get(g.id), n = gaToks(g).length;
+    let ph = '';
+    if(x && x.all && x.n===n) ph = 'ome'[hpfPhaseOf({ mid:x.m, end:x.s, N:x.n }, Math.min(q, x.n))];
+    const cl = g.clock && Number(g.clock.initial) > 0 ? String(g.clock.initial)+'+'+String(g.clock.increment || 0) : '';
+    return { opp:ghOppName(P.opp), oppR:P.opp.rating!=null ? Number(P.opp.rating) : null, myR:P.mine.rating!=null ? Number(P.mine.rating) : null, me,
+      at:Number(g.createdAt) || 0, site:g.site==='cc' ? 'c' : 'l', speed:g.speed || '', tc:cl, ph, clk:C ? [C.me, C.spent, C.trouble ? 1 : 0] : null };
+  }
+  // the store's records for one looked-at game (13.4): its game record, and each item with its card facts and what a later
+  // theme tagger needs (the user, 2026-11-21: "if I keep blundering the same kind of way"): the start FEN, the solution
+  // line, your game move (gm, UCI) and their move before it (pm, UCI); each attempt's result goes in the attempts store
+  function gzRecords(g, out, u){
+    const toks = gaToks(g), me = out.me, enc = (s)=> s ? hrEncScore(s) : '';
+    const rec = { id:out.id, h:gnFnv(me+'|'+toks.join(' ')), sv:GZ_SV, v:GZ_V, src:out.src, at:ghoBriefNow(), s:gzEncS(out.S), n:out.checks, k:[] };
+    const items = out.items.map(it=>{
+      const G = Object.assign({ id:out.id, q:it.q, san:toks[it.q] || '', toks:toks.slice(0, it.q).join(' '), gm:it.gm || '', pm:'', src:it.src, res:out.res, fl:it.fl, len:toks.length },
+        gzCardFacts(g, me, it.q, u), { u:String(u || '').toLowerCase() });      // whose game (the Lichess account): another account's never shows
+      G.pm = (out.ucis && out.ucis[it.q - 1]) || '';
+      if(it.fl==='since') G.since = it.since;
+      if(it.kind==='mate') G.mo = it.rules ? 'r' : it.mo;
+      if(it.kind==='win'){ G.wb = it.wb; G.w0 = enc(it.w0); G.crush = !!it.crush; if(it.timeloss) G.tl = 1; }
+      const p = { f:it.f, fen:it.fen, v:GZ_V, kind:it.kind, line:it.line || [], sc:[enc(it.w1), enc(it.w2), enc(it.wp), enc(it.end)], d:it.d || [0, 0], games:[G] };
+      if(it.n) p.n = it.n;
+      if(it.alt && it.alt.length) p.alt = it.alt;
+      if(it.wb) p.wb = it.wb;
+      return p;
+    });
+    rec.k = items.map(p=> p.f);
+    return { rec, items };
+  }
+  // one item into the found ones (by fen4): the same position in another game is one item, its games newest first; the
+  // newest game's check speaks for it
+  function gzMergeInto(M, p){
+    const old = M.get(p.f);
+    if(!old){ M.set(p.f, Object.assign({}, p, { games:p.games.slice() })); return; }
+    const G = p.games[0], rest = old.games.filter(x=> x.id!==G.id);
+    const games = rest.concat([G]).sort((a, b)=> b.at - a.at);
+    const top = games[0]===G ? p : old;               // whole: an older check's alternates, mate length or kind never linger
+    M.set(p.f, Object.assign({}, top, { games }));
+  }
+  // the tab's order (10.3): games you lost, then drew, then won; the newest game first; then by move
+  function gzOrderItems(L){
+    const rk = { loss:0, draw:1, win:2 };
+    return L.slice().sort((a, b)=>{ const x = a.games[0], y = b.games[0]; return (rk[x.res] - rk[y.res]) || (y.at - x.at) || (x.q - y.q); });
+  }
+  // the words for a mate's length (6.3): named for mates in 1 and 2 only
+  function gzMateWords(n){
+    return n===1 || n===2 ? { find:'Find the mate in '+n+'.', missed:'missed mate in '+n } : { find:'Find the mate.', missed:'missed a mate' };
+  }
+  /* ---- Puzzles: the search (build step 5; spec 7, 9, 13.4-13.5). A job kind of its own ('z') inside ojRun: one worker,
+     one loop, the gate checked between engine calls; it runs only while the Puzzles tab is on screen, the page is visible
+     and the switch is on. The work: the tab's scope (site tab, Filters, Date) newest first in blocks (lost, drawn, won in
+     each), then the rest of your games. Inside a game: one replay in slices, the rules' mates in 1, then gzGame's requests
+     (the scan, the checks, the line) one at a time over hve.multi; every search fresh, so a game stopped halfway resumes
+     from memory (GZ.run, by id and hash) with the same scores. A finished game goes to IndexedDB in one transaction
+     (wavyChessPrepGamePuzzles v1: g the game records, p the items by fen4, a the attempts, m the device's own: its tag and
+     the measured speed); without IndexedDB everything stays in memory for the visit ("Kept for this visit only."). The
+     rules' mates in 1 need no engine: they are listed at once (gzRulesKick), in every game, until the engine's own look
+     replaces them ---- */
+  var GZ_DBN = 'wavyChessPrepGamePuzzles', GZ_IDBP = null, GZ_LOADED = false, GZ_LOADING = false, GZ_MEM = false;
+  var GZ_FAIL = new Set(), GZ_RJOB = null, GZ_H = new WeakMap();
+  var GZ_BLOCK = 50, GZ_BLOCK_T = 20;                  // a block of the queue: 50 games, 20 on a touch screen (heat, battery)
+  function gzIdb(){
+    return GZ_IDBP || (GZ_IDBP = new Promise((res)=>{
+      let done = false;
+      const fin = (db)=>{ if(done){ if(db) try{ db.close(); }catch(e){} return; } done = true; res(db); };
+      try{
+        if(typeof indexedDB==='undefined' || !indexedDB || typeof indexedDB.open!=='function'){ fin(null); return; }
+        setTimeout(()=> fin(null), MM_IDB_MS);         // a store that never answers: in memory for the visit
+        const q = indexedDB.open(GZ_DBN, 1);
+        q.onupgradeneeded = ()=>{
+          try{
+            const db = q.result;
+            [['g', 'id'], ['p', 'f'], ['a', 'f'], ['m', 'k']].forEach(([n, k])=>{ if(!db.objectStoreNames.contains(n)) db.createObjectStore(n, { keyPath:k }); });
+          }catch(e){}
+        };
+        q.onsuccess = ()=>{
+          try{
+            const db = q.result;
+            // a later build opening a newer version (another tab): let go at once, so it's never blocked, and go on in memory
+            db.onversionchange = ()=>{ try{ db.close(); }catch(e){} GZ_IDBP = null; gzLost(); };
+            fin(db);
+          }catch(e){ fin(null); }
+        };
+        q.onerror = (e)=>{ try{ e.preventDefault(); }catch(x){} fin(null); };
+        q.onblocked = ()=> fin(null);
+      }catch(e){ fin(null); }
+    }));
+  }
+  // the store can't keep what's new (a write aborted, a full disk, a newer version elsewhere): the visit goes on in memory, and
+  // the source card and Settings say "Kept for this visit only."
+  function gzLost(){ if(GZ_MEM) return; GZ_MEM = true; gzStatus(); gzSoon(true); }
+  // everything kept, read once (one getAll a store); the device tag made the first time
+  function gzLoad(){
+    if(GZ_LOADED || GZ_LOADING) return;
+    GZ_LOADING = true;
+    gzIdb().then(db=> new Promise(res=>{
+      if(!db){ GZ_MEM = true; return res(); }
+      try{
+        const tx = db.transaction(['g', 'p', 'a', 'm']);
+        const all = (n, f)=>{ const q = tx.objectStore(n).getAll(); q.onsuccess = ()=>{ (q.result || []).forEach(r=>{ try{ f(r); }catch(e){} }); }; };
+        all('g', r=>{ if(r && r.id && typeof r.h==='string' && !GZ.G.has(String(r.id))) GZ.G.set(String(r.id), r); });
+        all('p', r=>{ if(r && typeof r.f==='string' && Array.isArray(r.games) && !GZ.P.has(r.f)) GZ.P.set(r.f, r); });
+        all('a', r=>{ if(r && typeof r.f==='string' && !GZ.A.has(r.f)) GZ.A.set(r.f, r); });
+        all('m', r=>{ if(r && r.k) GZ.M[r.k] = r; });
+        tx.oncomplete = ()=> res();
+        tx.onerror = (e)=>{ try{ e.preventDefault(); }catch(x){} GZ_MEM = true; res(); };
+        tx.onabort = ()=>{ GZ_MEM = true; res(); };
+      }catch(e){ GZ_MEM = true; res(); }
+    })).catch(()=>{ GZ_MEM = true; }).then(()=>{
+      GZ_LOADED = true; GZ_LOADING = false;
+      if(!GZ.M.dv || typeof GZ.M.dv.v!=='string'){ GZ.M.dv = { k:'dv', v:gzDevTag() }; gzPut({ m:[GZ.M.dv] }); }
+      if(GZ.M.sp && GZ.M.sp.ms > 0) GZ.sp = { n:Number(GZ.M.sp.n) || 0, ms:Number(GZ.M.sp.ms) || 0 };
+      GZ_FV++;
+      gzStatus();
+      if(currentView==='history' && gzOn()){ ghRender(); ojEnsure(); }
+    });
+  }
+  function gzDevTag(){ let t = ''; for(let i = 0; i < 4; i++) t += 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]; return t; }
+  // one transaction: game records, items (a deleted one by its fen4), attempts, the device's own; every call in try/catch
+  function gzPut(o){
+    if(GZ_MEM) return;
+    gzIdb().then(db=>{
+      if(!db){ if(!GZ_MEM){ GZ_MEM = true; gzStatus(); } return; }
+      try{
+        const tx = db.transaction(['g', 'p', 'a', 'm'], 'readwrite');
+        tx.onerror = (e)=>{ try{ e.preventDefault(); }catch(x){} const er = e && e.target && e.target.error; if(!er || er.name!=='ConstraintError') gzLost(); };
+        tx.onabort = ()=> gzLost();
+        const st = (n)=> tx.objectStore(n);
+        (o.g || []).forEach(r=> st('g').put(r));
+        (o.p || []).forEach(r=> st('p').put(r));
+        (o.del || []).forEach(f=> st('p').delete(f));
+        (o.a || []).forEach(r=> st('a').put(r));
+        (o.m || []).forEach(r=> st('m').put(r));
+      }catch(e){}
+    }).catch(()=>{});
+  }
+  // your side of a game, and the record's hash of it (your side and the moves: new moves or another account look again)
+  function gzMeOf(g, u){ return ghMyColor(g, u)==='white' ? 'w' : 'b'; }
+  function gzH(g, me){
+    const mv = g.moves, c = GZ_H.get(g);
+    if(c && c[0]===mv && c[1]===me) return c[2];
+    const h = gnFnv(me+'|'+gaToks(g).join(' '));
+    GZ_H.set(g, [mv, me, h]);
+    return h;
+  }
+  // looked at by the engine: a full record (not the rules' own) for these moves and this scan
+  function gzLookedG(g, u){
+    const r = GZ.G.get(String(g.id));
+    return !!r && !r.r && r.sv===GZ_SV && r.h===gzH(g, gzMeOf(g, u));
+  }
+  // what a game needs (spec 9.6): 'look' (never looked at, the rules' own record only, new moves or another account, a new
+  // scan version: the whole look), 'again' (a new rules version: candidates and checks from the series kept, no scan), or ''
+  function gzWorkOf(g, u){
+    const id = String(g.id);
+    if(GZ_FAIL.has(id)) return '';
+    const r = GZ.G.get(id);
+    if(!r || r.r || r.sv!==GZ_SV || r.h!==gzH(g, gzMeOf(g, u))) return 'look';
+    return r.v!==GZ_V && !r.bad ? 'again' : '';
+  }
+  // the tab's scope (gzModel's: the site tab, the Filters with Variant, the CLAMP chip and Analytics' key not used, the Date)
+  function gzScope(u){
+    const F = GH_FILTERS, f0 = Object.assign({}, F, { ck:'', variant:'', ga:'', date:'' }), from = gaFrom(F.date || '', gaNow());
+    return ghBaseList().filter(g=> gzInBase(g) && ghMatch(g, u, f0) && (Number(g.createdAt) || 0) >= from);
+  }
+  // what the queue depends on: the site tab, the Filters, the hour, the games loaded, the account
+  function gzQKey(){ return [GH_UI.site, JSON.stringify(GH_FILTERS), gaNow(), GH_STATE.games.length, ghCcUp() ? ccGames().length : 0, ghMe() || ''].join('|'); }
+  function gzBlockN(){ let t = false; try{ t = (navigator.maxTouchPoints || 0) > 1 || matchMedia('(pointer:coarse)').matches; }catch(e){} return t ? GZ_BLOCK_T : GZ_BLOCK; }
+  // the order of work (spec 9.4): the scope, newest first, in blocks; in a block the games you lost, then drew, then won,
+  // newest first in each (a reviewed game or one Lichess analyzed is just quicker: checks only); then the rest of your games
+  // the same way. Each entry: { g, i (its place in its block, from 1), n (the block's size) }
+  function gzQueue(){
+    const u = ghMe(), N = gzBlockN(), rk = { loss:0, draw:1, win:2 }, out = [];
+    const by = (a, b)=> b.t - a.t;
+    const sc = gzScope(u), ids = new Set(sc.map(g=> String(g.id)));
+    const blocks = (G)=>{
+      const L = G.map(g=> ({ g, t:Number(g.createdAt) || 0, r:rk[ghGameResult(g, u)] || 0 })).sort(by);
+      for(let i = 0; i < L.length; i += N){
+        const B = L.slice(i, i + N).sort((a, b)=> (a.r - b.r) || by(a, b));
+        B.forEach((x, j)=> out.push({ g:x.g, i:j + 1, n:B.length }));
+      }
+    };
+    blocks(sc);
+    blocks(ghBaseList('all').filter(g=> gzInBase(g) && !ids.has(String(g.id))));
+    return out;
+  }
+  // games left to look at (the gate asks between engine calls: kept until the games, the Filters or the store change)
+  function gzHasWork(){
+    const u = ghMe();
+    if(GZ.cur && gzWorkOf(GZ.cur.g, u)) return true;
+    const k = gzQKey()+'|'+GZ_FV+'|'+GZ_FAIL.size+'|'+GZ_V+'|'+GZ_SV;
+    if(GZ.hw && GZ.hw[0]===k) return GZ.hw[1];
+    const has = ghBaseList('all').some(g=> gzInBase(g) && !!gzWorkOf(g, u));
+    GZ.hw = [k, has];
+    return has;
+  }
+  // the next game's run (kept in GZ.run by id and hash: a game stopped halfway goes on where it was)
+  function gzPick(job){
+    const k = gzQKey(), u = ghMe();
+    if(!job.Q || job.qk!==k){ job.Q = gzQueue(); job.qk = k; job.qi = 0; }
+    while(job.qi < job.Q.length){
+      const x = job.Q[job.qi], nd = gzWorkOf(x.g, u);
+      if(!nd){ job.qi++; continue; }
+      job.at = x;
+      const me = gzMeOf(x.g, u), h = gzH(x.g, me), key = String(x.g.id)+'|'+h;
+      let R = GZ.run.get(key);
+      if(!R){
+        R = { key, id:String(x.g.id), g:x.g, me, h, A:null, mm:null, mmw:null, gen:null, res:null, fails:0, nulls:0, revs:job.revs, series:null, at:x };
+        const r = GZ.G.get(R.id);
+        if(nd==='again' && r && typeof r.s==='string' && r.s) R.series = { src:r.src, S:gzDecS(r.s) };      // GZ_V: no scan
+        GZ.run.set(key, R);
+        if(GZ.run.size > 12) GZ.run.delete(GZ.run.keys().next().value);
+      }
+      R.g = x.g; R.at = x;
+      return R;
+    }
+    return null;
+  }
+  // the rules' check for the run: gaMmKick's record, else the same check over the replay, in slices
+  function gzMmFor(R, until){
+    if(R.mm) return true;
+    const r = gaMmOf(R.g, R.me);
+    if(r){ R.mm = r.bad ? [] : r.m; return true; }
+    const A = R.A, P = A.P, M = R.mmw || (R.mmw = { p:1, m:[] });
+    if(!A.ok){ R.mm = []; return true; }
+    while(M.p <= A.n){
+      const p = M.p++;
+      if(((p % 2)===1)===(R.me==='w') && gaMates1(hvStateFromFen(P[p - 1].fen))) M.m.push([p, P[p].term==='mate' ? 1 : 0]);
+      if(performance.now() > until) break;
+    }
+    if(M.p <= A.n) return false;
+    R.mm = M.m;
+    return true;
+  }
+  // the job's next step (spec 9.3): 'cpu' (a slice of main-thread work done), an engine request { fen, k, nodes, why }, or
+  // null (nothing left)
+  function gzNext(job){
+    const u = ghMe();
+    let R = GZ.cur;
+    if(R && !gzWorkOf(R.g, u)){ GZ.run.delete(R.key); R = GZ.cur = null; }
+    if(!R){
+      R = GZ.cur = gzPick(job);
+      if(!R) return null;
+      gzStatus(); gzCountLine();
+      return 'cpu';                               // the pick (the queue, the status) in its own task; the replay in the next
+    }
+    if(R.at) job.at = R.at;
+    if(!R.revs) R.revs = job.revs || ojRevs();
+    const until = performance.now() + 8;
+    if(!R.A || !R.A.done){ R.A = gzPositions(R.g, R.A, until); return 'cpu'; }
+    if(!gzMmFor(R, until)) return 'cpu';
+    if(!R.gen){
+      try{ R.gen = gzGame(R.g, { me:R.me, pos:R.A, mm:R.mm, R:R.revs, series:R.series }); R.res = R.gen.next(); }catch(e){ R.res = null; }
+      if(!R.res){ gzFail(R); return 'cpu'; }
+    }
+    if(R.res.done){ gzFinish(job, R); return 'cpu'; }
+    return R.res.value;
+  }
+  // the engine's answer to the current run's request: into its generator; null (a stop, a newer search, the page hidden)
+  // asks the same request again and isn't a failure; the watchdog or an answer with no line is, and twice leaves the game
+  // for another visit (GZ_FAIL)
+  function gzTake(job, a){
+    const R = GZ.cur;
+    if(!R || !R.gen || !R.res || R.res.done) return;
+    if(a && typeof a==='object' && Array.isArray(a.lines) && a.lines.length){
+      R.fails = 0; R.nulls = 0;
+      gzSpeed(a);
+      try{ R.res = R.gen.next(a); }catch(e){ R.res = null; }
+      if(!R.res){ gzFail(R); return; }
+      if(R.res.done) gzFinish(job, R);
+      return;
+    }
+    if(a==null && ++R.nulls < 6) return;
+    R.nulls = 0;
+    if(++R.fails >= 2) gzFail(R);
+  }
+  function gzFail(R){ GZ_FAIL.add(R.id); GZ.run.delete(R.key); if(GZ.cur===R) GZ.cur = null; gzStatus(); }
+  function gzFinish(job, R){
+    const out = R.res.value;
+    GZ.run.delete(R.key);
+    if(GZ.cur===R) GZ.cur = null;
+    job.found += gzStore(R.g, out, ghMe(), false);
+    job.games++;
+    gzStatus(); gzCountLine(); gzSoon();
+  }
+  // a looked-at game into the store (spec 9.5, 9.6, 13.4): its record and its items merged by fen4. What it gave before (an
+  // earlier look, or the rules' own) loses this game's entry first, and an item with no game left goes; attempts are never
+  // deleted. One transaction. Returns how many listed kinds (Finish the job, Missed mate) it holds
+  function gzStore(g, out, u, rules){
+    const { rec, items } = gzRecords(g, out, u);
+    if(rules) rec.r = 1;                       // the rules' own: the engine hasn't looked yet
+    if(out.err) rec.bad = 1;                   // moves it couldn't read: nothing from this game
+    const id = rec.id, old = GZ.G.get(id), touched = new Set(), del = new Set();
+    ((old && old.k) || []).forEach(f=>{
+      const it = GZ.P.get(f);
+      if(!it || !Array.isArray(it.games)) return;
+      const games = it.games.filter(G=> String(G.id)!==id);
+      if(games.length===it.games.length) return;
+      if(!games.length){ GZ.P.delete(f); del.add(f); touched.delete(f); return; }
+      GZ.P.set(f, Object.assign({}, it, { games }));
+      touched.add(f);
+    });
+    items.forEach(p=>{ gzMergeInto(GZ.P, p); touched.add(p.f); del.delete(p.f); });
+    GZ.G.set(id, rec);
+    GZ_FV++;
+    const sp = GZ.sp.ms > 0 ? [{ k:'sp', n:Math.round(GZ.sp.n), ms:Math.round(GZ.sp.ms) }] : [];
+    gzPut({ g:[rec], p:Array.from(touched).map(f=> GZ.P.get(f)).filter(Boolean), del:Array.from(del), m:sp });
+    return items.filter(p=> p.kind==='job' || p.kind==='mate').length;
+  }
+  // the measured speed (spec 9.1): the job's own searches, nodes over time (the newest ten minutes or so weigh most)
+  function gzSpeed(a){
+    const n = Number(a.nodes) || 0, ms = Number(a.ms) || 0;
+    if(n <= 0 || ms <= 0) return;
+    const S = GZ.sp;
+    S.n += n; S.ms += ms;
+    if(S.ms > 600000){ S.n /= 2; S.ms /= 2; }
+  }
+  function gzNps(){ const S = GZ.sp; return S.ms >= 1000 ? Math.round(S.n / S.ms) * 1000 : 0; }      // to the thousand, after a second of searching
+  // ---- the rules' own (spec 9.4 step 1, 6.3): each game's mates in 1 that Chess Arcade's rules found (gaMmKick's records:
+  // played, mated one move later or converted on the spot are not puzzles), listed at once with no engine (the hosted
+  // Artifact, the switch off, a phone), at most 2 a game; its record says r:1, and the engine's own look replaces it. In
+  // 8 ms slices while the Puzzles tab is on screen ----
+  function gzRulesWant(){ return currentView==='history' && gzOn() && !document.hidden && GZ_LOADED && GA_MM_LOADED; }
+  function gzRulesNeed(g, u, me){ const r = GZ.G.get(String(g.id)); return !r || r.h!==gzH(g, me) || (!!r.r && r.v!==GZ_V); }
+  function gzRulesKick(){
+    if(GZ_RJOB || !gzRulesWant()) return;
+    const key = gzQKey()+'|'+GA_MM.size+'|'+GZ_V;
+    if(GZ.rk===key) return;
+    const u = ghMe(), job = GZ_RJOB = { list:null, i:0, u, key, A:null, me:'', mm:null, n:0 };
+    const tick = ()=>{
+      if(GZ_RJOB!==job) return;
+      if(!gzRulesWant()){ GZ_RJOB = null; return; }          // picked up again by the next redraw of the tab
+      if(!job.list){ try{ job.list = gzQueue().map(x=> x.g); }catch(e){ job.list = []; } setTimeout(tick, 0); return; }      // in a task of its own, never the redraw's
+      const until = performance.now() + 8;
+      while(job.i < job.list.length && performance.now() < until){
+        const g = job.list[job.i];
+        try{
+          if(!job.A){
+            const me = gzMeOf(g, u), r = gaMmOf(g, me);
+            if(!r || r.bad || !r.m.some(x=> !x[1]) || !gzRulesNeed(g, u, me)){ job.i++; continue; }
+            job.me = me; job.mm = r.m;
+            job.A = gzPositions(g, null, until);
+          } else job.A = gzPositions(g, job.A, until);
+          if(!job.A.done) break;
+          const A = job.A;
+          job.A = null; job.i++;
+          if(!A.ok || !gzRulesNeed(g, u, job.me)) continue;   // the engine looked at it meanwhile
+          job.n += gzStore(g, gzRulesOut(g, job.me, A, job.mm, u), u, true);
+        }catch(e){ job.A = null; job.i++; }                  // that game skipped: the pass goes on (the engine's look can still list it)
+      }
+      if(job.i < job.list.length){ setTimeout(tick, 0); return; }
+      GZ_RJOB = null;
+      GZ.rk = key;
+      if(job.n) gzSoon();
+      if(gzQKey()+'|'+GA_MM.size+'|'+GZ_V!==key) setTimeout(gzRulesKick, 0);      // more games checked meanwhile
+    };
+    setTimeout(tick, 0);
+  }
+  // a game's out (gzGame's shape) with only its rules' mates in 1, in move order, at most 2
+  function gzRulesOut(g, me, A, mm, u){
+    const J = { g, me, P:A.P, n:A.n, res:ghGameResult(g, u), S:[] };
+    const items = gzRulesMates(J, mm).sort((a, b)=> a.q - b.q).filter((c, i, L)=> L.findIndex(y=> A.P[y.q].f===A.P[c.q].f)===i).slice(0, GZ_CAP.items)
+      .map(c=> ({ q:c.q, f:A.P[c.q].f, fen:A.P[c.q].fen, gm:A.ucis[c.q], kind:'mate', n:1, src:'m', line:[c.mates[0]], mates:c.mates, rules:true, fl:'' }));
+    return { id:String(g.id), me, n:A.n, ucis:A.ucis, src:'m', S:null, checks:0, items, res:J.res };
+  }
+  // the rules' check has news on the Puzzles tab (its scope read, its end, its store loaded): their items
+  function gzMmNews(){ if(currentView==='history' && gzOn()) gzRulesKick(); }
+  try{ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) gzRulesKick(); }); }catch(e){}
+  // background news on the tab (a game looked at, the rules' mates): drawn at most every 30 s, at once when the list was
+  // empty (spec 9.8); ghRender cancels the timer, waits while a finger scrolls, and keeps the focus by data-fid
+  function gzSoon(now){
+    if(currentView!=='history' || !gzOn()) return;
+    const empty = !GZ.model || !GZ.model.items.length;
+    if(GZ_SOON && !now && !empty) return;
+    const wait = now || empty ? 400 : Math.max(400, 30000 - (Date.now() - GZ_SOON_AT));
+    clearTimeout(GZ_SOON);
+    GZ_SOON = setTimeout(()=>{ GZ_SOON = 0; GZ_SOON_AT = Date.now(); if(currentView==='history' && gzOn()) ghRender(); }, wait);
+  }
+  // the count line's words now (while the search runs: "Looking for puzzles: game 12 of 50 ..."), its text only
+  function gzCountLine(){
+    if(currentView!=='history' || !gzOn() || !GZ.model) return;
+    const el = document.getElementById('gh-count'), t = gzCountWords(GZ.model);
+    if(el && el.textContent!==t) el.textContent = t;
+  }
+  // ---- Settings: the switch and how far the search has got (spec 9.1; worked out only while Settings is open) ----
+  function gzStatus(){
+    const el = document.getElementById('gz-status');
+    if(!el) return;
+    const row = document.getElementById('gz-row');
+    if(row) row.querySelectorAll('.toggle').forEach(b=>{ const on = (b.dataset.val==='on')===GZ_ON; b.classList.toggle('active', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    const ov = document.getElementById('settings-overlay');
+    if(!ov || !ov.classList.contains('active')) return;
+    const t = gzStatusText();
+    if(el.textContent!==t) el.textContent = t;
+  }
+  function gzStatusText(){
+    const mem = GZ_MEM ? ' Kept for this visit only.' : '';
+    if(OJ_NOENG) return 'Stockfish can\u2019t run here: mates in 1 only.'+mem;
+    if(!GZ_LOADED || !egReady()) return 'Open Game History\u2019s Puzzles tab to start.'+mem;
+    const u = ghMe(), all = ghBaseList('all').filter(gzInBase);
+    if(!all.length) return 'No games to look at yet.'+mem;
+    let looked = 0, n = 0;
+    all.forEach(g=>{ if(gzLookedG(g, u)) looked++; });
+    const ids = new Set(all.map(g=> String(g.id))), lu = String(u || '').toLowerCase();      // this account's puzzles only
+    GZ.P.forEach(it=>{ if((it.kind==='job' || it.kind==='mate') && Array.isArray(it.games) && it.games.some(G=> ids.has(String(G.id)) || (!!G.u && G.u===lu))) n++; });
+    const N = ghoN(all.length, 'game'), P = ghoN(n, 'puzzle');
+    const J = OJ_JOB && OJ_JOB.kind==='z' ? OJ_JOB : null;
+    if(J){
+      const at = J.at ? 'game '+J.at.i.toLocaleString('en-US')+' of '+J.at.n.toLocaleString('en-US')+' \u00b7 ' : '', sp = gzNps();
+      const F = (J.found || 0).toLocaleString('en-US')+' found so far';      // the same words as the tab's count line
+      if(hve.state==='loading') return 'Looking: '+at+F+'. '+hvLoadingText()+mem;
+      return 'Looking: '+at+F+(sp ? ' \u00b7 Stockfish 16 at '+sp.toLocaleString('en-US')+' nodes a second on this device' : '')+'.'+mem;
+    }
+    if(looked >= all.length) return 'All '+N+' looked at \u00b7 '+P+'.'+mem;
+    const of = looked.toLocaleString('en-US')+' of '+N+' looked at \u00b7 '+P;
+    if(!GZ_ON) return 'Off: '+of+'.'+mem;
+    return of+'. The search runs while the Puzzles tab is open.'+mem;
+  }
+  (function(){
+    const row = document.getElementById('gz-row');
+    if(!row) return;
+    row.addEventListener('click', (e)=>{
+      const b = e.target.closest('.toggle');
+      if(!b) return;
+      GZ_ON = b.dataset.val==='on';
+      if(GZ_ON) OJ_NOENG = false;                       // tried again
+      try{ localStorage.setItem(GZ_ON_KEY, GZ_ON ? 'on' : 'off'); }catch(e2){}
+      if(!GZ_ON){ if(OJ_JOB && OJ_JOB.kind==='z') ojStop(); } else ojEnsure();
+      gzStatus();
+      if(currentView==='history' && gzOn()) ghRender();          // the needs-you line and the empty state say it
+    });
+    const fab = document.getElementById('settings-fab');
+    if(fab) fab.addEventListener('click', ()=> setTimeout(gzStatus, 0));
+    gzStatus();
+  })();
+  // the screen kept on while the search runs with the Puzzles tab on screen (spec 9.7, the user's yes of 2026-11-21):
+  // released when it stops, the tab is left or the page hides; every call in try/catch, a refusal ignored, nothing where
+  // the API is missing
+  function gzWakeSync(){
+    const W = GZ.wl || (GZ.wl = { lock:null, asking:false });
+    const want = !!(OJ_JOB && OJ_JOB.kind==='z' && currentView==='history' && gzOn() && !document.hidden);
+    if(want && !W.lock && !W.asking){
+      let api = null;
+      try{ api = navigator.wakeLock; }catch(e){ api = null; }
+      if(!api || typeof api.request!=='function') return;
+      W.asking = true;
+      let p = null;
+      try{ p = api.request('screen'); }catch(e){ p = null; }
+      Promise.resolve(p).then((l)=>{
+        W.asking = false;
+        if(!l) return;
+        W.lock = l;
+        try{ l.addEventListener('release', ()=>{ if(W.lock===l) W.lock = null; }); }catch(e){}
+        gzWakeSync();                                    // stopped meanwhile: let it go
+      }, ()=>{ W.asking = false; });
+    } else if(!want && W.lock){
+      const l = W.lock;
+      W.lock = null;
+      try{ Promise.resolve(l.release()).catch(()=>{}); }catch(e){}
+    }
+  }
   // { reach: entries that reached an endgame, kinds: [[kind, entries], ...] most first } over entries L
   function egGroups(L){
     const reach = [], by = new Map();
@@ -41920,9 +43791,23 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function ghCcBusy(){ if(!ghCcUp()) return false; const s = ccState(); return (s==='loading' && !ccProgress().quiet) || s==='checking'; }
   // the tab's games are still on their way (the count line stays empty, the Openings view waits)
   function ghTabBusy(){
-    const li = GH_STATE.loading || !GH_STATE.exhausted;
+    // no Lichess token: no Lichess games are on their way (ghLoadPage stops before it ever sets exhausted), 2026-11-21
+    const li = !!getLichessToken() && (GH_STATE.loading || !GH_STATE.exhausted);
     if(GH_UI.site==='chesscom') return ghCcBusy();
     return ghMixed() ? li || ghCcBusy() : li;
+  }
+  // Settings opened at one field, for an empty state's Open Settings (the ccOpenSettings pattern, 2026-11-21): 'li' = the
+  // Lichess Connection field with its token box focused, else an element id. Through the Settings button, so every
+  // Settings line is brought up to date as when you press it.
+  function ghOpenSettingsAt(f){
+    const fab = document.getElementById('settings-fab');
+    if(fab) fab.click();
+    else { const ov = document.getElementById('settings-overlay'); if(ov) ov.classList.add('active'); }
+    const inp = f==='li' ? document.getElementById('lichess-token-input') : null;
+    const el = inp ? inp.closest('.field') : document.getElementById(f);
+    if(el && el.scrollIntoView) el.scrollIntoView({ block:'start' });
+    const t = inp || (el && el.querySelector('button, input'));
+    if(t){ try{ t.focus({ preventScroll:true }); }catch(e){ t.focus(); } }
   }
   // the count line's "Filters search the N games loaded so far." while the tab's games are still coming
   function ghCountHintText(){
@@ -41981,7 +43866,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!bar) return;
     const li = GH_STATE.humans || 0, cc = GH_STATE.ccHumans || 0, n = { all:li + cc, lichess:li, chesscom:cc };
     const tid = 'gh-site-'+GH_UI.site;          // the list and the Openings view are the selected tab's panel
-    ['history-list', 'gho', 'ct', 'tt', 'ga'].forEach(id=>{ const p = document.getElementById(id); if(p && p.getAttribute('aria-labelledby')!==tid) p.setAttribute('aria-labelledby', tid); });
+    ['history-list', 'gho', 'ct', 'tt', 'ga', 'gz'].forEach(id=>{ const p = document.getElementById(id); if(p && p.getAttribute('aria-labelledby')!==tid) p.setAttribute('aria-labelledby', tid); });
     bar.querySelectorAll('.gh-site-tab').forEach(b=>{
       const on = b.dataset.site===GH_UI.site;
       b.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -45762,7 +47647,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // while the review is open and needed, terminated on leaving.
   const hve = {
     state:'off', multiPV:3, worker:null, ready:null, currentFen:null, pendingFen:null, pendingDepth:null,
-    searching:false, owner:'live', loadStart:0, kind:'', limited:false, _pxCb:null, _thinkSeq:0,
+    searching:false, owner:'live', loadStart:0, kind:'', limited:false, _pxCb:null, _thinkSeq:0, _mk:null,
     _ls:new Set(), _ss:new Set(), _done:new Set(), _readyRes:null, _readyWait:[], _bestWait:[], _stopSent:false, _uciok:false, _t1:0, _t2:0, _stopT:0,
     onInfo(cb){ this._ls.add(cb); return ()=> this._ls.delete(cb); },
     onState(cb){ this._ss.add(cb); return ()=> this._ss.delete(cb); },
@@ -45831,6 +47716,44 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       this.send('go nodes '+nodes);
       return true;
     },
+    // Puzzles from your games (gz*, spec 8.1): one position at full strength, the k best lines (MultiPV k), a fixed number
+    // of nodes, from a fresh hash when o.fresh (the same answer on every device, in any order, after any stop). Its lines go
+    // to its own collector (kind 'mk'), never to a listener or a _done listener. The promise settles exactly once, on every
+    // ending: { lines:[{ score (White's side), ucis, depth }], nodes, ms } on a natural bestmove (the deepest depth with all
+    // k exact lines, or every legal move when fewer; bound lines skipped; lines:[] when no depth has them all); null when
+    // stopped (a newer think/check/multi, stop(), pxCancel), when the worker goes (quit, a failure), when a newer request
+    // wins before it starts, or when o.live() says it's no longer wanted. A terminal position is never sent: null
+    async multi(fen, o){
+      o = o || {};
+      const w = this.worker, my = ++this._thinkSeq;
+      const gone = ()=> this.worker!==w || this.state!=='ready' || my!==this._thinkSeq || !!(o.live && !o.live());
+      if(!w) return null;
+      let legal = 0;
+      try{ legal = pzAllLegalMoves(hvStateFromFen(fen)).length; }catch(e){ legal = 0; }
+      if(!legal) return null;                // mated or stalemated: scored off the board (a mated root answers bestmove (none))
+      await this.ready;
+      if(gone()) return null;
+      this.pendingFen = null;
+      for(let i = 0; i < 5 && this.searching && !gone(); i++){
+        hveSendStop();
+        await new Promise(res=>{ const t = setTimeout(res, 1000); this._bestWait.push(()=>{ clearTimeout(t); res(); }); });
+      }
+      if(this.searching || gone()) return null;
+      const k = Math.max(1, Math.min(5, Math.floor(Number(o.k) || 1)));
+      let done = false, settle = null;
+      const out = new Promise(res=> settle = res);
+      const M = { k, want:Math.min(k, legal), d:[], nodes:0, ms:0, end(v){ if(done) return; done = true; settle(v); } };
+      this.pendingFen = null;
+      this.send('setoption name UCI_LimitStrength value false');
+      this.send('setoption name MultiPV value '+k);
+      this.limited = true;                   // the next analysis puts its three lines back
+      if(o.fresh) this.send('ucinewgame');
+      this.kind = 'mk'; this._mk = M; this._pxCb = null; this._ck = null;
+      this.currentFen = fen; this.searching = true; this._stopSent = false;
+      this.send('position fen '+fen);
+      this.send('go nodes '+Math.max(1, Math.floor(Number(o.nodes) || 20000)));
+      return out;
+    },
     // A fresh hash, like Repertoire Lab's new Engine for a review.
     async reset(){
       const w = this.worker;
@@ -45875,9 +47798,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     clearTimeout(hve._t1); clearTimeout(hve._t2); clearTimeout(hve._stopT);
     hve.worker = null; hve.searching = false; hve.pendingFen = null; hve.pendingDepth = null; hve.currentFen = null;
     hve.kind = ''; hve._pxCb = null; hve._ck = null; hve.limited = false;          // a new worker starts at full strength
+    const mk = hve._mk; hve._mk = null;
     const rr = hve._readyRes; hve._readyRes = null; if(rr) rr(false);
     hve._readyWait.splice(0).forEach(f=> f(false));
     hve._bestWait.splice(0).forEach(f=> f());
+    if(mk) mk.end(null);                                      // a Puzzles search settles (null): the worker went
     const was = hve.state;
     hve.state = state;
     if(was!==state) hveEmit();
@@ -45912,6 +47837,33 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const score = cp ? { type:'cp', value: Number(cp[1])*sign } : { type:'mate', value: Number(mt[1])*sign };
     return { depth: Number(dm ? dm[1] : 0), multipv: Number(mm ? mm[1] : 1), score, ucis: ucis.slice(0, 12), firstUci: ucis[0], fen };
   }
+  // a Puzzles search's info line (kind 'mk'): exact lines only (a node-limited search can end on a lowerbound or upperbound
+  // line, which isn't a score), kept per depth and multipv; the nodes and time of the last one
+  function hveMkInfo(line){
+    const M = hve._mk;
+    if(!M) return;
+    const nm = line.match(/\bnodes (\d+)/), tm = line.match(/\btime (\d+)/);
+    if(nm) M.nodes = Number(nm[1]);
+    if(tm) M.ms = Number(tm[1]);
+    const dm = line.match(/\bdepth (\d+)/), dd = dm ? Number(dm[1]) : 0;
+    if(dd < (M.maxd || 0)) return;                 // a line printed again from the depth before (not searched at this one)
+    M.maxd = Math.max(M.maxd || 0, dd);           // bound lines count for the depth reached
+    if(/\b(lowerbound|upperbound)\b/.test(line)) return;
+    const x = hveParse(line);
+    if(!x || x.multipv < 1 || x.multipv > M.k || !x.depth) return;
+    (M.d[x.depth] || (M.d[x.depth] = []))[x.multipv - 1] = { score:x.score, ucis:x.ucis, depth:x.depth };
+  }
+  // its answer: the deepest depth that has all the lines asked for (or every legal move, when fewer)
+  function hveMkOut(M){
+    for(let d = M.d.length - 1; d >= 1; d--){
+      const L = M.d[d];
+      if(!L) continue;
+      let ok = true;
+      for(let i = 0; i < M.want && ok; i++) if(!L[i]) ok = false;
+      if(ok) return { lines:L.slice(0, M.want), nodes:M.nodes, ms:M.ms };
+    }
+    return { lines:[], nodes:M.nodes, ms:M.ms };
+  }
   function hveMsg(w, line){
     if(w!==hve.worker) return;
     if(line==='uciok'){
@@ -45933,17 +47885,21 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       return;
     }
     if(line.indexOf('bestmove')===0){
-      const fen = hve.currentFen, natural = !hve._stopSent, px = hve.kind==='px' || hve.kind==='ck' ? hve._pxCb : null, ck = hve.kind==='ck' ? hve._ck : null;
-      hve.searching = false; hve.kind = ''; hve._pxCb = null; hve._ck = null;
+      const fen = hve.currentFen, natural = !hve._stopSent, px = hve.kind==='px' || hve.kind==='ck' ? hve._pxCb : null, ck = hve.kind==='ck' ? hve._ck : null, mk = hve.kind==='mk' ? hve._mk : null;
+      hve.searching = false; hve.kind = ''; hve._pxCb = null; hve._ck = null; hve._mk = null;
       clearTimeout(hve._stopT);
       hve._bestWait.splice(0).forEach(f=> f());
-      if(px){ if(natural) try{ px(fen, line.split(/\s+/)[1] || '', ck); }catch(e){} }
+      // a Puzzles search settles on every ending (null when it was stopped) and never reaches a _done listener (which would
+      // mark a shallow live line as finished on the review board)
+      if(mk) mk.end(natural ? hveMkOut(mk) : null);
+      else if(px){ if(natural) try{ px(fen, line.split(/\s+/)[1] || '', ck); }catch(e){} }
       else if(natural && fen) hve._done.forEach(cb=>{ try{ cb(fen); }catch(e){} });
       hveStartNext();
       return;
     }
     if(line.indexOf('info ')===0 && line.indexOf(' pv ')>=0){
       if(hve.kind==='px') return;          // a move being played out isn't analysis
+      if(hve.kind==='mk'){ hveMkInfo(line); return; }      // a Puzzles search: its own collector, never a listener
       if(hve.kind==='ck'){ const ci = hveParse(line); if(ci && ci.multipv===1) hve._ck = ci; return; }      // an opening check: its last score
       const info = hveParse(line);
       if(info) hve._ls.forEach(cb=>{ try{ cb(info); }catch(e){} });
@@ -46041,7 +47997,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   });
   document.addEventListener('visibilitychange', ()=>{
     if(!HV_STATE || !hvViewActive()) return;
-    if(document.hidden){ if(hve.owner==='live' && hve.state==='ready' && hve.kind!=='px' && hve.kind!=='ck') hve.stop(); }      // a move being played out still comes
+    if(document.hidden){ if(hve.owner==='live' && hve.state==='ready' && hve.kind!=='px' && hve.kind!=='ck' && hve.kind!=='mk') hve.stop(); }      // a move being played out still comes
     else hvLiveAnalyze();
   });
   // RL formatScore: +0.35, -1.20, #3, #-2
@@ -47669,8 +49625,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!S._hpf) S._hpf = hpfDivide(S.plyStates);
     const d = S._hpf, R = S.review, job = hrJob && hrJob.S===S ? hrJob : null, graded = hpfGraded(S), mine = hpfMine(S);
     // no review here: the phases from Lichess's analysis, when you had Lichess analyze the game (oj*)
-    const LG = !graded && !job && S.game && Array.isArray(S.game._ev) && S.game._ev.length===S.main.length
-      ? ojGradeGaps([{ type:'cp', value:20 }].concat(S.game._ev), S.game._evj || null, d, mine) : null;
+    const LS = !graded && !job && S.game ? ojLiSeries(S.game, S.main.length) : null;
+    const LG = LS ? ojGradeGaps(LS, S.game._evj || null, d, mine) : null;
     const G = graded ? hpfGrade(R.ev, R.b, d, mine) : LG;
     S._hpfG = G;
     E.src.hidden = !LG;
@@ -49406,6 +51362,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // A history practice run carries the puzzle's real first try in
   // replay.firstTry; a Saved run's replay has none, so that stays null.
   function spEntryFromRound(r, knownFen){
+    if(!r || !/^\w{5}$/.test(String(r.id || ''))) return null;      // Lichess puzzles only
     let fen = knownFen || '';
     if(!fen) try{ fen = pzStateToFEN(pzReplayPGNWithStates(r.tokens).state, r.tokens.length); }catch(e){}
     return spCleanPuzzle({
@@ -49436,6 +51393,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
 
   /* ---- Practice runs: play a list of saved puzzles in turn ---- */
   function spPlayUi(){
+    if(SP_PLAY && SP_PLAY.kind==='game') return gzPlayUi();
     const on = !!SP_PLAY;
     const last = on && SP_PLAY.index >= SP_PLAY.queue.length-1;
     const next = document.getElementById('pz-next');
@@ -49453,6 +51411,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(!btn) return;
       btn.dataset.nav = home;
       btn.textContent = name;
+      btn.style.display = '';
     });
     if(back){ back.dataset.nav = home; back.innerHTML = '&larr; '+name; }
   }
@@ -49471,6 +51430,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   function spAdvance(){
     if(!SP_PLAY) return;
+    if(SP_PLAY.kind==='game') return gzRunNext();
     SP_PLAY.index++;
     if(SP_PLAY.index >= SP_PLAY.queue.length){
       const home = SP_PLAY.home; SP_PLAY = null; spPlayUi();
@@ -49488,6 +51448,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     };
   }
   function spStartCurrent(){
+    if(SP_PLAY && SP_PLAY.kind==='game') return gzStartCurrent();      // Puzzles from your games (Game History)
     // by id (Puzzle History's one puzzle, the Puzzle Dashboard's misses): not only saved puzzles
     if(SP_PLAY && (SP_PLAY.home==='puzzle-history' || SP_PLAY.byId)) return phStartCurrent();
     if(!SP_PLAY) return;
@@ -49525,6 +51486,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // given: a cleaned entry for a puzzle that isn't the one on screen (Puzzle
   // History saves its rows through this).
   function spOpenSave(pid, given){
+    if(!/^\w{5}$/.test(String(pid || (roundPz && roundPz.id) || ''))) return;      // Lichess puzzles only: a game puzzle (gz:...) is never saved
     const nx = document.getElementById('next-overlay');
     if(!pid && nx && nx.classList.contains('active')){ document.getElementById('next-save').click(); return; }
     let entry = null;
@@ -58035,7 +59997,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!P) return;
     P.gen++; P.thinking = false;
     PX = null;
-    if(hve.kind==='px') hve.stop();
+    if(hve.kind==='px' || hve.kind==='mk') hve.stop();            // a move, or (Win it again) a check in flight
     if(P.engWas===false) hvPrefs.engine = false;                 // Analyze turned it on for that board only
     if(P.tabWas && hvTab==='moves') hvTab = P.tabWas;
     const v = views['play-history'];
@@ -58663,6 +60625,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const saveBtn = document.getElementById('next-save');
     const linkBtn = document.getElementById('next-link');
     const analyzeBtn = document.getElementById('next-analyze');
+    const gzGameBtn = document.getElementById('next-gzgame');
     const BANNERS = ['result-banner', 'knight-result-banner', 'checks-result-banner', 'pz-result-banner', 'wl-result-banner', 'wl-step-banner', 'sb-result-banner', 'sb-step-banner']
       .map(id => document.getElementById(id)).filter(Boolean);
     // dismissed: the banner whose box was closed to look at the board, so it
@@ -58704,9 +60667,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       answerEl.innerHTML = ans ? ans.innerHTML : '';
       const { next, settings } = bannerButtons(banner);
       goBtn.textContent = next ? next.textContent : 'Next position';
-      settingsBtn.style.display = settings ? '' : 'none';
+      settingsBtn.style.display = settings && settings.style.display !== 'none' ? '' : 'none';
       if(settings) settingsBtn.textContent = settings.textContent;
-      const isPuzzle = banner.id === 'pz-result-banner' && !!roundPz;
+      const gzRound = banner.id === 'pz-result-banner' && gzRoundOn();          // a puzzle from your game: never saved or linked
+      const isPuzzle = banner.id === 'pz-result-banner' && !!roundPz && !gzRound;
+      gzGameBtn.style.display = gzRound && roundPz.done ? '' : 'none';
       saveBtn.style.display = isPuzzle ? '' : 'none';
       if(isPuzzle) saveBtn.innerHTML = spIsSaved(String(roundPz.id)) ? '&#9733; Saved' : '&#9734; Save puzzle';
       linkBtn.style.display = isPuzzle ? '' : 'none';
@@ -58740,6 +60705,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // Analyze: the box steps aside for the analysis board, and is back on returning.
     analyzeBtn.addEventListener('click', () => { afterAnalyze = current; close(); pzaFromRound(true); });
     settingsBtn.addEventListener('click', () => act('settings'));
+    gzGameBtn.addEventListener('click', () => { close(); gzOpenGame(); });
     const review = () => { dismissed = current; close(); };
     reviewBtn.addEventListener('click', review);
     overlay.addEventListener('click', e => { if(e.target === overlay) review(); });
@@ -58748,7 +60714,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(e.key === 'Escape'){ e.preventDefault(); review(); }
       // Enter on a box button (or in the copy-by-hand link field) is that
       // control's own; anywhere else it's Next.
-      else if(e.key === 'Enter' && ![reviewBtn, settingsBtn, saveBtn, linkBtn, analyzeBtn].includes(document.activeElement)
+      else if(e.key === 'Enter' && ![reviewBtn, settingsBtn, saveBtn, linkBtn, analyzeBtn, gzGameBtn].includes(document.activeElement)
               && !(document.activeElement && document.activeElement.classList.contains('ph-url'))){
         e.preventDefault();
         // data-fresh-enter: an Enter still held from the press before the
@@ -58805,11 +60771,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       // Chess Arcade's home button and the Game Review button: only while the review has the whole
       // window (Repertoire Lab's own bars are hidden then; see "corners" below)
       'html.rl-embed:not(.rl-chrome) #home-fab', 'html.rl-embed:not(.rl-chrome) #rl-menu',
-      '#settings-overlay .field:has(#glass-row)', '#settings-overlay .field:has(#intro-row)', '#oj-field',
+      '#settings-overlay .field:has(#glass-row)', '#settings-overlay .field:has(#intro-row)', '#oj-field', '#gz-field',
       '#settings-overlay .field:has(#lichess-token-input)', '#gn-field', '#pz-sync-field', '#cc-field', '#rl-field',
       '#settings-overlay .field:has(#spotify-client-id-input)',
       // the Openings tab's "Connect Repertoire Lab": Repertoire Lab hands it the openings to sort by (repertoire)
       'html.rl-history #gho-connect',
+      // Game History's Puzzles tab (Chess Arcade 2026-11): puzzles from the player's own games, searched by Stockfish on
+      // Chess Arcade's own device; not part of the review Repertoire Lab embeds (its tab button goes with #gh-view)
+      'html.rl-history #gz',
       // the theme: always Repertoire Lab's own, dark or light as Repertoire Lab is (look)
       '#settings-overlay .field:has(#skin-row)', '#custom-colors-field'];
     const css = document.createElement('style');
