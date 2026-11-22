@@ -17,7 +17,8 @@
 //   · Repertoire Lab's theme, dark and light, is the one it wears, and its
 //     arrow colour profile, set from here and told back when picked in there
 //   · a repertoire goes in, and CLAMP, Tactics and Openings each open; the Puzzles tab
-//     (its Settings field and its panel) stays out of the copy
+//     (its Settings field and its panel) and the review's "your usual in this line" stay
+//     out of the copy
 //   · with it, the review shows its book moves above the engine's, and its
 //     Similar openings tab finds the line the game is in, named whose it is
 //   · the corner buttons and flush() take what they're given
@@ -234,6 +235,17 @@ try {
     return out;
   });
   ok(gzOut === true || /^not in this copy/.test(String(gzOut)), `Chess Arcade’s Puzzles tab stays out (its Settings field and its panel hidden)${gzOut === true ? '' : ` — ${gzOut}`}`);
+  // the review's "your usual in this line" (Chess Arcade 2026-11) stays out too (unhidden for a moment, as above)
+  const ouOut = await frame.evaluate(() => {
+    if (document.querySelector('#gh-oj option[value="below"]')) return 'the Games filter still offers "Below your usual"';
+    const u = document.getElementById('hv-prep-usual');
+    if (!u) return 'not in this copy (#hv-prep-usual)';
+    const was = u.hidden; u.hidden = false;
+    const out = getComputedStyle(u).display === 'none';
+    u.hidden = was;
+    return out;
+  });
+  ok(ouOut === true || /^not in this copy/.test(String(ouOut)), `Chess Arcade’s “your usual in this line” and “Below your usual” stay out${ouOut === true ? '' : ` — ${ouOut}`}`);
   // back to a game, as the tab does
   await frame.evaluate((g) => window.__rlReview.open(g, {}), game);
   await frame.waitForFunction((gid) => window.__rlReview.current() === gid, gid, { timeout: 20000 }).catch(() => {});

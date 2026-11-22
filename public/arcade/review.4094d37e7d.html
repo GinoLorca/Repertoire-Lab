@@ -116,7 +116,10 @@
     --ink-soft:#585d61;
     --brass:#3f8a76;
     --brass-soft:#5fae94;
-    --brass-ink:#0d211c;
+    /* its teal as text was 3.0:1 on the card color: a deeper teal for text (6.1:1; 4.5:1 on --surface-2); and the dark
+       lettering on teal buttons and lit chips, near black (4.9:1, was 4.1:1) */
+    --brass-ink:#020706;
+    --brass-text:#21574a;
     --line:#a5a196;
     --board-light:#efece3;
     --board-dark:#242423;
@@ -154,6 +157,7 @@
       --brass:#5fcab0;
       --brass-soft:#86e0c4;
       --brass-ink:#0a1815;
+      --brass-text:var(--brass);
       --line:#3a3f43;
       --board-light:#efece3;
       --board-dark:#242423;
@@ -191,6 +195,7 @@
     --brass:#5fcab0;
     --brass-soft:#86e0c4;
     --brass-ink:#0a1815;
+    --brass-text:var(--brass);
     --line:#3a3f43;
     --board-light:#efece3;
     --board-dark:#242423;
@@ -496,6 +501,7 @@
       --brass:#e2528f;
       --brass-soft:#f07bab;
       --brass-ink:#1c0a12;
+      --brass-text:#ec74a6;      /* its pink as text was 4.0:1 on the card color; 5.3:1 (4.5:1 on --surface-2) */
       --line:#3c4130;
       --board-light:#8bac0f;
       --board-dark:#0f380f;
@@ -529,6 +535,7 @@
     --brass:#e2528f;
     --brass-soft:#f07bab;
     --brass-ink:#1c0a12;
+    --brass-text:#ec74a6;
     --line:#3c4130;
     --board-light:#8bac0f;
     --board-dark:#0f380f;
@@ -60907,6 +60914,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       // Game History's Puzzles tab (Chess Arcade 2026-11): puzzles from the player's own games, searched by Stockfish on
       // Chess Arcade's own device; not part of the review Repertoire Lab embeds (its tab button goes with #gh-view)
       'html.rl-history #gz',
+      // the review's "your usual in this line" (Chess Arcade 2026-11): read against the player's other games in Chess Arcade's
+      // Game History; Chess Arcade's own for now
+      '#hv-prep-usual',
       // the theme: always Repertoire Lab's own, dark or light as Repertoire Lab is (look)
       '#settings-overlay .field:has(#skin-row)', '#custom-colors-field',
       // "Hold a piece to draw": Repertoire Lab's own switch (Settings, the board), handed over with the look
@@ -60928,6 +60938,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       // with the whole window, the way back to Game History keeps its place, unseen: the layout is Chess Arcade's to the pixel
       + ' html.rl-embed.rl-chrome #view-play-history .back-link { visibility:hidden !important; pointer-events:none !important; }';
     document.head.appendChild(css);
+    // Chess Arcade's "Below your usual" (its Opening's job filter, 2026-11) is read against the player's other games in Chess
+    // Arcade's own Game History: not offered here. Taken out, not hidden (Safari draws a hidden <option> anyway); a stale one cleared.
+    try{
+      const o = document.querySelector('#gh-oj option[value="below"]');
+      if(o) o.remove();
+      if(typeof GH_FILTERS==='object' && GH_FILTERS && GH_FILTERS.oj==='below') GH_FILTERS.oj = '';
+    }catch(e){}
     // ---- corners: while the review has the whole window, Repertoire Lab's controls sit where Chess
     // Arcade keeps its own — its home button (top left: back to Repertoire Lab's bars) and a Game
     // Review button (bottom right, where Chess Arcade keeps its Friends pill, which its review
@@ -61324,7 +61341,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         try{ void hvRedraw; }catch(e){ gone.push('hvRedraw'); }
         try{ void HR_BY_ID; }catch(e){ gone.push('HR_BY_ID'); }
         try{ void HR_BY_CODE; }catch(e){ gone.push('HR_BY_CODE'); }
-        return gone.concat(["home-fab","view-history"].filter((id)=> !document.getElementById(id)).map((id)=> '#'+id));
+        try{ void GH_FILTERS; }catch(e){ gone.push('GH_FILTERS'); }
+        return gone.concat(["home-fab","view-history","gh-oj"].filter((id)=> !document.getElementById(id)).map((id)=> '#'+id));
       },
     };
     tell('ready');

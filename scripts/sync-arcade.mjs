@@ -76,10 +76,10 @@ const USES = [
   'hvNote', 'hvOnNode', 'hvOpen', 'hvRenderBoard', 'lookPrefs', 'rlDecode', 'rlEncode', 'rpFire',
   'rpMake', 'rpQueue', 'saveLookPrefs', 'showView', 'ttPractice', 'setAnnoProfile', 'annoProfile',
   'hrSave', 'hrLoad', 'hrSig', 'hrEncScore', 'hrDecScore', 'hrValidEntry', 'hrReadStore', 'hrJob',
-  'hrRenderAll', 'hvRedraw', 'HR_BY_ID', 'HR_BY_CODE',
+  'hrRenderAll', 'hvRedraw', 'HR_BY_ID', 'HR_BY_CODE', 'GH_FILTERS',
 ];
 // …and the parts of its page it reaches for.
-const USES_IDS = ['home-fab', 'view-history'];
+const USES_IDS = ['home-fab', 'view-history', 'gh-oj'];
 
 // Inside the app's own closure, so it can reach the review's functions and
 // its notes store by name. Everything it touches is listed here, in one
@@ -114,6 +114,9 @@ const BRIDGE = String.raw`
       // Game History's Puzzles tab (Chess Arcade 2026-11): puzzles from the player's own games, searched by Stockfish on
       // Chess Arcade's own device; not part of the review Repertoire Lab embeds (its tab button goes with #gh-view)
       'html.rl-history #gz',
+      // the review's "your usual in this line" (Chess Arcade 2026-11): read against the player's other games in Chess Arcade's
+      // Game History; Chess Arcade's own for now
+      '#hv-prep-usual',
       // the theme: always Repertoire Lab's own, dark or light as Repertoire Lab is (look)
       '#settings-overlay .field:has(#skin-row)', '#custom-colors-field',
       // "Hold a piece to draw": Repertoire Lab's own switch (Settings, the board), handed over with the look
@@ -135,6 +138,13 @@ const BRIDGE = String.raw`
       // with the whole window, the way back to Game History keeps its place, unseen: the layout is Chess Arcade's to the pixel
       + ' html.rl-embed.rl-chrome #view-play-history .back-link { visibility:hidden !important; pointer-events:none !important; }';
     document.head.appendChild(css);
+    // Chess Arcade's "Below your usual" (its Opening's job filter, 2026-11) is read against the player's other games in Chess
+    // Arcade's own Game History: not offered here. Taken out, not hidden (Safari draws a hidden <option> anyway); a stale one cleared.
+    try{
+      const o = document.querySelector('#gh-oj option[value="below"]');
+      if(o) o.remove();
+      if(typeof GH_FILTERS==='object' && GH_FILTERS && GH_FILTERS.oj==='below') GH_FILTERS.oj = '';
+    }catch(e){}
     // ---- corners: while the review has the whole window, Repertoire Lab's controls sit where Chess
     // Arcade keeps its own — its home button (top left: back to Repertoire Lab's bars) and a Game
     // Review button (bottom right, where Chess Arcade keeps its Friends pill, which its review
