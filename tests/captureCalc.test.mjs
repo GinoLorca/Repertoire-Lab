@@ -16,6 +16,7 @@ import {
   calcLine, calcCount, calcStart, calcPlay, calcStep, calcKeep, calcFollow, moveWhat, movePoints, moveLabel,
   startText, balanceText, tookText, promotedText, statusText, verdictText, CALC_VALUES,
   calcMarksAt, calcDraw, drawTarget, drawingsHere, applyDrawing, calcKeepMarks, calcNodeAt,
+  evalSide, evalNumber, evalText, evalShare, evalVersusCount,
 } from '../src/lib/captureCalc.js';
 import { setMarksAt } from '../src/lib/reviewEdit.js';
 import { reviewOnBoard, marksWith } from '../src/lib/reviewOnBoard.js';
@@ -499,4 +500,82 @@ test('the tree\'s move the calculator stands on: its start, then the game\'s mov
   calc = calcPlay(calcStep(calc, 1), 'a6');
   assert.equal(calcNodeAt(game, calc), null, 'off the game: a position only it has');
   assert.equal(calcNodeAt(game, null), null);
+});
+
+// ---------------------------------------------------------------------------
+// The engine's view, under the count: who stands better, and where that and
+// the count part ways.
+// ---------------------------------------------------------------------------
+const cp = (value) => ({ type: 'cp', value });
+const mate = (value) => ({ type: 'mate', value });
+
+test('the engine\'s score in words, as a number and as a share of the bar', () => {
+  assert.equal(evalSide(null), null);
+  assert.equal(evalSide(cp(20)), null, 'a fifth of a pawn: nobody is better');
+  assert.equal(evalSide(cp(-29)), null);
+  assert.equal(evalSide(cp(30)), 'w');
+  assert.equal(evalSide(cp(-140)), 'b');
+  assert.equal(evalSide(mate(-3)), 'b');
+  assert.equal(evalText(cp(10)), 'About even');
+  assert.equal(evalText(cp(60)), 'White is a little better');
+  assert.equal(evalText(cp(-140)), 'Black is better');
+  assert.equal(evalText(cp(-140), 'black'), 'Black (you) is better');
+  assert.equal(evalText(cp(520)), 'White is winning');
+  assert.equal(evalText(mate(-3)), 'Black mates in 3');
+  assert.equal(evalText({ ...mate(1), over: true }), 'White has checkmated');
+  assert.equal(evalText(null), '');
+  assert.equal(evalNumber(cp(140)), '+1.4');
+  assert.equal(evalNumber(cp(-60)), '\u22120.6');
+  assert.equal(evalNumber(cp(3)), '0.0');
+  assert.equal(evalNumber(mate(-3)), 'M3');
+  assert.equal(evalShare(null), 50);
+  assert.equal(evalShare(cp(0)), 50);
+  assert.ok(evalShare(cp(150)) > 55 && evalShare(cp(150)) < 80);
+  assert.ok(Math.abs(evalShare(cp(150)) + evalShare(cp(-150)) - 100) < 1e-9, 'the same either way');
+  assert.equal(evalShare(mate(2)), 97);
+  assert.equal(evalShare(mate(-2)), 3);
+});
+
+test('where the count and the engine part ways, the card says so; where they agree, it says nothing', () => {
+  assert.equal(evalVersusCount(2, cp(-140)), 'White is up 2 in material, but Black has the better position.');
+  assert.equal(evalVersusCount(2, cp(-140), 'white'), 'White (you) is up 2 in material, but Black has the better position.');
+  assert.equal(evalVersusCount(-3, cp(10)), 'Black is up 3 in material, but the position is about even.');
+  assert.equal(evalVersusCount(0, cp(220)), 'The count is even, but White has the better position.');
+  assert.equal(evalVersusCount(-1, mate(4)), 'Black is up 1 in material, but White has the better position.');
+  assert.equal(evalVersusCount(2, cp(180)), null, 'ahead, and better');
+  assert.equal(evalVersusCount(0, cp(5)), null, 'even, and even');
+  assert.equal(evalVersusCount(2, null), null, 'no score yet');
+});
+
+test('the card shows the engine\'s view under the count, and hides it with the count', () => {
+  const c = cases.find((x) => x.id === 'looks-good-loses');
+  const line = calcLine(c.fen, c.moves);
+  const draw = (extra = {}) => renderToStaticMarkup(React.createElement(CaptureCalc, {
+    line, count: calcCount(line, c.moves.length), start: 'Start: this position', ...extra,
+  }));
+  const none = draw();
+  assert.ok(!none.includes('calc-eval'), 'no engine given: the card as it was');
+  const waiting = draw({ engine: { now: null, before: null } });
+  assert.ok(waiting.includes('calc-eval') && waiting.includes('working it out'));
+  const html = draw({ engine: { now: cp(-140), before: cp(30) } });
+  assert.ok(html.includes('Black is better'), html);
+  assert.ok(html.includes('\u22121.4'));
+  assert.ok(html.includes('calc-bar-eval'));
+  assert.ok(/calc-bar-fill b/.test(html.slice(html.indexOf('calc-bar-eval'))), 'the bar leans Black\'s way');
+  assert.ok(html.includes('Before these moves: White is a little better (+0.3).'), html);
+  // Whoever the count favours here, an engine that prefers the other side is said to disagree — and one that agrees isn't.
+  const bal = calcCount(line, c.moves.length).balance;
+  assert.notEqual(bal, 0, 'this case ends with one side ahead');
+  const against = draw({ engine: { now: cp(bal > 0 ? -140 : 140), before: cp(0) } });
+  assert.ok(against.includes(`but ${bal > 0 ? 'Black' : 'White'} has the better position`), against);
+  assert.ok(!draw({ engine: { now: cp(bal > 0 ? 140 : -140), before: cp(0) } }).includes('has the better position'));
+  assert.ok(draw({ engine: { now: cp(2), before: cp(2) } }).includes('Before these moves: about even (0.0).'));
+  const hidden = draw({ engine: { now: cp(-140), before: cp(30) }, hidden: true });
+  assert.ok(!hidden.includes('calc-eval'), 'Hide the count hides the engine\'s view too');
+  // At the start there is no "before" to set it against.
+  const start = renderToStaticMarkup(React.createElement(CaptureCalc, {
+    line, count: calcCount(line, 0), start: 'Start', engine: { now: cp(30), before: cp(30) },
+  }));
+  assert.ok(start.includes('White is a little better') && !start.includes('Before these moves'));
+  assert.ok(!start.includes('has the better position'), 'nothing has changed hands yet: no count to set it against');
 });

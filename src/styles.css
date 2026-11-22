@@ -6265,6 +6265,20 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 @media (prefers-reduced-motion: reduce) {
   .calc-bar-fill { transition: none; }
 }
+/* The engine's view of the position, under the count: a line saying who
+   stands better, a bar like the count's, and — where the count and the
+   engine part ways — a sentence that says so. */
+.calc-eval { display: flex; flex-direction: column; gap: 5px; padding-top: 8px; border-top: 1px solid var(--border); }
+.calc-eval-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 14.5px; }
+.calc-eval-tag {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+}
+.calc-eval-num { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; }
+.calc-eval-wait { color: var(--muted); font-size: 13.5px; }
+.calc-eval-versus { font-size: 13.5px; font-weight: 600; }
+.calc-eval-before { font-size: 12.5px; color: var(--muted); }
+.calc-panel.compact .calc-eval { order: 4; }
+.calc-panel.compact .calc-bar-eval { max-width: 480px; }
 .calc-took { font-size: 13.5px; display: flex; flex-direction: column; gap: 2px; }
 .calc-status { margin: 0; font-size: 13.5px; }
 .calc-actions { display: flex; gap: 8px; flex-wrap: wrap; }

@@ -4,13 +4,19 @@
 // card, in this app's look. Drawn from props only (no store), so it renders
 // in a test: tests/captureCalc.test.mjs.
 //
+// Under the count, the engine's view of the same position (`engine`: { now,
+// before }, lib/useCalcEval): who stands better, on a bar like the count's —
+// because being up two pawns and being better are not the same thing, and
+// where they part ways the card says so in a sentence.
+//
 // "Hide the count" (for students: work it out in your head first) hides the
-// points, the balance, the bar, what changed hands and the verdict until
+// points, the balance, the bar, the engine's view, what changed hands and the verdict until
 // "Show the count" (the moves and the status line stay); it's remembered on
 // this device only (localStorage, never the synced settings).
 import React, { useEffect, useRef } from 'react';
 import {
   moveWhat, movePoints, balanceText, tookText, promotedText, statusText, verdictText,
+  evalText, evalNumber, evalShare, evalVersusCount,
 } from '../lib/captureCalc';
 
 const HIDE_KEY = 'rl.captureCalc.hideCount';
@@ -29,7 +35,7 @@ const BAR_FULL = 10;
 
 export default function CaptureCalc({
   line, count, start, you = null, hidden = false, onHide, onGo, onDone, onKeep = null, keyName = '',
-  compact = false,
+  compact = false, engine = null,
 }) {
   const moves = line?.moves ?? [];
   const at = count?.at ?? 0;
@@ -49,6 +55,12 @@ export default function CaptureCalc({
   const fill = (Math.min(Math.abs(bal), BAR_FULL) / BAR_FULL) * 50;
   const verdict = verdictText(count);
   const keyHint = keyName ? ` (${keyName})` : '';
+  // The engine's score for the position the board is on, and for the start.
+  const score = engine?.now ?? null;
+  const share = evalShare(score);
+  // (Only once something has changed hands: before that there is no count
+  // to set against it.)
+  const versus = count.events > 0 ? evalVersusCount(bal, score, you) : null;
   return (
     <section className={`panel calc-panel${compact ? ' compact' : ''}`} aria-label="Capture Calculator">
       <div className="calc-head">
@@ -117,6 +129,40 @@ export default function CaptureCalc({
           </>
         )}
       </div>
+      {engine && !hidden && (
+        <div className="calc-eval">
+          <div className="calc-eval-head">
+            <span className="calc-eval-tag">Engine</span>
+            {score ? (
+              <>
+                <strong aria-live="polite">{evalText(score, you)}</strong>
+                <span className="calc-eval-num">{evalNumber(score)}</span>
+              </>
+            ) : (
+              <span className="calc-eval-wait">working it out…</span>
+            )}
+          </div>
+          <div className="calc-bar calc-bar-eval" aria-hidden="true">
+            <span className="calc-bar-side">{you === 'white' ? 'White (you)' : 'White'}</span>
+            <span className="calc-bar-track">
+              {score && Math.abs(share - 50) >= 0.5 && (
+                <span
+                  className={`calc-bar-fill ${share > 50 ? 'w' : 'b'}`}
+                  style={share > 50 ? { right: '50%', width: `${share - 50}%` } : { left: '50%', width: `${50 - share}%` }}
+                />
+              )}
+              <span className="calc-bar-mid" />
+            </span>
+            <span className="calc-bar-side">{you === 'black' ? 'Black (you)' : 'Black'}</span>
+          </div>
+          {versus && <div className="calc-eval-versus">{versus}</div>}
+          {at > 0 && engine.before && (
+            <div className="calc-eval-before">
+              Before these moves: {evalText(engine.before, you).replace(/^About/, 'about')} ({evalNumber(engine.before)}).
+            </div>
+          )}
+        </div>
+      )}
       {count.events > 0 && !hidden && (
         <div className="calc-took">
           {[tookText('w', count, you), promotedText('w', count, you), tookText('b', count, you), promotedText('b', count, you)]

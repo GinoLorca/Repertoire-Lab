@@ -195,6 +195,73 @@ export function verdictText(count) {
   return `${SIDE_NAME[count.balance > 0 ? 'w' : 'b']} comes out ahead by ${Math.abs(count.balance)}.`;
 }
 
+// ---------- The engine's view of it ----------
+// The count says who has more; the engine says who stands better — and they
+// can disagree, which is the lesson: up two pawns and losing. A score is the
+// engine's own, from White's side (lib/engine): { type: 'cp', value } in
+// hundredths of a pawn, or { type: 'mate', value } in moves (negative: Black
+// mates).
+
+// Under this many hundredths either way, nobody is better.
+const EVAL_EVEN = 30;
+
+// Whose position is better: 'w', 'b', or null (about even, or no score yet).
+export function evalSide(score) {
+  if (!score) return null;
+  if (score.type === 'mate') return score.value < 0 ? 'b' : 'w';
+  if (Math.abs(score.value) < EVAL_EVEN) return null;
+  return score.value > 0 ? 'w' : 'b';
+}
+
+// The number: "+1.4", "−0.6", "0.0", "M3".
+export function evalNumber(score) {
+  if (!score) return '';
+  if (score.type === 'mate') return `M${Math.abs(score.value)}`;
+  const pawns = (Math.abs(score.value) / 100).toFixed(1);
+  if (pawns === '0.0') return '0.0';
+  return `${score.value > 0 ? '+' : '−'}${pawns}`;
+}
+
+// In words: "About even", "White is a little better", "Black (you) is
+// better", "White is winning", "Black mates in 3", "White has checkmated".
+export function evalText(score, you = null) {
+  if (!score) return '';
+  const side = evalSide(score);
+  if (!side) return 'About even';
+  const who = sideWithYou(side, you);
+  if (score.type === 'mate') {
+    const n = Math.abs(score.value);
+    return n <= 1 && score.over ? `${who} has checkmated` : `${who} mates in ${n}`;
+  }
+  const by = Math.abs(score.value);
+  if (by < 100) return `${who} is a little better`;
+  if (by < 300) return `${who} is better`;
+  return `${who} is winning`;
+}
+
+// White's share of a two-sided bar, 0–100 (50: even) — the curve the board's
+// own eval bar uses, so the two read alike.
+export function evalShare(score) {
+  if (!score) return 50;
+  const cp = score.type === 'mate' ? (score.value < 0 ? -1500 : 1500) : score.value;
+  return Math.max(3, Math.min(97, 50 + 50 * (2 / (1 + Math.exp(-cp / 320)) - 1)));
+}
+
+// Where the count and the engine part ways, in a sentence; null when they
+// agree (or there's no score). "White is up 2 in material, but Black has the
+// better position.", "White is up 3 in material, but the position is about
+// even.", "The count is even, but Black has the better position."
+export function evalVersusCount(balance, score, you = null) {
+  if (!score) return null;
+  const better = evalSide(score);
+  const ahead = balance > 0 ? 'w' : balance < 0 ? 'b' : null;
+  if (better === ahead) return null;
+  if (!ahead) return `The count is even, but ${sideWithYou(better, you)} has the better position.`;
+  const up = `${sideWithYou(ahead, you)} is up ${Math.abs(balance)} in material`;
+  if (!better) return `${up}, but the position is about even.`;
+  return `${up}, but ${sideWithYou(better, you)} has the better position.`;
+}
+
 // ---------- The calculator's own state ----------
 // { anchorId, anchorFen, baseFen, startLabel, sans, at, marks }: the board's
 // move it was turned on at (the board stays there), that position, the moves

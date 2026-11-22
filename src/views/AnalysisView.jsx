@@ -79,6 +79,7 @@ import MomentsPanel from '../components/MomentsPanel';
 import MomentBoards from '../components/MomentBoards';
 import MomentPresenter from '../components/MomentPresenter';
 import CaptureCalc, { readHideCount, writeHideCount } from '../components/CaptureCalc';
+import { useCalcEval } from '../lib/useCalcEval';
 import {
   calcLine, calcCount, calcStart, calcPlay, calcStep, calcKeep, calcFollow, startText as calcStartText, moveLabel as calcMoveLabel,
   calcKeepMarks, calcNodeAt, drawingsHere, applyDrawing,
@@ -786,6 +787,11 @@ export default function AnalysisView({
   const calcAt = calc && calcData ? Math.min(calc.at, calcData.moves.length) : 0;
   const fen = calcData ? calcData.fens[calcAt] : game.fen();
   const calcNow = useMemo(() => (calcData ? calcCount(calcData, calcAt) : null), [calcData, calcAt]);
+  // The engine's view of the same position, for the card (and of the start,
+  // to set it against): lib/useCalcEval. Not while the count is hidden.
+  const calcEval = useCalcEval(
+    Boolean(calc && calcData) && !calcHidden, fen, calcData?.fens[0] ?? null, engineOn, engineOn ? engineLines[1] ?? null : null,
+  );
   const fenRef = useRef(fen); // read by the engine listener, which is set up once
   fenRef.current = fen;
 
@@ -2494,6 +2500,7 @@ export default function AnalysisView({
   const calcInBoard = fullOn ? !fullWide : layoutClass === 'stacked' || dockOn;
   const calcPanel = () => (calc && calcData && calcNow ? (
     <CaptureCalc
+      engine={calcEval}
       line={calcData}
       count={calcNow}
       start={calcStartText(calc.startLabel, sideToMove(calc.anchorFen))}
