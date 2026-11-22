@@ -1634,6 +1634,9 @@ function reduce(state, action) {
 // ---------- Context / persistence ----------
 
 const StoreContext = createContext(null);
+// The settings alone (useSettings): the same object until a setting changes,
+// where the state is a new one for every move saved and game synced.
+const SettingsContext = createContext(null);
 
 export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, () => null);
@@ -1742,7 +1745,9 @@ export function StoreProvider({ children }) {
   }
   return (
     <StoreContext.Provider value={{ state, dispatch, saveNow }}>
-      {children}
+      <SettingsContext.Provider value={state.settings}>
+        {children}
+      </SettingsContext.Provider>
     </StoreContext.Provider>
   );
 }
@@ -1753,6 +1758,16 @@ const NO_STORE = { state: null, dispatch: () => {}, saveNow: () => {} };
 
 export function useStore() {
   return useContext(StoreContext) ?? NO_STORE;
+}
+
+// Just the settings — for a part that reads nothing else of the library (a
+// board, a move list): it's drawn again when a setting changes, and not for
+// every change to the library around it (useStore's `state` is a new one
+// each time: a board on useStore was redrawn, all sixty-four squares, for
+// each move's autosave).
+const NO_SETTINGS = {};
+export function useSettings() {
+  return useContext(SettingsContext) ?? NO_SETTINGS;
 }
 
 export function useOpening(openingId) {

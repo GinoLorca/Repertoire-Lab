@@ -4,6 +4,7 @@ import {
   pieceAt, sureAfter, carriedCentre, released,
 } from '../lib/grab';
 import { swallowClickAt, HOLD_EVENT, CARRY_EVENT } from './useHoldToDraw';
+import { setPressed } from '../lib/pressed';
 
 // Carrying a piece — the app's own, in place of the board library's
 // drag-and-drop, on the boards where pieces are moved (Learn and Practice,
@@ -31,6 +32,9 @@ import { swallowClickAt, HOLD_EVENT, CARRY_EVENT } from './useHoldToDraw';
 //     no dead zone, no jump.
 //   · Let go over another square, the board is asked about the move, as the
 //     library asked it (onPieceDrop), and an accepted piece is simply there.
+//   · Its moves are shown with the press, too (lib/pressed): the dots are
+//     drawn by a part that reads the pressed square itself, not by the view
+//     once it has heard — which was only when the pointer was let go.
 //
 // What a press may still turn out to be is left as it was:
 //   · A tap. A claimed touch gets no click from the browser, so one that
@@ -69,6 +73,17 @@ export function useCarry(on, hostRef, cfg) {
     let lastPointer = 'mouse';
     let lastTouch = -1e9;
     let instantOff = 0;
+    // The pressed square, told to whatever draws a pick (lib/pressed) —
+    // and untold. After a mouse's tap the click is still to come, and the
+    // view's own pick with it: untold a frame on, so the dots never blink.
+    let unpress = 0;
+    const pressOn = (sq) => { cancelAnimationFrame(unpress); setPressed(live.current.id, sq); };
+    const pressOff = (later = false) => {
+      cancelAnimationFrame(unpress);
+      const id = live.current.id;
+      if (later) unpress = requestAnimationFrame(() => setPressed(id, null));
+      else setPressed(id, null);
+    };
     // A point at the corner "fixed" is measured from (see `begin`).
     const corner = document.createElement('div');
     corner.className = 'carry-corner';
@@ -194,6 +209,7 @@ export function useCarry(on, hostRef, cfg) {
       lift(p, src);
       sqEl.classList.add('carry-press');
       host.classList.remove('carry-over');
+      pressOn(sq);
       listen(kind);
       return true;
     };
@@ -254,8 +270,11 @@ export function useCarry(on, hostRef, cfg) {
             bubbles: true, cancelable: true, composed: true, view: window, detail: 1, button: 0, clientX: p.x, clientY: p.y,
           }));
         }
+        // (The view has its pick now, or will with the mouse's own click.)
+        pressOff(p.kind === 'mouse');
         return;
       }
+      pressOff();
       // A carry: whatever click the browser makes of the release isn't one.
       swallowClickAt(p.x, p.y);
       let played = false;
@@ -286,6 +305,7 @@ export function useCarry(on, hostRef, cfg) {
     const abort = () => {
       if (!press.current) return;
       const p = over();
+      pressOff();
       putBack(p);
       if (p.told) live.current.view.current.onPieceDragEnd?.(p.piece, p.sq);
       if (p.kind === 'mouse') {
@@ -377,6 +397,7 @@ export function useCarry(on, hostRef, cfg) {
     api.current = { abort };
     return () => {
       abort();
+      pressOff();
       api.current = null;
       clearTimeout(instantOff);
       host.removeEventListener('pointerdown', onPointerDown, true);

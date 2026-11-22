@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { mainLineFrom, branchRootOf } from '../lib/moveTree';
 import MoveBadge from './MoveBadge';
 import { MomentPip } from './MomentsPanel';
-import { useStore } from '../store';
+import { useSettings } from '../store';
 import { topInset, bottomInset, leftInset, rightInset } from '../lib/safeArea';
 
 // "4." for White's move, "4…" for Black's — from a *virtual* ply, one that
@@ -111,15 +111,15 @@ function InlineLine({
 // move, so ply 1 always means White's move 1 internally and the White/Black
 // table columns stay meaningful — the real first move (Black's) simply
 // lands in the Black column of row one, White's cell left blank.
-export default function MoveTree({
+function MoveTree({
   root, headId, badges: badgesIn, moments, chips, highlights, onHighlight, onGo, onPromote, onPromoteOne, onDelete,
   startNumber = 1, startColor = 'w', readOnly = false, highlightColors = ['green', 'blue', 'yellow'],
 }) {
-  const { state } = useStore();
+  const settings = useSettings();
   // Gated once, here, rather than in every downstream renderer (InlineLine
   // recurses into its own branches) — undefined reads as "no badges" wherever
   // it's checked, so nothing further needs to know the setting exists.
-  const badges = state.settings.showMoveListBadges !== false ? badgesIn : undefined;
+  const badges = settings.showMoveListBadges !== false ? badgesIn : undefined;
   const [menu, setMenu] = useState(null); // { nodeId, x, y }
   const [menuPos, setMenuPos] = useState(null); // clamped { left, top }, once measured
   const menuRef = useRef(null);
@@ -287,3 +287,8 @@ export default function MoveTree({
     </>
   );
 }
+
+// Given the same things, it isn't drawn again (a long game's list is hundreds
+// of parts, and the page around it redraws several times a second while the
+// engine is thinking).
+export default React.memo(MoveTree);

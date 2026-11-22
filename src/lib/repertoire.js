@@ -2,7 +2,7 @@ import {
   START_FEN, startFenOf, moveNumberLabel,
 } from './startPos';
 import {
-  fen4, positionsOf, positionsOnce, lineItem,
+  fen4, positionsOf, positionsOnce, lineItem, allCached,
 } from './positions';
 
 // Position key: piece placement + side to move + castling + en passant.
@@ -20,17 +20,20 @@ export function buildPositionIndex(openings) {
   const map = new Map();
   for (const opening of openings) {
     for (const chapter of opening.chapters) {
-      for (const variation of chapter.variations) {
-        const { keys } = positionsOf(variation.moves, startFenOf(variation));
-        for (let ply = 0; ply < keys.length; ply += 1) {
-          const entry = { opening, chapter, variation, ply };
-          const at = map.get(keys[ply]);
-          if (at) at.push(entry); else map.set(keys[ply], [entry]);
-        }
-      }
+      for (const variation of chapter.variations) fileLine(map, opening, chapter, variation);
     }
   }
   return map;
+}
+
+// One line's positions, filed.
+function fileLine(map, opening, chapter, variation) {
+  const { keys } = positionsOf(variation.moves, startFenOf(variation));
+  for (let ply = 0; ply < keys.length; ply += 1) {
+    const entry = { opening, chapter, variation, ply };
+    const at = map.get(keys[ply]);
+    if (at) at.push(entry); else map.set(keys[ply], [entry]);
+  }
 }
 
 // ---------- The index a board or a card checks against, shared ----------
@@ -134,27 +137,56 @@ function ownerOf(split, key) {
   if (kept && kept.list.length === list.length && kept.list.every((o, i) => o === list[i])) {
     rec = kept;
   } else {
-    rec = { list, map: null, items: null };
+    rec = { list, map: null, items: null, build: null };
     if (list.length) owners.set(key, rec); else owners.delete(key);
   }
   split.owners.set(key, rec);
   return rec;
 }
 
+// An owner's index, built as far as `until` (a time; Infinity: all of it) —
+// the same index, in the same order, as buildPositionIndex(rec.list): true
+// once it's whole. Filing a big library is a fifth of a second of work, more
+// on a tablet: asked for whole it's done there and then (ownerIndex); a
+// screen that mustn't wait has it built a slice at a time instead
+// (warmPositionIndex) and reads it when it's there (positionIndexReady).
+function buildOwner(rec, until) {
+  if (rec.map) return true;
+  if (!rec.list.length) { rec.map = NO_INDEX; return true; }
+  if (!rec.build) {
+    const lines = [];
+    for (const opening of rec.list) {
+      for (const chapter of opening.chapters) for (const variation of chapter.variations) lines.push([opening, chapter, variation]);
+    }
+    rec.build = { map: new Map(), lines, at: 0 };
+  }
+  const b = rec.build;
+  while (b.at < b.lines.length) {
+    const [opening, chapter, variation] = b.lines[b.at];
+    fileLine(b.map, opening, chapter, variation);
+    b.at += 1;
+    if (until !== Infinity && performance.now() >= until) break;
+  }
+  if (b.at < b.lines.length) return false;
+  rec.map = b.map;
+  rec.build = null;
+  return true;
+}
+
 function ownerIndex(split, key) {
   const rec = ownerOf(split, key);
-  if (!rec.map) rec.map = rec.list.length ? buildPositionIndex(rec.list) : NO_INDEX;
+  buildOwner(rec, Infinity);
   return rec.map;
 }
 
-function ownerLines(split, key) {
-  const rec = ownerOf(split, key);
+function ownerLinesOf(rec) {
   if (!rec.items) {
     rec.items = [];
     for (const o of rec.list) for (const c of o.chapters ?? []) for (const v of c.variations ?? []) rec.items.push(lineItem(v));
   }
   return rec.items;
 }
+const ownerLines = (split, key) => ownerLinesOf(ownerOf(split, key));
 
 // The index for bookOpenings(openings, { studentId, source }) — the same
 // positions and hits, in the same order, as building one from that list —
@@ -176,6 +208,49 @@ export function positionIndexFor(openings, { studentId = null, source = 'both' }
   const index = new LayeredIndex(theirs, mine);
   layered.set(studentId, index);
   return index;
+}
+
+// Whose indexes that book is made of: yours, a student's, or theirs and yours.
+function bookOwners(split, { studentId = null, source = 'both' } = {}) {
+  if (!studentId || source === 'mine') return [''];
+  if (source === 'student') return [studentId];
+  return [studentId, ''];
+}
+
+// Whether positionIndexFor would hand the index back without building any
+// of it. Asking builds nothing — except a small book (up to `small` lines
+// still to file, their positions already worked out), which is filed there
+// and then: a board neither waits on a whole library nor blinks over a
+// short one.
+export function positionIndexReady(openings, book = {}, { small = 150 } = {}) {
+  if (book.source === 'none' || !Array.isArray(openings)) return true;
+  const split = splitOwners(openings);
+  const recs = bookOwners(split, book).map((key) => ownerOf(split, key)).filter((rec) => !rec.map && rec.list.length);
+  if (!recs.length) return true;
+  let left = 0;
+  for (const rec of recs) {
+    if (rec.build) { left += rec.build.lines.length - rec.build.at; continue; }
+    for (const o of rec.list) for (const c of o.chapters ?? []) left += c.variations?.length ?? 0;
+    if (left > small) return false;
+  }
+  if (left > small) return false;
+  for (const rec of recs) {
+    if (!allCached(ownerLinesOf(rec))) return false;
+  }
+  for (const rec of recs) buildOwner(rec, Infinity);
+  return true;
+}
+
+// The same index, built for up to `budgetMs` more: true once it's all there
+// (then positionIndexFor hands it back at once).
+export function warmPositionIndex(openings, book = {}, budgetMs = 8) {
+  if (book.source === 'none' || !Array.isArray(openings)) return true;
+  const split = splitOwners(openings);
+  const until = performance.now() + budgetMs;
+  for (const key of bookOwners(split, book)) {
+    if (!buildOwner(ownerOf(split, key), until)) return false;
+  }
+  return true;
 }
 
 // That book's lines, as lib/positions takes them ({ moves, startFen }), in

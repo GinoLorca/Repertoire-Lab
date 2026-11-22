@@ -1,28 +1,27 @@
 import {
   START_FEN, startFenOf, newGameAt, moveNumberLabel, fen4,
 } from './startPos';
+import { positionsOf, positionsOnce } from './positions';
+
+// How far two lines' positions run together: `ka`, `kb` their positions as
+// lib/positions has them (keys[0] the start, keys[i] the position after i
+// moves, as far as the moves can be played).
+function sharedKeys(ka, kb) {
+  if (ka[0] !== kb[0]) return 0;
+  const most = Math.min(ka.length, kb.length) - 1;
+  let n = 0;
+  while (n < most && ka[n + 1] === kb[n + 1]) n += 1;
+  return n;
+}
 
 // How many opening moves two lines share. Compared by position rather than by
 // notation, so a different move order that reaches the same place still counts
 // as "the same so far". Lines from different starts (one set up from a
 // position) share nothing.
+// (From the positions lib/positions remembers: both lines used to be played
+// out, move by move, for every pair asked about — see siblingsOf.)
 export function sharedPrefix(a = [], b = [], aStart = START_FEN, bStart = START_FEN) {
-  const ca = newGameAt(aStart);
-  const cb = newGameAt(bStart);
-  const key = (c) => fen4(c.fen());
-  if (key(ca) !== key(cb)) return 0;
-  let n = 0;
-  while (n < a.length && n < b.length) {
-    try {
-      ca.move(a[n]);
-      cb.move(b[n]);
-    } catch {
-      break;
-    }
-    if (key(ca) !== key(cb)) break;
-    n += 1;
-  }
-  return n;
+  return sharedKeys(positionsOnce(a, aStart).keys, positionsOnce(b, bStart).keys);
 }
 
 // Everything about how two lines relate: where they part company, what each
@@ -60,14 +59,17 @@ export function allVariations(openings) {
 
 // Lines most worth comparing against `target`: the ones that follow it longest
 // before doing something different. Same chapter first, then the rest.
+// (Every line in the library is asked about, each time Compare lines opens:
+// played out afresh, that was a second on a big library, five on a tablet.
+// The library's lines are remembered once played — lib/positions — and as a
+// rule already are, from the background; the target may be one typed in.)
 export function siblingsOf(target, openings, limit = 40) {
   if (!target) return [];
+  const mine = positionsOnce(target.variation.moves ?? [], startFenOf(target.variation)).keys;
   return allVariations(openings)
     .filter((it) => it.variation.id !== target.variation.id)
     .map((it) => {
-      const at = sharedPrefix(
-        target.variation.moves, it.variation.moves, startFenOf(target.variation), startFenOf(it.variation),
-      );
+      const at = sharedKeys(mine, positionsOf(it.variation.moves ?? [], startFenOf(it.variation)).keys);
       return {
         ...it,
         at,

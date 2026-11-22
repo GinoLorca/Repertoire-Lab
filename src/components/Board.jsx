@@ -2,11 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { TouchBackend } from 'react-dnd-touch-backend';
 import { Chess } from 'chess.js';
-import { useStore } from '../store';
+import { useSettings } from '../store';
 import { checkedKingSquare, CHECK_STYLE, LAST_MOVE_STYLE } from '../lib/legalMoves';
 import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
 import { boardBadgeStyle, boardBadgeTint, BADGE_BY_ID } from '../lib/badges';
-import { suitSquareStyles } from '../lib/suitMarks';
+import { suitSquareStyles, suitPick as suitPickOf } from '../lib/suitMarks';
+import { usePressed } from '../lib/usePressed';
 import { boardColors } from '../lib/theme';
 import BoardArrows, { cell } from './BoardArrows';
 import { TelestratorLayer } from './Telestrator';
@@ -256,10 +257,13 @@ function BoardTopMarks({
   );
 }
 
-export default function Board({
-  position, customSquareStyles, lastMove, badge, clampAt = null, suitPick = null, ownArrows = true, marks = null, telestrator = true, liftFirst, eagerBegin = false, nativeDrag = false, ...rest
+function Board({
+  position, customSquareStyles, lastMove, badge, clampAt = null, suitPick = null, pickAtPress = null, ownArrows = true, marks = null, telestrator = true, liftFirst, eagerBegin = false, nativeDrag = false, ...rest
 }) {
-  const { state } = useStore();
+  // (Only the settings: the board isn't drawn again for the library changing
+  // round it — a move's autosave, a sync. `state.settings` below is this.)
+  const settings = useSettings();
+  const state = useMemo(() => ({ settings }), [settings]);
   // What's right-clicked onto this board (see DrawableBoard): its arrows and
   // squares, in the arrow colour profile's colours (lib/arrowProfiles.js).
   // Kept here so the squares go into the squares' own styles, under the
@@ -290,6 +294,19 @@ export default function Board({
   const customPieces = (pieceLight === DEFAULT_PIECE_LIGHT && pieceDark === DEFAULT_PIECE_DARK)
     ? undefined
     : pieceSet(pieceLight, pieceDark);
+
+  // Court Cards, on a board whose view marks a pick (`pickAtPress`: the
+  // analysis board, Learn and Practice): a pressed piece wears its suit, and
+  // its captures their corner pips, with the press itself (lib/pressed) —
+  // the view's own pick only comes when the pointer is let go. The board
+  // alone redraws for it; in every other theme it doesn't redraw at all.
+  const pressedSquare = usePressed(pickAtPress && skinId(state.settings) === 'cards' ? String(rest.id ?? 0) : null);
+  const pressPick = useMemo(() => {
+    if (!pressedSquare || typeof position !== 'string') return null;
+    try {
+      return suitPickOf(position === 'start' ? new Chess() : new Chess(position), pressedSquare, { captures: pickAtPress?.captures !== false });
+    } catch { return null; }
+  }, [pressedSquare, position, pickAtPress?.captures]);
 
   const styles = useMemo(() => {
     let out = customSquareStyles;
@@ -338,9 +355,11 @@ export default function Board({
     // Court Cards' suit marks for a pick (lib/suitMarks.js): custom properties
     // on the picked square and its capture squares, added to whatever those
     // squares already wear (a last move's gilt edge, a check, a badge), so a
-    // pick restyles those squares alone. Only Court Cards hands one in.
-    if (suitPick) {
-      const marked = suitSquareStyles(suitPick, {
+    // pick restyles those squares alone. Only Court Cards hands one in. (A
+    // piece being pressed is the pick meanwhile: `pressPick`, below.)
+    const pick = pressPick ?? suitPick;
+    if (pick) {
+      const marked = suitSquareStyles(pick, {
         orientation: rest.boardOrientation === 'black' ? 'black' : 'white',
         notation: rest.showBoardNotation !== false,
         badge: badged,
@@ -349,7 +368,7 @@ export default function Board({
     }
     return out;
   }, [markCheck, markLast, markBadge, lastMove?.from, lastMove?.to, badge, position, customSquareStyles, drawing.squares, profile,
-    suitPick, rest.boardOrientation, rest.showBoardNotation, sized]);
+    suitPick, pressPick, rest.boardOrientation, rest.showBoardNotation, sized]);
 
   const orientation = rest.boardOrientation === 'black' ? 'black' : 'white';
 
@@ -599,6 +618,13 @@ export default function Board({
     </div>
   );
 }
+
+// Given the same things, it isn't drawn again: a view redrawing for something
+// that isn't the board's (the engine's next line, a note being typed) leaves
+// its sixty-four squares and their pieces as they are. A view gets that by
+// handing it the same functions and objects from one redraw to the next
+// (the analysis board does); one that makes them afresh is redrawn as before.
+export default React.memo(Board);
 
 // Right-drag to draw an arrow, right-drag the same pair again to take it away;
 // right-click one square to highlight it; left-click the board to clear the

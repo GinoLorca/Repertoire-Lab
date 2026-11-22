@@ -1,5 +1,5 @@
 import React, {
-  useEffect, useLayoutEffect, useMemo, useRef, useState,
+  useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
 import { Chess } from 'chess.js';
 import Board from '../components/Board';
@@ -42,6 +42,8 @@ import {
 import { sideOf, sideFromNames } from '../lib/pov';
 import { lineFor } from '../lib/curate';
 import LegalDots from '../components/LegalDots';
+import LinePicker from '../components/LinePicker';
+import { useBookIndex } from '../lib/usePositions';
 import PromotionPicker from '../components/PromotionPicker';
 import BoardEditor from '../components/BoardEditor';
 import GameFlagPicker from '../components/GameFlagPicker';
@@ -145,6 +147,8 @@ const EMPTY_MARKS = { arrows: [], squares: {} };
 // A finger is this device's main pointer (an iPad, a phone), not a mouse.
 const COARSE = typeof window !== 'undefined' && Boolean(window.matchMedia?.('(pointer: coarse)')?.matches);
 const FULL_KEY = 'rl.analysis.full';
+// The repertoire's index while it's still being filed (lib/usePositions useBookIndex): nothing in it.
+const NO_BOOK_YET = new Map();
 const HIDE_MOVES_KEY = 'rl.analysis.full.hideMoves';
 
 // Best move, second, third — three hues rather than three blues, so a glance at
@@ -913,7 +917,16 @@ export default function AnalysisView({
   // object until the lines behind it change, so nothing here is built again
   // when a board opens — it used to be the whole library, played out, every
   // time.
-  const positionIndex = positionIndexFor(state.openings, { studentId: repertoireOwnerId, source: repSource });
+  // …and never built in the click that opens a board: when it isn't there
+  // yet (the app only just opened on a big library, or a line just changed),
+  // the board draws without it and the repertoire's part fills in a moment
+  // later (lib/usePositions useBookIndex; `bookReady`).
+  const bookIndex = useBookIndex(state.openings, repertoireOwnerId, repSource);
+  const bookReady = bookIndex !== null;
+  const positionIndex = bookIndex ?? NO_BOOK_YET;
+  // For the one thing that can't be put right afterwards (which way round
+  // the board first opens): the index, whatever it takes.
+  const indexNow = () => bookIndex ?? positionIndexFor(state.openings, { studentId: repertoireOwnerId, source: repSource });
   // The repertoire can be walked from here: the normal start, or a position a
   // line was set up from — not just any position one of its lines passes
   // through, which a board set up by hand would otherwise count as.
@@ -929,7 +942,7 @@ export default function AnalysisView({
   // A game or line with no side of its own: the side your name is on in its
   // PGN tags, else the side of your repertoire it follows.
   const guessSide = (entry, startFen) => sideFromNames(entry.players, state.players)
-    ?? repertoireSide(entry.moves ?? [], positionIndex, startFen);
+    ?? repertoireSide(entry.moves ?? [], indexNow(), startFen);
   useLayoutEffect(() => {
     if (initialLine) {
       setOrientation(
@@ -947,7 +960,7 @@ export default function AnalysisView({
       setOrientation(
         sideOf(initialLab.orientation)
         ?? sideOf(game?.meta?.color)
-        ?? repertoireSide(initialLab.moves ?? [], positionIndex, initialLab.baseFen)
+        ?? repertoireSide(initialLab.moves ?? [], indexNow(), initialLab.baseFen)
         ?? 'white',
       );
     }
@@ -1678,6 +1691,8 @@ export default function AnalysisView({
     () => (suitedSkin ? suitPick(position, picked, { captures: showLegal }) : null),
     [suitedSkin, position, picked, showLegal],
   );
+  // …and the same marks for a piece as it's pressed (Board, lib/pressed).
+  const pickAtPress = useMemo(() => ({ captures: showLegal }), [showLegal]);
 
   // Highlighted squares are drawn as translucent overlays; a picked piece also
   // shows every square it can legally reach.
@@ -2013,6 +2028,63 @@ export default function AnalysisView({
       setOrientation(opening.color);
     }
   };
+
+  // What the board calls, as the same functions for the board's whole life
+  // (they read the latest of the view's own each time): the page redraws
+  // several times a second while the engine thinks, and for every panel
+  // around the board — the board itself (memo) only for what it's given.
+  const boardNow = useRef({});
+  boardNow.current = { onPieceDrop, onSquareClick };
+  const boardDo = useMemo(() => ({
+    onPieceDrop: (...args) => boardNow.current.onPieceDrop(...args),
+    onSquareClick: (...args) => boardNow.current.onSquareClick(...args),
+    onPieceDragBegin: (piece, square) => setPicked(square),
+    onPieceDragEnd: () => setPicked(null),
+    onPromotionCheck: () => false,
+  }), []);
+
+  // The move list's (components/MoveTree, memo), the same way.
+  const deleteMove = (id) => {
+      // A move of the saved game itself isn't this board's to
+      // take out — it's the game (edit its moves from its card).
+      if (editing && gamePlyOf(id) !== null) {
+        window.alert('That’s a move of the game itself — edit the game’s moves from its card. Moves you’ve added here can be deleted.');
+        return;
+      }
+      const next = removeNode(tree, id);
+      if (!confirmMomentLoss(next)) return;
+      // A side line the game's Game Review has: out of it too.
+      const lineRef = reviewEditable ? reviewRefAt(id) : null;
+      if (Array.isArray(lineRef) && hasLineFrom(latestReview()?.an, lineRef)) {
+        if (!window.confirm('Delete this line here and in Game Review? Its comments, arrows and badges go with it.')) return;
+        if (!writeReview((an) => removeLineFrom(an, lineRef))) return;
+      }
+      // Standing on the move you're deleting: step back first.
+      if (nodePath(tree, id).some((n) => n.id === head)) {
+        const trail = nodePath(tree, id);
+        setHead(trail.length > 1 ? trail[trail.length - 2].id : 'root');
+      }
+      setTree(next);
+  };
+  const treeNow = useRef({});
+  treeNow.current = {
+    onHighlight: assignHighlight,
+    onPromote: (id) => setTree(promote(tree, id)),
+    onPromoteOne: (id) => setTree(promoteOne(tree, id)),
+    onDelete: deleteMove,
+  };
+  const treeDo = useMemo(() => ({
+    onHighlight: (...args) => treeNow.current.onHighlight(...args),
+    onPromote: (...args) => treeNow.current.onPromote(...args),
+    onPromoteOne: (...args) => treeNow.current.onPromoteOne(...args),
+    onDelete: (...args) => treeNow.current.onDelete(...args),
+  }), []);
+
+  // The line picker's (components/LinePicker): the same function for the
+  // board's whole life, so the picker isn't redrawn with the page.
+  const loadVariationRef = useRef(loadVariation);
+  loadVariationRef.current = loadVariation;
+  const pickLine = useCallback((value) => loadVariationRef.current(value), []);
 
   // A Similar openings line, on the board at the position it resembles.
   // What's on the board now gives way to it, as with the line picker — asked
@@ -2489,11 +2561,13 @@ export default function AnalysisView({
     <Board
       id="analysis"
       position={fen}
-      onPieceDrop={onPieceDrop}
-      onSquareClick={onSquareClick}
-      onPieceDragBegin={(piece, square) => setPicked(square)}
-      onPieceDragEnd={() => setPicked(null)}
-      onPromotionCheck={() => false}
+      // (The same functions from one redraw to the next — `boardDo` — so the
+      // board is only drawn again for something of its own.)
+      onPieceDrop={boardDo.onPieceDrop}
+      onSquareClick={boardDo.onSquareClick}
+      onPieceDragBegin={boardDo.onPieceDragBegin}
+      onPieceDragEnd={boardDo.onPieceDragEnd}
+      onPromotionCheck={boardDo.onPromotionCheck}
       arePiecesDraggable={!drawMode}
       areArrowsAllowed={false}
       // This view runs its own pen — colours, saved marks, the Draw
@@ -2504,6 +2578,7 @@ export default function AnalysisView({
       badge={calc && calcAt > 0 ? undefined : shownBadges[head]}
       clampAt={calc && calcAt > 0 ? undefined : boardClamp}
       suitPick={cardsPick}
+      pickAtPress={pickAtPress}
       boardOrientation={orientation}
       boardWidth={boardWidth}
     />
@@ -2539,6 +2614,9 @@ export default function AnalysisView({
         boardWidth={boardWidth}
         orientation={orientation}
         suitPick={cardsPick}
+        // The moves of a piece as it's pressed, not when it's let go (lib/pressed).
+        boardId="analysis"
+        suited={suitedSkin}
       />
     )}
     </div>
@@ -3066,7 +3144,11 @@ export default function AnalysisView({
     {fromStart && moves.length > 0 && (
       <div className={`panel book-panel-summary${gameMatch.matched ? '' : ' unmatched'}`}>
         <h3><BookIcon size={16} /> {bookTitle}</h3>
-        {gameMatch.matched ? (
+        {!bookReady ? (
+          // The index is still on its way (see `bookReady`): not "doesn't
+          // match", which it can't know yet.
+          <div style={{ color: 'var(--muted)', fontSize: 14 }} role="status">Looking this game up in the repertoire…</div>
+        ) : gameMatch.matched ? (
           <>
             <div className="book-match">
               <strong>{gameMatch.opening.name}</strong> —{' '}
@@ -3309,6 +3391,8 @@ export default function AnalysisView({
     let empty = null;
     if (repSource === 'none') {
       empty = 'No repertoire is checked on this board — choose one under ⚙ (Repertoire to check).';
+    } else if (!bookReady) {
+      empty = 'Reading the repertoire…';
     } else if (positionIndex.size === 0) {
       empty = `Nothing to compare with yet — ${theirBook && repSource === 'student' ? `${repertoireOwner.name} has` : 'there are'} no repertoire lines.`;
     } else if (similarTooSoon) {
@@ -3692,34 +3776,14 @@ export default function AnalysisView({
             chips={reviewChips}
             highlights={shownHighlights}
             highlightColors={reviewEditable ? REVIEW_LINE_COLORS : undefined}
-            onHighlight={assignHighlight}
+            onHighlight={treeDo.onHighlight}
             startNumber={baseMeta.startNumber}
             startColor={baseMeta.startColor}
             onGo={setHead}
-            onPromote={(id) => setTree(promote(tree, id))}
-            onPromoteOne={(id) => setTree(promoteOne(tree, id))}
-            onDelete={(id) => {
-              // A move of the saved game itself isn't this board's to
-              // take out — it's the game (edit its moves from its card).
-              if (editing && gamePlyOf(id) !== null) {
-                window.alert('That’s a move of the game itself — edit the game’s moves from its card. Moves you’ve added here can be deleted.');
-                return;
-              }
-              const next = removeNode(tree, id);
-              if (!confirmMomentLoss(next)) return;
-              // A side line the game's Game Review has: out of it too.
-              const lineRef = reviewEditable ? reviewRefAt(id) : null;
-              if (Array.isArray(lineRef) && hasLineFrom(latestReview()?.an, lineRef)) {
-                if (!window.confirm('Delete this line here and in Game Review? Its comments, arrows and badges go with it.')) return;
-                if (!writeReview((an) => removeLineFrom(an, lineRef))) return;
-              }
-              // Standing on the move you're deleting: step back first.
-              if (nodePath(tree, id).some((n) => n.id === head)) {
-                const trail = nodePath(tree, id);
-                setHead(trail.length > 1 ? trail[trail.length - 2].id : 'root');
-              }
-              setTree(next);
-            }}
+            // (The same functions from one redraw to the next: `treeDo`.)
+            onPromote={treeDo.onPromote}
+            onPromoteOne={treeDo.onPromoteOne}
+            onDelete={treeDo.onDelete}
           />
         </div>
         )}
@@ -3989,33 +4053,9 @@ export default function AnalysisView({
             narrow={viewportWidth < 600}
           />
         )}
-        <select
-          className="line-picker"
-          defaultValue=""
-          onChange={(e) => { loadVariation(e.target.value); e.target.value = ''; }}
-        >
-          <option value="" disabled>Load a repertoire line…</option>
-          {/* Grouped by whose repertoire it is — in Coach's Corner several
-              students can have an opening with the same name, and a plain
-              flat list would leave no way to tell them apart. */}
-          {Object.entries(
-            state.openings.reduce((groups, o) => {
-              const owner = coachMode
-                ? (state.players.find((p) => p.id === o.ownerId)?.name ?? 'My repertoire')
-                : 'Repertoire';
-              (groups[owner] ??= []).push(o);
-              return groups;
-            }, {}),
-          ).map(([owner, openings]) => (
-            <optgroup key={owner} label={owner}>
-              {openings.map((o) => o.chapters.map((c) => c.variations.map((v) => (
-                <option key={v.id} value={`${o.id}|${c.id}|${v.id}`}>
-                  {o.name} / {c.name} / {v.name}
-                </option>
-              ))))}
-            </optgroup>
-          ))}
-        </select>
+        {/* (A part of its own, its thousands of entries made when it's about
+            to be used: components/LinePicker.) */}
+        <LinePicker openings={state.openings} players={coachMode ? state.players : null} onPick={pickLine} />
         <button
           className={`small${pgnOpen ? ' primary' : ''}`}
           title="Load a PGN — paste it in, or pull a Lichess study straight onto the board"

@@ -711,6 +711,8 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
     () => (suitedSkin ? suitPick(game, pickShown, { captures: showLegal }) : null),
     [suitedSkin, game, pickShown, showLegal],
   );
+  // …and the same marks for a piece as it's pressed (Board, lib/pressed).
+  const pickAtPress = useMemo(() => ({ captures: showLegal }), [showLegal]);
 
   // Arm the move clock only while the board is genuinely waiting on you: not
   // while the trainer is replying, not while a wrong move is flying home, and
@@ -1640,6 +1642,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             // is what shows; recall itself is never auto-graded.
             badge={badgeAt(current.variation.badges, ply - 1)?.id}
             suitPick={cardsPick}
+            pickAtPress={pickAtPress}
             animationDuration={pace.anim}
             boardWidth={boardWidth}
           />
@@ -1668,6 +1671,9 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
               boardWidth={boardWidth}
               orientation={orientation}
               suitPick={cardsPick}
+              // The moves of a piece as it's pressed, not when it's let go (lib/pressed).
+              boardId="practice"
+              suited={suitedSkin}
             />
           )}
           {wrongMove && (

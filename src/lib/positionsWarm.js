@@ -10,6 +10,7 @@
 import {
   warmPositions, prunePositions, allCached, lineItem,
 } from './positions';
+import { warmPositionIndex, positionIndexReady } from './repertoire';
 
 const IDLE_BUDGET_MS = 12;   // a slice of background work
 const IDLE_GAP_MS = 12;      // …and the pause after it, where the browser has no idle callback (Safari)
@@ -18,8 +19,12 @@ const EAGER_BUDGET_MS = 12;  // a slice of what a screen is waiting for
 const TELL_EVERY_MS = 200;   // how often a waiting screen hears of progress
 const MAX_WAITING = 4;      // requests kept at once
 
-let background = { items: [], at: 0 };
-const urgent = []; // batches a screen is waiting for; the newest is done first
+// (`openings`: the library's, for the index every board checks against —
+// yours — which is filed once its lines are worked out: lib/repertoire.)
+let background = { items: [], at: 0, openings: null, indexed: true };
+// Batches a screen is waiting for; the newest is done first. { items, at }:
+// positions to work out. { index: { openings, book } }: an index to file.
+const urgent = [];
 const listeners = new Set();
 let timer = null; // { eager, cancel }
 let lastTold = 0;
@@ -27,7 +32,7 @@ let lastInput = 0; // when you last touched, scrolled or typed
 
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 const hidden = () => typeof document !== 'undefined' && document.hidden;
-const backgroundLeft = () => background.at < background.items.length;
+const backgroundLeft = () => background.at < background.items.length || !background.indexed;
 
 function tell(force) {
   if (!listeners.size) return;
@@ -88,8 +93,14 @@ function step(deadline) {
   // What a screen is waiting for comes first, the newest request first.
   if (urgent.length) {
     const batch = urgent[urgent.length - 1];
-    batch.at = warmPositions(batch.items, { from: batch.at, budgetMs: EAGER_BUDGET_MS });
-    if (batch.at >= batch.items.length) {
+    let done;
+    if (batch.index) {
+      done = warmPositionIndex(batch.index.openings, batch.index.book, EAGER_BUDGET_MS);
+    } else {
+      batch.at = warmPositions(batch.items, { from: batch.at, budgetMs: EAGER_BUDGET_MS });
+      done = batch.at >= batch.items.length;
+    }
+    if (done) {
       urgent.pop();
       tell(true);
     } else {
@@ -105,7 +116,13 @@ function step(deadline) {
     }
     const idle = deadline && typeof deadline.timeRemaining === 'function' ? deadline.timeRemaining() : 0;
     const budgetMs = Math.max(4, Math.min(16, idle || IDLE_BUDGET_MS));
-    background.at = warmPositions(background.items, { from: background.at, budgetMs });
+    if (background.at < background.items.length) {
+      background.at = warmPositions(background.items, { from: background.at, budgetMs });
+    } else {
+      // Every line worked out: your index, filed the same way — a slice at
+      // a time — so the first board to open finds it there.
+      background.indexed = !background.openings || warmPositionIndex(background.openings, {}, budgetMs);
+    }
     if (!backgroundLeft()) tell(true);
   }
   if (urgent.length) schedule(true);
@@ -143,8 +160,24 @@ export function libraryItems(state) {
 export function warmLibrary(state) {
   const items = libraryItems(state);
   prunePositions(items);
-  background = { items, at: 0 };
+  const openings = Array.isArray(state?.openings) ? state.openings : null;
+  background = { items, at: 0, openings, indexed: !openings };
   if (!hidden()) schedule(false);
+}
+
+// A board needs this book's index (lib/repertoire positionIndexFor) and
+// mustn't wait for it: it's filed next, briskly, a slice at a time — its
+// lines worked out on the way, where they aren't yet — and the board is
+// told (onWarmed) when it's there.
+export function requestIndex(openings, book = {}) {
+  if (positionIndexReady(openings, book, { small: 0 })) return;
+  if (urgent.some((b) => b.index && b.index.openings === openings && b.index.book.studentId === book.studentId && b.index.book.source === book.source)) {
+    schedule(true);
+    return;
+  }
+  urgent.push({ index: { openings, book: { studentId: book.studentId ?? null, source: book.source ?? 'both' } } });
+  while (urgent.length > MAX_WAITING) urgent.shift();
+  schedule(true);
 }
 
 // A screen needs these now: they're worked out next, briskly.
@@ -174,8 +207,11 @@ export function flushWarm() {
   if (timer) { timer.cancel(); timer = null; }
   while (urgent.length) {
     const batch = urgent.pop();
-    warmPositions(batch.items, { from: batch.at, budgetMs: Infinity });
+    if (batch.index) warmPositionIndex(batch.index.openings, batch.index.book, Infinity);
+    else warmPositions(batch.items, { from: batch.at, budgetMs: Infinity });
   }
   background.at = warmPositions(background.items, { from: background.at, budgetMs: Infinity });
+  if (background.openings) warmPositionIndex(background.openings, {}, Infinity);
+  background.indexed = true;
   tell(true);
 }

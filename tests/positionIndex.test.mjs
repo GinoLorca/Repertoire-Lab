@@ -8,8 +8,9 @@ import { Chess } from 'chess.js';
 
 const {
   buildPositionIndex, positionIndexFor, bookOpenings, bookMovesAt, matchGameToRepertoire, repertoireSide,
-  rankVariationsByMoves, fen4, resetPositionIndexes,
+  rankVariationsByMoves, fen4, resetPositionIndexes, positionIndexReady, warmPositionIndex,
 } = await import('../src/lib/repertoire.js');
+const { requestIndex, onWarmed, flushWarm, warmLibrary } = await import('../src/lib/positionsWarm.js');
 const { classifyGame, categoryOf, playerSummary, playerRecord, OFFBEAT } = await import('../src/lib/games.js');
 const { positionsStats, resetPositions: resetLines } = await import('../src/lib/positions.js');
 // Each test from nothing remembered: no line played out, no index kept.
@@ -270,6 +271,74 @@ test('the shared index: for every student and every "Repertoire to check", what 
   sameIndex(positionIndexFor(openings), oldBuild(bookOpenings(openings)), 'no options');
   assert.equal(positionIndexFor(null).size, 0);
   assert.equal(positionIndexFor(undefined, { studentId: 's1' }).get('x'), undefined);
+});
+
+test('the index filed a slice at a time is the very one filed whole — for every book', () => {
+  for (const studentId of [null, ...students, 'nobody']) {
+    for (const source of SOURCES) {
+      resetPositions();
+      const book = { studentId, source };
+      const want = oldBuild(bookOpenings(openings, book));
+      // The smallest slices there are: one line each time (a budget of nothing).
+      let slices = 0;
+      while (!warmPositionIndex(openings, book, 0)) { slices += 1; assert.ok(slices < 5000, 'it ends'); }
+      assert.equal(positionIndexReady(openings, book, { small: 0 }), true, `${studentId ?? 'you'} / ${source}: ready once warmed`);
+      const walked = positionsStats().walked;
+      const got = positionIndexFor(openings, book);
+      assert.equal(positionsStats().walked, walked, 'handed back without playing anything out again');
+      sameIndex(got, want, `${studentId ?? 'you'} / ${source}, in slices`);
+      assert.equal(positionIndexFor(openings, book), got, 'and the same object after');
+    }
+  }
+});
+
+test('ready or not: nothing is built by asking, except a short book', () => {
+  resetPositions();
+  const mine = { studentId: null, source: 'mine' };
+  // A big book (more lines than `small` allows): not ready, and asking built nothing.
+  assert.equal(positionIndexReady(openings, mine, { small: 3 }), false);
+  assert.equal(positionsStats().walked, 0, 'asking played nothing out');
+  // Half built: still not ready; asked for whole, the half is finished, not started again.
+  warmPositionIndex(openings, mine, 0);
+  warmPositionIndex(openings, mine, 0);
+  assert.equal(positionIndexReady(openings, mine, { small: 0 }), false);
+  const whole = positionIndexFor(openings, mine);
+  sameIndex(whole, oldBuild(bookOpenings(openings, mine)), 'half in slices, the rest at once');
+  assert.equal(positionIndexReady(openings, mine, { small: 0 }), true);
+  // A short book whose lines are worked out: filed on the spot.
+  resetPositions();
+  const s1 = { studentId: 's1', source: 'student' };
+  assert.equal(positionIndexReady(openings, s1), false, 'its lines not worked out yet: left for the background');
+  for (const v of own.s1[0].chapters.flatMap((c) => c.variations)) positionIndexFor([{ ...own.s1[0], ownerId: 'x', chapters: [{ id: 'c', name: 'c', variations: [v] }] }], { studentId: 'x', source: 'student' });
+  assert.equal(positionIndexReady(openings, s1), true, 'worked out, and short: there and then');
+  sameIndex(positionIndexFor(openings, s1), oldBuild(bookOpenings(openings, s1)), 'a short book, on the spot');
+  // No book at all is always ready.
+  assert.equal(positionIndexReady(openings, { source: 'none' }), true);
+  assert.equal(positionIndexReady(null, {}), true);
+  assert.equal(warmPositionIndex(null, {}, 0), true);
+});
+
+test('a board that asks for its index is told when it is there; the background files yours', () => {
+  resetPositions();
+  const book = { studentId: 's2', source: 'both' };
+  let told = 0;
+  const off = onWarmed(() => { told += 1; });
+  requestIndex(openings, book);
+  requestIndex(openings, book); // asked twice: one job
+  assert.equal(positionIndexReady(openings, book, { small: 0 }), false);
+  flushWarm();
+  assert.ok(told >= 1, 'told');
+  assert.equal(positionIndexReady(openings, book, { small: 0 }), true);
+  sameIndex(positionIndexFor(openings, book), oldBuild(bookOpenings(openings, book)), 'asked for, then read');
+  off();
+  // The library, warmed in the background: your own index is there for the first board.
+  resetPositions();
+  warmLibrary({ openings, players: [{ id: 'p', games }] });
+  flushWarm();
+  assert.equal(positionIndexReady(openings, { studentId: null, source: 'mine' }, { small: 0 }), true);
+  const walked = positionsStats().walked;
+  sameIndex(positionIndexFor(openings, { source: 'mine' }), oldBuild(bookOpenings(openings, { source: 'mine' })), 'yours, from the background');
+  assert.equal(positionsStats().walked, walked);
 });
 
 test('each line is played out once, however many cards and boards ask', () => {

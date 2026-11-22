@@ -1,6 +1,8 @@
 import React from 'react';
 import { squareCell } from '../lib/legalMoves';
-import { quietPip, suitOf } from '../lib/suitMarks';
+import { quietPip, suitOf, pieceCode } from '../lib/suitMarks';
+import { usePressed } from '../lib/usePressed';
+import { shownPick } from '../lib/pressed';
 
 // Where a picked piece can go, drawn as an overlay *above* the arrows.
 //
@@ -12,7 +14,22 @@ import { quietPip, suitOf } from '../lib/suitMarks';
 // moving piece's suit instead: a pip on each quiet move, here; a capture's
 // corner pips are on the square itself, under the piece (Board). Without it,
 // every other theme, the dots and rings are exactly as they always were.
-export default function LegalDots({ game, square, boardWidth, orientation, suitPick = null }) {
+//
+// `boardId`: the board these are on. With it, a piece's moves are shown the
+// instant it's pressed (lib/pressed), not when the view has heard of the
+// pick: this part redraws by itself for a press, where the view's whole
+// screen would be felt. `suited`: Court Cards is the theme (a press has no
+// `suitPick` from the view yet; the suit is read off the piece).
+export default function LegalDots({
+  game, square: picked, boardWidth, orientation, suitPick: viewPick = null, boardId = null, suited = false,
+}) {
+  const pressed = usePressed(boardId);
+  const square = shownPick(pressed, picked);
+  // The view's pick is of the square it has picked: a press on another piece
+  // (or before any pick) names its own.
+  const suitPick = pressed && pressed !== viewPick?.square
+    ? (suited && pieceCode(game, pressed) ? { code: pieceCode(game, pressed), square: pressed } : null)
+    : viewPick;
   if (!game || !square || !boardWidth) return null;
   let moves = [];
   try { moves = game.moves({ square, verbose: true }); } catch { return null; }
