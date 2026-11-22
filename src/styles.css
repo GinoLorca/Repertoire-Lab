@@ -5319,6 +5319,30 @@ button.arrow-profile:hover { color: var(--text); }
 }
 .player-tabs button.on { background: var(--card); color: var(--text); box-shadow: 0 1px 4px var(--shadow); }
 .player-tabs .muted-note { font-weight: 500; }
+/* The tabs, and the page's ⤢ Full screen beside them. */
+.player-tabs-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.player-tabs-row .player-full-btn { margin-left: auto; white-space: nowrap; }
+.player-tabs-row .player-full-back { white-space: nowrap; font-weight: 700; }
+/* The player page over the whole window: its tabs and what they show, with
+   nothing of Repertoire Lab's around them — as Game Review's full screen
+   (.gr-full), so a player's CLAMP, Tactics and Openings get the whole width
+   and the boards in them grow with it. Everything on the page above the tabs
+   (the way back, the name, the cards about the account) is left out; the
+   tabs' row stays at the top as the page scrolls under it. */
+.page.player-full {
+  position: fixed; inset: 0; z-index: 150; overflow: auto; -webkit-overflow-scrolling: touch;
+  max-width: none; margin: 0; background: var(--bg);
+  padding: 0 calc(clamp(8px, 1.6vw, 24px) + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(clamp(8px, 1.6vw, 24px) + var(--safe-left));
+}
+.page.player-full > *:has(~ .player-tabs-row) { display: none !important; }
+.page.player-full > .player-tabs-row {
+  position: sticky; top: 0; z-index: 6; background: var(--bg);
+  padding: calc(8px + var(--safe-top, 0px)) 0 8px; margin: 0 0 8px;
+}
+.page.player-full > .player-tabs-row .player-tabs { margin: 0; }
+@media (max-width: 700px) {
+  .player-tabs-row .player-full-back span { display: none; }
+}
 
 .dash { display: flex; flex-direction: column; gap: 16px; }
 .dash-card {

@@ -463,6 +463,8 @@ function GameRow({
   );
 }
 
+const PLAYER_FULL_KEY = 'rl.player.full';
+
 function PlayerPage({
   player, rosterTitle, onBack, onAnalyze, onGameStudio, onGameReview, onScan, onEditProfile, onOpenLibrary, onOpenCollections,
   onOpenLessons, initialTab = null, onTabChange,
@@ -480,6 +482,33 @@ function PlayerPage({
   });
   // The tab is part of the page's address (/coaches/<card>/games).
   useEffect(() => { onTabChange?.(tab); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Full screen: the tabs and what they show over the whole window, without
+  // Repertoire Lab's bars — as Game Review's full screen, so going from a
+  // player's CLAMP or Tactics to a game and back stays one big screen. Kept
+  // for next time, like Game Review's; Esc or the button leaves it.
+  const [full, setFull] = useState(() => {
+    try { return localStorage.getItem(PLAYER_FULL_KEY) === '1'; } catch { return false; }
+  });
+  const keepFull = (on) => {
+    setFull(on);
+    try { localStorage.setItem(PLAYER_FULL_KEY, on ? '1' : '0'); } catch { /* not kept: fine */ }
+  };
+  const busyRef = useRef(false);
+  busyRef.current = Boolean(viewingGameId || editing);
+  useEffect(() => {
+    if (!full) return undefined;
+    const was = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    // Esc leaves it — unless a game is open over the page (its own Esc), or
+    // something on the page already took the key.
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || busyRef.current) return;
+      if (document.querySelector('.modal-overlay, .review-overlay, .search-overlay')) return;
+      keepFull(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => { document.body.style.overflow = was; window.removeEventListener('keydown', onKey); };
+  }, [full]);
 
   // Back from a player's page returns to the section list rather than the app's
   // home screen. (The editor registers its own guard, which wins while open.)
@@ -683,7 +712,7 @@ function PlayerPage({
   const record = playerRecord(filtered.map((r) => r.game));
 
   return (
-    <div className="page">
+    <div className={`page${full ? ' player-full' : ''}`}>
       <div className="breadcrumb">
         <a onClick={onBack}>{rosterTitle}</a>
         <span>▸</span>
@@ -763,6 +792,12 @@ function PlayerPage({
 
       {/* A card with a US Chess ID opens on its dashboard; the games are a tab
           away. (Chosen once per visit — switching stays put.) */}
+      <div className="player-tabs-row">
+      {full && (
+        <button type="button" className="small ghost player-full-back" title={`Back to ${rosterTitle}`} onClick={onBack}>
+          ← <span>{player.name}</span>
+        </button>
+      )}
       <div className="player-tabs" role="tablist" aria-label="Player page">
         <button role="tab" aria-selected={tab === 'dashboard'} className={tab === 'dashboard' ? 'on' : ''} onClick={() => setTab('dashboard')}>
           <TargetIcon size={15} /> Dashboard
@@ -798,6 +833,17 @@ function PlayerPage({
         >
           Openings
         </button>
+      </div>
+      <button
+        type="button"
+        className="small ghost player-full-btn"
+        title={full
+          ? 'Back to the page with Repertoire Lab’s bars (Esc)'
+          : 'This page over the whole window — bigger boards, nothing else on screen'}
+        onClick={() => keepFull(!full)}
+      >
+        {full ? '⤡ Exit full screen' : '⤢ Full screen'}
+      </button>
       </div>
 
       {(tab === 'clamp' || tab === 'tactics' || tab === 'openings') && (
