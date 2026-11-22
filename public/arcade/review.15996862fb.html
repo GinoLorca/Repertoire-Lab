@@ -6106,6 +6106,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .hv-prep-acts .btn-link{ color:var(--ink); text-transform:none; letter-spacing:0; font-size:12.5px; line-height:1.4; text-align:left; overflow-wrap:anywhere; }
   .hv-prep-acts .btn-link:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; border-radius:3px; }
   .hv-prep-key{ color:var(--ink-soft); font-size:11.5px; margin-top:2px; }
+  /* your usual in this line (2026-11-22): the move that left your better games, a button in the sentence */
+  .hv-prep-usual .btn-link{ color:var(--ink); text-transform:none; letter-spacing:0; font-size:12.5px; line-height:1.4; padding:0; font-weight:700; text-decoration:underline; text-underline-offset:2px; vertical-align:baseline; }
+  .hv-prep-usual .btn-link:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; border-radius:3px; }
+  @media (pointer:coarse){ .hv-prep-usual .btn-link{ padding:12px 0; margin:-12px 0; } }      /* a finger's room, the sentence unmoved */
   /* your line, one tap into Repertoire Lab's Learn or Practice for it (2026-10-31) */
   .hv-prep-rl{ display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 16px; margin-top:4px; font-size:12.5px; line-height:1.4; color:var(--ink-soft); }
   .hv-prep-rl > span{ flex:1 0 100%; }                 /* the label on its own line: the review's column is narrow */
@@ -9704,6 +9708,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
               <option value="lost">Did its job, then lost</option>
               <option value="away">Did its job, didn&#8217;t win</option>
               <option value="open">Over before a middlegame</option>
+              <option value="below">Below your usual</option>
             </select>
             <select class="select-input" id="gh-eg" aria-label="Endgame">
               <option value="">Endgame: any</option>
@@ -10220,6 +10225,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           <div class="hv-prep-text" id="hv-prep-depth"></div>
           <div class="hv-prep-text" id="hv-prep-left"></div>
           <div class="hv-prep-text" id="hv-prep-also" hidden></div>
+          <div class="hv-prep-text hv-prep-usual" id="hv-prep-usual" hidden></div>
           <div class="hv-prep-acts" id="hv-prep-acts"><button type="button" class="btn-link" id="hv-prep-go"></button><button type="button" class="btn-link" id="hv-prep-show">Show my line</button><button type="button" class="btn-link" id="hv-prep-games">Games in this chapter</button></div>
           <div class="hv-prep-rl" id="hv-prep-rl" hidden><span>In Repertoire Lab:</span><a class="btn-link" id="hv-prep-learn" target="_blank" rel="noopener">Learn this line</a><a class="btn-link" id="hv-prep-practice" target="_blank" rel="noopener">Practice it</a></div>
           <div class="hv-prep-key" id="hv-prep-key"></div>
@@ -13524,9 +13530,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // Per-skin default: Hustler's marble board reads best with the Wavy Coach
   // set, so that's what a skin with no saved override of its own falls back
   // to. Court Cards wears its own set (the Court Cards Chess Set) and Game Boy
-  // Minimal Chess TWO (2026-11-17: its flat icons suit the dot-matrix screen);
+  // Minimal Chess ONE (the user's pick, 2026-11-22; TWO from 2026-11-17 until then), and Rose the Royal Minimal
+  // Chess Set and Drive-Thru the Rim Light Chess Set (the user's picks, 2026-11-22);
   // every other skin defaults to the classic Staunton set, same as ever.
-  const PIECE_STYLE_DEFAULTS = { felt:'default', hustler:'wavyCoach', bauhaus:'default', gameboy:'minimalTwo', outerspace:'default', drivethru:'default', rose:'default', chessbook:'default', uptown:'default', cards:'courtCards', custom:'default' };
+  const PIECE_STYLE_DEFAULTS = { felt:'default', hustler:'wavyCoach', bauhaus:'default', gameboy:'minimalOne', outerspace:'default', drivethru:'rimLight', rose:'royalMinimal', chessbook:'default', uptown:'default', cards:'courtCards', custom:'default' };
   let PIECE_SVG = PIECE_SVG_DEFAULT;
 
   /* A tiny static tableau in the header -- not a real board, just enough
@@ -15989,6 +15996,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   if(!(lookPrefs.psetV >= 3)){
     if(lookPrefs.pieceStyleBySkin.gameboy==='default') delete lookPrefs.pieceStyleBySkin.gameboy;
     lookPrefs.psetV = 3;
+  }
+  // One-time (2026-11-22): Game Boy's own set became Minimal Chess ONE (the user's pick). TWO saved on Game Boy before then
+  // was the old default shown back, not a choice: dropped once so the theme shows ONE. Chess Book loads its own set, the
+  // standard one (the user, the same day: "make sure that the default piece set is the standard ... for the chess book
+  // theme"): any set saved there is dropped once too. psetV 4 marks it done, so a pick made after it stays.
+  if(!(lookPrefs.psetV >= 4)){
+    if(lookPrefs.pieceStyleBySkin.gameboy==='minimalTwo') delete lookPrefs.pieceStyleBySkin.gameboy;
+    delete lookPrefs.pieceStyleBySkin.chessbook;
+    if(lookPrefs.pieceStyleBySkin.rose==='default') delete lookPrefs.pieceStyleBySkin.rose;      // Rose's own set became Royal Minimal
+    if(lookPrefs.pieceStyleBySkin.drivethru==='default') delete lookPrefs.pieceStyleBySkin.drivethru;      // Drive-Thru's, Rim Light
+    lookPrefs.psetV = 4;
   }
   // Object.assign above is shallow -- an existing user's saved customColors
   // (the old 5-key shape, before pieceWhite/pieceBlack/pieceStroke existed)
@@ -29492,7 +29510,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   const GH_F_DEFAULT = { speed:'', result:'', opening:'', oq:'', color:'', tc:'', rated:'', opp:'', gap:'', end:'', eg:'', oj:'', len:'', date:'', variant:'', notes:false, rep:'', ck:'', ga:'' };
   const GH_F_SETS = { speed:['ultraBullet','bullet','blitz','rapid','classical','correspondence'], result:['win','loss','draw'],
     color:['white','black'], rated:['rated','casual'], gap:['higher','even','lower'], end:['mate','resign','time','draw','other'],
-    len:['short','medium','long'], date:['3','7','15','30','90','year'], oj:['done','not','lost','away','open'], eg:['yes','no','pawn','rook','queen','bishopOpp','bishopSame','knight','bishopKnight','minor','rookMinor','queenMix','uneven'] };
+    len:['short','medium','long'], date:['3','7','15','30','90','year'], oj:['done','not','lost','away','open','below'], eg:['yes','no','pawn','rook','queen','bishopOpp','bishopSame','knight','bishopKnight','minor','rookMinor','queenMix','uneven'] };
   const GH_PARAM_KEYS = ['speed','result','opening','oq','color','tc','rated','opp','gap','end','eg','oj','len','date','variant','notes','rep','ck','ga'];
   var EG = new Map(), EG_JOB = null, EG_SIG = '', EG_DONE = false;       // each game's endgame (where it begins, the kinds it went through): egEnsure
   // the repertoire filter (gho*, SPEC B.7): opening / trunk / course / chapter / line, outside, or a spot
@@ -30619,8 +30637,18 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const active = ghActiveCount() > 0;
     const rows = active ? base.filter(g=> ghMatch(g, u, GH_FILTERS)) : base;
     // with the opening's job as a filter: how many of the games it would list aren't scored yet (the footer says)
-    GH_OJ_WAIT = 0;
-    if(GH_FILTERS.oj && ojReady()){ const fo = Object.assign({}, GH_FILTERS, { oj:'' }); base.forEach(g=>{ const r = ojOf(g); if(r && r.k==='wait' && ghMatch(g, u, fo)) GH_OJ_WAIT++; }); }
+    GH_OJ_WAIT = 0; GH_OU_GAP = 0;
+    if(GH_FILTERS.oj && ojReady()){
+      const fo = Object.assign({}, GH_FILTERS, { oj:'' }), bw = GH_FILTERS.oj==='below';
+      base.forEach(g=>{
+        const r = ojOf(g), wt = !!r && r.k==='wait';
+        if(!wt && !bw) return;
+        if(!ghMatch(g, u, fo)) return;
+        if(wt){ GH_OJ_WAIT++; return; }
+        const o = ouOf(g);                       // Below your usual: a game with no usual to compare (a thin line, not sorted yet)
+        if(o && (o.k==='thin' || o.why==='rp')) GH_OU_GAP++;
+      });
+    }
     // a drill-down from Analytics: the games it can't place until Analytics has read them (the footer says; the job reads them)
     GA_WAIT = 0;
     if(GH_FILTERS.ga && gaNeeds(GH_FILTERS.ga)){ const q = GH_FILTERS.ga, fo = Object.assign({}, GH_FILTERS, { ga:'' }); base.forEach(g=>{ if(gaUnread(g, q) && ghMatch(g, u, fo)) GA_WAIT++; }); if(GA_WAIT) gaJobKick(); }
@@ -30665,10 +30693,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const seq = ++GH_RENDER_SEQ;
     if(!document.hidden) try{ requestAnimationFrame(()=> setTimeout(()=>{ if(seq===GH_RENDER_SEQ && !document.hidden) GH_RENDER_MS = Math.max(GH_RENDER_MS, Math.min(1000, performance.now() - t0)); }, 0)); }catch(e){}
   }
-  var GH_DRAWN = null, GH_OJ_WAIT = 0;
+  var GH_DRAWN = null, GH_OJ_WAIT = 0, GH_OU_GAP = 0;
   // the Games list is on screen and a sorting batch gave none of its rows a new line (no repertoire filter, sorting goes on):
   // nothing to redraw. The batch that ends the sorting always redraws.
   function ghRpBatchIdle(){
+    // the batch that ends the sort reaches the views that read your lines through ou* (Analytics' usual card, Below your usual)
+    if(currentView==='history' && !RP_JOB && (gaOn() || GH_FILTERS.oj==='below')) return false;
     if(currentView==='history' && ghbOn() && !GH_FILTERS.rep && !ghoOn()) return true;     // Boards shows no repertoire lines
     if(currentView==='history' && (ctOn() || ttOn()) && !GH_FILTERS.rep) return true;       // nor do CLAMP and Tactics (their games don't change)
     if(currentView==='history' && (gaOn() || gzOn()) && !GH_FILTERS.rep) return true;       // nor Analytics and Puzzles
@@ -30748,9 +30778,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     else if(GH_STATE.error==='load' && GH_STATE.games.length) msg = 'Couldn\u2019t load more games. Try again in a moment.';
     else if(GH_STATE.capped) msg = 'Showing your newest '+GH_CAP.toLocaleString('en-US')+' games.';
     // the opening's job: the games this list would show that it can't place yet (never a silent gap)
-    if(!ghoOn() && !gaOn() && !gzOn() && GH_FILTERS.oj && GH_OJ_WAIT > 0){
+    if(GH_UI.view==='games' && GH_FILTERS.oj && GH_OJ_WAIT > 0){
       msg = (msg ? msg+' ' : '')+ghoN(GH_OJ_WAIT, 'game')+' not scored yet. '+(OJ_NOENG ? 'Stockfish can\u2019t run here.' : OJ_ON ? 'They join this list once the Openings tab has checked them.' : 'Turn on Opening checks in Settings to score them.');
     }
+    if(GH_UI.view==='games' && GH_FILTERS.oj==='below' && GH_OU_GAP > 0) msg = (msg ? msg+' ' : '')+ghoN(GH_OU_GAP, 'game')+(GH_OU_GAP===1 ? ' has no usual to compare yet (fewer than '+OU_MIN+' other scored games in its line, or not sorted into your lines yet).'
+      : ' have no usual to compare yet (fewer than '+OU_MIN+' other scored games in their line, or not sorted into your lines yet).');
     // Analytics' drill-down key: the games it can't place yet (never a silent gap)
     if(GH_UI.view==='games' && GH_FILTERS.ga && GA_WAIT > 0) msg = (msg ? msg+' ' : '')+ghoN(GA_WAIT, 'game')+' not read yet. They join this list as Analytics reads them.';
     note.textContent = msg;
@@ -35341,7 +35373,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // the games without an endgame yet get one; only when the filter or the Openings tab wants them, and only when the
   // games changed (a draw costs nothing otherwise)
   function egEnsure(){
-    if(!GH_FILTERS.eg && !ghoOn() && !((GH_UI.view==='games' || ctOn() || ttOn()) && (GH_FILTERS.oj || ghbOn())) && !gaOn() && !gzOn() && !gaNeedsEg(GH_FILTERS.ga)) return;
+    if(!GH_FILTERS.eg && !ghoOn() && !((GH_UI.view==='games' || ctOn() || ttOn()) && (GH_FILTERS.oj || ghbOn())) && !gaOn() && !gzOn() && !gaNeedsEg(GH_FILTERS.ga)
+      && !(currentView==='play-history' && typeof HV_STATE!=='undefined' && HV_STATE)) return;      // the review's usual line (hpUsual) reads them too
     if(EG_JOB){ EG_JOB.more = true; return; }
     const sig = GH_STATE.games.length+'|'+(ghCcUp() ? ccGames().length : 0)+'|'+(typeof GN==='object' && GN && GN.notes ? Object.keys(GN.notes).length : 0);
     if(sig===EG_SIG) return;
@@ -35359,6 +35392,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const first = !EG_DONE;
       EG_DONE = true;
       if(job.added) OJ_VER++;                                  // games read: the opening's job grades them (oj*)
+      if(currentView==='play-history' && typeof HV_STATE!=='undefined' && HV_STATE) setTimeout(()=>{ try{ if(HV_STATE) hpRender(HV_STATE); }catch(e){} }, 0);
       // drawn once with the new endgames: right away the first time, else after a pause (never while you type a search)
       const draw = ()=>{ if(currentView!=='history' || !(GH_FILTERS.eg || GH_FILTERS.oj || ghoOn() || GH_UI.boards || gaOn() || gzOn() || gaNeedsEg(GH_FILTERS.ga))) return; if(Date.now() - GHO_QAT < 900){ setTimeout(draw, 900); return; } OJ_VER++; ghRender(); };
       setTimeout(draw, first ? 0 : 400);
@@ -35446,7 +35480,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const A = ojEvalAt(g, x, x.qa);
     if(!A) return { k:'wait', res, lost:false, slip:null };
     const my = hrMoverScore(A.s, mine), done = my >= OJ_BAR[mine];
-    const r = { k: done ? 'done' : 'not', open:false, res, my, src:A.src, lost: done && res==='loss', slip:null };
+    const r = { k: done ? 'done' : 'not', open:false, res, my, mt:A.s.type==='mate', src:A.src, lost: done && res==='loss', slip:null };
     if(r.lost){
       if(x.qb < 0) r.slip = x.m < 0 ? 'end' : 'mid';           // no endgame: the middlegame; straight into one: the endgame
       else {
@@ -35460,8 +35494,179 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function ojMatch(g, v){
     const r = ojOf(g);
     if(!r || r.k==='wait') return false;                       // not checked yet (or never graded): matches no setting
-    return v==='done' ? r.k==='done' : v==='not' ? r.k==='not' : v==='lost' ? !!r.lost : v==='away' ? r.k==='done' && !r.open && r.res!=='win' : v==='open' ? !!r.open : false;
+    return v==='done' ? r.k==='done' : v==='not' ? r.k==='not' : v==='lost' ? !!r.lost : v==='away' ? r.k==='done' && !r.open && r.res!=='win' : v==='open' ? !!r.open : v==='below' ? ouBelow(g) : false;
   }
+  // ---- Your usual out of the opening (2026-11-22). The user: "Wavy Works usually by move number 6 in this opening is
+  // usually up by 3. But now in this particular game, it's equal. I want to see how is my opponent making it equal in that
+  // game." Each game's score where the middlegame starts (ojOf's `my`: Did its job's checkpoint, from your review, else
+  // Lichess's analysis, else Opening checks' Stockfish 16) against your usual in the same line with the same color: the
+  // middle score of your OTHER games there (all dates and speeds; OU_MIN of them at least). Below = OU_DROP+ points of
+  // winning chances under it (Lichess's 0-100 scale, as Puzzles' swing), or lost before a middlegame. The split (by position,
+  // not move order): the last position one of your games at or above your usual also reached, and the move this game played
+  // there. No engine and no store of its own. ----
+  var OU = { sig:'', by:new Map(), G:new Map(), sp:new Map(), n:{ ok:0, wait:0, thin:0 }, tick:false };
+  var OU_MIN = 5, OU_DROP = 15;
+  var OU_KEYS = new Map();          // a game's positions to its checkpoint, kept for the session (one replay a game): id -> { ck, keys }
+  function ouWin(cp){ return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * cp)) - 1); }
+  // the middle of sorted scores; with an even count the two middle ones averaged, unless one is a mate (exactly +-1000: an average
+  // would be a score no game had): then the lower one
+  function ouMid(o){
+    const m = o.length;
+    if(!m) return null;
+    if(m % 2) return o[(m - 1) / 2];
+    const a = o[m / 2 - 1], b = o[m / 2];
+    return Math.abs(a)===1000 || Math.abs(b)===1000 ? a : (a + b) / 2;
+  }
+  // the line a game is filed under, with your color: your Repertoire Lab chapter; the opening, when the game left your book
+  // before its chapters split; else the game's own opening name (Lichess's or chess.com's, folded: the two sites' names meet)
+  function ouGroupOf(g, color){
+    const r = RP ? rpResult(g) : null;
+    if(r && (r.kind==='chapter' || r.kind==='trunk')){
+      const lb = rpPathLabel(r);
+      if(lb && r.kind==='chapter') return { key:'c.'+r.openingId+'.'+r.chapterId+'|'+color, label:lb, rep:'c.'+r.openingId+'.'+r.chapterId };
+      if(lb) return { key:'t.'+r.openingId+'|'+color, label:lb+' (before the chapters split)', rep:'t.'+r.openingId };
+    }
+    const nm = g.opening && g.opening.name ? String(g.opening.name).trim() : '', s = nm ? ghSlug(nm) : '';
+    return s ? { key:'n.'+s+'|'+color, label:nm, rep:'' } : null;
+  }
+  // what the model reads: the games (both sites and noted ones), the scores (OJ_VER), the openings' ends read (EG), which
+  // repertoire (its content and the openings turned off) and how far the games are sorted into it, the account
+  function ouSig(){
+    return [GH_STATE.games.length, ghCcUp() ? ccGames().length : 0, typeof GN==='object' && GN && GN.notes ? Object.keys(GN.notes).length : 0, OJ_VER, EG.size,
+      RP ? RP.hash : '', RP_RES.size, ghMe() || ''].join('|');
+  }
+  // at most one check of the key a task (ghMatch asks for every game of a list): the model is built again only when it changed
+  function ouEnsure(){
+    if(OU.tick) return;
+    OU.tick = true;
+    try{ queueMicrotask(()=>{ OU.tick = false; }); }catch(e){ Promise.resolve().then(()=>{ OU.tick = false; }); }
+    const s = ouSig();
+    if(s===OU.sig) return;
+    OU.sig = s;
+    try{ ouBuild(); }catch(e){ OU.by = new Map(); OU.G = new Map(); OU.sp = new Map(); OU.n = { ok:0, wait:0, thin:0 }; }
+  }
+  // per game { k:'ok'|'thin'|'wait', why ('rp': not sorted into your lines yet), grp, n (other scored games in its line), my,
+  // usual, below, open, res, src }; nothing for a game the opening's job never grades (a variant, no real result, a computer).
+  // Noted games not loaded (summaries) count as ojOf grades them.
+  function ouBuild(){
+    const u = ghMe() || '', by = new Map(), G = new Map(), n = { ok:0, wait:0, thin:0 };
+    rpGames().forEach(g=>{
+      if(!ghIsStd(g) || g.initialFen || gaNoRes(g.status) || OJ_SKIP.has(g.status) || ghVsComputer(g)) return;
+      const id = String(g.id), color = ghMyColor(g, u)==='white' ? 'white' : 'black';
+      if(RP && !rpResult(g)){ by.set(id, { k:'wait', why:'rp' }); n.wait++; return; }       // not sorted into your lines yet
+      const r = ojOf(g);
+      if(!r) return;
+      if(r.k==='wait'){ by.set(id, { k:'wait', why:'oj' }); n.wait++; return; }            // no score where the middlegame starts yet
+      const gr = ouGroupOf(g, color);
+      if(!gr) return;
+      let K = G.get(gr.key);
+      if(!K){ K = { key:gr.key, label:gr.label, rep:gr.rep, color, list:[] }; G.set(gr.key, K); }
+      K.list.push({ g, id, open:!!r.open, res:r.res, my:r.open ? null : r.my, mt:!r.open && !!r.mt, src:r.src || '' });
+    });
+    G.forEach(K=>{
+      const s = K.list.filter(e=> e.my!=null).map(e=> e.my).sort((a, b)=> a - b);
+      K.list.forEach(e=>{
+        let o = s;
+        if(e.my!=null){ const k = s.indexOf(e.my); o = s.slice(0, k).concat(s.slice(k + 1)); }       // your OTHER games
+        const m = o.length, rec = { k:'thin', grp:K.key, n:m, my:e.my, mt:e.mt, open:e.open, res:e.res, src:e.src, usual:null, below:false };
+        if(m >= OU_MIN){
+          rec.k = 'ok';
+          rec.usual = ouMid(o);
+          rec.below = e.open ? e.res==='loss' : ouWin(rec.usual) - ouWin(e.my) >= OU_DROP - 1e-9;
+        }
+        by.set(e.id, rec);
+        n[rec.k]++;
+      });
+    });
+    OU.by = by; OU.G = G; OU.sp = new Map(); OU.n = n;
+  }
+  function ouOf(g){ ouEnsure(); return g ? OU.by.get(String(g.id)) || null : null; }
+  // the Games filter's "Below your usual"
+  function ouBelow(g){ const r = ouOf(g); return !!(r && r.k==='ok' && r.below); }
+  // where a game below your usual left your better games (kept until the model changes):
+  // { at (plies before the move), who 'you'|'opp', mv, alt:[{ mv, nb, usual }], prep 'in'|'out'|'past'|'' }; { at:null, src }
+  // when it reached one of their checkpoint positions itself (the scores differ: their sources); { at:null, end:true } for a
+  // game lost before a middlegame from a position they reached too; null when there's nothing to say
+  function ouSplit(g){
+    const id = String(g.id);
+    ouEnsure();
+    if(OU.sp.has(id)) return OU.sp.get(id);
+    let out = null;
+    try{ out = ouSplitOf(g); }catch(e){ out = null; }
+    OU.sp.set(id, out);
+    return out;
+  }
+  // a game's positions from the start to its checkpoint (where the middlegame's score is read; a game over before one: its end),
+  // kept for the session: the same moves and checkpoint are never replayed twice
+  function ouKeys(e){
+    if(e.keys) return e.keys;
+    const g = e.g, id = String(g.id), t = e.toks || (e.toks = gaToks(g)), x = EG.get(id), cap = Math.min(t.length, x && x.qa > 0 ? x.qa : t.length);
+    const ck = String(g.moves || '').length+'|'+cap+'|'+(x && x.h ? x.h : ''), c = OU_KEYS.get(id);
+    if(c && c.ck===ck) return (e.keys = c.keys);
+    let st = pzStartPosition();
+    const k = [rpKey(st)];
+    for(let i = 0; i < cap; i++){ const mv = rpSanToMove(st, t[i]); if(!mv) break; st = pzApplyMoveRaw(st, mv); k.push(rpKey(st)); }
+    if(OU_KEYS.size > 6000) OU_KEYS.clear();
+    OU_KEYS.set(id, { ck, keys:k });
+    return (e.keys = k);
+  }
+  // by position, not move order (a game that reached your usual position another way is the same game there): the last
+  // position of this game that one of your better games also reached before its own checkpoint, the move it played there and
+  // theirs
+  function ouSplitOf(g){
+    const id = String(g.id), rec = OU.by.get(id), K = rec && OU.G.get(rec.grp);
+    if(!rec || rec.k!=='ok' || !rec.below || !K) return null;
+    const self = K.list.find(e=> e.id===id);
+    if(!self) return null;
+    // a game below its usual is under it (or has no score): its better games are every game at the usual or above, the same
+    // set for every such game of the line, kept with its positions for this model
+    const C = K.bs || (K.bs = new Map());
+    let B = C.get(rec.usual);
+    if(!B){
+      const bt = K.list.filter(e=> e.my!=null && e.my >= rec.usual), sn = new Set();
+      bt.forEach(e=> ouKeys(e).forEach(k=> sn.add(k)));
+      B = { better:bt.filter(e=> e.id!==id), all:bt, seen:sn };
+      C.set(rec.usual, B);
+    }
+    const better = B.all.filter(e=> e.id!==id), seen = B.seen;
+    if(!better.length) return null;
+    const toks = self.toks || (self.toks = gaToks(g)), mine = ouKeys(self);
+    let at = -1;
+    for(let i = mine.length - 1; i >= 0; i--) if(seen.has(mine[i])){ at = i; break; }
+    if(at < 0) return null;
+    const key = mine[at];
+    if(at===mine.length - 1){
+      if(self.open) return { at:null, end:true };                                     // lost from a position they reached too
+      // this game's own checkpoint is a position they reached: its score was read there, so no later move explains it
+      const same = better.filter(e=>{ const k = ouKeys(e); return k[k.length - 1]===key; });
+      return { at:null, src:same.some(e=> e.src!==self.src) };
+    }
+    // the moves your better games played from that position (the first time each reached it)
+    const M = new Map();
+    better.forEach(e=>{
+      const k = ouKeys(e), t = e.toks || (e.toks = gaToks(e.g)), j = k.indexOf(key);
+      if(j < 0 || j >= t.length || t[j]===toks[at]) return;
+      let m = M.get(t[j]);
+      if(!m){ m = { mv:t[j], nb:0, s:[] }; M.set(t[j], m); }
+      m.nb++;
+      m.s.push(e.my);
+    });
+    const alt = Array.from(M.values()).sort((a, b)=> b.nb - a.nb || (a.mv < b.mv ? -1 : 1)).slice(0, 2)
+      .map(m=> ({ mv:m.mv, nb:m.nb, usual:ouMid(m.s.slice().sort((p, q)=> p - q)) }));
+    const color = K.color, mover = at % 2 ? 'black' : 'white';
+    // your Repertoire Lab lines at that position (only for a line of your repertoire, a color you have lines for): the move is
+    // in them, isn't, or the game was past your prep there (no line at that position, after the deepest point it reached in them)
+    let prep = '';
+    const S = RP && RP.side[color];
+    if(S && S.has && /^[ct]\./.test(K.key)){
+      const nz = (x)=> String(x).replace(/[+#!?]+$/, ''), bk = rpBookAt(color, key).map(nz), rr = rpResult(g);
+      prep = bk.length ? (bk.indexOf(nz(toks[at])) >= 0 ? 'in' : 'out') : rr && (rr.kind==='chapter' || rr.kind==='trunk') && at >= rr.prepPly ? 'past' : '';
+    }
+    return { at, who: mover===color ? 'you' : 'opp', mv:toks[at], alt, prep };
+  }
+  // a score from your side in engine pawns ("+2.40"); a mate in words (mt: the score was a mate; unknown, a usual: exactly +-1000,
+  // the value hrMoverScore gives a mate; 10+ pawns that aren't a mate stay numbers)
+  function ouPawns(cp, mt){ const m = mt==null ? Math.abs(cp)===1000 : !!mt; return m ? (cp > 0 ? 'a mate for you' : 'a mate against you') : gaSign(cp / 100, 2); }
   // ---- the store: one record a game, { id, h, v, a:{ p, s, src, d }, b } ----
   function ojIdb(){
     return OJ_IDBP || (OJ_IDBP = new Promise((res)=>{
@@ -35478,7 +35683,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     ojIdb().then(db=> new Promise(res=>{
       if(!db) return res();
       try{ const q = db.transaction('c').objectStore('c').getAll(); q.onsuccess = ()=>{ (q.result || []).forEach(r=>{ if(r && r.id) OJ_DB.set(String(r.id), r); }); res(); }; q.onerror = ()=> res(); }catch(e){ res(); }
-    })).then(()=>{ OJ_LOADED = true; OJ_VER++; ojStatus(); if(currentView==='history' && OJ_DB.size && (ghoOn() || GH_FILTERS.oj || ghbOn())) ghRender(); });
+    })).then(()=>{ OJ_LOADED = true; OJ_VER++; ojStatus(); if(currentView==='history' && OJ_DB.size && (ghoOn() || GH_FILTERS.oj || ghbOn() || gaOn())) ghRender(); if(currentView==='play-history' && typeof HV_STATE!=='undefined' && HV_STATE) hpRender(HV_STATE); });
   }
   function ojPut(rec){ ojIdb().then(db=>{ if(!db) return; try{ db.transaction('c', 'readwrite').objectStore('c').put(rec); }catch(e){} }); }
   function ojKeep(g, x, which, score, src, d){
@@ -35495,7 +35700,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // filter) and Puzzles ('z': its tab, its switch, games left to look at); `kind` asks about one of them
   function ojWanted(kind){
     if(OJ_NOENG || !egReady() || currentView!=='history' || document.hidden) return false;
-    const oj = ()=> OJ_ON && OJ_LOADED && (ghoOn() || (GH_UI.view==='games' && (ghbOn() || !!GH_FILTERS.oj)) || ((ctOn() || ttOn()) && !!GH_FILTERS.oj));
+    const oj = ()=> OJ_ON && OJ_LOADED && (ghoOn() || (GH_UI.view==='games' && (ghbOn() || (!!GH_FILTERS.oj && !GH_FILTERS.ga))) || ((ctOn() || ttOn()) && !!GH_FILTERS.oj && !GH_FILTERS.ga));      // a list from Analytics never starts them
     const z = ()=> GZ_ON && GZ_LOADED && gzOn() && gzHasWork();
     return kind==='oj' ? oj() : kind==='z' ? z() : oj() || z();
   }
@@ -35902,7 +36107,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       try{ localStorage.setItem(OJ_KEY, OJ_ON ? 'on' : 'off'); }catch(e2){}
       if(!OJ_ON){ if(!OJ_JOB || OJ_JOB.kind==='oj') ojStop(); } else ojEnsure();       // a Puzzles search goes on
       ojStatus();
-      if(currentView==='history' && ghbOn() && GH_UI.bmom==='k') ghRender();          // Boards at Key moment says why some aren't looked at
+      if(currentView==='history' && ((ghbOn() && GH_UI.bmom==='k') || gaOn())) ghRender();          // Boards at Key moment / Analytics' usual card say why some aren't scored
     });
     document.getElementById('settings-fab').addEventListener('click', ()=> setTimeout(ojStatus, 0));
     ojStatus();
@@ -37714,7 +37919,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   var GA_WINS = [['3', '3d', 'Last 3 days', 3], ['7', '7d', 'Last 7 days', 7], ['15', '15d', 'Last 15 days', 15], ['30', '30d', 'Last 30 days', 30],
     ['90', '90d', 'Last 90 days', 90], ['', 'All', 'All dates', 0]];
   // the cards, in the page's order (their folds are kept per card in GH_UI.gaf; the list is also in gaFoldsValid)
-  var GA_CARDS = ['ga-out', 'ga-res', 'ga-col', 'ga-clk', 'ga-mate', 'ga-marks', 'ga-opp', 'ga-end', 'ga-acc', 'ga-cas', 'ga-cal'];
+  var GA_CARDS = ['ga-out', 'ga-res', 'ga-col', 'ga-clk', 'ga-ou', 'ga-mate', 'ga-marks', 'ga-opp', 'ga-end', 'ga-acc', 'ga-cas', 'ga-cal'];
   var GA_MORE = ['ga-opp', 'ga-end', 'ga-acc', 'ga-cas', 'ga-cal'];       // "More questions": folded by default below 960px
   var GA_NOFOLD = ['ga-out', 'ga-res'];                                     // never folded (the first screen's answers)
   function gaOn(){ return GH_UI.view==='analytics'; }
@@ -37740,7 +37945,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function gaFoldsValid(o){
     const out = {};
     if(!o || typeof o!=='object') return out;
-    ['ga-col', 'ga-clk', 'ga-mate', 'ga-marks', 'ga-opp', 'ga-end', 'ga-acc', 'ga-cas', 'ga-cal'].forEach(k=>{ if(o[k]===0 || o[k]===1) out[k] = o[k]; });
+    ['ga-col', 'ga-clk', 'ga-ou', 'ga-mate', 'ga-marks', 'ga-opp', 'ga-end', 'ga-acc', 'ga-cas', 'ga-cal'].forEach(k=>{ if(o[k]===0 || o[k]===1) out[k] = o[k]; });
     return out;
   }
   // { prev:'30' | 'year' | '', atom } (a bare prev:N is the window before, all its games)
@@ -38195,7 +38400,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const B = base.filter(gaInBase);
     const v = f.date || '', from = gaFrom(v, now), pw = gaPrev(v, now);
     const md = { u, now, f, v, from, pw, nBase:base.length, nB:B.length, A:[], W:[], P:[], sp:new Map(), spAll:0, say:{}, loading:!base.length && ghTabBusy() };
+    // the usual card counts the window with the Opening's job filter left out (its number opens Below your usual)
+    const fu = f.oj ? Object.assign({}, f0, { oj:'' }) : null;
+    if(fu) md.Wou = [];
     B.forEach(g=>{
+      if(fu){ const at = Number(g.createdAt) || 0; if(at >= from && !(f.speed && g.speed!==f.speed) && ghMatch(g, u, fu)) md.Wou.push(gaEntry(g, u, at)); }
       if(!ghMatch(g, u, f0)) return;
       const at = Number(g.createdAt) || 0, inW = at >= from;
       if(inW){ md.spAll++; md.sp.set(g.speed, (md.sp.get(g.speed) || 0) + 1); }
@@ -38214,6 +38423,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     md.partial = !!v ? gaPartialAt(md.L, from) || (pw ? gaPartialAt(md.L, pw[0]) : false) : gaPartialAt(md.L, 0);
     gaModelResults(md);
     gaModelColor(md);
+    gaModelUsual(md);
     gaModelClock(md);
     gaModelMates(md);
     gaModelMm(md);
@@ -38411,7 +38621,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function gaSigB(md){
     return [GH_UI.site, JSON.stringify(md.f), Math.floor(ghoBriefNow()/36e5), md.nBase, md.nB, md.A.length, md.W.length, md.P.length, md.hash, md.unread,
       md.loading ? 1 : 0, EG_DONE ? 1 : 0, EG_DONE ? EG.size : -1, GA_FV, OJ_VER, typeof LZ==='object' && LZ ? LZ.ver : '', ghMe() || '', gaMarksStamp(md),
-      JSON.stringify(md.L), gaPhone() ? 1 : 0].join('|');
+      JSON.stringify(md.L), gaPhone() ? 1 : 0, md.ou ? md.ou.stamp : '', md.ou && md.ou.wait ? (OJ_ON ? 1 : 0)+':'+(OJ_NOENG ? 1 : 0) : ''].join('|');
   }
   // your marks on the scope's games (spec 9.2): each marked game's id and record, hashed (gaModelMarks)
   function gaMarksStamp(md){ return md.marks ? md.marks.stamp : ''; }
@@ -38441,7 +38651,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     let h = base.length;
     for(let i = 0; i < base.length; i++) h = (h*31 + gaGameKey(base[i])) | 0;
     return [GH_UI.site, JSON.stringify(GH_FILTERS), gaNow(), h, GA_FV, MM_V, EG_DONE ? EG.size : -1, EG_DONE ? 1 : 0, OJ_VER, gaRevStamp(),
-      typeof LZ==='object' && LZ ? LZ.ver : '', ghMe() || '', gaNotesStamp(), gaPhone() ? 1 : 0, JSON.stringify(gaLoaded()), ghTabBusy() ? 1 : 0, GA_DRAW.size].join('|');
+      typeof LZ==='object' && LZ ? LZ.ver : '', ghMe() || '', gaNotesStamp(), gaPhone() ? 1 : 0, JSON.stringify(gaLoaded()), ghTabBusy() ? 1 : 0, GA_DRAW.size,
+      // the usual card's own inputs the terms above don't cover (the endgames and scores are: EG gated, OJ_VER): which repertoire,
+      // how far the games are sorted into it, the other site's games and noted ones (the usual reads every game you have)
+      RP ? RP.hash : '', RP_RES.size, GH_STATE.games.length, ghCcUp() ? ccGames().length : 0, typeof GN==='object' && GN && GN.notes ? Object.keys(GN.notes).length : 0].join('|');
   }
   // ---- the tab's drawing: chip rows (their own signature), then the cards when the model's signature changed ----
   function gaRender(base){
@@ -39124,7 +39337,207 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const tb = document.getElementById('ga-clk-tbl');
     if(tb) tb.hidden = !GA.open.clk;
   }
-  GA_DRAW_CARDS.push(['ga-col', gaDrawCol], ['ga-clk', gaDrawClk]);
+  GA_DRAW_CARDS.push(['ga-col', gaDrawCol], ['ga-clk', gaDrawClk], ['ga-ou', gaDrawUsual]);      // the wide card after the Color | Clock pair
+  // ---- When did my opening fall short of my usual? (2026-11-22; ou*: your usual in each line where the middlegame starts) ----
+  // the window's games (the Filters, the Date; the Opening's job filter left out, so the count is what "Below your usual" opens)
+  // against your usual in their line (all dates and speeds); boards for the ones below
+  function gaModelUsual(md){
+    const U = { on:ojReady(), rows:[], ok:0, wait:0, sort:0, thin:0, lines:[], stamp:'' };
+    md.ou = U;
+    if(!U.on) return;
+    const L = new Map();
+    (md.Wou || md.W).forEach(e=>{
+      const r = ouOf(e.g);
+      if(!r) return;
+      if(r.k==='wait'){ if(r.why==='rp') U.sort++; else U.wait++; return; }
+      if(r.k==='thin'){ U.thin++; return; }
+      U.ok++;
+      if(!r.below) return;
+      const K = OU.G.get(r.grp);
+      if(!K) return;
+      U.rows.push({ e, r, K, sp:undefined });           // its split: worked out when its card is drawn (ouRowSplit)
+      let x = L.get(r.grp);
+      if(!x){ x = { K, n:0, at:0 }; L.set(r.grp, x); }
+      x.n++; x.at = Math.max(x.at, e.at);
+    });
+    U.rows.sort((a, b)=> b.e.at - a.e.at || (String(a.e.g.id) < String(b.e.g.id) ? -1 : 1));
+    U.lines = Array.from(L.values()).sort((a, b)=> b.n - a.n || b.at - a.at || a.K.label.localeCompare(b.K.label));
+    U.stamp = gnFnv(U.rows.map(x=> x.e.g.id+':'+x.r.usual+':'+x.r.my+':'+x.K.key).join(',')+'|'+U.ok+'|'+U.wait+'|'+U.sort+'|'+U.thin+'|'+
+      U.lines.map(l=> l.K.label).join(','));
+    const W = (c)=> c==='white' ? 'White' : 'Black';
+    if(U.rows.length){
+      const top = U.lines[0], lead = U.lines.length===1 ? ', all in '+top.K.label+' as '+W(top.K.color)
+        : top.n > 1 && top.n > U.lines[1].n ? ', most in '+top.K.label+' as '+W(top.K.color)+' ('+top.n+')' : '';
+      md.say['ga-ou'] = { t:ghoN(U.rows.length, 'game')+' of '+U.ok.toLocaleString('en-US')+' came out of the opening below your usual'+lead+'.', kind:'fact', bold:true };
+    } else md.say['ga-ou'] = { t: U.ok ? 'No game came out of the opening below your usual.' : '', kind:'fact', bold:false };
+  }
+  var GA_OUIO = null, GA_OUB = new Map();     // the boards' observer; the boards drawn (40 kept)
+  function gaDrawUsual(md, frag){
+    const U = md.ou, c = gaCard('ga-ou', 'When did my opening fall short of my usual?', '', true);
+    const top = ghEl('div', 'ga-num ga-mtop');
+    c.appendChild(top);
+    if(!U || !U.on){
+      top.appendChild(ghEl('p', 'ct-vs ga-reading', 'Reading where your openings end\u2026'));
+      gaX(c); frag.appendChild(c); return;
+    }
+    if(U.ok){
+      const nb = ghEl('div', 'ga-num');
+      if(U.rows.length){
+        const b = gaGo(String(U.rows.length), { oj:'below', ga:'all' }, 'ou|big', gaOpenLab(U.rows.length, 'that came out of the opening below your usual', 'in '+gaWinWords(md.v)), 'ct-big ga-big');
+        b.dataset.n = String(U.rows.length);
+        nb.appendChild(b);
+      } else { const z = ghEl('span', 'ct-big ga-big', '0'); z.dataset.n = '0'; nb.appendChild(z); }
+      nb.appendChild(ghEl('span', 'ct-what', 'below your usual'));
+      nb.appendChild(ghEl('span', 'ct-vs', 'of '+ghoN(U.ok, 'game')+' with a usual to compare'));
+      top.appendChild(nb);
+    }
+    gaSay(c, md.say['ga-ou']);
+    const x = gaX(c);
+    // the lines (a chip each: the boards below show that line's games), then the boards; the state follows what's drawn
+    const sel = GA.ou && U.lines.some(l=> l.K.key===GA.ou.line) ? GA.ou.line : '';
+    GA.ouSel = sel;                                   // what's drawn (the choice in GA.ou is kept while its line is away)
+    if(U.rows.length){
+      const chips = ghEl('div', 'ct-chips ga-ouchips');
+      chips.setAttribute('role', 'group');
+      chips.setAttribute('aria-label', 'Show the games of one line');
+      const chip = (key, text, n, lab)=>{
+        const b = gaBtn('ct-chip is-all', text+' '+n, 'ouline', 'ouline|'+(key || 'all'));
+        b.dataset.line = key;
+        b.setAttribute('aria-pressed', sel===key ? 'true' : 'false');
+        b.setAttribute('aria-label', lab+': '+ghoN(n, 'game')+' below your usual');
+        return b;
+      };
+      if(U.lines.length > 1) chips.appendChild(chip('', 'All lines', U.rows.length, 'All lines'));
+      U.lines.forEach(l=>{ const w = l.K.color==='white' ? 'White' : 'Black'; chips.appendChild(chip(l.K.key, l.K.label+' \u00b7 '+w, l.n, l.K.label+' as '+w)); });
+      x.appendChild(chips);
+      const L = U.rows.filter(y=> !sel || y.K.key===sel), N = gaPhone() ? 6 : 12;
+      const shown = L.slice(0, Math.max(N, GA.ou && GA.ou.line===sel ? GA.ou.shown || 0 : 0));
+      if(GA.ouPs!==PIECE_SVG){ GA.ouPs = PIECE_SVG; GA_OUB.clear(); }
+      const grid = ghEl('div', 'ct-mgrid ga-mgrid ga-ougrid');
+      GA.ouby = new Map();
+      shown.forEach(y=>{ const card = gaOuCard(y); GA.ouby.set(card.dataset.fid, y); grid.appendChild(card); });
+      x.appendChild(grid);
+      if(L.length > shown.length){
+        const k = Math.min(N, L.length - shown.length), acts = ghEl('div', 'ct-acts ga-macts'), b = gaBtn('ct-l ct-more', 'Show '+k+' more', 'oumore', 'oumore');
+        b.setAttribute('aria-label', 'Show '+k+' more of '+L.length);
+        acts.appendChild(b);
+        x.appendChild(acts);
+      }
+      gaOuFill(grid);
+    }
+    // coverage: the games with a usual to compare, the ones whose line has too few, the ones not scored or sorted yet
+    const cv = ghEl('p', 'ct-vs ga-cov'), bits = [];
+    if(U.thin) bits.push(ghoN(U.thin, 'game')+' in lines with fewer than '+OU_MIN+' other games scored');
+    if(U.wait) bits.push(ghoN(U.wait, 'game')+' not scored yet ('+(OJ_NOENG ? 'Stockfish can\u2019t run here' : OJ_ON ? 'Opening checks scores them while the Openings tab is open' : 'turn on Opening checks in Settings to score them')+')');
+    if(U.sort) bits.push(ghoN(U.sort, 'game')+' not sorted into your lines yet');
+    if(bits.length || !U.ok){
+      cv.textContent = (U.ok ? '' : 'No game here has a usual to compare yet. ')+(bits.length ? 'Left out: '+bits.join('; ')+'.' : '');
+      x.appendChild(cv);
+    }
+    if(U.rows.length){
+      const lk = ghEl('p', 'ga-ln ga-links'), b = gaGo('In the Games list \u2192', { oj:'below', ga:'all' }, 'ou|list', gaOpenLab(U.rows.length, 'below your usual', 'in '+gaWinWords(md.v)), 'ct-l');
+      b.dataset.n = String(U.rows.length);          // the games it opens (every go button says how many)
+      lk.appendChild(b);
+      x.appendChild(lk);
+    }
+    gaSrc(x, 'Your usual: the middle score of your other games in the same line and color where the middlegame starts (all dates and speeds, '+OU_MIN+
+      ' games at least). Below: '+OU_DROP+'+ points of winning chances under it, or lost before a middlegame. Scores: your review, else Lichess\u2019s analysis, else Opening checks. Your better games: the ones at your usual or better. The board: the move where this game left them (red) and their move there (green).');
+    frag.appendChild(c);
+  }
+  // the words for where the game left your better games
+  function ouSplitWords(sp){
+    if(!sp) return null;
+    if(sp.at==null) return sp.end ? { a:'Lost from a position your better games also reached', b:'' }
+      : { a:'The same position as your better games where the middlegame starts', b:sp.src ? 'Its score comes from another source than theirs' : '' };
+    const w = sp.who==='opp' ? 'Their ' : 'Your ';
+    const P = sp.who==='opp' ? { in:'in your lines', out:'not in your lines', past:'after your prep' } : { in:'one of your lines', out:'not your line', past:'after your prep' };
+    const a = w+rpMoveText(sp.at, sp.mv)+(sp.prep && P[sp.prep] ? ' \u00b7 '+P[sp.prep] : '');
+    const b = sp.alt.length ? 'Your better games here: '+sp.alt.map(m=> rpMoveText(sp.at, m.mv)+' \u00d7'+m.nb).join(' \u00b7 ') : '';
+    return { a, b };
+  }
+  // the board's ply: before the move that left them; their shared checkpoint; a game lost early: its last position
+  function ouBoardPly(y){
+    const sp = ouRowSplit(y), x = EG.get(String(y.e.g.id));
+    return sp && sp.at!=null ? sp.at : x && x.qa > 0 ? x.qa : gaToks(y.e.g).length;
+  }
+  function ouRowSplit(y){ if(y.sp===undefined) y.sp = ouSplit(y.e.g); return y.sp; }
+  function gaOuCard(y){
+    const e = y.e, g = e.g, r = y.r, W = ouSplitWords(ouRowSplit(y));
+    const b = ghEl('button', 'ct-m ga-mm ga-ou');
+    b.type = 'button'; b.dataset.act = 'ouopen';
+    b.dataset.gid = String(g.id);
+    b.dataset.fid = 'ou|'+g.id;
+    b.appendChild(ghEl('span', 'ct-mbd'));
+    const L = [];
+    if(W){ L.push(W.a); if(W.b) L.push(W.b); }
+    L.push((r.open ? 'Lost before a middlegame' : 'Out of the opening: '+ouPawns(r.my, r.mt))+' \u00b7 your usual '+ouPawns(r.usual));
+    L.push(y.K.label);
+    const opp = ghoOppOf(g);
+    L.push(ctDay(e.at)+(e.speed ? ' \u00b7 '+gaSpeedW(e.speed) : '')+(opp ? ' \u00b7 vs '+opp : '')+' \u00b7 '+ctRes(e.res));
+    const l1 = ghEl('span', 'ct-mmv ga-ml1');
+    l1.appendChild(ghEl('b', '', L[0]));
+    b.appendChild(l1);
+    L.slice(1).forEach(t=> b.appendChild(ghEl('span', 'ct-mft', t)));
+    b.setAttribute('aria-label', L.join('. ')+'. Open the review there');
+    return b;
+  }
+  // the board the card was drawn with (its split, not a newer model's): before the move that left your better games, that
+  // move (red) and theirs (green); your side at the bottom
+  function gaOuFill(root){
+    const fill = (bd)=>{
+      if(bd.firstChild || !bd.isConnected) return;
+      const card = bd.closest('.ct-m'), y = card && GA.ouby ? GA.ouby.get(card.dataset.fid) : null;
+      if(!y) return;
+      const g = y.e.g, sp = ouRowSplit(y), flip = y.e.color==='black', p = ouBoardPly(y);
+      const key = g.id+'|'+p+'|'+(flip ? 1 : 0)+'|'+(sp && sp.at!=null ? sp.mv+'>'+(sp.alt[0] ? sp.alt[0].mv : '') : '');
+      let mb = GA_OUB.get(key);
+      if(mb){ GA_OUB.delete(key); GA_OUB.set(key, mb); }
+      else {
+        const at = kmAt(g, p);
+        if(!at) return;
+        const arrows = [];
+        if(sp && sp.at!=null){
+          const arw = (san, c)=>{ const m = rpSanToMove(at.st, san); if(m){ const u = gzUci(m); arrows.push({ f:u.slice(0, 2), t:u.slice(2, 4), c }); } };
+          if(sp.alt[0]) arw(sp.alt[0].mv, 'G');
+          arw(sp.mv, 'R');
+        }
+        try{ mb = nbMiniBoard({ fen:at.fen, flip, arrows, squares:[], label:'', ply:null, line:null, extra:[] }); }catch(err){ return; }
+        GA_OUB.set(key, mb);
+        if(GA_OUB.size > 40) GA_OUB.delete(GA_OUB.keys().next().value);
+      }
+      bd.appendChild(mb);
+    };
+    const list = root.querySelectorAll('.ct-mbd');
+    if(!('IntersectionObserver' in window)){ list.forEach(fill); return; }
+    if(!GA_OUIO){
+      const cb = (ents)=>{ ents.forEach(en=>{ if(en.isIntersecting){ GA_OUIO.unobserve(en.target); fill(en.target); } }); };
+      try{ GA_OUIO = new IntersectionObserver(cb, { root:document, rootMargin:'600px 0px' }); }catch(e){ GA_OUIO = new IntersectionObserver(cb, { rootMargin:'600px 0px' }); }
+    }
+    list.forEach(bd=>{ if(!bd.firstChild) GA_OUIO.observe(bd); });
+  }
+  // the review at the board's position (before the move: Right plays it); back here at this card
+  GA_ACTS.ouopen = (t)=>{
+    const y = GA.ouby && GA.ouby.get(t.dataset.fid);
+    if(!y) return;
+    GA.back = { y:window.scrollY, fid:t.dataset.fid };
+    GA.y = null;
+    ghOpenGame(y.e.g, { at:{ ply:ouBoardPly(y) } });
+  };
+  GA_ACTS.ouline = (t)=>{
+    const k = t.dataset.line || '', cur = GA.ouSel || '';
+    GA.ou = { line:k===cur && k ? '' : k, shown:0 };
+    gaDrawOne(GA.model, 'ga-ou');
+    const el = Array.from(document.querySelectorAll('#ga-ou [data-fid]')).find(z=> z.dataset.fid===t.dataset.fid);
+    if(el) try{ el.focus({ preventScroll:true }); }catch(e){}
+  };
+  // more boards; the keyboard goes to the first new one (else the next Show more)
+  GA_ACTS.oumore = ()=>{
+    const N = gaPhone() ? 6 : 12, line = GA.ouSel || '', cur = GA.ou && GA.ou.line===line ? GA.ou : { line, shown:0 }, prev = document.querySelectorAll('#ga-ou .ga-ou[data-fid]').length;
+    GA.ou = { line, shown:Math.max(N, cur.shown || 0, prev) + N };
+    gaDrawOne(GA.model, 'ga-ou');
+    const cards = document.querySelectorAll('#ga-ou .ga-ou[data-fid]'), el = cards[prev] || document.querySelector('#ga-ou [data-fid="oumore"]');
+    if(el) try{ el.focus({ preventScroll:true }); }catch(e){}
+  };
   // ---- tier 3 (GA_E): a game's engine scores, from one source (spec 5.5), and what Analytics reads from them. Chess Arcade's
   // review on this device first, used only when it is of these very moves (its hash and length); else Lichess's analysis,
   // accepted when it has a score for every position after a move, or one fewer when the game ended in checkmate (lila may
@@ -40668,7 +41081,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function gzPreKey(base, f, now, u){
     const a = base[0], z = base[base.length - 1];
     return [GH_UI.site, JSON.stringify(f), now, gzDay(ghoBriefNow()), u || '', base.length, a ? a.id : '', z ? z.id : '', GH_STATE.games.length,
-      ghCcUp() ? ccGames().length : 0, ghTabBusy() ? 1 : 0, GZ_FV, GZ_AV, GZ.P.size, GA_MM.size, MM_V, GZ_V, gzValidK(GH_UI.gzk)].join('|');
+      ghCcUp() ? ccGames().length : 0, ghTabBusy() ? 1 : 0, GZ_FV, GZ_AV, GZ.P.size, GA_MM.size, MM_V, GZ_V, gzValidK(GH_UI.gzk), f.oj==='below' ? ouSig() : f.oj ? OJ_VER+':'+RP_RES.size : ''].join('|');
   }
   function gzModelOf(base, u, now, f, pk){
     const f0 = Object.assign({}, f, { date:'' });
@@ -49378,6 +49791,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     st.g[gid] = entry;
     const ok = hrWriteStore(st);
     if(ok && typeof OJ_VER==='number'){ OJ_RS = null; OJ_VER++; }      // the opening's job reads reviews (oj*)
+    if(ok && typeof HV_STATE!=='undefined' && HV_STATE) setTimeout(()=>{ try{ if(HV_STATE) hpRender(HV_STATE); }catch(e){} }, 0);      // your usual (hpUsual) with the new score
     return ok;
   }
   // A finished review of this exact game (same moves), or null.
@@ -50662,6 +51076,49 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     t.show = L.who==='you';
     return t;
   }
+  // your usual (ou*, 2026-11-22): this game's score out of the opening against your usual in its line, and below it, the move
+  // where it left your better games (a button that goes to it, unless the prep line above already names that move). Only when
+  // Game History has read the game's opening and loaded the stored scores (never a made-up score): until then it starts that
+  // reading and waits (the review is drawn again when it ends)
+  function hpUsual(S){
+    const el = document.getElementById('hv-prep-usual');
+    if(!el) return;
+    el.textContent = '';
+    el.hidden = true;
+    if(!S || !S.game || !S.main) return;
+    const id = String(S.game.id);
+    if(!egReady() || !EG.has(id) || !ojReady()){ try{ ojLoad(); egEnsure(); }catch(e){} return; }
+    let r = null;
+    try{ r = ouOf(S.game); }catch(e){ r = null; }
+    if(!r || r.k!=='ok') return;
+    const K = OU.G.get(r.grp), W = (c)=> c==='white' ? 'White' : 'Black';
+    const where = K && /^n\./.test(K.key) ? 'Your usual in '+K.label+' as '+W(K.color) : 'Your usual in this line';
+    const lost = r.open && r.res==='loss';
+    el.appendChild(document.createTextNode((r.open ? (lost ? 'Lost before a middlegame' : 'Over before a middlegame') : 'Out of the opening: '+ouPawns(r.my, r.mt))+'. '+where+': '+ouPawns(r.usual)+' ('+ghoN(r.n, 'other game')+').'));
+    if(r.below){
+      let sp = null;
+      try{ sp = ouSplit(S.game); }catch(e){ sp = null; }
+      const node = sp && sp.at!=null ? S.main[sp.at] : null;
+      if(node){
+        const H = hpFor(S), L = H && H.r ? H.r.left || {} : {};
+        const named = (L.who==='you' || L.who==='opp') && L.atPly===sp.at;          // the prep line above names this move already
+        const alt = sp.alt.length ? 'Your better games here went '+sp.alt.map(m=> rpMoveText(sp.at, m.mv)+' ('+m.nb+')').join(', ') : '';
+        if(named){ el.appendChild(document.createTextNode(' Below it'+(alt ? '. '+alt+'.' : '.'))); }
+        else {
+          el.appendChild(document.createTextNode(' Below it. '+(alt ? alt+'; this game ' : 'This game: ')));
+          const mt = rpMoveText(sp.at, sp.mv), b = hvEl('button', 'btn-link hv-prep-usual-go', mt);
+          b.type = 'button';
+          b.setAttribute('aria-label', 'Go to '+mt+(alt ? ', the move that left your better games' : ''));
+          b.addEventListener('click', ()=>{ if(HV_STATE===S && S.main[sp.at]===node){ hvGoNode(node); hvRevealBoard(); } });
+          el.appendChild(b);
+          const P = sp.who==='opp' ? { in:'their move, in your lines', out:'their move, not in your lines', past:'their move, after your prep' }
+            : { in:'your move, one of your lines', out:'your move, not your line', past:'your move, after your prep' };
+          el.appendChild(document.createTextNode((P[sp.prep] ? ' ('+P[sp.prep]+')' : sp.who==='opp' ? ' (their move)' : ' (your move)')+'.'));
+        }
+      } else el.appendChild(document.createTextNode(' Below it.'));
+    }
+    el.hidden = false;
+  }
   function hpSet(id, text){ const e = document.getElementById(id); e.textContent = text || ''; e.hidden = !text; }
   // C.1: the header line; hidden (and nothing marked) without a repertoire,
   // without your side, for a variant game or a game with no moves
@@ -50670,9 +51127,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const box = document.getElementById('hv-prep');
     if(!box) return;
     const H = hpFor(S);
-    if(!H.r){ box.hidden = true; return; }
+    if(!H.r){
+      // no line of yours for this game (signed out, or no repertoire for this color): only your usual, by the game's opening name
+      ['hv-prep-name', 'hv-prep-line', 'hv-prep-depth', 'hv-prep-left', 'hv-prep-also', 'hv-prep-acts', 'hv-prep-rl', 'hv-prep-key'].forEach(id=>{ const e = document.getElementById(id); if(e) e.hidden = true; });
+      hpUsual(S);
+      const u = document.getElementById('hv-prep-usual');
+      box.hidden = !u || u.hidden || getComputedStyle(u).display==='none';
+      return;
+    }
     const t = hpTexts(S, H.r);
     const nm = document.getElementById('hv-prep-name');
+    nm.hidden = false;
     nm.textContent = t.name;
     if(t.sub) nm.appendChild(hvEl('span', 'hv-prep-sub', t.sub));
     nm.title = t.title || '';
@@ -50682,6 +51147,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hpSet('hv-prep-depth', t.depth);
     hpSet('hv-prep-left', t.left);
     hpSet('hv-prep-also', t.also);
+    hpUsual(S);
     const go = document.getElementById('hv-prep-go'), show = document.getElementById('hv-prep-show'), games = document.getElementById('hv-prep-games');
     go.textContent = t.go; go.hidden = !t.go;
     show.hidden = !(t.show && hpShowState(H));
@@ -50792,9 +51258,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   document.getElementById('hv-prep-show').addEventListener('click', hpShowLine);
   document.getElementById('hv-prep-games').addEventListener('click', hpGames);
   // the repertoire was read, refreshed, toggled or signed out while a review is open
-  rpOnChange(()=>{
+  rpOnChange((e)=>{
     const S = HV_STATE;
-    if(!S || currentView!=='play-history' || (HP && HP.S===S && HP.R===RP)) return;
+    if(!S || currentView!=='play-history') return;
+    if(HP && HP.S===S && HP.R===RP){ if(e && e.kind==='batch' && !RP_JOB) hpUsual(S); return; }     // sorted: your usual can show
     hpRender(S);
     hvRenderMoveList();
   });
