@@ -16,7 +16,7 @@ import {
   calcLine, calcCount, calcStart, calcPlay, calcStep, calcKeep, calcFollow, moveWhat, movePoints, moveLabel,
   startText, balanceText, tookText, promotedText, statusText, verdictText, CALC_VALUES,
   calcMarksAt, calcDraw, drawTarget, drawingsHere, applyDrawing, calcKeepMarks, calcNodeAt,
-  evalSide, evalNumber, evalText, evalShare, evalVersusCount,
+  evalSide, evalNumber, evalText, evalVersusCount,
 } from '../src/lib/captureCalc.js';
 import { setMarksAt } from '../src/lib/reviewEdit.js';
 import { reviewOnBoard, marksWith } from '../src/lib/reviewOnBoard.js';
@@ -509,7 +509,7 @@ test('the tree\'s move the calculator stands on: its start, then the game\'s mov
 const cp = (value) => ({ type: 'cp', value });
 const mate = (value) => ({ type: 'mate', value });
 
-test('the engine\'s score in words, as a number and as a share of the bar', () => {
+test('the engine\'s score in words and as a number', () => {
   assert.equal(evalSide(null), null);
   assert.equal(evalSide(cp(20)), null, 'a fifth of a pawn: nobody is better');
   assert.equal(evalSide(cp(-29)), null);
@@ -528,12 +528,6 @@ test('the engine\'s score in words, as a number and as a share of the bar', () =
   assert.equal(evalNumber(cp(-60)), '\u22120.6');
   assert.equal(evalNumber(cp(3)), '0.0');
   assert.equal(evalNumber(mate(-3)), 'M3');
-  assert.equal(evalShare(null), 50);
-  assert.equal(evalShare(cp(0)), 50);
-  assert.ok(evalShare(cp(150)) > 55 && evalShare(cp(150)) < 80);
-  assert.ok(Math.abs(evalShare(cp(150)) + evalShare(cp(-150)) - 100) < 1e-9, 'the same either way');
-  assert.equal(evalShare(mate(2)), 97);
-  assert.equal(evalShare(mate(-2)), 3);
 });
 
 test('where the count and the engine part ways, the card says so; where they agree, it says nothing', () => {
@@ -560,9 +554,19 @@ test('the card shows the engine\'s view under the count, and hides it with the c
   const html = draw({ engine: { now: cp(-140), before: cp(30) } });
   assert.ok(html.includes('Black is better'), html);
   assert.ok(html.includes('\u22121.4'));
-  assert.ok(html.includes('calc-bar-eval'));
-  assert.ok(/calc-bar-fill b/.test(html.slice(html.indexOf('calc-bar-eval'))), 'the bar leans Black\'s way');
   assert.ok(html.includes('Before these moves: White is a little better (+0.3).'), html);
+  // Its bar is the analysis board's own, down the card's side: White's share
+  // of it under half when Black is better, and the same way up as the board.
+  const barOf = (h) => h.slice(h.indexOf('calc-evalbar'), h.indexOf('calc-head'));
+  const whiteShare = (h) => Number(/eval-bar-white" style="height:([\d.]+)%/.exec(barOf(h))?.[1]);
+  assert.ok(html.includes('calc-panel with-eval') || /calc-panel[^"]* with-eval/.test(html), 'the card makes room for it');
+  assert.ok(/class="eval-bar"/.test(barOf(html)), barOf(html));
+  assert.ok(whiteShare(html) > 3 && whiteShare(html) < 50, `Black is better: White's share ${whiteShare(html)}%`);
+  assert.ok(whiteShare(draw({ engine: { now: cp(400), before: null } })) > 70, 'White winning: most of the bar');
+  assert.equal(whiteShare(waiting), 50, 'no score yet: half and half, as the board\'s bar waits');
+  assert.ok(barOf(html).includes('>1.4<'), 'with the board bar\'s own number on it');
+  assert.ok(/class="eval-bar flipped"/.test(barOf(draw({ engine: { now: cp(-140), before: null }, evalFlipped: true }))), 'seen from Black: flipped with the board');
+  assert.ok(!html.includes('calc-bar-eval'), 'the flat bar it used to have is gone');
   // Whoever the count favours here, an engine that prefers the other side is said to disagree — and one that agrees isn't.
   const bal = calcCount(line, c.moves.length).balance;
   assert.notEqual(bal, 0, 'this case ends with one side ahead');

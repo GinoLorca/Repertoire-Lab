@@ -2556,6 +2556,8 @@ export default function AnalysisView({
   const calcPanel = () => (calc && calcData && calcNow ? (
     <CaptureCalc
       engine={calcEval}
+      // Its evaluation bar the same way up as the board's.
+      evalFlipped={orientation === 'black'}
       line={calcData}
       count={calcNow}
       start={calcStartText(calc.startLabel, sideToMove(calc.anchorFen))}

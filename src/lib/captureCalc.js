@@ -239,13 +239,7 @@ export function evalText(score, you = null) {
   return `${who} is winning`;
 }
 
-// White's share of a two-sided bar, 0–100 (50: even) — the curve the board's
-// own eval bar uses, so the two read alike.
-export function evalShare(score) {
-  if (!score) return 50;
-  const cp = score.type === 'mate' ? (score.value < 0 ? -1500 : 1500) : score.value;
-  return Math.max(3, Math.min(97, 50 + 50 * (2 / (1 + Math.exp(-cp / 320)) - 1)));
-}
+// (The bar itself is the analysis board's own: components/EvalBar.)
 
 // Where the count and the engine part ways, in a sentence; null when they
 // agree (or there's no score). "White is up 2 in material, but Black has the

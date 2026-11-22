@@ -4,10 +4,12 @@
 // card, in this app's look. Drawn from props only (no store), so it renders
 // in a test: tests/captureCalc.test.mjs.
 //
-// Under the count, the engine's view of the same position (`engine`: { now,
-// before }, lib/useCalcEval): who stands better, on a bar like the count's —
-// because being up two pawns and being better are not the same thing, and
-// where they part ways the card says so in a sentence.
+// With it, the engine's view of the same position (`engine`: { now, before },
+// lib/useCalcEval): the analysis board's own evaluation bar (EvalBar) down
+// the card's left side — White's share filling from White's side, the same
+// way up as the board's (`evalFlipped`) — and under the count a line saying
+// who stands better. Being up two pawns and being better are not the same
+// thing, and where they part ways the card says so in a sentence.
 //
 // "Hide the count" (for students: work it out in your head first) hides the
 // points, the balance, the bar, the engine's view, what changed hands and the verdict until
@@ -16,8 +18,11 @@
 import React, { useEffect, useRef } from 'react';
 import {
   moveWhat, movePoints, balanceText, tookText, promotedText, statusText, verdictText,
-  evalText, evalNumber, evalShare, evalVersusCount,
+  evalText, evalNumber, evalVersusCount,
 } from '../lib/captureCalc';
+// (With its extension: this card is also drawn in a plain Node test, which
+// looks a bare name up as a .js file.)
+import EvalBar from './EvalBar.jsx';
 
 const HIDE_KEY = 'rl.captureCalc.hideCount';
 export function readHideCount() {
@@ -35,7 +40,7 @@ const BAR_FULL = 10;
 
 export default function CaptureCalc({
   line, count, start, you = null, hidden = false, onHide, onGo, onDone, onKeep = null, keyName = '',
-  compact = false, engine = null,
+  compact = false, engine = null, evalFlipped = false,
 }) {
   const moves = line?.moves ?? [];
   const at = count?.at ?? 0;
@@ -57,12 +62,21 @@ export default function CaptureCalc({
   const keyHint = keyName ? ` (${keyName})` : '';
   // The engine's score for the position the board is on, and for the start.
   const score = engine?.now ?? null;
-  const share = evalShare(score);
+  const evalShown = Boolean(engine) && !hidden;
   // (Only once something has changed hands: before that there is no count
   // to set against it.)
   const versus = count.events > 0 ? evalVersusCount(bal, score, you) : null;
   return (
-    <section className={`panel calc-panel${compact ? ' compact' : ''}`} aria-label="Capture Calculator">
+    <section
+      className={`panel calc-panel${compact ? ' compact' : ''}${evalShown ? ' with-eval' : ''}`}
+      aria-label="Capture Calculator"
+    >
+      {/* The board's own evaluation bar, for the position the calculator is on. */}
+      {evalShown && (
+        <div className="calc-evalbar" aria-hidden="true">
+          <EvalBar score={score} height="100%" running flipped={evalFlipped} />
+        </div>
+      )}
       <div className="calc-head">
         <h3>Capture Calculator</h3>
         <span className="spacer" />
@@ -129,7 +143,7 @@ export default function CaptureCalc({
           </>
         )}
       </div>
-      {engine && !hidden && (
+      {evalShown && (
         <div className="calc-eval">
           <div className="calc-eval-head">
             <span className="calc-eval-tag">Engine</span>
@@ -141,19 +155,6 @@ export default function CaptureCalc({
             ) : (
               <span className="calc-eval-wait">working it out…</span>
             )}
-          </div>
-          <div className="calc-bar calc-bar-eval" aria-hidden="true">
-            <span className="calc-bar-side">{you === 'white' ? 'White (you)' : 'White'}</span>
-            <span className="calc-bar-track">
-              {score && Math.abs(share - 50) >= 0.5 && (
-                <span
-                  className={`calc-bar-fill ${share > 50 ? 'w' : 'b'}`}
-                  style={share > 50 ? { right: '50%', width: `${share - 50}%` } : { left: '50%', width: `${50 - share}%` }}
-                />
-              )}
-              <span className="calc-bar-mid" />
-            </span>
-            <span className="calc-bar-side">{you === 'black' ? 'Black (you)' : 'Black'}</span>
           </div>
           {versus && <div className="calc-eval-versus">{versus}</div>}
           {at > 0 && engine.before && (

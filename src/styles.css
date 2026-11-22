@@ -6289,9 +6289,23 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 @media (prefers-reduced-motion: reduce) {
   .calc-bar-fill { transition: none; }
 }
-/* The engine's view of the position, under the count: a line saying who
-   stands better, a bar like the count's, and — where the count and the
-   engine part ways — a sentence that says so. */
+/* The engine's view of the position. Its bar is the analysis board's own
+   (components/EvalBar: upright, White's share filling from White's side, the
+   same way up as the board's), down the card's left side for the card's whole
+   height — so it reads at a glance the way the board's does. Under the count,
+   a line saying who stands better and — where the count and the engine part
+   ways — a sentence that says so. */
+.panel.calc-panel.with-eval { position: relative; padding-left: 46px; }
+.calc-evalbar { position: absolute; left: 15px; top: 16px; bottom: 16px; display: flex; }
+.calc-evalbar .eval-bar { height: 100%; }
+/* (Where panels are padded less — the page's compact layout, the card's own
+   compact form under the board — the bar sits in closer, and the text with
+   it. Spelt out against `.analysis-layout.compact .panel`, which would
+   otherwise take the room the bar needs back.) */
+.analysis-layout.compact .panel.calc-panel.with-eval,
+.panel.calc-panel.compact.with-eval { padding-left: 40px; }
+.analysis-layout.compact .calc-evalbar,
+.calc-panel.compact .calc-evalbar { left: 12px; top: 11px; bottom: 11px; }
 .calc-eval { display: flex; flex-direction: column; gap: 5px; padding-top: 8px; border-top: 1px solid var(--border); }
 .calc-eval-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 14.5px; }
 .calc-eval-tag {
@@ -6302,7 +6316,6 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .calc-eval-versus { font-size: 13.5px; font-weight: 600; }
 .calc-eval-before { font-size: 12.5px; color: var(--muted); }
 .calc-panel.compact .calc-eval { order: 4; }
-.calc-panel.compact .calc-bar-eval { max-width: 480px; }
 .calc-took { font-size: 13.5px; display: flex; flex-direction: column; gap: 2px; }
 .calc-status { margin: 0; font-size: 13.5px; }
 .calc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
