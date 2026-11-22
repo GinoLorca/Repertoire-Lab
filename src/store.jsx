@@ -6,6 +6,7 @@ import { defaultMonsterId } from './lib/monsters';
 import { DEFAULT_SETTINGS } from './lib/settingsDefaults';
 import { mergeLinkedGames, undoCoachChanges } from './lib/cloud/gameLink';
 import { foldInFlight } from './lib/cloud/merge3';
+import { stampChanges } from './lib/settingStamps';
 import {
   sendLines, makeSub, leaveFolder, withFolderMates,
 } from './lib/subVariations';
@@ -298,8 +299,16 @@ function reducer(state, incoming) {
   // load itself applies.
   if (state == null && action.type !== 'hydrate') return state;
   const next = reduce(state, action);
-  return GAME_EDITS.has(action.type) ? stampEditedGames(state, next) : next;
+  const out = GAME_EDITS.has(action.type) ? stampEditedGames(state, next) : next;
+  // A setting changed by something done here is stamped with when
+  // (lib/settingStamps): it's what lets the sync tell a decision from a
+  // device's older copy. Settings that only arrived — the saved library
+  // loading, a sync landing — keep the stamps they came with.
+  if (!state || !out || out.settings === state.settings || ARRIVALS.has(action.type)) return out;
+  const settings = stampChanges(state.settings, out.settings);
+  return settings === out.settings ? out : { ...out, settings };
 }
+const ARRIVALS = new Set(['hydrate', 'syncResult', 'setSyncGen']);
 
 function reduce(state, action) {
   switch (action.type) {

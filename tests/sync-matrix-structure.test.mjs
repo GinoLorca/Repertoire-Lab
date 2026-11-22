@@ -32,7 +32,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { syncNow } from '../src/lib/cloud/sync.js';
 import { foldInFlight } from '../src/lib/cloud/merge3.js';
-import { hashOf } from '../src/lib/cloud/shape.js';
+import { hashOf, decodeFromStore } from '../src/lib/cloud/shape.js';
 import { DEFAULT_SETTINGS } from '../src/lib/settingsDefaults.js';
 import { mergeLinkedGames, undoCoachChanges } from '../src/lib/cloud/gameLink.js';
 import { defaultMonsterId } from '../src/lib/monsters.js';
@@ -53,6 +53,7 @@ import { cleanGameReview, sameGameReview } from '../src/lib/analysisDoc.js';
 import { curateInto, reorganise } from '../src/lib/curate.js';
 import { collectionPlan } from '../src/lib/collectionCopy.js';
 import { withSpot } from '../src/lib/videoSpots.js';
+import { stampChanges } from '../src/lib/settingStamps.js';
 
 // ---------------------------------------------------------------------------
 // The app's own reducer and emptyState, straight from src/store.jsx.
@@ -75,9 +76,9 @@ const { reducer, emptyState } = (() => {
     'return { reducer, emptyState };',
   ].join('\n');
   // eslint-disable-next-line no-new-func
-  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', 'canonicalStartFen', 'fen4', 'sendToChapter', 'kidArtwork', 'kidArtForStudents', 'isKidArt', 'cleanGameReview', 'sameGameReview', 'curateInto', 'reorganise', 'collectionPlan', 'withSpot', body)(
+  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', 'canonicalStartFen', 'fen4', 'sendToChapter', 'kidArtwork', 'kidArtForStudents', 'isKidArt', 'cleanGameReview', 'sameGameReview', 'curateInto', 'reorganise', 'collectionPlan', 'withSpot', 'stampChanges', body)(
     DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, sendLines, makeSub, leaveFolder, withFolderMates, arrangeTop, arrangeFolder, gatherIntoFolder, parseMarks, withText, withMarks, canonicalStartFen, fen4,
-    sendToChapter, kidArtwork, kidArtForStudents, isKidArt, cleanGameReview, sameGameReview, curateInto, reorganise, collectionPlan, withSpot,
+    sendToChapter, kidArtwork, kidArtForStudents, isKidArt, cleanGameReview, sameGameReview, curateInto, reorganise, collectionPlan, withSpot, stampChanges,
   );
 })();
 
@@ -1346,4 +1347,210 @@ test('an action that changes nothing leaves the state as it was', () => {
   assert.equal(black.players, st.players, 'the cards untouched');
   const renamed = reducer(st, { type: 'renameGame', playerId: 'p1', gameId: 'g1', name: 'Myla vs Lola' });
   assert.equal(renamed.players[0].games[0].name, 'Myla vs Lola');
+});
+
+// ---------------------------------------------------------------------------
+// A setting switched off stays off (lib/settingStamps.js).
+//
+// The engine's arrows, turned off on the Mac, came back on a few seconds
+// later: some other copy of the app handed the account its whole, older set
+// of settings, and the Mac took it as news. Three ways that happened, and one
+// an app from before the fix can still do — each must leave the arrows off,
+// everywhere, and must not cost the other device the setting it did change.
+// ---------------------------------------------------------------------------
+
+const arrowsOn = (d) => d.state.settings.engineArrows !== false;
+const set = (d, patch) => d.do({ type: 'setSettings', settings: patch });
+
+test('arrows turned off on the Mac stay off when a window that sat through other syncs wakes up and syncs', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  // A second window in the same browser, left in the background: it hears
+  // nothing while it sleeps, and the first window's syncs move this browser's
+  // memory of the account past anything the sleeper descends from.
+  const asleep = new Device('mac', 'Mac window 2', mac.state);
+  for (let i = 0; i < 6; i += 1) { set(mac, { volume: 0.1 * (i + 1) }); await mac.sync(); }
+  set(mac, { engineArrows: false });
+  await mac.sync();
+  // It wakes: coming to the front syncs it, as it is.
+  await asleep.sync();
+  assert.equal(arrowsOn(asleep), false, 'the window that slept takes the arrows as they are now');
+  await mac.sync();
+  await ipad.sync();
+  for (const d of [mac, asleep, ipad]) assert.equal(arrowsOn(d), false, `${d.label}: the arrows came back on`);
+  assert.ok(Math.abs(mac.state.settings.volume - 0.6) < 1e-9, 'and the volume set meanwhile is kept');
+});
+
+test('…and when the sleeping window changes a setting of its own, that one goes everywhere and nothing else is undone', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  const asleep = new Device('mac', 'Mac window 2', mac.state);
+  for (let i = 0; i < 6; i += 1) { set(mac, { volume: 0.1 * (i + 1) }); await mac.sync(); }
+  set(mac, { engineArrows: false, arrowBest: false });
+  await mac.sync();
+  set(asleep, { evalBar: false });
+  await asleep.sync();
+  await mac.sync();
+  await ipad.sync();
+  for (const d of [mac, asleep, ipad]) {
+    assert.equal(arrowsOn(d), false, `${d.label}: the arrows came back on`);
+    assert.equal(d.state.settings.arrowBest, false, `${d.label}: the best-move arrow came back on`);
+    assert.equal(d.state.settings.evalBar, false, `${d.label}: the eval bar switched off in the other window didn't arrive`);
+  }
+});
+
+test('arrows turned off on the Mac stay off when something on the iPad changes a setting while its sync is in flight', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  set(mac, { engineArrows: false });
+  await mac.sync();
+  // The iPad hears of it and syncs; a video is playing there, and its place
+  // (a setting) moves before the sync is back.
+  const flying = ipad.sync();
+  ipad.do({ type: 'setVideoSpot', key: 'vid-caro', spot: { at: 31, dur: 1800, t: 500 } });
+  await flying;
+  assert.equal(arrowsOn(ipad), false, 'the sync\'s news was dropped on the iPad');
+  assert.deepEqual(ipad.state.settings.videoSpots, { 'vid-caro': { at: 31, dur: 1800, t: 500 } }, 'the place in the video is kept');
+  // …and the iPad's next sync must not send "on" back.
+  await ipad.sync();
+  await mac.sync();
+  await ipad.sync();
+  for (const d of [mac, ipad]) {
+    assert.equal(arrowsOn(d), false, `${d.label}: the arrows came back on`);
+    assert.deepEqual(d.state.settings.videoSpots, { 'vid-caro': { at: 31, dur: 1800, t: 500 } }, d.label);
+  }
+});
+
+test('arrows turned off on the Mac stay off when an older copy of the settings is written back over the account\'s', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  const path = 'users/student1/singletons/settings';
+  const before = server.get(path);
+  assert.ok(before?.value, 'the settings document is where this test expects it');
+  set(mac, { engineArrows: false });
+  await mac.sync();
+  assert.equal(decodeFromStore(server.get(path)).value.engineArrows, false);
+  // An app from before the fix (or any copy holding older settings) puts its
+  // whole set back: everything as it was before the Mac's change.
+  server.set(path, { ...before, at: Date.now() + 1000, by: 'an-old-app' });
+  await mac.sync();
+  assert.equal(arrowsOn(mac), false, 'the Mac took the old copy as news');
+  assert.equal(decodeFromStore(server.get(path)).value.engineArrows, false, 'and the Mac puts the account right again');
+  await ipad.sync();
+  assert.equal(arrowsOn(ipad), false);
+});
+
+test('a setting changed on each device still merges: both arrive, and the later of two decisions about one switch wins', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  set(mac, { engineArrows: false });
+  set(ipad, { evalBar: false });
+  await mac.sync(); await ipad.sync(); await mac.sync();
+  for (const d of [mac, ipad]) {
+    assert.equal(arrowsOn(d), false, d.label);
+    assert.equal(d.state.settings.evalBar, false, d.label);
+  }
+  // Both decide the same switch before either syncs: the iPad's is the later.
+  set(mac, { engineLines: false });
+  ipad.state = { ...ipad.state, settings: stampChanges(ipad.state.settings, { ...ipad.state.settings, engineLines: true, hints: true }, Date.now() + 5000) };
+  set(mac, { hints: false });
+  await ipad.sync(); await mac.sync(); await ipad.sync();
+  for (const d of [mac, ipad]) {
+    assert.equal(d.state.settings.engineLines, false, `${d.label}: only the Mac changed this one`);
+    assert.equal(d.state.settings.hints, true, `${d.label}: the later decision (the iPad's) didn't win`);
+  }
+});
+
+// The same promise over many random days: three copies of the app (the Mac,
+// a second Mac window sharing its storage, the iPad), settings changed here
+// and there, windows asleep through other syncs, changes made mid-sync. When
+// everything has synced, every setting is what it was last set to — on every
+// copy.
+test('whatever the order of syncs, sleeps and mid-sync changes, every setting ends as it was last set, everywhere', async () => {
+  // (SETTINGS_FUZZ_SEED / SETTINGS_FUZZ_ROUNDS: more of it, by hand.)
+  let seed = Number(process.env.SETTINGS_FUZZ_SEED ?? 20261122);
+  const rounds = Number(process.env.SETTINGS_FUZZ_ROUNDS ?? 40);
+  const rnd = (n) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
+  const KEYS = [['engineArrows', [true, false]], ['arrowBest', [true, false]], ['evalBar', [true, false]],
+    ['volume', [0.2, 0.5, 0.8, 1]], ['trainerSpeed', ['fast', 'medium', 'slow']]];
+  for (let round = 0; round < rounds; round += 1) {
+    resetServer(); resetDevices();
+    // eslint-disable-next-line no-await-in-loop
+    const { mac, ipad } = await macAndIpadInSync();
+    const copies = [mac, new Device('mac', 'Mac window 2', mac.state), ipad];
+    const awake = [true, true, true];
+    const truth = {};
+    const trail = [];
+    let clock = Date.now();
+    const change = (i) => {
+      const [key, values] = KEYS[rnd(KEYS.length)];
+      const value = values[rnd(values.length)];
+      const d = copies[i];
+      // A switch already where you'd put it isn't a decision: there is
+      // nothing on that screen to change.
+      if (d.state.settings[key] === value) return;
+      // Each decision a moment after the last, whichever copy makes it.
+      clock += 1000;
+      d.state = { ...d.state, settings: stampChanges(d.state.settings, { ...d.state.settings, [key]: value }, clock) };
+      truth[key] = value;
+      trail.push(`${d.label}: ${key}=${value}`);
+    };
+    for (let step = 0; step < 30; step += 1) {
+      const i = rnd(3);
+      const what = rnd(10);
+      if (what < 3) {
+        if (awake[i]) change(i);
+      } else if (what < 7) {
+        if (!awake[i]) continue;
+        trail.push(`${copies[i].label} syncs`);
+        // eslint-disable-next-line no-await-in-loop
+        await copies[i].sync();
+      } else if (what < 8) {
+        if (!awake[i]) continue;
+        trail.push(`${copies[i].label} syncs, and:`);
+        const flying = copies[i].sync();
+        change(i);
+        // eslint-disable-next-line no-await-in-loop
+        await flying;
+      } else if (i !== 0) {
+        awake[i] = !awake[i];
+        trail.push(`${copies[i].label} ${awake[i] ? 'wakes' : 'sleeps'}`);
+        // Coming to the front syncs, before anything is touched.
+        // eslint-disable-next-line no-await-in-loop
+        if (awake[i]) await copies[i].sync();
+      }
+    }
+    // Everything wakes and syncs until nothing moves.
+    for (let pass = 0; pass < 4; pass += 1) {
+      // eslint-disable-next-line no-await-in-loop
+      for (const d of copies) await d.sync();
+    }
+    for (const d of copies) {
+      for (const [key, value] of Object.entries(truth)) {
+        assert.equal(d.state.settings[key], value, `round ${round}, ${d.label}: ${key} should be ${value}\n  ${trail.join('\n  ')}`);
+      }
+    }
+  }
+});
+
+test('the store stamps a setting changed by something done here, and leaves alone settings that only arrived', () => {
+  let st = reducer(null, { type: 'hydrate', state: { ...emptyState(), settings: { ...DEFAULT_SETTINGS, kidArtDone: true } } });
+  assert.equal(st.settings.changedAt, undefined, 'the saved library loading stamps nothing');
+  const t0 = Date.now();
+  st = reducer(st, { type: 'setSettings', settings: { engineArrows: false } });
+  assert.deepEqual(Object.keys(st.settings.changedAt), ['engineArrows']);
+  assert.ok(st.settings.changedAt.engineArrows >= t0);
+  const again = reducer(st, { type: 'setSettings', settings: { engineArrows: false } });
+  assert.deepEqual(again.settings.changedAt, st.settings.changedAt, 'set to what it already is: not a change');
+  // Any action that changes a setting, not only the Settings page's.
+  const spot = reducer(st, { type: 'setVideoSpot', key: 'vid', spot: { at: 5, dur: 10, t: 1 } });
+  assert.ok(spot.settings.changedAt.videoSpots >= t0);
+  assert.equal(spot.settings.changedAt.engineArrows, st.settings.changedAt.engineArrows);
+  // A sync landing brings its own stamps; none are made up here.
+  const synced = { ...st, settings: { ...st.settings, volume: 0.4, changedAt: { ...st.settings.changedAt, volume: 7 } }, syncGen: 'g2' };
+  const landed = reducer(st, { type: 'syncResult', started: st, synced });
+  assert.equal(landed.settings.volume, 0.4);
+  assert.equal(landed.settings.changedAt.volume, 7);
+  // A setting switched while that sync was in flight keeps its value and its stamp.
+  const during = reducer(st, { type: 'setSettings', settings: { evalBar: false } });
+  const folded = reducer(during, { type: 'syncResult', started: st, synced });
+  assert.equal(folded.settings.evalBar, false);
+  assert.equal(folded.settings.volume, 0.4, 'and what the sync brought is kept beside it');
+  assert.equal(folded.settings.changedAt.evalBar, during.settings.changedAt.evalBar);
+  assert.equal(folded.settings.engineArrows, false);
 });

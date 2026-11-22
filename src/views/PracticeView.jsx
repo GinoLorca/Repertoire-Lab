@@ -1063,6 +1063,10 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
       const settings = (patch) => dispatch({ type: 'setSettings', settings: patch });
       if (e.key === 'ArrowUp') { e.preventDefault(); goTo(qi - 1); }
       else if (e.key === 'ArrowDown') { e.preventDefault(); goTo(qi + 1); }
+      // One press, one switch: a key held a moment too long repeats itself,
+      // and the letters below would flip straight back (the arrows above do
+      // repeat — holding one runs through the lines).
+      else if (e.repeat) return;
       // The board keys work the same here as on the analysis board — F flips
       // (X is freed up there for the hold-to-draw-blue pen shortcut).
       else if (e.key === 'f' || e.key === 'F') setFlipped((f) => !f);

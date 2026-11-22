@@ -5,6 +5,7 @@ import {
   fullBackup, studyPack, readBackupFile, mergeBackup,
 } from '../lib/backup';
 import { DownloadIcon, UploadIcon } from '../components/Icons';
+import { stampChanges } from '../lib/settingStamps';
 
 // Files: the way in and out that doesn't need an account, a network, or
 // anyone else's cooperation. Sync handles moving your own work between your
@@ -191,7 +192,13 @@ export default function DataSection() {
                   onClick={() => {
                     // Stamped as a restore: this library didn't come from a sync,
                     // so the next one mustn't read what it lacks as deletions.
-                    dispatch({ type: 'hydrate', state: { ...restoring.parsed, syncGen: 'local-restore' } });
+                    // Its settings are a choice made here, now (lib/settingStamps):
+                    // the ones the file changes go to the account as that, rather
+                    // than looking like an old copy of what's already there.
+                    const restored = restoring.parsed.settings
+                      ? { ...restoring.parsed, settings: stampChanges(state.settings, restoring.parsed.settings) }
+                      : restoring.parsed;
+                    dispatch({ type: 'hydrate', state: { ...restored, syncGen: 'local-restore' } });
                     setRestoring(null);
                     setNote('Replaced everything on this device.');
                   }}

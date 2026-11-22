@@ -884,6 +884,11 @@ export default function AnalysisView({
       const tok = keyToken(e);
       const action = keyMap[tok];
       if (!action) return;
+      // One press, one action. A key held a moment too long repeats itself,
+      // and every action here is a switch: the best-move arrow went off and
+      // straight back on, as if it had never been pressed. (The arrow keys
+      // above do repeat — holding one runs through the moves.)
+      if (e.repeat) return;
       // A shortcut on one of Game Review's pen letters (B, the eval bar; O,
       // Engine / Explorer) waits for the key's release, and fires only when
       // nothing was drawn while it was held (lib/penHold) — Chess Arcade's rule.

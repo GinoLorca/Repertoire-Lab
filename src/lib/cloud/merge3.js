@@ -28,6 +28,7 @@
 import { legacyOrder, keepFoldersTogether } from '../chapterOrder';
 import { hashOf } from './shape';
 import { parseMarks, compose } from '../marks';
+import { settleSettings } from '../settingStamps';
 
 const isDataUrl = (v) => typeof v === 'string' && v.startsWith('data:');
 const isMark = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -446,7 +447,20 @@ function keepPlacement(chapters, base, local, remote, prefer) {
 export function foldInFlight(started, now, synced) {
   if (now === started) return synced;
   const out = mergeState(started, now, synced);
-  out.settings = same(now.settings, started.settings) ? synced.settings : now.settings;
+  // Settings the same way, each on its own: one touched here during the sync
+  // keeps its new value, and every other one is as the sync left it. (They
+  // used to be kept whole as they were here once any had been touched — so
+  // whatever the sync had just brought from another device was dropped, and
+  // the next sync, measuring against a baseline that had it, sent the old
+  // values back as if they'd been chosen here. A video playing on a tablet
+  // was enough: its place is a setting, and it moves every few seconds.)
+  if (same(now.settings, started.settings)) out.settings = synced.settings;
+  else {
+    const mine = now.settings ?? {};
+    const theirs = synced.settings ?? {};
+    const from = started.settings ?? {};
+    out.settings = settleSettings(merge3(from, mine, theirs, 'local'), mine, theirs, { base: from, same });
+  }
   // The generation of the sync that just finished: the baseline it wrote is
   // the ancestor of this state, local work and all.
   out.syncGen = synced.syncGen;

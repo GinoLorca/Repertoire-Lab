@@ -180,7 +180,8 @@ export default function BoardEditor({
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (keyMap[e.key.toLowerCase()] === 'flipBoard') {
+      // (Once per press: a held key repeats, and would flip it back.)
+      if (!e.repeat && keyMap[e.key.toLowerCase()] === 'flipBoard') {
         setOrientation((o) => (o === 'white' ? 'black' : 'white'));
       }
     };

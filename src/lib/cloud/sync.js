@@ -21,6 +21,7 @@ import {
 } from './shape';
 import { makeInlineStore } from './blobs';
 import { DEFAULT_SETTINGS } from '../settingsDefaults';
+import { settleSettings } from '../settingStamps';
 import {
   mergeState, merge3, same, toBaseline, SYNCED_COLLECTIONS,
 } from './merge3';
@@ -392,9 +393,21 @@ function reconcileThreeWay(localState, remoteState, remoteDocs, meta, defaults, 
   // on the Mac both survive. A baseline from before settings were kept in it,
   // or a device keeping a look of its own (see syncOnce), falls back to the
   // whole-object rules.
+  //
+  // Then each setting is settled by when it was last changed on purpose
+  // (lib/settingStamps): a value in the account that's older than what was
+  // last agreed on is some device's old copy written back — an app from
+  // before the stamps, a tab left open — and doesn't undo a choice made here.
   if (!meta.settingsDiverged && baseline.settings
     && remoteState.settings && Object.keys(remoteState.settings).length) {
-    merged = { ...merged, settings: merge3(baseline.settings, localState.settings ?? {}, remoteState.settings) };
+    const mine = localState.settings ?? {};
+    merged = {
+      ...merged,
+      settings: settleSettings(
+        merge3(baseline.settings, mine, remoteState.settings), mine, remoteState.settings,
+        { base: baseline.settings, same },
+      ),
+    };
   } else {
     merged = mergeSettings(merged, localState, remoteState, remoteDocs, meta, defaults);
   }
@@ -512,7 +525,7 @@ function reconcileTwoWay(
   return { merged, goneHere };
 }
 
-function mergeSettings(merged, localState, remoteState, remoteDocs, meta, defaults) {
+function mergeSettings(merged, localState, remoteState, remoteDocs, meta, defaults, { careful = false } = {}) {
   // Settings are one object rather than a set of records, so recency decides
   // rather than sync order. Two rules:
   //
@@ -540,11 +553,30 @@ function mergeSettings(merged, localState, remoteState, remoteDocs, meta, defaul
   const untouchedHere = neverSyncedHere && defaults
     && localSettingsHash === hashOf(JSON.stringify(defaults));
   const remoteHasSettings = remoteState.settings && Object.keys(remoteState.settings).length > 0;
-  if (remoteHasSettings && (untouchedHere || (!changedHere && !neverSyncedHere && remoteIsNewer))) {
-    return { ...merged, settings: { ...localState.settings, ...remoteState.settings } };
-  }
-
-  return merged;
+  const takeTheirs = remoteHasSettings && (untouchedHere || (!changedHere && !neverSyncedHere && remoteIsNewer));
+  const whole = takeTheirs ? { ...merged, settings: { ...localState.settings, ...remoteState.settings } } : merged;
+  // Those rules pick one side's settings whole, and "changed here" only says
+  // this device's differ from the last ones synced in this browser — which a
+  // state that sat through other syncs does without anyone having touched it.
+  // Whole, that state's older settings went up over the account's and every
+  // other device took them: a setting turned off on one came back on. So each
+  // setting is then settled on its own, by when it was last changed on
+  // purpose (lib/settingStamps).
+  //
+  // Not a first sync, which keeps this device's look or takes the account's,
+  // whole, as described above — and nothing to settle where neither side has
+  // news.
+  if (neverSyncedHere || !remoteHasSettings || (!changedHere && !takeTheirs)) return whole;
+  return {
+    ...whole,
+    settings: settleSettings(whole.settings ?? {}, localState.settings ?? {}, remoteState.settings, {
+      // A state older than every baseline here (`careful`) is likelier stale
+      // than changed: where the stamps can't say, the account's stands — as
+      // it does for everything else on that path.
+      tie: careful && !meta.settingsDiverged ? 'remote' : 'chosen',
+      same,
+    }),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -681,7 +713,7 @@ async function syncOnce(localState, { onProgress, inbound = [], coachNames = {} 
     reconciled = {
       merged: mergeSettings(
         mergeState(undefined, localState, remoteState, 'remote'),
-        localState, remoteState, remoteDocs, meta, DEFAULT_SETTINGS,
+        localState, remoteState, remoteDocs, meta, DEFAULT_SETTINGS, { careful: true },
       ),
       goneHere: {},
     };
