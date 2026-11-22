@@ -60936,7 +60936,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       + ' border-radius: .9em .35em 1.05em .3em / .5em .95em .4em 1.1em !important; padding: 2px 8px !important;'
       + ' -webkit-box-decoration-break: clone; box-decoration-break: clone; }'
       // with the whole window, the way back to Game History keeps its place, unseen: the layout is Chess Arcade's to the pixel
-      + ' html.rl-embed.rl-chrome #view-play-history .back-link { visibility:hidden !important; pointer-events:none !important; }';
+      + ' html.rl-embed.rl-chrome #view-play-history .back-link { visibility:hidden !important; pointer-events:none !important; }'
+      // The wheel (or a swipe) over this frame goes on to Repertoire Lab's page. Chess Arcade forbids that for its own
+      // window (html, body: overscroll-behavior none, against the browser's pull-to-refresh), and here the frame is as
+      // tall as what it shows, so it has nothing of its own to scroll: with the pointer over a player's CLAMP, Tactics or
+      // Openings the wheel did nothing at all, and the page could only be scrolled from beside the frame or by its
+      // scrollbar. Not while the review has the whole window (rl-chrome): there the frame scrolls itself.
+      + ' html.rl-embed:not(.rl-chrome), html.rl-embed:not(.rl-chrome) body { overscroll-behavior:auto !important; }';
     document.head.appendChild(css);
     // Chess Arcade's "Below your usual" (its Opening's job filter, 2026-11) is read against the player's other games in Chess
     // Arcade's own Game History: not offered here. Taken out, not hidden (Safari draws a hidden <option> anyway); a stale one cleared.

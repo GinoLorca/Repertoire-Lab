@@ -21,7 +21,12 @@ import {
 import { useArcadeLook, onArcadeArrows } from '../lib/arcadeLook';
 import OpeningsBasisPicker from './OpeningsBasisPicker';
 
-export default function PlayerInsights({ player, view, onOpenGame }) {
+// fill: the player page is full screen — the frame takes the room under the
+// tabs and scrolls what it shows itself (styles.css, .pi-wrap.fill), instead
+// of standing as tall as its page inside one that scrolls.
+export default function PlayerInsights({
+  player, view, onOpenGame, fill = false,
+}) {
   const { state, dispatch } = useStore();
   const settingsRef = useRef(state.settings);
   settingsRef.current = state.settings;
@@ -85,10 +90,17 @@ export default function PlayerInsights({ player, view, onOpenGame }) {
     api()?.history?.(data.games, view);
   }, [ready, data, view, repertoire]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Scrolling itself, another tab starts at its top (the frame is the same
+  // one for all three, and would otherwise keep the last tab's place).
+  useEffect(() => {
+    if (!fill || !ready) return;
+    try { frameRef.current?.contentWindow?.scrollTo(0, 0); } catch { /* frame gone */ }
+  }, [fill, ready, view]);
+
   const shown = openings ? data.games.length : data.games.filter((g) => (view === 'tactics' ? g.tactics : g.clamp)).length;
   const sum = openings ? basisSummary(state.openings, basis.ids, state.players) : null;
   return (
-    <div className="pi-wrap">
+    <div className={`pi-wrap${fill ? ' fill' : ''}`}>
       {openings && (
         <div className="basis-bar">
           <span className="basis-bar-label">Based on</span>
@@ -118,7 +130,7 @@ export default function PlayerInsights({ player, view, onOpenGame }) {
           className="pi-frame"
           title={`${player.name}’s ${openings ? 'openings' : view === 'tactics' ? 'tactics' : 'CLAMP'}`}
           src={ARCADE_REVIEW_URL}
-          style={{ height }}
+          style={fill ? undefined : { height }}
         />
         {!ready && <div className="gr-loading">Loading…</div>}
       </div>

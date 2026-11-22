@@ -5351,6 +5351,22 @@ button.arrow-profile:hover { color: var(--text); }
 @media (max-width: 700px) {
   .player-tabs-row .player-full-back span { display: none; }
 }
+/* …and with a tab from Chess Arcade on it (CLAMP, Tactics, Openings): the
+   page itself doesn't scroll. The frame takes all the room under the tabs
+   and scrolls what it shows, with its own scrollbar — as Game Review's full
+   screen. (It used to stand as tall as its page inside this one, and the
+   wheel over it scrolled nothing: a frame can't hand a scroll on to a page
+   that Chess Arcade tells it not to. The whole window was that frame.) */
+.page.player-full.player-full-frame {
+  overflow: hidden; display: flex; flex-direction: column; padding-bottom: 0;
+}
+.page.player-full.player-full-frame > .player-tabs-row { position: static; flex: 0 0 auto; }
+.page.player-full.player-full-frame > .pi-wrap {
+  flex: 1 1 auto; min-height: 0; margin: 0; display: flex; flex-direction: column;
+}
+.pi-wrap.fill > .basis-bar, .pi-wrap.fill > .pi-empty { flex: 0 0 auto; }
+.pi-wrap.fill > .pi-frame-box { flex: 1 1 auto; min-height: 0; }
+.pi-wrap.fill .pi-frame { height: 100%; border-radius: 12px 12px 0 0; }
 
 .dash { display: flex; flex-direction: column; gap: 16px; }
 .dash-card {

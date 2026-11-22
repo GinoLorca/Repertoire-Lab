@@ -711,8 +711,15 @@ function PlayerPage({
 
   const record = playerRecord(filtered.map((r) => r.game));
 
+  // In full screen a tab from Chess Arcade (CLAMP, Tactics, Openings) fills
+  // the window under the tabs and scrolls by itself, as Game Review's full
+  // screen does — one thing to scroll, with the frame's own scrollbar, rather
+  // than a tall frame inside a page that scrolls (where the wheel over the
+  // frame scrolled nothing). Dashboard and Games are this app's own pages,
+  // and scroll as the page.
+  const framed = full && (tab === 'clamp' || tab === 'tactics' || tab === 'openings');
   return (
-    <div className={`page${full ? ' player-full' : ''}`}>
+    <div className={`page${full ? ' player-full' : ''}${framed ? ' player-full-frame' : ''}`}>
       <div className="breadcrumb">
         <a onClick={onBack}>{rosterTitle}</a>
         <span>▸</span>
@@ -850,6 +857,7 @@ function PlayerPage({
         <PlayerInsights
           player={player}
           view={tab}
+          fill={full}
           onOpenGame={(gameId, opts) => {
             const game = player.games.find((g) => g.id === gameId);
             if (game && onGameReview) onGameReview({ ...lineFor(game), reviewOpts: opts ?? undefined });
