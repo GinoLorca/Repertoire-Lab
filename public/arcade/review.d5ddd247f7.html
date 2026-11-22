@@ -2866,7 +2866,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .ol-movelist .mv-san{ cursor:pointer; border-radius:4px; padding:0 4px; margin:0 -4px; }
   .ol-movelist .mv-san:empty{ cursor:default; }
   .ol-movelist .mv-san:not(:empty):hover{ background:var(--surface-2); }
-  .ol-movelist .mv-san.mv-viewed{ background:var(--brass-soft); }
+  /* its dark brass ink on the light brass (dark themes' light ink on it read 1.3-2:1; Drive-Thru, Rose, Chess Book and
+     Court Cards already had this) */
+  .ol-movelist .mv-san.mv-viewed{ background:var(--brass-soft); color:var(--brass-ink); }
   /* Play Online: the opponent's row, the board and your row on one screen,
      as Puzzles, Rush and the review do: the squares answer to the height as
      well as the width. Each allowance is what stacks in the board's column
@@ -5844,6 +5846,43 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     cursor:pointer; display:flex; align-items:center; gap:6px; padding:4px 0; width:fit-content;
   }
   .back-link:hover{ color:var(--brass-text); }
+  /* ---- Contrast (2026-11-22): Felt light's gold, words on the wallpaper, chip edges ----
+     Felt light's brass (#8a6a16) under its dark brass ink reads 2.6:1, so there the gold buttons, lit chips and the other
+     brass-filled tags take the ink pair the app's tabs already use (Game History, the review, Puzzle Dashboard,
+     Analytics' chips): an ink fill and card-color words, 16.6:1. A hover rings a button in brass. */
+  @media (prefers-color-scheme:light){
+    :root:not([data-skin]):not([data-theme="dark"]) :is(.btn-primary, .toggle.active, .chip.arcade-chip, .pz-save-btn.is-saved, .phase-step.is-live i, .wl-dot.is-live){ background:var(--ink); border-color:var(--ink); color:var(--surface); }
+    :root:not([data-skin]):not([data-theme="dark"]) .btn-primary:hover{ background:var(--ink); box-shadow:inset 0 0 0 2px var(--brass-soft); }
+    :root:not([data-skin]):not([data-theme="dark"]) .ol-movelist .mv-san.mv-viewed{ color:var(--ink); }      /* 6.5:1 (its brass ink 4.9:1) */
+  }
+  :root:not([data-skin])[data-theme="light"] :is(.btn-primary, .toggle.active, .chip.arcade-chip, .pz-save-btn.is-saved, .phase-step.is-live i, .wl-dot.is-live){ background:var(--ink); border-color:var(--ink); color:var(--surface); }
+  :root:not([data-skin])[data-theme="light"] .btn-primary:hover{ background:var(--ink); box-shadow:inset 0 0 0 2px var(--brass-soft); }
+  :root:not([data-skin])[data-theme="light"] .ol-movelist .mv-san.mv-viewed{ color:var(--ink); }
+  /* the words on the pale result tags (WON / LOST / DRAW, Ready, Solved / Missed) read 3.6:1 on Felt light and 2.6:1 on
+     Game Boy light: a little ink in them, as Puzzle History's list already has */
+  .history-result-win, .chip.ready{ color:color-mix(in srgb, var(--good) 60%, var(--ink)); }
+  .history-result-loss{ color:color-mix(in srgb, var(--bad) 60%, var(--ink)); }
+  .history-result-draw{ color:color-mix(in srgb, var(--ink-soft) 60%, var(--ink)); }
+  /* Rush's best-score labels on the darker card color (3.6:1 on Game Boy light), as Whose Line's dots */
+  .rush-best .rush-lab{ color:color-mix(in srgb, var(--ink-soft) 60%, var(--ink)); }
+  /* an inactive chip's edge: 1.3-2.3:1 on every skin; a little ink in the line makes it 3:1 against the card */
+  .toggle:not(.active){ border-color:color-mix(in srgb, var(--line), var(--ink) 40%); }
+  /* Words straight on the wallpaper (Felt's green, Game Boy's dots, Uptown's map): bare, they can't be read (Felt light's
+     soft ink on its green is 1.05:1). A card-color pill behind them, drawn with a spread shadow, so no box grows and
+     nothing moves (the puzzle board stays centered: pzCentreBoard), as on the Puzzles tab's game puzzles. A back link
+     in a play view keeps its room from the home button as a margin, so its pill hugs the words. */
+  .view > .back-link, .view > .anno-hint, #view-play-puzzle .pz-help-row, #view-play-puzzle #pz-status:not(:empty){
+    background:var(--surface); border-radius:999px;
+    /* 7px past the words at the sides, 2px above and below: two pills 6px apart (the hint line, then the back link) stay two */
+    box-shadow:0 0 0 2px var(--surface), 5px 0 0 2px var(--surface), -5px 0 0 2px var(--surface), var(--shadow);
+  }
+  /* Skip puzzle, an outlined button on the wallpaper: filled with the card color (its box unchanged) */
+  #view-play-puzzle .side-panel > .btn-row > .btn-ghost{ background:var(--surface); }
+  .wrap.play-mode .view > .back-link{ padding-left:0; margin-left:var(--fab-clear-link, 0px); }
+  .view > .anno-hint{ width:fit-content; max-width:100%; border-radius:9px; }
+  #view-play-puzzle .pz-help-row{ width:fit-content; max-width:100%; margin-inline:auto; }
+  #view-play-puzzle #pz-status:not(:empty){ width:fit-content; max-width:100%; margin-inline:auto; padding:0 6px; }
+  :root[data-skin="bauhaus"] :is(.view > .back-link, .view > .anno-hint, #view-play-puzzle .pz-help-row, #view-play-puzzle #pz-status){ border-radius:0; }
 
   /* ===== Game review (Game History, open a game): an analysis board =====
      The board column (eval bar inside its frame, a player strip above and
@@ -5901,9 +5940,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .hv-frame{ position:relative; }
   /* read by a screen reader, not shown: the move just reached */
   .hv-sr{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; border:0; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; }
-  /* A finger's swipe that starts on a piece scrolls the page (the panels
-     are under the board); the review's touch code keeps a deliberate drag. */
-  #hv-board .sq.draggable{ touch-action:pan-y; }
+  /* A finger on a piece that can be moved has the piece at once, as on every
+     other board (.sq.draggable: touch-action none); a swipe from anywhere
+     else on the board still scrolls the page (the panels are under it). */
   #hv-controls{ margin-top:0; }
   /* Repertoire Lab's eval bar: Black's dark, White's light share growing
      from White's side of the board (the top once it's flipped). Fixed
@@ -7443,6 +7482,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .sq.draggable{ cursor:grab; touch-action:none; }
   .sq.draggable:active{ cursor:grabbing; }
   .sq.dragging-from .piece-wrap{ opacity:0; }
+  /* from the press on: the piece is its copy, sitting on it (wireDrag) */
+  .sq.drag-lifted .piece-wrap{ opacity:0; }
   .sq.drag-over{ box-shadow:inset 0 0 0 4px var(--brass); }
   .drag-ghost{
     position:fixed; left:0; top:0; z-index:60;
@@ -8152,10 +8193,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
 
   /* ---- Game Boy (light): dark text on the magenta reads 3.0:1; cream reads 5.5:1, across the skin ---- */
-  :root[data-skin="gameboy"]:not([data-theme="dark"]) :is(.btn-primary, .toggle.active){ color:#f7f5e8; }
+  :root[data-skin="gameboy"]:not([data-theme="dark"]) :is(.btn-primary, .toggle.active, .chip.arcade-chip, .pz-save-btn.is-saved, .phase-step.is-live i, .wl-dot.is-live){ color:#f7f5e8; }
   :root[data-skin="gameboy"]:not([data-theme="dark"]) .btn-primary:hover{ background:var(--brass); box-shadow:inset 0 0 0 2px var(--brass-ink); }
   @media (prefers-color-scheme:dark){
-    :root[data-skin="gameboy"]:not([data-theme="light"]) :is(.btn-primary, .toggle.active){ color:var(--brass-ink); }
+    :root[data-skin="gameboy"]:not([data-theme="light"]) :is(.btn-primary, .toggle.active, .chip.arcade-chip, .pz-save-btn.is-saved, .phase-step.is-live i, .wl-dot.is-live){ color:var(--brass-ink); }
     :root[data-skin="gameboy"]:not([data-theme="light"]) .btn-primary:hover{ background:var(--brass-soft); box-shadow:none; }
   }
 
@@ -8536,16 +8577,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   @media (prefers-color-scheme:light){ :root:not([data-skin]):not([data-theme="dark"]) #gz .gz-go{ background:var(--ink); border-color:var(--ink); color:var(--surface); } }
   :root:not([data-skin])[data-theme="light"] #gz .gz-go{ background:var(--ink); border-color:var(--ink); color:var(--surface); }
   /* a game puzzle's way back and Open the game on the card color: bare text can't be read on Felt's green or Game Boy's
-     wallpaper (a spread shadow, so nothing moves and the board stays centered) */
-  #view-play-puzzle.is-gz > .back-link, #view-play-puzzle.is-gz #pz-gzgame{ background:var(--surface); border-radius:999px; box-shadow:0 0 0 5px var(--surface), var(--shadow); }
+     wallpaper: the pills every puzzle's words now have (the Contrast block after .back-link:hover: the back link, the help row
+     Open the game sits in, the status line); here only their colors */
   #view-play-puzzle.is-gz > .back-link{ color:var(--ink-soft); }
-  /* the room it keeps clear of the home button as a margin, not padding: the words stay where they were and the pill hugs
-     them (on a phone or an iPad standing it showed an empty end ~50px wide) */
-  .wrap.play-mode #view-play-puzzle.is-gz > .back-link{ padding-left:0; margin-left:var(--fab-clear-link, 0px); }
   #view-play-puzzle.is-gz #pz-gzgame{ color:var(--ink); }      /* the brass link color is 4.0:1 on Game Boy dark's card color */
-  /* the board's words ("Your move.", "Not the move", your game's move) on the card color as well, only while it has words */
-  #view-play-puzzle.is-gz #pz-status:not(:empty){ width:fit-content; max-width:100%; margin-left:auto; margin-right:auto; padding:0 6px; background:var(--surface); border-radius:999px; box-shadow:0 0 0 5px var(--surface), var(--shadow); }
-  :root[data-skin="bauhaus"] #view-play-puzzle.is-gz > .back-link, :root[data-skin="bauhaus"] #view-play-puzzle.is-gz #pz-gzgame, :root[data-skin="bauhaus"] #view-play-puzzle.is-gz #pz-status{ border-radius:0; }
   /* a card's board: their last move lit under the pieces (NB_CODES Y), so a piece keeps its own color */
   .gz-m .nb-board .sq.gz-lit{ box-shadow:inset 0 0 0 2px #e8b339, inset 0 0 0 99px rgba(232,179,57,.45); }
   /* a finger's 44px on a touch screen: Open the game (its tap area grows, the row doesn't) and the solved box's buttons */
@@ -9241,6 +9276,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <span class="slider-val" id="glass-alpha-val">50%</span>
       </div>
       <div class="field-hint">Frosted panel behind each drill title, with a specular sweep on hover. The Bauhaus theme prints them flat instead.</div>
+    </div>
+
+    <div class="field" id="holddraw-field">
+      <div class="field-label">Hold a piece to draw</div>
+      <div class="toggle-row" id="holddraw-row">
+        <button class="toggle active" data-val="on">On</button>
+        <button class="toggle" data-val="off">Off</button>
+      </div>
+      <div class="field-hint">Touch screens, in Game Review: a finger rested on a piece draws an arrow from it. Off, a piece you can move is always picked up, however long the finger rests, and you hold an empty square to draw. Wherever pieces are played (puzzles, drills, games) a piece is always picked up.</div>
     </div>
 
     <div class="field">
@@ -14252,6 +14296,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(shouldSkip && shouldSkip(e)) return;
       const from = sqIdxAt(e.clientX, e.clientY);
       if(from==null) return;
+      // A finger on a piece that can be picked up is picking it up, however
+      // long it rests there: no hold to draw from it (pieceComesFirst).
+      if(pieceComesFirst(boardEl, from, e)){ endHold(false); return; }
       endHold(false);
       const h = { id:e.pointerId, from, to:from, x:e.clientX, y:e.clientY, held:false, timer:0 };
       hold = h;
@@ -14261,6 +14308,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         if(hold!==h || boardEl.querySelector('.dragging-from') || (shouldSkip && shouldSkip(e))){ endHold(false); return; }
         h.held = true;
         annoHoldActive = true;
+        // The piece under the finger was coming up with it (wireDrag, from the
+        // press): it goes back down now, not at the finger's next move.
+        const dragging = dragBoards.get(boardEl);
+        if(dragging && dragging.cancel) dragging.cancel();
         holdPreview();
       }, ANNO_HOLD_MS);
       window.addEventListener('pointermove', onHoldMove, true);
@@ -14773,13 +14824,59 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   /* Drag-and-drop for boards where a piece actually moves. Click-to-move
      still works — a press that never travels more than a few pixels falls
      through to the board's own click handler. */
+  // Each board that drags, with what it was wired with: wireAnnotations asks
+  // whether the square under a finger is a piece that can be picked up.
+  const dragBoards = new WeakMap();
+  // Whether a finger resting on this square is a piece being picked up, and
+  // so never a hold to draw (as in Repertoire Lab: Learn and Practice always,
+  // its analysis board by a switch). A parent whose student rested a finger
+  // on the piece to be moved, then moved it, got an arrow instead of the
+  // move. So: on a board where pieces are played (puzzles, Puzzle Rush, a
+  // game, a drill) a piece that can be moved always comes up. On a board for
+  // going over a game (`opts.holdDraws`: Game Review) a rested finger still
+  // draws from a piece, unless that is switched off (Settings). An empty
+  // square, or a piece that can't move, draws as ever; so does a pencil.
+  function pieceComesFirst(boardEl, idx, e){
+    const d = dragBoards.get(boardEl);
+    if(!d || (e && e.pointerType==='pen')) return false;
+    const sq = boardEl.querySelector('[data-idx="'+idx+'"]');
+    if(!sq || !sq.querySelector('.piece-wrap')) return false;
+    let can = false;
+    try{ can = !!d.canDragFrom(idx); }catch(err){ can = false; }
+    if(!can) return false;
+    return d.holdDraws ? !d.holdDraws() : true;
+  }
   function wireDrag(boardEl, opts){
     let drag = null;
+    // How far a press may travel and still be a click: a mouse's four
+    // pixels; a finger's six, the same as give up a hold to draw
+    // (ANNO_HOLD_SLOP) -- as in Repertoire Lab (lib/grab sureAfter).
     const DRAG_SLOP = 4;
+    dragBoards.set(boardEl, opts);
+    opts.cancel = ()=> teardown();      // wireAnnotations: a hold that starts drawing ends the pick-up
 
+    // The piece goes with the pointer from the first pixel, as on lichess
+    // and in Repertoire Lab (components/useCarry): pressed, it's a copy
+    // sitting exactly on the piece (nothing jumps to the pointer); as it
+    // travels it settles centred under the pointer over the first 0.45 of a
+    // square (lib/grab carriedCentre). It used to wait for DRAG_SLOP before
+    // it moved at all, and then jumped the difference.
     function place(x,y){
+      const k = Math.min(1, drag.far / (drag.size * 0.45));
       drag.ghost.style.transform =
-        'translate('+(x-drag.offX)+'px,'+(y-drag.offY)+'px)';
+        'translate('+(x-drag.offX-drag.grabX*(1-k))+'px,'+(y-drag.offY-drag.grabY*(1-k))+'px)';
+    }
+    // The piece itself, out of sight under its copy from the press on (a
+    // class of its own: `dragging-from` still means a drag that has begun).
+    // Asked again each frame: a board redrawn mid-press (the square picked,
+    // on this same pointerdown) is made of new squares.
+    function lift(){
+      if(!drag) return;
+      const src = boardEl.querySelector('[data-idx="'+drag.from+'"]');
+      if(src && !src.classList.contains('drag-lifted')) src.classList.add('drag-lifted');
+    }
+    function unlift(){
+      boardEl.querySelectorAll('.sq.drag-lifted').forEach(s=>s.classList.remove('drag-lifted'));
     }
     function squareUnder(x,y){
       const el = document.elementFromPoint(x,y);
@@ -14801,7 +14898,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     function paintFrame(){
       rafId = null;
       if(!drag) return;
+      lift();
       place(pendingX, pendingY);
+      // (Until the press is a drag there's no square to light, and no
+      // hit-test to pay for.)
+      if(!drag.started) return;
       clearHover();
       const over = squareUnder(pendingX, pendingY);
       if(over && drag.targets.has(Number(over.dataset.idx))) over.classList.add('drag-over');
@@ -14817,6 +14918,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const wasStarted = drag.started;
       const src = boardEl.querySelector('[data-idx="'+drag.from+'"]');
       if(src) src.classList.remove('dragging-from');
+      unlift();
       if(drag.ghost && drag.ghost.parentNode) drag.ghost.parentNode.removeChild(drag.ghost);
       drag = null;
       // Only for a real drag (matching onPickup, which only fires once a
@@ -14844,8 +14946,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       document.body.appendChild(ghost);
       drag = { from, ghost, started:false, startX:e.clientX, startY:e.clientY,
                offX:rect.width/2, offY:rect.height/2,
+               // where on the piece it was pressed, from its centre; how far it has gone
+               grabX:e.clientX-(rect.left+rect.width/2), grabY:e.clientY-(rect.top+rect.height/2),
+               far:0, size:rect.width,
+               slop:e.pointerType==='mouse' ? DRAG_SLOP : ANNO_HOLD_SLOP,
                targets:new Set(opts.targetsFor(from)) };
       place(e.clientX, e.clientY);
+      // Once this pointerdown's other listeners have run (one of them
+      // redraws the board, to pick the square), and before anything is drawn.
+      requestAnimationFrame(lift);
       try{ boardEl.setPointerCapture(e.pointerId); }catch(err){}
     });
 
@@ -14853,8 +14962,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(!drag) return;
       // A finger held to draw an arrow (wireAnnotations): not a piece drag.
       if(annoHoldActive){ teardown(); return; }
-      if(!drag.started){
-        if(Math.hypot(e.clientX-drag.startX, e.clientY-drag.startY) < DRAG_SLOP) return;
+      const gone = Math.hypot(e.clientX-drag.startX, e.clientY-drag.startY);
+      if(gone > drag.far) drag.far = gone;
+      if(!drag.started && gone >= drag.slop){
         drag.started = true;
         const src = boardEl.querySelector('[data-idx="'+drag.from+'"]');
         if(src) src.classList.add('dragging-from');
@@ -14863,6 +14973,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         // pointerdown, so it never fights the click handler's own toggle.
         if(opts.onPickup) opts.onPickup(drag.from);
       }
+      // (Before it's a drag, too: the piece is with the pointer all the way.)
       schedulePaint(e.clientX, e.clientY);
     });
 
@@ -14876,7 +14987,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         // Check the release position itself before giving up on the drag,
         // or a quick real drag silently gets treated as a stray click and
         // the piece never appears to grab.
-        const movedEnough = Math.hypot(e.clientX-drag.startX, e.clientY-drag.startY) >= DRAG_SLOP;
+        const movedEnough = Math.hypot(e.clientX-drag.startX, e.clientY-drag.startY) >= drag.slop;
         if(!movedEnough){ teardown(); return; }   // a genuine plain click: let it through
         drag.started = true;
         const src = boardEl.querySelector('[data-idx="'+drag.from+'"]');
@@ -14912,6 +15023,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           clearHover();
           const s = boardEl.querySelector('[data-idx="'+d.from+'"]');
           if(s) s.classList.remove('dragging-from');
+          // (unless another piece is in hand by now: that one's is its own)
+          if(!drag) unlift();
           if(ghost.parentNode) ghost.parentNode.removeChild(ghost);
         }, 170);
         return;
@@ -14950,7 +15063,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // and the browser's own late one is swallowed when it arrives near the
   // same spot. Mouse and trackpad clicks are untouched.
   (function fastBoardTaps(){
-    const TAP_SLOP = 4, TAP_MAX_MS = 600, SWALLOW_MS = 700, SWALLOW_PX = 30;
+    const TAP_SLOP = ANNO_HOLD_SLOP, TAP_MAX_MS = 600, SWALLOW_MS = 700, SWALLOW_PX = 30;     // a finger's six pixels, as a hold to draw and a pick-up allow
     let down = null, sentAt = -Infinity, sentX = 0, sentY = 0;
     document.addEventListener('pointerdown', (e)=>{
       down = null;
@@ -16195,6 +16308,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const strokeRow = document.getElementById('sq-stroke-row');
     const glassRow = document.getElementById('glass-row');
     const introRow = document.getElementById('intro-row');
+    const holdDrawRow = document.getElementById('holddraw-row');
     const uxLinesRow = document.getElementById('uxlines-row');
     const uxLinesField = document.getElementById('uxlines-field');
     const glassAlpha = document.getElementById('glass-alpha');
@@ -16232,6 +16346,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       });
       strokeRow.querySelectorAll('.toggle').forEach(b=>{
         b.classList.toggle('active', b.dataset.val===lookPrefs.sqStroke);
+      });
+      holdDrawRow.querySelectorAll('.toggle').forEach(b=>{
+        b.classList.toggle('active', b.dataset.val===(lookPrefs.holdDrawPieces==='off' ? 'off' : 'on'));
       });
       introRow.querySelectorAll('.toggle').forEach(b=>{
         b.classList.toggle('active', b.dataset.val===(lookPrefs.intro==='off' ? 'off' : 'on'));
@@ -16371,6 +16488,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     introRow.querySelectorAll('.toggle').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         lookPrefs.intro = btn.dataset.val;
+        saveLookPrefs(); syncButtons();
+      });
+    });
+    holdDrawRow.querySelectorAll('.toggle').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        lookPrefs.holdDrawPieces = btn.dataset.val;
         saveLookPrefs(); syncButtons();
       });
     });
@@ -44512,7 +44635,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       return !!p && p.color===st.turn;
     },
     targetsFor: (from)=> HV_STATE ? pzLegalMovesFrom(HV_STATE.cur.state, from).map(m=> m.to) : [],
-    onDrop: (from, to)=> hvResolveDrop(from, to)
+    onDrop: (from, to)=> hvResolveDrop(from, to),
+    // a board for going over a game: a finger rested on a piece draws from it, unless switched off (Settings)
+    holdDraws: ()=> lookPrefs.holdDrawPieces!=='off'
   });
   wireAnnotations(
     hvBoardEl,
@@ -44520,15 +44645,18 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     ()=> renderMarks(hvBoardEl, arrowSvgHv, marksHv, HV_STATE ? HV_STATE.cur.state.board : []),
     ()=> hvSqSkip()          // Space + right-click is a square's CLAMP box, not a highlight (and while one is asked for)
   );
-  // A touch screen scrolls this page (the panels are under the board), so a
-  // swipe that starts on a piece must stay a scroll: a finger that sets off
-  // at once (within HV_TOUCH_DWELL ms of landing) scrolls, one that rests
-  // on a piece first drags it. A finger held still draws (wireAnnotations)
-  // and taps pick and move as before. The pieces' squares allow pan-y
-  // (CSS) and a drag cancels it. The touchmove listener goes on the touched
-  // element itself: the board redraws on this pointerdown, and a removed
-  // square's touch events reach neither the board nor the window.
-  const HV_TOUCH_DWELL = 120, HV_TOUCH_DECIDE = 8;
+  // A touch screen scrolls this page (the panels are under the board). A
+  // finger on a piece that can be moved has the piece at once, from the
+  // first pixel, as on lichess and in Repertoire Lab: it used to have to
+  // rest there first (120 ms), and one that set off at once scrolled the
+  // page instead, so a quick move was a scroll and the board felt slow.
+  // A swipe from an empty square, or a piece that can't move, still
+  // scrolls. A finger held still draws (wireAnnotations, unless that is
+  // switched off for pieces in Settings) and taps pick and move as before.
+  // The touchmove listener goes on the touched element itself: the board
+  // redraws on this pointerdown, and a removed square's touch events reach
+  // neither the board nor the window.
+  const HV_TOUCH_DECIDE = 8;
   hvBoardEl.addEventListener('pointerdown', (e)=>{
     if(e.pointerType==='mouse' || !e.isPrimary) return;
     const tgt = e.target;
@@ -44547,7 +44675,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(h.drag===true || annoHoldActive){ if(ev.cancelable) ev.preventDefault(); return; }
       const t = ev.touches && ev.touches[0];
       if(!t || Math.hypot(t.clientX - h.x, t.clientY - h.y) < HV_TOUCH_DECIDE) return;
-      h.drag = movable && ev.timeStamp - h.at >= HV_TOUCH_DWELL;
+      h.drag = movable;
       if(h.drag && ev.cancelable) ev.preventDefault();
     };
     const end = ()=>{ tgt.removeEventListener('touchmove', move); tgt.removeEventListener('touchend', end); tgt.removeEventListener('touchcancel', end); };
@@ -60780,7 +60908,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       // Chess Arcade's own device; not part of the review Repertoire Lab embeds (its tab button goes with #gh-view)
       'html.rl-history #gz',
       // the theme: always Repertoire Lab's own, dark or light as Repertoire Lab is (look)
-      '#settings-overlay .field:has(#skin-row)', '#custom-colors-field'];
+      '#settings-overlay .field:has(#skin-row)', '#custom-colors-field',
+      // "Hold a piece to draw": Repertoire Lab's own switch (Settings, the board), handed over with the look
+      '#holddraw-field'];
     const css = document.createElement('style');
     css.textContent = HIDE.map((s)=> (s.indexOf('html')===0 ? s : 'html.rl-embed '+s)).join(', ')+' { display:none !important; }'
       + ' #rl-menu { position:fixed; right:16px; bottom:16px; z-index:40; display:flex; flex-direction:row-reverse; gap:8px; align-items:center; }'
@@ -61106,10 +61236,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         const c = o.colors || {};
         const colors = skin==='custom' ? { accent:col(c.accent), bg:col(c.bg), surface:col(c.surface), boardLight:col(c.boardLight),
           boardDark:col(c.boardDark), pieceWhite:col(c.pieceWhite), pieceBlack:col(c.pieceBlack), pieceStroke:null } : null;
-        const sig = skin+'|'+theme+'|'+JSON.stringify(colors);
+        // A finger rested on a piece draws an arrow from it (Repertoire Lab's "Hold a piece to draw"), or picks it up.
+        const hold = o.holdDraw===false ? 'off' : 'on';
+        const sig = skin+'|'+theme+'|'+JSON.stringify(colors)+'|'+hold;
         if(sig===lookSig) return false;
         lookSig = sig;
         lookPrefs.skin = skin;
+        lookPrefs.holdDrawPieces = hold;
         if(colors) lookPrefs.customColors = colors;
         document.documentElement.setAttribute('data-theme', theme);
         applyLookPrefs();

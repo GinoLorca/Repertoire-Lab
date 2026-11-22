@@ -34,6 +34,10 @@ export function currentLook(settings) {
   return {
     skin,
     theme,
+    // Touch screens: a finger rested on a piece draws an arrow from it, or
+    // (switched off in Settings) always picks it up — the analysis board's
+    // own switch, so Game Review's board answers a finger the same way.
+    holdDraw: settings?.holdDrawFromPieces !== false,
     colors: {
       accent: v('--accent'),
       bg: v('--bg'),

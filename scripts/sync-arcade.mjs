@@ -115,7 +115,9 @@ const BRIDGE = String.raw`
       // Chess Arcade's own device; not part of the review Repertoire Lab embeds (its tab button goes with #gh-view)
       'html.rl-history #gz',
       // the theme: always Repertoire Lab's own, dark or light as Repertoire Lab is (look)
-      '#settings-overlay .field:has(#skin-row)', '#custom-colors-field'];
+      '#settings-overlay .field:has(#skin-row)', '#custom-colors-field',
+      // "Hold a piece to draw": Repertoire Lab's own switch (Settings, the board), handed over with the look
+      '#holddraw-field'];
     const css = document.createElement('style');
     css.textContent = HIDE.map((s)=> (s.indexOf('html')===0 ? s : 'html.rl-embed '+s)).join(', ')+' { display:none !important; }'
       + ' #rl-menu { position:fixed; right:16px; bottom:16px; z-index:40; display:flex; flex-direction:row-reverse; gap:8px; align-items:center; }'
@@ -441,10 +443,13 @@ const BRIDGE = String.raw`
         const c = o.colors || {};
         const colors = skin==='custom' ? { accent:col(c.accent), bg:col(c.bg), surface:col(c.surface), boardLight:col(c.boardLight),
           boardDark:col(c.boardDark), pieceWhite:col(c.pieceWhite), pieceBlack:col(c.pieceBlack), pieceStroke:null } : null;
-        const sig = skin+'|'+theme+'|'+JSON.stringify(colors);
+        // A finger rested on a piece draws an arrow from it (Repertoire Lab's "Hold a piece to draw"), or picks it up.
+        const hold = o.holdDraw===false ? 'off' : 'on';
+        const sig = skin+'|'+theme+'|'+JSON.stringify(colors)+'|'+hold;
         if(sig===lookSig) return false;
         lookSig = sig;
         lookPrefs.skin = skin;
+        lookPrefs.holdDrawPieces = hold;
         if(colors) lookPrefs.customColors = colors;
         document.documentElement.setAttribute('data-theme', theme);
         applyLookPrefs();
