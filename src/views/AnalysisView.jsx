@@ -31,7 +31,8 @@ import GameEditor from '../components/GameEditor';
 import EvalBar from '../components/EvalBar';
 import MaterialBar from '../components/MaterialBar';
 import { materialDiff } from '../lib/material';
-import { playMoveSound } from '../lib/sound';
+import { playMoveSound, playEventSound } from '../lib/sound';
+import { tacticCueDue, CUE_AFTER_MS } from '../lib/tacticCue';
 import {
   EVENT_TYPES, resultFor, tidyEvent, matchPlayerByName,
 } from '../lib/games';
@@ -1656,6 +1657,26 @@ export default function AnalysisView({
     const san = calc.sans[calcAt - 1];
     if (san) playMoveSound(san);
   }, [calcAt, calc?.sans, soundOn]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Game Review's tactic cue, here too (lib/tacticCue): one step forward onto
+  // a move marked with a tactic plays it, after the move's own sound. Any
+  // further step before then cancels it — so a held arrow key runs through
+  // marked moves silently and the cue comes where it stops.
+  const prevHeadRef = useRef(null);
+  const tacticCueTimer = useRef(0);
+  useEffect(() => {
+    const prev = prevHeadRef.current;
+    prevHeadRef.current = head;
+    clearTimeout(tacticCueTimer.current);
+    // The move before this one (lineNodes is the whole line the board shows,
+    // through this move and on to its end; this move is its ply-th).
+    const parent = ply >= 2 ? lineNodes[ply - 2]?.id ?? null : 'root';
+    if (!tacticCueDue({
+      prev, head, parent, tactics: review?.tactics?.[head], soundOn, setting: state.settings.tacticSound,
+    })) return undefined;
+    tacticCueTimer.current = setTimeout(() => playEventSound('tactic'), CUE_AFTER_MS);
+    return undefined;
+  }, [head]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => clearTimeout(tacticCueTimer.current), []);
 
   // Keep the move you're on in view: a long game scrolls itself as you step
   // through instead of leaving you looking at move 9 of 41.

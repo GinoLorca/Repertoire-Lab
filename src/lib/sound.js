@@ -157,6 +157,8 @@ export const SOUND_EVENTS = [
   { key: 'correct', label: 'Correct', hint: 'You played the right move in practice' },
   { key: 'wrong', label: 'Wrong', hint: 'You played a wrong move' },
   { key: 'complete', label: 'Line complete', hint: 'You finished a variation' },
+  // Game Review's cue, on the analysis board too (lib/tacticCue).
+  { key: 'tactic', label: 'Tactic', hint: 'A move marked with a tactic in Game Review, stepped onto on the analysis board' },
 ];
 
 // Shipped with the app — no upload required. castle/correct/wrong have no
@@ -168,6 +170,9 @@ export const DEFAULT_SOUNDS = {
   check: '/sounds/check.mp3',
   checkmate: '/sounds/checkmate.mp3',
   complete: '/sounds/complete.mp3',
+  // Chess Arcade's own Tactics cue: a soft two-note chime (A5 then E6), the
+  // one sound for every theme there, and so here.
+  tactic: '/sounds/tactic.mp3',
 };
 
 // The sound sets that came over with the Chess Arcade themes. A theme that

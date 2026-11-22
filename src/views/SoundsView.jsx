@@ -111,6 +111,25 @@ export default function SoundsSection({ bare }) {
         <button className="small" onClick={() => playMoveSound('e4')}>▶ Test</button>
       </div>
 
+      {/* Game Review's cue, on the analysis board too (lib/tacticCue): its own
+          switch, under the sound's (which silences it with everything else). */}
+      <div className="tactic-sound-row">
+        <label>
+          <input
+            type="checkbox"
+            checked={state.settings.tacticSound !== false}
+            onChange={(e) => dispatch({ type: 'setSettings', settings: { tacticSound: e.target.checked } })}
+          />
+          <span>
+            <strong>Tactic sound</strong>
+            <span className="muted-note">
+              {' '}Plays on the analysis board when you step forward onto a move marked with a tactic in Game Review.
+            </span>
+          </span>
+        </label>
+        <button className="small" onClick={() => playEventSound('tactic')}>▶ Test</button>
+      </div>
+
       <p style={{ color: 'var(--muted)' }}>
         Replace any sound with your own audio file — MP3, M4A, WAV or OGG, under 1.5 MB each.
         Anything you leave empty uses the built-in sound. Files are stored on this device only,

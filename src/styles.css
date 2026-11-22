@@ -3304,6 +3304,14 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   border-radius: var(--radius); padding: 12px 16px; margin-bottom: 16px;
 }
 .volume-row input[type="range"] { flex: 1; max-width: 320px; accent-color: var(--accent); }
+/* "Tactic sound": Game Review's cue on the analysis board, its own switch. */
+.tactic-sound-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 16px; margin-bottom: 16px;
+}
+.tactic-sound-row label { display: flex; align-items: flex-start; gap: 10px; flex: 1; cursor: pointer; font-size: 14.5px; }
+.tactic-sound-row input[type="checkbox"] { margin-top: 3px; accent-color: var(--accent); }
 .vol-icon { font-size: 15px; }
 .vol-value { color: var(--muted); font-size: 13.5px; min-width: 42px; }
 .sound-list { display: flex; flex-direction: column; gap: 10px; }
