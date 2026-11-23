@@ -6154,10 +6154,26 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   /* Play it out (px*): the card over the engine's while a position is played out against it */
   .hv-px{ padding:10px 12px; display:flex; flex-direction:column; gap:10px; }
   .hv-px-status{ font-size:14px; font-weight:700; line-height:1.35; color:var(--ink); min-height:1.35em; }
+  /* Win it again's goal line (spec 12.1): one line of a fixed height, whatever it says. Its words get smaller in a narrow
+     card (13px down: the 300px card of the three columns, a 320px phone; gzGoalFit sets --gz-fs when a font is wider than
+     this guess) so the line stays whole; the move counter is never cut (the words would lose their end first) */
+  .hv-px-goal{ margin:0; display:flex; height:18px; line-height:18px; container-type:inline-size; color:var(--ink-soft); font-weight:600; white-space:nowrap; overflow:hidden; }
+  .hv-px-goal[hidden]{ display:none; }
+  .hv-px-goal > span{ font-size:12.5px; font-size:var(--gz-fs, clamp(11.5px, 4.2cqi, 13px)); }
+  .hv-px-goal-w{ min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .hv-px-goal-n{ flex:none; white-space:pre; }
   .hv-px-status.is-wait{ color:var(--ink-soft); font-weight:600; font-size:13px; }
+  /* Win it again (2026-11-23): your move that let the win slip, a button in the Not won words (back to just before it) */
+  .hv-px-status .hv-px-slip{ color:inherit; font:inherit; text-transform:none; letter-spacing:0; padding:0; text-decoration:underline; text-underline-offset:2px; vertical-align:baseline; position:relative; z-index:1; }
+  .hv-px-status .hv-px-slip:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; border-radius:3px; }
+  /* a finger's room (44px tall) outside the button's box: the sentence unmoved, the focus ring around the move only, and the
+     button (z-index) over the line under it */
+  @media (pointer:coarse){ .hv-px-status .hv-px-slip::after{ content:''; position:absolute; inset:-13px -4px; } }
+  .hv-px-prac{ margin:-6px 0 0; font-size:12.5px; line-height:1.35; color:var(--ink-soft); font-weight:600; }
   .hv-px-str{ display:flex; flex-direction:column; gap:2px; }
   .hv-px-str .field-label{ margin:0; }
   .hv-px-acts{ display:flex; flex-wrap:wrap; gap:8px; }
+    .hv-px-after[hidden]{ display:none; }
   .hv-px-acts .btn{ padding:7px 12px; font-size:13px; }
   .hv-px-acts .btn:disabled{ opacity:.5; cursor:default; }
   @media (pointer:coarse){ .hv-px-acts .btn{ min-height:44px; } }
@@ -8376,6 +8392,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .hv-tac-svg.is-anim .tx-ring{ animation:tx-ring .5s ease-out 1; transform-box:fill-box; transform-origin:center; }
   @keyframes tx-ring{ 0%{ transform:scale(1.18); opacity:0; } 60%{ opacity:1; } 100%{ transform:scale(1); } }
   @keyframes tx-arrow{ from{ opacity:0; } to{ opacity:1; } }
+  /* a tactic arrow's arrival (2026-11-22): from nothing to its group's own faded opacity (arrowOp; no end keyframe) */
+  @keyframes tx-arrow-in{ from{ opacity:0; } }
   /* the pill on the board frame's top edge (hvTacPillPlace): never on the squares, never over the top strip's words */
   .tx-pill{ position:absolute; z-index:8; display:inline-flex; align-items:center; gap:8px; max-width:calc(100% - 16px); box-sizing:border-box;
     padding:5px 12px 5px 9px; border-radius:999px; background:var(--tac); color:#fff; font:700 13px/1.2 "Helvetica Neue",Helvetica,Arial,sans-serif;
@@ -8394,7 +8412,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .tx-pill-dot{ width:10px; height:10px; border-radius:50%; background:var(--tac); }
   @media (max-width:520px){ .tx-pill{ font-size:12px; gap:6px; padding:4px 10px 4px 7px; } .tx-pill-w{ padding-left:6px; } }
   .hv-frame.is-tx-marking{ box-shadow:0 0 0 3px var(--tac); }
-  @media (prefers-reduced-motion:reduce){ .tx-pop, .hv-tac-svg .tx-ring, #hv-tac-card{ animation:none !important; } .hv-tac-svg g, .hv-tac-num g{ animation:none !important; opacity:1 !important; } }
+  @media (prefers-reduced-motion:reduce){ .tx-pop, .hv-tac-svg .tx-ring, #hv-tac-card{ animation:none !important; } .hv-tac-svg g:not(.tx-arrow), .hv-tac-num g{ animation:none !important; opacity:1 !important; }
+    /* the tactic arrow keeps its own faded opacity (arrowOp): no inline opacity of 0 to undo (review, 2026-11-23) */
+    .hv-tac-svg g.tx-arrow{ animation:none !important; } }
   /* the move list: the icon after the move's badge and CLAMP letters, 16 px beside their 14 px discs, its middle level with
      theirs; the margins keep the row's pitch, -4px on the right uses the cell's own padding */
   .hv-tac-m{ display:inline-block; width:16px; height:16px; margin-left:2px; margin-right:-4px; vertical-align:-2.15px; margin-top:-3px; margin-bottom:-5px; background:var(--ic) center / contain no-repeat; }
@@ -8545,24 +8565,31 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   @media (max-width:520px){ .gz-top > .gz-go{ justify-self:stretch; } }
   @media (pointer:coarse){ .gz-go, .gz-more{ min-height:44px; } }
   /* the cards: Analytics' boards (.ct-m, .ct-mbd), 4 across on a wide page, 3 from 641px, 2 from 521px; on a phone one a row,
-     a 112px board left of its four lines. Kind colors: Finish the job --bad, Missed mate --partial */
+     a 112px board left of its four lines. Kind colors: Finish the job --bad, Missed mate --partial, Win it again --brass */
   .ct-mgrid.gz-grid{ grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
   .gz-m{ --c:var(--bad); }
   .gz-m.is-mate{ --c:var(--gz-mate, var(--partial)); }
+  .gz-m.is-win{ --c:var(--gz-win, var(--brass)); }
   .gz-m .gz-l1 b{ font-size:13px; line-height:1.3; }
   .gz-m .ct-mft{ font-size:13px; line-height:1.35; }
   .gz-m .gz-l2{ color:var(--ink); }
   .gz-tt{ color:var(--gz-tt, var(--bad)); }
   .gz-rec.is-due{ color:var(--ink); font-weight:600; }
-  .gz-rec.is-learned{ color:var(--gz-learned, var(--gho-win, var(--good))); font-weight:600; }
-  /* where a skin's own token falls short on the cards (t_layout L2): Missed mate's edge 3:1, "time trouble" and "Learned" 4.5:1 */
-  :root[data-skin="bauhaus"]{ --gz-mate:#a87800; }
+  .gz-rec.is-learned, .gz-rec.is-won{ color:var(--gz-learned, var(--gho-win, var(--good))); font-weight:600; }
+  /* where a skin's own token falls short on the cards (t_layout L2): Missed mate's edge 3:1, "time trouble" and "Learned" 4.5:1.
+     Win it again's edge (R2): Bauhaus's yellow is Missed mate's there (and 1.6:1 in light), so its blue; Drive-Thru's light
+     yellow is 1.6:1 on white, so a darker gold; Court Cards' light --brass is the red of Finish the job, so its gold */
+  :root[data-skin="bauhaus"]{ --gz-mate:#a87800; --gz-win:#1a4fa0; }
+  :root[data-skin="drivethru"]{ --gz-win:#b08000; }
+  :root[data-skin="cards"]{ --gz-win:#8a6a16; }
   :root[data-skin="gameboy"]{ --gz-tt:#a52a2a; --gz-learned:#1b5e2e; }
   @media (prefers-color-scheme:dark){
-    :root[data-skin="bauhaus"]:not([data-theme="light"]){ --gz-mate:var(--partial); --gz-tt:#f06a62; --gz-learned:#6b9be0; }
+    :root[data-skin="bauhaus"]:not([data-theme="light"]){ --gz-mate:var(--partial); --gz-tt:#f06a62; --gz-learned:#6b9be0; --gz-win:#6b9be0; }
+    :root[data-skin="drivethru"]:not([data-theme="light"]), :root[data-skin="cards"]:not([data-theme="light"]){ --gz-win:var(--brass); }
     :root[data-skin="gameboy"]:not([data-theme="light"]){ --gz-tt:#ee7f74; --gz-learned:var(--gho-win); }
   }
-  :root[data-skin="bauhaus"][data-theme="dark"]{ --gz-mate:var(--partial); --gz-tt:#f06a62; --gz-learned:#6b9be0; }
+  :root[data-skin="bauhaus"][data-theme="dark"]{ --gz-mate:var(--partial); --gz-tt:#f06a62; --gz-learned:#6b9be0; --gz-win:#6b9be0; }
+  :root[data-skin="drivethru"][data-theme="dark"], :root[data-skin="cards"][data-theme="dark"]{ --gz-win:var(--brass); }
   :root[data-skin="gameboy"][data-theme="dark"]{ --gz-tt:#ee7f74; --gz-learned:var(--gho-win); }
   @media (max-width:959px){ .ct-mgrid.gz-grid{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
   @media (max-width:640px){ .ct-mgrid.gz-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; } }
@@ -10266,7 +10293,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       <div class="hv-sidecol hv-sidecol-analysis">
       <!-- Play it out (px*): a position played out against Stockfish 16 on this device, at the strength you set -->
       <div class="hv-card hv-px" id="hv-px" hidden>
+        <p class="hv-px-goal" id="hv-px-goal" hidden><span class="hv-px-goal-w" id="hv-px-goal-w"></span><span class="hv-px-goal-n" id="hv-px-goal-n"></span></p>
         <div class="hv-px-status" id="hv-px-status" role="status" aria-live="polite"></div>
+        <p class="hv-px-prac" id="hv-px-prac" hidden>Practice from here: your try already counts.</p>
         <div class="hv-px-str">
           <label class="field-label" for="hv-px-elo">Engine strength</label>
           <div class="slider-row">
@@ -10278,6 +10307,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           <button type="button" class="btn btn-ghost" id="hv-px-undo">Take back</button>
           <button type="button" class="btn btn-ghost" id="hv-px-again">Start again</button>
           <button type="button" class="btn btn-primary" id="hv-px-stop">Stop and analyze</button>
+        </div>
+        <div class="hv-px-acts hv-px-after" id="hv-px-after" hidden>
+          <button type="button" class="btn btn-ghost" id="hv-px-game">Open the game</button>
+          <button type="button" class="btn btn-ghost" id="hv-px-home">Back to Puzzles</button>
         </div>
       </div>
       <!-- Capture Calculator (hvCalc*): the count of a sequence of captures played from the move where it was turned on (V) -->
@@ -14013,11 +14046,22 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       triPoints: head.map(p=> p[0]+','+p[1]).join(' '),
       len1: geo.len1*K };
   }
-  // RL's finish: each arrow its own group, faded as one (.85; Chess Arcade's transparent white .55), the shaft and head in
-  // it opaque (an engine arrow's color has RL's own alpha too, o.alpha, the same on both), so a halo never shows through
-  // the arrow and the corner and the head's joint have no darker seam; butt ends, a mitered corner (the default miter
-  // limit, 4, keeps a right angle sharp). Inside, always these four: [halo shaft, halo head, shaft, head]; the halo pair is
-  // stroke none where there is no halo.
+  // Faded arrows (2026-11-22; the user: arrows "cover information or marks that I have", so "at least 30% more
+  // transparent"): every arrow on every board is drawn ARROW_FADE times as solid as before. RL's .85 is .55 now, the
+  // engine's group .85 is .55 (its colors' own alpha kept), the tactic's 1 is .65 and Larry's .92 is .6. Chess Arcade's
+  // transparent white was .55 already and keeps it (2026-11-23), so white matches the rest. This is the one number that
+  // tunes them all. It is on each arrow's own group, so a halo or
+  // a white edge fades with its arrow and the head and shaft never darken where they meet. Arrows only: square marks,
+  // highlights, CLAMP rings and letters, tactic icons and step numbers, last-move squares, the side-line highlighter and
+  // the eval bar keep their own.
+  const ARROW_FADE = 0.65;
+  // an arrow group's opacity attribute: v (its look before 2026-11-22) times ARROW_FADE, to 2 places
+  function arrowOp(v){ return String(Math.round(v * ARROW_FADE * 100) / 100); }
+  // RL's finish: each arrow its own group, faded as one (annoArrowOp, arrowOp), the shaft and
+  // head in it opaque (an engine arrow's color has RL's own alpha too, o.alpha, the same on both), so a halo never shows
+  // through the arrow and the corner and the head's joint have no darker seam; butt ends, a mitered corner (the default
+  // miter limit, 4, keeps a right angle sharp). Inside, always these four: [halo shaft, halo head, shaft, head]; the halo
+  // pair is stroke none where there is no halo.
   // o: { shaft, halo (a color or null), haloShaft, haloHead (its widths), op (the group's), alpha (the color's own), units
   //      (true: geo and the widths in square units, drawn at ARROW_UNIT_K, annoArrowUnits) }
   function annoArrowG(geo, color, o){
@@ -14033,8 +14077,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     g.appendChild(line); g.appendChild(tri);
     return g;
   }
-  // the group's opacity: RL's .85, and the Game Review pens' transparent white (2026-11-10) see-through at .55
-  function annoArrowOp(color){ return String(color).toLowerCase()==='#ffffff' ? '0.55' : '0.85'; }
+  // the group's opacity: RL's .85 faded by ARROW_FADE (2026-11-22), .55; the Game Review pens' transparent white
+  // (2026-11-10) stays at its .55 (the user, 2026-11-23: at .36 it nearly vanished on light squares)
+  function annoArrowOp(color){ return String(color).toLowerCase()==='#ffffff' ? '0.55' : arrowOp(0.85); }
   // RL's halo rule: a halo while an arrow profile is on (Sequential, Strategic, Game Review), never in Default; light for
   // the two darkest colors, dark for the rest
   function annoHaloOn(){ return annoProfile()!=='default'; }
@@ -41044,7 +41089,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   var GZ_ON = (function(){ let v = null; try{ v = localStorage.getItem(GZ_ON_KEY); }catch(e){} if(v==='on' || v==='off') return v==='on'; return !gzPhone(); })();
   function gzOn(){ return GH_UI.view==='puzzles'; }
   // (ghLoadFilters runs at load, before this block's vars are set: no var here)
-  function gzValidK(k){ return k==='job' || k==='mate' ? k : 'all'; }
+  function gzValidK(k){ return k==='job' || k==='mate' || k==='win' ? k : 'all'; }
   // the games Puzzles looks at: people only (ghBaseList), a real result, standard chess from the start, never a `cheat` game
   function gzInBase(g){ return gaInBase(g) && g.status!=='cheat'; }
   // ---- the list (build step 6; spec 4, 10, 13.4, 17): the model joins the found items (GZ.P), the game records (GZ.G) and the
@@ -41053,7 +41098,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   var GZ_AV = 0;                                      // the attempts' stamp (bumped on each write)
   var GZ_MB = new Map(), GZ_MBK = '', GZ_IO = null;   // the mini boards: an LRU of 60 (FEN, flip), cleared when the piece set changes
   var GZ_LEARNED = 5;                                 // the ladder's top: Learned (13.2)
-  var GZ_KW = { job:'Finish the job', mate:'Missed mate' };
+  var GZ_KW = { job:'Finish the job', mate:'Missed mate', win:'Win it again' };
+  var GZ_WRW = { n:'Not won', q:'Stopped' };          // a Win it again record's words (10.4); w and h have their own
   var GZ_RW = { s:'Solved', h:'Solved with help', x:'Missed', v:'Solution shown' };
   var GZ_FONLY = ['opening', 'oq', 'tc', 'rated', 'gap', 'end', 'eg', 'oj', 'len', 'notes', 'rep'];     // Filters stored facts can't answer
   var GZ_LDF = null;
@@ -41087,8 +41133,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const f0 = Object.assign({}, f, { date:'' });
     const B = base.filter(gzInBase);
     const v = f.date || '', from = gaFrom(v, now), today = gzDay(ghoBriefNow());
-    const md = { pk, u, now, f, v, from, today, nBase:base.length, nB:B.length, A:[], W:[], items:[], ent:[], list:[], n:{ all:0, job:0, mate:0 },
-      looked:0, src:{ r:0, l:0, s:0 }, mm:0, due:0, nw:0, next:0, loading:!base.length && ghTabBusy() };
+    const md = { pk, u, now, f, v, from, today, nBase:base.length, nB:B.length, A:[], W:[], items:[], ent:[], list:[], n:{ all:0, job:0, mate:0, win:0 },
+      looked:0, src:{ r:0, l:0, s:0 }, mm:0, due:0, nw:0, next:0, wnt:0, wnw:0, loading:!base.length && ghTabBusy() };
     B.forEach(g=>{
       if(!ghMatch(g, u, f0)) return;
       md.A.push(g);
@@ -41101,12 +41147,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(gzLookedG(g, u)){ md.looked++; const r = GZ.G.get(id); if(r && md.src[r.src]!=null) md.src[r.src]++; }
       if(gaMmOf(g, gzMeOf(g, u))) md.mm++;
     });
-    // the items found (GZ.P, by fen4) with a game in scope; R1 lists the puzzles (Finish the job, Missed mate), not Win it again.
+    // the items found (GZ.P, by fen4) with a game in scope: the puzzles (Finish the job, Missed mate) and, from R2, Win it again.
     // A card names the newest of its games in scope (else the newest not loaded)
     const other = GZ_FONLY.some(k=> !!f[k]), rk = { loss:0, draw:1, win:2 };
     let loaded = null;
     GZ.P.forEach(it=>{
-      if(it.kind!=='job' && it.kind!=='mate') return;
+      if(it.kind!=='job' && it.kind!=='mate' && it.kind!=='win') return;
       const games = Array.isArray(it.games) ? it.games : [];
       let G = null, g = null;
       for(const x of games){ const y = inW.get(String(x.id)); if(y){ G = x; g = y; break; } }
@@ -41124,9 +41170,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     md.n.all = md.items.length;
     md.k = gzValidK(GH_UI.gzk);
     md.list = md.k==='all' ? md.ent : md.ent.filter(e=> e.it.kind===md.k);
-    // Due today and New (10.2, 13.2), of this chip: the next due day when nothing is
+    // Due today and New (10.2, 13.2), of this chip: the next due day when nothing is. The puzzles only (Solve runs those);
+    // Win it again (no ladder, 13.2) gives the Win it again chip's line instead: not tried, and not won by the card's record
     md.list.forEach(e=>{
       const A = GZ.A.get(e.it.f);
+      if(e.it.kind==='win'){ const T = gzWinTry(A); if(!T) md.wnt++; else if(!T.won) md.wnw++; return; }
       if(!A || !Array.isArray(A.t) || !A.t.length){ md.nw++; return; }
       if(A.lv >= GZ_LEARNED) return;
       if(A.due > 0 && A.due <= today) md.due++;
@@ -41144,7 +41192,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // a card's four lines, from the item's stored card facts only (10.4): what happened, the game, kind and facts, your record
   function gzCardWords(e){
-    const it = e.it, G = e.G, me = G.me==='b' ? 'b' : 'w', q = Number(G.q) || 0;
+    const it = e.it, G = e.G, me = G.me==='b' ? 'b' : 'w', q = Number(G.q) || 0, wb = it.kind==='win' ? G.wb || it.wb || 'a' : '';
     const lab = ghClampLabel(q + 1, G.san || '', 0), sc = Array.isArray(it.sc) ? it.sc : [];
     const dec = (t)=> t ? hrDecScore(String(t)) : null;
     let l1, say1;
@@ -41152,6 +41200,21 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const a = dec(sc[0]), z = dec(sc[2]);
       l1 = lab+': '+ghbScoreText(a, me)+' \u2192 '+ghbScoreText(z, me);
       say1 = 'You played '+lab+', '+gzSay(a, me)+' to '+gzSay(z, me);
+    } else if(it.kind==='win'){
+      // (a) as Finish the job; (b) a leak "From 31... at +2.40", a time loss "Winning from move 24": the move from q (gzFacts
+      // can set fl 'their' on a (b) item and drop `since`); (c) several moves mate
+      const a = q + 1, num = Math.ceil(a / 2), w0 = dec(G.w0);
+      if(wb==='a'){
+        const x = dec(sc[0]), z = dec(sc[2]);
+        l1 = lab+': '+ghbScoreText(x, me)+' \u2192 '+ghbScoreText(z, me);
+        say1 = 'You played '+lab+', '+gzSay(x, me)+' to '+gzSay(z, me);
+      } else if(wb==='c'){ l1 = lab+': missed a mate, several moves mate'; say1 = 'You played '+lab+', missed a mate, several moves mate'; }
+      else if(G.tl){ l1 = 'Winning from move '+num+', then lost on time'; say1 = l1; }
+      else {
+        const at = num+(a % 2 ? '.' : '...');
+        l1 = 'From '+at+(w0 ? ' at '+ghbScoreText(w0, me) : '')+': no single move let it go';
+        say1 = 'From '+at+(w0 ? ' at '+gzSay(w0, me) : '')+', no single move let it go';
+      }
     } else {
       const n = Number(it.n) || 1, w = G.mo==='w' ? (n <= 2 ? 'mate in '+n : 'a mate')+' not played, still winning' : gzMateWords(n).missed;
       l1 = lab+': '+w;
@@ -41164,17 +41227,19 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(ph!=null) bits.push(CT_PHASES[ph]);
     if(C && G.speed!=='correspondence') bits.push(gaClockW(C[0])+' left, took '+gaTookW(C[1]));
     let fact = '';
-    if(it.kind==='job'){
+    if(it.kind==='job' || wb==='a' || wb==='b'){
       const toks = String(G.toks || '').split(' ');
       if(G.fl==='their' && q >= 1) fact = 'after their mistake '+ghClampLabel(q, toks[q - 1] || '', 0);
-      else if(G.fl==='since' && G.since) fact = 'winning since move '+G.since;
+      // a (b) item's line 1 already names its start ("From 31...", "Winning from move 24"): "winning since" only when earlier
+      else if(G.fl==='since' && G.since && (wb!=='b' || Number(G.since) < Math.ceil((q + 1) / 2))) fact = 'winning since move '+G.since;
     }
     const say = GZ_KW[it.kind]+'. '+say1+'. '+ctRes(G.res)+' vs '+opp+', '+gzLongDay(G.at)+', '+site+(sp ? ' '+sp : '')+(also > 0 ? ', also in '+ghoN(also, 'other game') : '')+'.';
     return { l1, l2, l3:bits.join(' \u00b7 '), tt:!!(C && C[2] && G.speed!=='correspondence'), fact, say };
   }
   // your record on a puzzle (10.4, 13.2): New, Due today, Learned, or the last result and its day; no levels or streaks
   function gzRecWords(f, today){
-    const A = GZ.A.get(f);
+    const A = GZ.A.get(f), P = GZ.P.get(f);
+    if(P && P.kind==='win') return gzWinRecWords(A);
     if(!A || !Array.isArray(A.t) || !A.t.length) return { t:'New' };
     if(A.lv >= GZ_LEARNED) return { t:'Learned', learned:true };
     if(A.due > 0 && A.due <= today) return { t:'Due today', due:true };
@@ -41200,7 +41265,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(W.tt){ l3.appendChild(document.createTextNode(' \u00b7 ')); l3.appendChild(ghEl('span', 'gz-tt', 'time trouble')); }
     if(W.fact) l3.appendChild(document.createTextNode(' \u00b7 '+W.fact));
     b.appendChild(l3);
-    b.appendChild(ghEl('span', 'ct-mft gz-rec'+(rw.learned ? ' is-learned' : rw.due ? ' is-due' : ''), rw.t));
+    b.appendChild(ghEl('span', 'ct-mft gz-rec'+(rw.learned ? ' is-learned' : rw.won ? ' is-won' : rw.due ? ' is-due' : ''), rw.t));
     b.setAttribute('aria-label', W.say+' '+rw.t+'.');
     return b;
   }
@@ -41242,13 +41307,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     read.forEach((bd, i)=>{ const r = rs[i]; if(r.height && r.bottom > -600 && r.top < vh + 600) fill(bd); else GZ_IO.observe(bd); });
     if(only) empty.forEach(bd=>{ if(!rd.has(bd)) GZ_IO.observe(bd); });
   }
-  // the top card's solve line (10.2): Due today and New, or when the next one is due; Solve only when there is one to run
+  // the top card's solve line (10.2): Due today and New, or when the next one is due; Solve only when there is one to run.
+  // With the Win it again chip (R2): "Not tried 3 . Not won 2", no button
   function gzDrawTop(md){
     const el = document.getElementById('gz-due'), go = document.getElementById('gz-go'), n = md.due + md.nw, N = md.items.length;
     // a chip with none in it (a link, or Filters that left none of its kind): say so, and what to press
-    const none = !md.list.length && N ? 'No '+(md.k==='mate' ? 'missed mates' : 'Finish the job puzzles')+(md.v || ghActiveCount() > 0 ? ' in these Filters' : ' yet')
+    const none = !md.list.length && N ? 'No '+(md.k==='mate' ? 'missed mates' : md.k==='win' ? 'Win it again puzzles' : 'Finish the job puzzles')+(md.v || ghActiveCount() > 0 ? ' in these Filters' : ' yet')
       +'. Press All to see '+(N===1 ? 'the 1 puzzle' : 'all '+N.toLocaleString('en-US')+' puzzles')+'.' : '';
-    const t = none || (n ? 'Due today '+md.due.toLocaleString('en-US')+' \u00b7 New '+md.nw.toLocaleString('en-US')+' \u00b7 On this device'
+    // the Win it again chip: what's left to play, and no button (each opens from its card); md.list holds no puzzle then, so n is 0
+    const t = none || (md.k==='win' ? 'Not tried '+md.wnt.toLocaleString('en-US')+' \u00b7 Not won '+md.wnw.toLocaleString('en-US')
+      : n ? 'Due today '+md.due.toLocaleString('en-US')+' \u00b7 New '+md.nw.toLocaleString('en-US')+' \u00b7 On this device'
       : 'Nothing due today.'+(md.next ? ' Next: '+ctDay(gzDayTs(md.next))+'.' : ''));
     if(el.textContent!==t) el.textContent = t;
     go.hidden = !n;
@@ -41270,7 +41338,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     md.list.slice(0, shown).forEach(e=>{
       GZ.mby.set(e.fid, e);
       const W = gzCardWords(e), rw = gzRecWords(e.it.f, md.today);
-      const ws = [e.it.kind, W.l1, W.l2, W.l3, W.tt ? 1 : 0, W.fact, W.say, rw.t, rw.learned ? 1 : 0, rw.due ? 1 : 0, e.G.me, e.G.pm || '', e.it.fen].join('|');
+      const ws = [e.it.kind, W.l1, W.l2, W.l3, W.tt ? 1 : 0, W.fact, W.say, rw.t, rw.learned ? 1 : 0, rw.due ? 1 : 0, rw.won ? 1 : 0, e.G.me, e.G.pm || '', e.it.fen].join('|');
       let b = old.get(e.fid);
       if(b && b._gzs===ws) old.delete(e.fid);
       else { b = gzCard(e, md, W, rw); b._gzs = ws; fresh.add(b); }
@@ -41401,12 +41469,44 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const ents = new Map((list || []).map(e=> [e.it.f, e]));
     spPlayQueue(keys, 0, 'Puzzles from your games', { home:'gz', kind:'game', n0:keys.length, first:new Map(), again:0, ents });
   }
-  // a card pressed: a run from it, on through the next puzzle cards of the grid, up to 10
+  // a Win it again item's record (12.5, 13.1): the day's first try of its newest day (R1's rule for the puzzles' words, so
+  // the card and the top line agree with it), or null when never tried; won: w, or h (won with a take-back)
+  function gzWinTry(A){
+    if(!A || !Array.isArray(A.t) || !A.t.length) return null;
+    const L = A.t[A.t.length - 1], d = gzDay(L[0]), F = A.t.find(y=> Array.isArray(y) && gzDay(y[0])===d) || L;
+    return { F, r:F[1], won:F[1]==='w' || F[1]==='h' };
+  }
+  // its card's words (10.4): New / Won at 1500 . Nov 18 / Won with a take-back . Nov 18 / Not won . Nov 18 / Stopped . Nov 18
+  function gzWinRecWords(A){
+    const T = gzWinTry(A);
+    if(!T) return { t:'New' };
+    const x = Array.isArray(T.F[4]) ? T.F[4] : null, day = ' \u00b7 '+ctDay(T.F[0]);
+    if(T.r==='w') return { t:(x && Number(x[0]) > 0 ? 'Won at '+Math.round(Number(x[0])) : 'Won')+day, won:true };
+    if(T.r==='h') return { t:'Won with a take-back'+day, won:true };
+    return { t:(GZ_WRW[T.r] || 'Tried')+day };
+  }
+  // a Win it again card pressed (R2): Play it out's board (gzWinOpen, spec 12), never a run; back to this card (GZ.back,
+  // and pxBack / Open the game from back.fid). Why it couldn't open, on the card
+  function gzWinCard(t, e){
+    const back = { y:window.scrollY, fid:e.fid };
+    GZ.shown = Math.max(GZ.shown || 0, document.querySelectorAll('#gz-grid .gz-m').length);      // drawn again on the way back, any width
+    const why = gzWinOpen(e.it, e.G, back);
+    if(why){
+      let n = t.querySelector('.px-note');
+      if(!n){ n = ghEl('span', 'ct-mft px-note'); n.setAttribute('role', 'alert'); t.appendChild(n); }
+      n.textContent = why;
+      return;
+    }
+    GZ.back = { y:back.y, fid:back.fid };
+    GZ.y = null;
+  }
+  // a card pressed: a run from it, on through the next puzzle cards of the grid (never a Win it again card), up to 10
   function gzOpenCard(t){
     const md = GZ.model, fid = t.dataset.fid;
     if(!md) return;
     const i = md.list.findIndex(e=> e.fid===fid);
     if(i < 0) return;
+    if(md.list[i].it.kind==='win') return gzWinCard(t, md.list[i]);
     const keys = md.list.slice(i).filter(e=> !!gzRunItem(e.it.f, e)).slice(0, GZ_RUN).map(e=> e.it.f);
     if(!keys.length) return;
     GZ.back = { y:window.scrollY, fid };
@@ -41725,10 +41825,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     gzDrawGrid(md);
     gzDrawSrc(md);
   }
-  // the Show chips: All, Finish the job, Missed mates (a chip with 0 hidden, except All and the one pressed); one Tab stop
+  // the Show chips: All, Finish the job, Missed mates, Win it again (a chip with 0 hidden, except All and the one pressed); one Tab stop
   function gzDrawChips(md){
     const wr = document.getElementById('gz-show'), cur = md.k;
-    const items = [['all', 'All', 'All puzzles'], ['job', 'Finish the job', 'Finish the job'], ['mate', 'Missed mates', 'Missed mates']]
+    const items = [['all', 'All', 'All puzzles'], ['job', 'Finish the job', 'Finish the job'], ['mate', 'Missed mates', 'Missed mates'], ['win', 'Win it again', 'Win it again']]
       .filter(([v])=> v==='all' || v===cur || md.n[v] > 0);
     const sig = cur+'|'+items.map(([v])=> v+':'+(md.n[v] || 0)).join(',');
     if(wr.dataset.sig===sig) return;
@@ -41811,7 +41911,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function gzW(cp){ return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * cp)) - 1); }
   var GZ_WIN = gzW(200), GZ_CRUSH = gzW(700), GZ_SLIP = 15, GZ_GAP = 15, GZ_RISE = 15;
   var GZ_CAND = { q:gzW(150), drop:7, after:gzW(250) };              // a candidate before the check: looser than the lines
-  var GZ_CAP = { items:2, checks:4, line:3, mate:5, tries:3 };        // per game; your moves in a line; a mate's length; (b)'s tries
+  var GZ_CAP = { items:2, checks:4, line:3, mate:5, tries:3, moves:40 };      // per game; your moves in a line; a mate's length; (b)'s tries; Win it again's moves
   var GZ_NODES = { scan:20000, multi:250000, one:150000, judge:60000 };
   var GZ_V = 1, GZ_SV = 1;                                            // the rules' version, the scan's version (spec 9.6)
   // a score capped at +-10.00 (cp), a mate for either side as +-10.00; nothing (or "mated", mate 0) is null
@@ -42504,7 +42604,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     GZ_FV++;
     const sp = GZ.sp.ms > 0 ? [{ k:'sp', n:Math.round(GZ.sp.n), ms:Math.round(GZ.sp.ms) }] : [];
     gzPut({ g:[rec], p:Array.from(touched).map(f=> GZ.P.get(f)).filter(Boolean), del:Array.from(del), m:sp });
-    return items.filter(p=> p.kind==='job' || p.kind==='mate').length;
+    return items.filter(p=> p.kind==='job' || p.kind==='mate' || p.kind==='win').length;      // what the tab lists (R2: Win it again too)
   }
   // the measured speed (spec 9.1): the job's own searches, nodes over time (the newest ten minutes or so weigh most)
   function gzSpeed(a){
@@ -42601,7 +42701,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     let looked = 0, n = 0;
     all.forEach(g=>{ if(gzLookedG(g, u)) looked++; });
     const ids = new Set(all.map(g=> String(g.id))), lu = String(u || '').toLowerCase();      // this account's puzzles only
-    GZ.P.forEach(it=>{ if((it.kind==='job' || it.kind==='mate') && Array.isArray(it.games) && it.games.some(G=> ids.has(String(G.id)) || (!!G.u && G.u===lu))) n++; });
+    GZ.P.forEach(it=>{ if((it.kind==='job' || it.kind==='mate' || it.kind==='win') && Array.isArray(it.games) && it.games.some(G=> ids.has(String(G.id)) || (!!G.u && G.u===lu))) n++; });
     const N = ghoN(all.length, 'game'), P = ghoN(n, 'puzzle');
     const J = OJ_JOB && OJ_JOB.kind==='z' ? OJ_JOB : null;
     if(J){
@@ -45412,7 +45512,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // to keep them; hidden also hides the pinned pane) and the clocks (none).
   function hvModeUi(){
     const Z = HV_STATE ? HV_STATE.game._puzzle : null, P = HV_STATE ? HV_STATE.game._practice : null;
-    document.querySelector('#hv-head .eyebrow').textContent = P ? 'Play it out' : Z ? 'Puzzle analysis' : 'Game review';
+    document.querySelector('#hv-head .eyebrow').textContent = P ? (P.gz ? 'Win it again' : 'Play it out') : Z ? 'Puzzle analysis' : 'Game review';
     document.getElementById('hv-head').classList.toggle('is-game', !P && !Z);       // (in the Game review tab its eyebrow would be the tab's name again)
     const back = document.querySelector('#view-play-history .back-link');
     back.textContent = '\u2190 '+(P ? pxBackText(P) : Z ? Z.back : 'Game History');
@@ -47084,8 +47184,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     c.arrows.forEach((a, i)=>{
       const A = at(a[0]), Z = at(a[1]), sh = annoArrowShape(A.x, A.y, Z.x, Z.y, Z.r - A.r, Z.c - A.c, 1, big);
       if(!sh) return;
-      const g = mk('g', { 'class':'tx-arrow' }, svg), u = annoArrowUnits(g, sh), K = u.K;     // (drawn at K: Safari's sharp corner)
-      if(o.anim){ g.style.opacity = '0'; g.style.animation = 'tx-arrow .25s ease-out forwards'; g.style.animationDelay = (180 + i * 160)+'ms'; }
+      // (drawn at K: Safari's sharp corner; faded as one with its white edge, arrowOp, 2026-11-22: the arrival animation,
+      // tx-arrow-in, has no end keyframe, so it ends at the group's own opacity)
+      const g = mk('g', { 'class':'tx-arrow', opacity:arrowOp(1) }, svg), u = annoArrowUnits(g, sh), K = u.K;
+      if(o.anim){ g.style.animation = 'tx-arrow-in .25s ease-out both'; g.style.animationDelay = (180 + i * 160)+'ms'; }
       mk('path', { d:u.pathD, fill:'none', stroke:'#fff', 'stroke-opacity':'.92', 'stroke-width':String((shaft + 2 * edge)*K), 'stroke-linecap':'butt', 'stroke-linejoin':'miter' }, g);
       mk('polygon', { points:u.triPoints, fill:'#fff', 'fill-opacity':'.92', stroke:'#fff', 'stroke-opacity':'.92', 'stroke-width':String(2 * edge * K), 'stroke-linejoin':'round' }, g);
       mk('path', { d:u.pathD, fill:'none', stroke:TAC_COLOR, 'stroke-width':String(shaft*K), 'stroke-linecap':'butt', 'stroke-linejoin':'miter' }, g);
@@ -48217,6 +48319,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     },
     // Play it out (px*): one move from Stockfish at a set strength (UCI_LimitStrength + UCI_Elo), handed to
     // cb(fen, uci). Not an analysis: its lines go to no listener, and the next analysis puts full strength back first.
+    // o: { elo, ms, fresh }: fresh (Win it again only, spec 12.2) sends ucinewgame first, so the judge's full-strength
+    // hash never helps the limited engine pick its move; plain Play it out never passes it.
     async think(fen, o, cb){
       const w = this.worker, my = ++this._thinkSeq;
       if(!w) return false;
@@ -48233,6 +48337,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       this.send('setoption name MultiPV value 1');
       this.send('setoption name UCI_LimitStrength value true');
       this.send('setoption name UCI_Elo value '+o.elo);
+      if(o.fresh) this.send('ucinewgame');
       this.limited = true;
       this.kind = 'px'; this._pxCb = cb;
       this.currentFen = fen; this.searching = true; this._stopSent = false;
@@ -48816,7 +48921,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // each switched on its own from the cog or with 1, 2, 3 (none while E
   // hides the suggested moves). RL's look (AnalysisView): a user arrow's
   // shape, no halo, the group at .85 and the color's own alpha (.92 the
-  // best, .85 the others). Drawn 3rd, 2nd, best, so the best move's arrow
+  // best, .85 the others); the group faded by ARROW_FADE since 2026-11-22
+  // (arrowOp: .55). Drawn 3rd, 2nd, best, so the best move's arrow
   // is on top.
   const HV_ARROW_COLORS = ['rgb(56,176,120)', 'rgb(59,132,235)', 'rgb(226,142,46)'];
   const HV_ARROW_ALPHA = [0.92, 0.85, 0.85];
@@ -48836,7 +48942,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const dr = Math.floor(to/8)-Math.floor(from/8), dc = to%8-from%8;
       const shp = annoArrowShape(cx(from), cy(from), cx(to), cy(to), dr, dc, 1);
       if(!shp) continue;
-      const g = annoArrowG(shp, HV_ARROW_COLORS[k-1], { shaft:ARROW_SHAFT, halo:null, haloShaft:ARROW_SHAFT, haloHead:0, op:'0.85', alpha:HV_ARROW_ALPHA[k-1], units:true });
+      const g = annoArrowG(shp, HV_ARROW_COLORS[k-1], { shaft:ARROW_SHAFT, halo:null, haloShaft:ARROW_SHAFT, haloHead:0, op:arrowOp(0.85), alpha:HV_ARROW_ALPHA[k-1], units:true });
       g.setAttribute('class', 'hv-eng-arrow'); g.setAttribute('data-uci', l.firstUci); g.setAttribute('data-mp', String(k));
       hvEngSvg.appendChild(g);
     }
@@ -49112,7 +49218,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const S = HV_STATE, text = document.getElementById('hv-pgn').value;
       if(!S || !text || text.charAt(0)==='(') return;          // "(PGN not available for this game)"
       if(hvPgnShares()){
-        const title = S.game && S.game._practice ? 'Play it out' : S.whiteName+' vs '+S.blackName;
+        const title = S.game && S.game._practice ? (S.game._practice.gz ? 'Win it again' : 'Play it out') : S.whiteName+' vs '+S.blackName;
         try{ await navigator.share({ title, text }); return; }
         catch(e){ if(e && e.name==='AbortError') return; }      // any other failure: copy it instead
       }
@@ -58364,7 +58470,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       // Repertoire Lab's arrow shape (annoArrowShape), Larry's own finish: dashed in the letter's color over a light halo; a
       // dash centered on a knight's corner (so the L's sharp corner shows), a straight one's last dash meeting the head
       // (drawn at K in its group, annoArrowUnits: Safari's sharp corner; the ring and the cut above stay in squares)
-      const shp = annoArrowShape(ax, ay, bx, by, dr, dc, 1), g = mk('g', { opacity:'.92' });
+      const shp = annoArrowShape(ax, ay, bx, by, dr, dc, 1), g = mk('g', { opacity:arrowOp(0.92) });
       if(shp){
         const u = annoArrowUnits(g, shp), K = u.K;
         const DASH = 0.17, PER = 0.26, at0 = shp.pts.length > 2 ? DASH / 2 : DASH, off = ((at0 - shp.len1) % PER + PER) % PER;
@@ -60507,8 +60613,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   const PX_ELOS = [1320].concat(Array.from({ length:37 }, (_, i)=> 1350 + 50*i), [3190]);     // 1320, 1350, 1400 ... 3150, 3190
   const PX_MS = 1000, PX_MIN_MS = 450;     // the engine's time a move; a reply never lands quicker than this
   function pxPlaying(){ return !!(PX && HV_STATE && HV_STATE.game._practice===PX && PX.phase!=='analysis'); }
-  // the board takes no move while the engine thinks or it isn't your turn on the move shown
-  function pxWaits(){ return pxPlaying() && (PX.thinking || HV_STATE.cur.state.turn!==PX.color); }
+  // the board takes no move while the engine thinks or it isn't your turn on the move shown, nor after Win it again's judge
+  // ended the game (until Take back or Start again: spec 12.4)
+  function pxWaits(){ return pxPlaying() && (PX.thinking || HV_STATE.cur.state.turn!==PX.color || pxGzOver(PX)); }
+  function pxGzOver(P){ return !!(P.end && (P.end.kind==='gzwin' || P.end.kind==='gzlost')); }
   function pxTabOk(t){ return t==='moves' || ((t==='explorer' || t==='similar') && !pxPlaying()); }
   function pxElo(){ return PX_ELOS[Number(document.getElementById('hv-px-elo').value)] || 1500; }
   function pxEloShow(){
@@ -60573,11 +60681,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // o = { fen, color:'white'|'black' (yours), title, meta, back }: back is { game, user, at, flip } (a board to reopen)
   // or { y, fid | sel } (Game History, scrolled and focused as it was). '' once the board is open, else why not.
+  // o.gz (Win it again, gzWinOpen; spec 12): the judge's start read and the goal line ride on PX.gz; without it, as before.
   function pxOpen(o){
     const why = pxCheck(o.fen);
     if(why) return why;
     const color = o.color==='black' ? 'b' : 'w';
     const P = { fen:o.fen, color, title:o.title || 'A position', meta:o.meta || '', back:o.back || {}, phase:'play', end:null, thinking:false, gen:0 };
+    if(o.gz) P.gz = o.gz;
     const me = { user:{ name:'You' } }, sf = { user:{ name:'Stockfish 16' }, rating:pxElo() };
     // no id: nothing (notes, side lines, reviews) is ever kept for it
     P.game = { id:'', variant:'standard', moves:'', initialFen:o.fen, players: color==='w' ? { white:me, black:sf } : { white:sf, black:me },
@@ -60587,6 +60697,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     PX = P;
     hvOpen(P.game, null, { flip: color==='b' });
     if(!HV_STATE || HV_STATE.game!==P.game){ PX = null; return 'The board couldn\u2019t open.'; }
+    if(P.gz){ const r = HV_STATE.root; r._gzS = P.gz.w0 || null; r._gzW = P.gz.W0!=null ? P.gz.W0 : null; }      // the start's read: the stored W_0 (no search)
     hveBoot();                   // loading while you look at the position (the first time downloads the 40 MB network)
     if(HV_STATE.root.state.turn!==color) pxThink(); else pxRender();
     // the button pressed is gone (another screen, or hidden while you play): the focus goes to the card
@@ -60597,6 +60708,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function pxDrop(){
     const P = PX;
     if(!P) return;
+    if(P.gz && P.gz.onEnd && !P.end) P.gz.onEnd(P.gz.moved ? 'q' : '');      // Win it again left before an ending: q after a move of yours, else nothing (12.5)
     P.gen++; P.thinking = false;
     PX = null;
     if(hve.kind==='px' || hve.kind==='mk') hve.stop();            // a move, or (Win it again) a check in flight
@@ -60605,10 +60717,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const v = views['play-history'];
     if(v){ v.classList.remove('is-px', 'is-px-play'); }
   }
-  function pxBackText(P){ const g = P.back && P.back.game; return g ? (g._puzzle ? 'Back to the puzzle' : 'Back to the game') : 'Game History'; }
+  function pxBackText(P){ const g = P.back && P.back.game; return P.gz ? 'Puzzles from your games' : g ? (g._puzzle ? 'Back to the puzzle' : 'Back to the game') : 'Game History'; }
   // back where Play it out was pressed: the game or puzzle on the board at that move, or Game History as it was
   function pxBack(){
     const P = HV_STATE && HV_STATE.game._practice, b = (P && P.back) || {};
+    if(P && P.gz){ GZ.back = { y:b.y, fid:b.fid }; GZ.y = null; showView('history'); return; }      // Win it again: the Puzzles tab at its card (gzBack)
     if(b.game){
       hvOpen(b.game, b.user, { at:b.at, flip:b.flip });
       const h = document.getElementById('hv-px-here');
@@ -60665,18 +60778,24 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   function pxUserMove(move){
     const S = HV_STATE, P = PX, from = S.cur;
-    if(P.thinking || from.state.turn!==P.color) return;
+    if(P.thinking || pxGzOver(P) || from.state.turn!==P.color) return;      // nor after Win it again's judge ended it (12.4: the promotion picker's own button too)
+    const back = from!==pxEnd(S);                // a move made while looking back: an implicit take-back (what followed goes)
     const n = pxAppend(from, move);
     if(!n) return;
+    if(P.gz){ P.gz.moved = true; if(back && !P.gz.done) P.gz.tb++; }      // Win it again: counted before its ending (12.4)
     pxToPlay(P);
     hvGoNode(n, { sound:true });
     hvRenderHead();
     pxAfterMove(n);
+    if(P.gz) gzWinKeep(P.gz);                    // Win it again: the try kept so far (a reload or a thrown-out tab reads q)
+    if(back && P.gz) gzJudgeEnsure();
   }
   function pxAfterMove(n){
     const t = hvTerminal(n);
     if(t) return pxOver(t);
-    if(n.state.turn!==PX.color) pxThink(); else pxRender();
+    if(n.state.turn===PX.color) pxRender();
+    else if(PX.gz) gzJudge(PX, n);           // Win it again: the check of the turn you moved from first (spec 12.2), then pxThink
+    else pxThink();
   }
   async function pxThink(){
     const P = PX, S = HV_STATE;
@@ -60688,7 +60807,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hveBoot();                   // the first time downloads the 40 MB network (the status says so)
     pxRender(); hvRenderControls();
     const t0 = Date.now();
-    const ok = await hve.think(node.fen, { elo:pxElo(), ms:PX_MS }, (fen, uci)=>{
+    const ok = await hve.think(node.fen, { elo:pxElo(), ms:PX_MS, fresh:!!P.gz }, (fen, uci)=>{
       if(PX!==P || P.gen!==gen) return;
       setTimeout(()=> pxReply(P, gen, node, uci), Math.max(0, PX_MIN_MS - (Date.now() - t0)));
     });
@@ -60708,11 +60827,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(S.cur===node) hvGoNode(n, { sound:true });
     else { hvRenderMoveList(); hvRenderControls(); }     // you're looking back at an earlier move: the reply waits at the end
     pxAfterMove(n);
+    if(P.gz) gzJudgeEnsure();                            // Win it again: your turn's check, while you think
   }
   function pxOver(t){
     const P = PX;
     P.phase = 'over'; P.thinking = false;
     P.end = { kind:t.kind, win: t.kind==='mate' ? (t.score.value > 0 ? 'w' : 'b') : null };
+    if(P.gz) gzWinEnd(P, t);                 // Win it again (12.3, 12.5): WON / NOT WON and its words, the engine stopped, the record
     pxModeClass(); hvRenderHead(); hvRenderMoveList(); hvRenderControls(); pxRender();
   }
   // the engine's move stops coming (Take back, Start again, Analyze)
@@ -60730,25 +60851,34 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     return n && n.state.turn===P.color ? n : null;
   }
   function pxUndo(){
-    const P = PX, n = pxPlaying() ? pxUndoTo() : null;
-    if(!n) return;
+    const n = pxPlaying() ? pxUndoTo() : null;
+    if(n) pxBackTo(n);
+  }
+  // back to n, a turn of yours on the main line: what followed goes, the engine's move stops coming, play goes on from n
+  // (Take back; Win it again's slip move, several take-backs in one step: gzSlipGo)
+  function pxBackTo(n){
+    const P = PX;
+    if(P.gz && !P.gz.done) P.gz.tb++;
     pxCancel(); pxCut(n);
     pxToPlay(P);
     hvGoNode(n); hvRenderHead(); pxRender();
+    if(P.gz) gzJudgeEnsure();
   }
   function pxAgain(){
     const P = PX, S = HV_STATE;
     if(!P || !S || S.game._practice!==P) return;
+    if(P.gz && !P.gz.done && S.main.length) P.gz.tb++;
     pxCancel(); pxCut(S.root);
     pxToPlay(P);
     hvGoNode(S.root); hvRenderHead();
     if(S.root.state.turn!==P.color) pxThink(); else pxRender();
+    if(P.gz) gzJudgeEnsure();
   }
   // the engine on, at full strength, over the game as it stands (stopped mid-game: as far as it went)
   function pxAnalyze(){
     const P = PX;
     if(!P || P.phase==='analysis') return;
-    if(P.phase==='play') P.end = { kind:'stopped', win:null };
+    if(P.phase==='play'){ P.end = { kind:'stopped', win:null }; if(P.gz && P.gz.onEnd) P.gz.onEnd('q'); }      // (Win it again: it showed the engine)
     pxCancel();
     P.phase = 'analysis';
     if(!hvPrefs.engine){ P.engWas = false; hvPrefs.engine = true; }     // for this board only: never saved (hvSavePrefs), put back by pxDrop
@@ -60759,14 +60889,18 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function pxEndText(P, S){
     const e = P.end;
     if(e.kind==='stopped'){ const n = pxEnd(S); return n.parent ? 'Stopped after '+hvNodeLabel(n)+'.' : 'Stopped before a move.'; }
+    if(P.gz && e.words) return e.words;
     if(e.kind==='mate') return e.win===P.color ? 'Checkmate. You won.' : 'Checkmate. Stockfish won.';
     return { stalemate:'Stalemate: a draw.', threefold:'A draw by repetition.', insufficient:'A draw: neither side can mate.', fifty:'A draw by the fifty-move rule.' }[e.kind] || 'Game over.';
   }
+  // Win it again once this opening's record is written: what's played from here on is practice (12.5)
+  function gzPrac(P){ return !!(P && P.gz && P.gz.done && P.gz.wrote); }
   // the move list's last row: Play it out, then who won and how
   function pxResultBits(P){
-    const e = P.end, b = ['Play it out'];
-    if(!e) return b.concat('In progress');
+    const e = P.end, b = [P.gz ? 'Win it again' : 'Play it out'];
+    if(!e) return b.concat(gzPrac(P) ? 'Practice' : 'In progress');
     if(e.kind==='stopped') return b.concat('Stopped');
+    if(P.gz && e.words) return b.concat(e.words.replace(/\.$/, ''));
     if(e.kind==='mate') return b.concat(e.win==='w' ? 'White wins' : 'Black wins', 'Checkmate');
     return b.concat('Draw', { stalemate:'Stalemate', threefold:'Repetition', insufficient:'Insufficient material', fifty:'Fifty-move rule' }[e.kind] || '');
   }
@@ -60776,7 +60910,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const res = document.getElementById('hv-result');
     res.textContent = '';
     const e = P.end;
-    if(e && e.kind!=='stopped'){
+    if(e && e.kind!=='stopped' && P.gz) res.appendChild(hvEl('span', 'history-result-pill history-result-'+(e.won ? 'win' : 'loss'), e.won ? 'WON' : 'NOT WON'));
+    else if(e && e.kind!=='stopped'){
       const r = e.kind!=='mate' ? 'draw' : e.win===P.color ? 'win' : 'loss';
       res.appendChild(hvEl('span', 'history-result-pill history-result-'+r, r==='draw' ? 'DRAW' : (r==='win' ? 'WON' : 'LOST')));
     }
@@ -60789,8 +60924,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // the game as PGN from its set position (Copy PGN)
   function pxPgn(S){
     const P = S.game._practice, sf = 'Stockfish 16 ('+pxElo()+')', e = P.end;
-    const res = !e || e.kind==='stopped' ? '*' : e.win==='w' ? '1-0' : e.win==='b' ? '0-1' : '1/2-1/2';
-    const tags = [['Event', 'Play it out'], ['Site', 'Chess Arcade'], ['White', P.color==='w' ? 'You' : sf], ['Black', P.color==='b' ? 'You' : sf],
+    // (Win it again's judge ending is no game result: *)
+    const res = !e || e.kind==='stopped' || pxGzOver(P) ? '*' : e.win==='w' ? '1-0' : e.win==='b' ? '0-1' : '1/2-1/2';
+    const tags = [['Event', P.gz ? 'Win it again' : 'Play it out'], ['Site', 'Chess Arcade'], ['White', P.color==='w' ? 'You' : sf], ['Black', P.color==='b' ? 'You' : sf],
       ['Result', res], ['SetUp', '1'], ['FEN', P.fen]];
     let mt = '';
     S.main.forEach((n, i)=>{
@@ -60809,11 +60945,33 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(P.end) t = pxEndText(P, S);
     else if(hve.state==='failed') t = hve.failWhy==='slow' ? 'Stockfish didn\u2019t finish downloading. Check your connection, then press Start again.'
       : 'Stockfish isn\u2019t available here, so this position can\u2019t be played out.';
-    else if(P.thinking){ wait = true; t = hve.state==='ready' ? 'Stockfish is thinking\u2026' : hvLoadingText(); }
+    else if(P.thinking){ wait = true; t = hve.state!=='ready' ? hvLoadingText() : P.gzWait && P.gzWait.gen===P.gen ? 'Stockfish is checking the position\u2026' : 'Stockfish is thinking\u2026'; }
     else t = pxEnd(S).state.turn===P.color ? 'Your move.' : 'Stockfish to move.';
-    if(st.textContent!==t) st.textContent = t;
+    const sb = P.end ? gzSlipBack(P, S) : null;          // Win it again's Not won names your slip move: that move a button (back to just before it)
+    if(sb){
+      if(st._gzSlip!==P.end){
+        st._gzSlip = P.end; st.textContent = '';
+        const w = P.end.wp, b = hvEl('button', 'btn-link hv-px-slip', w[1]);
+        b.type = 'button';
+        b.title = 'Go back to before '+w[1]+' and try again from there';      // its description (a name would be read inside the live sentence)
+        b.addEventListener('click', gzSlipGo);
+        st.append(w[0], b, w[2]);
+      }
+    }
+    else if(st._gzSlip || st.textContent!==t){ st._gzSlip = null; st.textContent = t; }
     st.classList.toggle('is-wait', wait);
+    // Win it again after the record closed (Take back or Start again after an ending, the slip move's button, a later ending)
+    const pr = document.getElementById('hv-px-prac'), prac = gzPrac(P) && P.phase!=='analysis' && !(P.end && P.end.rec);
+    if(pr.hidden!==!prac) pr.hidden = !prac;
+    const goal = document.getElementById('hv-px-goal'), gl = P.gz ? gzWinGoal(P, S) : ['', ''];
+    if(goal.hidden!==!P.gz) goal.hidden = !P.gz;
+    let gch = false;
+    [document.getElementById('hv-px-goal-w'), document.getElementById('hv-px-goal-n')].forEach((e, i)=>{ if(e.textContent!==gl[i]){ e.textContent = gl[i]; gch = true; } });
+    if(gch && P.gz) gzGoalFit();
     const undo = document.getElementById('hv-px-undo'), stop = document.getElementById('hv-px-stop'), fa = document.activeElement;
+    const af = document.getElementById('hv-px-after'), aft = !!(P.gz && P.end);
+    if(af.hidden!==!aft) af.hidden = !aft;
+    if(!aft && fa && af.contains(fa)) try{ document.getElementById('hv-px-again').focus({ preventScroll:true }); }catch(e){}
     undo.hidden = P.phase==='analysis';
     undo.disabled = !pxUndoTo();
     stop.hidden = P.phase==='analysis';
@@ -60838,6 +60996,256 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       pxBack();
     }, true);
   })();
+
+  /* ---- Win it again (Puzzles R2, spec 12): a Win it again item of the Puzzles tab played out on Play it out's board from its
+     stored start (q for (a) and (c), the chosen turn for (b)), against Stockfish 16 at the slider's strength. A judge reads
+     each of your turns (hve.multi, k=1, 60,000 nodes, a fresh hash) and keeps the read on that node of the move list:
+     node._gzW (your Win%, or null: no read), node._gzS (its score, White's side), node._gzP (the check in flight, started at
+     P.gen node._gzG). The start's read is the stored W_0. A take-back to an earlier node reuses its read. Nothing is kept on
+     the game (no id), as in Play it out ---- */
+  const GZ_JUDGE_MS = 15000;               // the longest wait for a turn's check before Stockfish moves anyway
+  // it: the tab's item (13.4's p record); G: its game entry (default the newest); back: { y, fid } (the card). '' once the
+  // board is open, else why not (as pxOpen)
+  function gzWinOpen(it, G, back){
+    G = G || (it && Array.isArray(it.games) ? it.games[0] : null);
+    if(!it || it.kind!=='win' || !G || !it.fen) return 'This position can\u2019t be played out.';
+    const me = G.me==='b' ? 'b' : 'w', q = Number(G.q) || 0, wb = G.wb || it.wb || 'a';
+    const w0 = G.w0 ? hrDecScore(String(G.w0)) : null, W0 = gzWin(w0, me);
+    const crush = wb==='c' || !!G.crush || (W0!=null && W0 >= GZ_CRUSH);
+    // the start's move number from q (gzFacts can set fl 'their' on a (b) item and drop `since`)
+    const a = q + 1, num = Math.ceil(a / 2);
+    let title;
+    if(wb!=='b') title = 'Before '+ghClampLabel(a, G.san || '', 0);          // "Before 23...Rd8"
+    else if(G.tl) title = 'From move '+num+', winning';                        // a time loss: from the final run's first turn
+    else title = 'From '+num+(a % 2 ? '.' : '...')+(w0 ? ' at '+ghbScoreText(w0, me) : '');      // a leak: "From 31... at +2.40"
+    const tc = gzTcW(G.tc), sp = gaSpeedW(G.speed), meta = ['From your game vs '+(G.opp || 'Anonymous')];
+    if(Number(G.at) > 0) meta.push(ghFormatDate(G.at));
+    meta.push(G.site==='c' ? 'chess.com' : 'Lichess');
+    if(sp) meta.push(sp+(tc && G.speed!=='correspondence' ? ' '+tc : ''));
+    // t0: opened; tb: take-backs before the ending; moved: a move of yours made; done: this opening's record is closed (12.5);
+    // wrote: that record written (not when the account changed meanwhile)
+    const z = { w0, W0, crush, key:it.f, kind:wb, G, t0:Date.now(), tb:0, moved:false, done:false, wrote:false, onEnd:null };
+    z.onEnd = (code)=> gzWinRecord(z, code);
+    return pxOpen({ fen:it.fen, color:me==='b' ? 'black' : 'white', title, meta:meta.join(' \u00b7 '), back:back || { y:window.scrollY }, gz:z });
+  }
+  // the goal line (12.1): [what wins, which of your moves this is (of GZ_CAP.moves)]: "Goal: mate, or +7.00 for 3 turns",
+  // " . move 4 of 40" (two spans: the counter is never cut)
+  function gzWinGoal(P, S){
+    const mine = gzMine(P, S);
+    const on = Math.max(1, Math.min(GZ_CAP.moves, mine + (!P.end && pxEnd(S).state.turn===P.color ? 1 : 0)));
+    return [P.gz.crush ? 'Goal: checkmate' : 'Goal: mate, or +7.00 for 3 turns', ' \u00b7 move '+on+' of '+GZ_CAP.moves];
+  }
+  // the goal line's words whole on its one line: smaller (to 10.5px at most) when they don't fit at the size the style
+  // guessed; run when its words change and when the card's width does (a reflow read only then)
+  function gzGoalFit(){
+    const p = document.getElementById('hv-px-goal'), w = document.getElementById('hv-px-goal-w');
+    if(!p || p.hidden || !w.textContent) return;
+    p.style.removeProperty('--gz-fs');
+    for(let i = 0; i < 3 && w.scrollWidth > w.clientWidth; i++){
+      const fs = parseFloat(getComputedStyle(w).fontSize), n = p.clientWidth, need = w.scrollWidth + p.querySelector('.hv-px-goal-n').scrollWidth;
+      const to = Math.max(10.5, Math.floor(fs * n / need * 10) / 10 - 0.1);
+      if(!(to < fs)) break;
+      p.style.setProperty('--gz-fs', to+'px');
+    }
+  }
+  try{ new ResizeObserver(()=>{ if(PX && PX.gz) gzGoalFit(); }).observe(document.getElementById('hv-px-goal')); }catch(e){}
+  // the end of the main line, when it's your turn with no read and no check of this P.gen in flight: its check (12.2). Run on
+  // Stockfish's reply, after a take-back (Take back, Start again, a move made while looking back) and when the page shows
+  // again. The promise settles once, on every ending (hve.multi); a stale one (an older P.gen, or a timed-out turn) is ignored.
+  // A read that lands calls the result at once (gzLanded)
+  function gzJudgeEnsure(){
+    const P = PX, S = HV_STATE;
+    if(!P || !P.gz || !S || S.game._practice!==P || P.phase!=='play' || P.end) return null;
+    const n = pxEnd(S);
+    if(n.state.turn!==P.color || n._gzW!=null) return null;
+    if(n._gzP && n._gzG===P.gen) return n._gzP;
+    const t = hvTerminal(n);
+    if(t){ n._gzS = t.score; n._gzW = gzWin(t.score, P.color); return null; }        // scored off the board, never sent
+    if(hve.state==='off') hveBoot();
+    const gen = P.gen, tok = {};
+    n._gzT = tok; n._gzG = gen;
+    const done = (r)=>{
+      if(n._gzT!==tok) return r;
+      const L = r && Array.isArray(r.lines) ? r.lines[0] : null;
+      n._gzS = L ? L.score : null; n._gzW = L ? gzWin(L.score, P.color) : null;
+      n._gzP = null; n._gzT = null;
+      if(typeof n._gzW==='number') gzLanded(P, n, gen);
+      return r;
+    };
+    n._gzP = hve.multi(n.fen, { k:1, nodes:GZ_NODES.judge, fresh:true, live:()=> PX===P && P.gen===gen }).then(done, ()=> done(null));
+    return n._gzP;
+  }
+  // a your-turn read landed (the user's rule, 2026-11-22): the result is called the moment Stockfish's check lands, not on
+  // your next move. While that turn is still the end of the main line and the game goes on (P.gen unchanged: no Take back,
+  // Start again, Analyze or leaving since; no ending yet), the endings' rules run at once, so a Won or Not won ending shows
+  // on your move, Stockfish's reply the last move on the board; looking back at an earlier move, or the page hidden, it
+  // lands all the same (pxOver). A read that lands after you moved (the wait in gzJudge) is gzJudge's to apply
+  function gzLanded(P, n, gen){
+    const S = HV_STATE;
+    if(PX!==P || !P.gz || !S || S.game._practice!==P || P.gen!==gen || P.phase!=='play' || P.end || n!==pxEnd(S) || n.state.turn!==P.color) return null;
+    const t = gzWinRules(P, S);
+    if(t) gzBoardShut();
+    return t;
+  }
+  // an ending that landed with no move of yours (gzLanded) leaves nothing on the board that offers one (it takes none now:
+  // 12.4): the promotion picker closes and a picked piece's pick and move dots go (the board drawn again); with nothing
+  // picked only the drag look comes off your pieces (the grab cursor, touch-action none), so Stockfish's reply's slide
+  // isn't cut short
+  function gzBoardShut(){
+    if(hvPromoOpen || hvSelected!=null){ hvRemovePromo(); hvSelected = null; hvRenderBoard(); return; }
+    hvBoardEl.querySelectorAll('.sq.draggable').forEach(sq=> sq.classList.remove('draggable'));
+  }
+  // your move n is on the board, Stockfish to move: the check of the turn you moved from is waited for (GZ_JUDGE_MS at most;
+  // then that turn has no read, and pxThink's think stops the check), the endings' rules run over the reads, then Stockfish
+  // moves. P.thinking holds the board meanwhile, so multi and think never overlap (_thinkSeq). A read that landed before you
+  // moved has had its rules run already (gzLanded); they run again here for the 40-move cap and a read that lands meanwhile
+  async function gzJudge(P, n){
+    const m = n.parent, p = m && m._gzP && m._gzG===P.gen ? m._gzP : null;
+    if(p){
+      const gen = P.gen;
+      P.thinking = true; P.gzWait = { gen };
+      pxRender(); hvRenderControls();
+      let tm = 0;
+      const late = await Promise.race([p.then(()=> false), new Promise(res=>{ tm = setTimeout(()=> res(true), GZ_JUDGE_MS); })]);
+      clearTimeout(tm);
+      if(PX!==P || P.gen!==gen) return;                 // taken back, started again, analyzed or left meanwhile
+      P.thinking = false;
+      if(late && m._gzT){ m._gzT = null; m._gzP = null; m._gzW = null; m._gzS = null; }      // that turn has no read
+    }
+    if(gzWinRules(P, HV_STATE)) return;
+    pxThink();
+  }
+  // your moves on the main line
+  function gzMine(P, S){ let k = 0; S.main.forEach(n=>{ if(n.parent && n.parent.state.turn===P.color) k++; }); return k; }
+  // the endings over the your-turn reads of the main line (12.3), in order. Only your own turns count (the user's rule,
+  // 2026-11-22): the runs are over the reads at your turns AFTER the start; the start's read (the stored W_0) never counts
+  // toward a run (it only gives the "before" score of the slip words and the cap's score when nothing was read). A turn
+  // with no read (null: a timeout, a stopped check) neither counts nor breaks a run. Won: +7.00 or better (a mate for you
+  // counts) at 3 of your turns in a row; from a crushing start (P.gz.crush: W_0 +7.00 or better, and every (c)) a mate for
+  // you at 2 of your turns in a row instead. Not won: under +2.00 at 2 of your turns in a row, or your 40th move
+  // (GZ_CAP.moves) with neither. Checkmate and the draws by rule are pxOver's (hvTerminal). The game ends there (pxOver)
+  // and the answer is truthy; null: play goes on
+  function gzWinRules(P, S){
+    const me = P.color, crush = !!P.gz.crush, T = S.main.filter(n=> n.state.turn===me);
+    let hi = 0, mt = 0, lo = 0, first = null, last = S.root.state.turn===me && typeof S.root._gzW==='number' ? S.root : null, t = null;
+    for(const n of T){
+      const w = n._gzW;
+      if(typeof w!=='number') continue;
+      hi = w >= GZ_CRUSH ? hi + 1 : 0;
+      mt = gzMateFor(n._gzS, me) > 0 ? mt + 1 : 0;
+      if(w < GZ_WIN){ if(!lo) first = { n, prev:last }; lo++; } else lo = 0;
+      last = n;
+      if(crush ? mt >= 2 : hi >= 3){ t = { kind:'gzwin', words:crush ? 'Won: Stockfish sees a forced mate for you.' : 'Won: +7.00 or better for 3 turns in a row.' }; break; }
+      if(lo >= 2){ const wp = gzSlipParts(first, me); t = { kind:'gzlost', words:wp.join(''), wp, slip:first.n.parent }; break; }
+    }
+    if(!t && gzMine(P, S) >= GZ_CAP.moves){
+      const sc = ghbScoreText(last ? last._gzS : P.gz.w0, me);
+      t = { kind:'gzlost', words:'Not won: still '+(sc || 'winning')+' after '+GZ_CAP.moves+' moves.' };
+    }
+    if(t) pxOver(t);
+    return t;
+  }
+  // "Not won: the win slipped after 34. Kg2 (+3.10 -> +0.80)": your move before the first low read, your score at the turn
+  // read before it and at that read (f: { n, prev } from gzWinRules)
+  function gzSlipWords(f, me){ return gzSlipParts(f, me).join(''); }
+  // the same words in three parts: before the move, the move named (a button on the board: gzSlipBack), after it
+  function gzSlipParts(f, me){
+    const a = f.prev ? ghbScoreText(f.prev._gzS, me) : '', b = ghbScoreText(f.n._gzS, me);
+    return ['Not won: the win slipped after ', hvNodeLabel(f.n.parent), ' ('+(a ? a+' \u2192 ' : '')+b+').'];
+  }
+  // Win it again's Not won that names your slip move: the turn of yours just before that move, where its button goes back to.
+  // The move named is always your own (the first low read is a turn of yours, and the move named is the one before
+  // Stockfish's reply that led to it); were it Stockfish's, the turn before your move that led to it. Only while that ending
+  // shows (not in Analyze, where Take back is hidden too) and the move is still on the main line.
+  function gzSlipBack(P, S){
+    const e = P && P.end, m = e && e.slip;
+    if(!m || !P.gz || P.phase!=='over' || e.kind!=='gzlost' || !Array.isArray(e.wp) || !S || S.game._practice!==P || S.main[m.ply - 1]!==m) return null;
+    let b = m.parent;
+    while(b && b.parent && b.state.turn!==P.color) b = b.parent;
+    return b && b.state.turn===P.color ? b : null;
+  }
+  // its button pressed: Take back to that turn, as many take-backs in one step (the record closed at the ending: practice, 12.5)
+  function gzSlipGo(){
+    const P = PX, S = HV_STATE, b = P && pxPlaying() ? gzSlipBack(P, S) : null;
+    if(!b) return;
+    const kb = document.getElementById('hv-px-status').contains(document.activeElement);
+    pxBackTo(b);
+    if(kb){      // the button went: the keyboard on Take back (Start again at the start)
+      const u = document.getElementById('hv-px-undo'), f = u.disabled || u.hidden ? document.getElementById('hv-px-again') : u, t0 = Date.now();
+      // the key that pressed it, held down (its repeats) or pressed again at once, isn't a Take back as well (past the slip)
+      const eat = (e)=>{ if(e.key!=='Enter' && !hvSpaceKey(e)) return; if(e.repeat || Date.now() - t0 < 400){ e.preventDefault(); return; } off(); };
+      const off = ()=>{ f.removeEventListener('keydown', eat); f.removeEventListener('blur', off); };
+      f.addEventListener('keydown', eat); f.addEventListener('blur', off);
+      try{ f.focus({ preventScroll:true }); }catch(e){}
+    }
+  }
+  // a Win it again game ends (pxOver): the words (12.3) and WON / NOT WON (P.end.won) for the judge's endings and for a
+  // checkmate or a draw by rule; the engine stops (a check still running: a mate or a draw on your move, a timed-out turn);
+  // the record, once an opening (12.5): w, h with a take-back before it, n
+  function gzWinEnd(P, t){
+    const e = P.end;
+    if(t.words){ e.words = t.words; e.won = t.kind==='gzwin'; if(t.slip){ e.slip = t.slip; e.wp = t.wp; } }
+    else if(t.kind==='mate'){
+      const k = gzMine(P, HV_STATE);
+      e.won = e.win===P.color;
+      e.words = e.won ? 'Won: checkmate in '+k+' move'+(k===1 ? '' : 's')+'.' : 'Not won: Stockfish won.';
+    }
+    else {
+      e.won = false;
+      e.words = 'Not won: '+({ threefold:'a draw by repetition', stalemate:'a draw by stalemate', fifty:'a draw by the fifty-move rule', insufficient:'a draw, neither side can mate' }[t.kind] || 'a draw')+'.';
+    }
+    e.rec = !P.gz.done;                      // the ending that closes this opening's record (a later one is practice: 12.5)
+    pxCancel();
+    if(P.gz.onEnd) P.gz.onEnd(e.won ? (P.gz.tb ? 'h' : 'w') : 'n');
+  }
+  // the try's record (12.5, 13.1), once an opening (PX.gz.onEnd): w won, h won with a take-back, n not won, q stopped (Analyze
+  // before an ending, or leaving after a move of yours); '' (left before a move) records nothing. [at, r, ms, dv, [elo, your
+  // moves, take-backs]], the newest 20 kept, on this device only (13.5); no ladder (13.2: the card shows the last result).
+  // After it, this opening's games are practice
+  function gzWinRecord(z, code){
+    if(z.done || !/^[whnq]$/.test(code || '')) return null;
+    z.done = true;
+    if(!gzWinMine(z)) return null;      // another account's item (the account changed meanwhile)
+    const A = gzWinRow(z, code, 0);
+    GZ.A.set(z.key, A);
+    GZ_AV++;
+    z.wrote = true;
+    gzPut({ a:[A] });                     // over the try kept so far (gzWinKeep), if any
+    return A;
+  }
+  function gzWinMine(z){ const u = z.G && z.G.u; return !u || u===String(ghMe() || '').toLowerCase(); }
+  // the item's record with this opening's entry added (a copy: the closed records in GZ.A, then this one; the newest 20)
+  function gzWinRow(z, code, at){
+    const S = HV_STATE, P = S && S.game._practice, now = Date.now(), old = GZ.A.get(z.key);
+    const A = old ? Object.assign({}, old, { t:Array.isArray(old.t) ? old.t.slice() : [] }) : { f:z.key, lv:0, due:0, t:[] };
+    A.t.push([at || now, code, Math.max(0, now - z.t0), GZ.M.dv && typeof GZ.M.dv.v==='string' ? GZ.M.dv.v : '', [pxElo(), P && P.gz===z ? gzMine(P, S) : 0, z.tb]]);
+    if(A.t.length > 20) A.t = A.t.slice(-20);
+    return A;
+  }
+  // a try still going after a move of yours, kept in the store only as q (12.5: leaving after a move), so a page reloaded or
+  // closed, or a tab iPadOS throws out in the background (no pagehide), reads Stopped on the next visit; this visit's cards
+  // never see it (GZ.A untouched), and the closing (gzWinRecord) writes over it. After each move of yours (a write in pagehide
+  // is dropped by a reload), and when the page hides (time and take-backs, for a tab thrown out later); at: the first move's time
+  function gzWinKeep(z){
+    if(!z || z.done || !z.moved || !gzWinMine(z)) return;
+    if(!z.at) z.at = Date.now();
+    gzPut({ a:[gzWinRow(z, 'q', z.at)] });
+  }
+  // Open the game (12.6), once it's over: the real review just before your move at q (the game as R1's gzOpenGame finds it);
+  // its back link goes to the Puzzles tab at the card (GZ.back)
+  function gzWinGame(){
+    const P = PX;
+    if(!P || !P.gz || !P.end) return;
+    const G = P.gz.G, id = String(G.id), b = P.back || {};
+    const g = GH_STATE.games.find(x=> String(x.id)===id) || (ghCcUp() && ccIsId(id) ? ccGameById(id) : null) || { id, _summary:true, _me:G.me==='b' ? 'black' : 'white' };
+    GZ.back = { y:b.y, fid:b.fid }; GZ.y = null;
+    ghOpenGame(g, { at:{ ply:Number(G.q) || 0 } });
+  }
+  document.getElementById('hv-px-game').addEventListener('click', gzWinGame);
+  document.getElementById('hv-px-home').addEventListener('click', ()=> pxBack());
+  // the page shows again (iPadOS may have suspended it mid-check): the turn's check again when it has none
+  document.addEventListener('visibilitychange', ()=>{ if(!PX || !PX.gz) return; if(document.hidden) gzWinKeep(PX.gz); else gzJudgeEnsure(); });
+  window.addEventListener('pageshow', ()=>{ if(PX && PX.gz) gzJudgeEnsure(); });
 
   // ---- where Play it out starts ----
   const PX_NO_REPLAY = 'The moves to this position don\u2019t replay here, so it can\u2019t be played out.';
