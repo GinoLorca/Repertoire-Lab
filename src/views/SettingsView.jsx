@@ -3,10 +3,14 @@ import { useStore } from '../store';
 import SoundsSection from './SoundsView';
 import AccountSection from './AccountSection';
 import DataSection from './DataSection';
-import { resolveTheme, themeForHour, backgroundFor } from '../lib/theme';
+import { resolveTheme, themeForHour, backgroundFor, boardPieces } from '../lib/theme';
 import { SKINS, SKIN_ORDER, CUSTOM_SKIN, skinId } from '../lib/skins';
 import { processBackground } from '../lib/background';
-import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
+import { piecesFor, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
+import {
+  PIECE_STYLE_ORDER, PIECE_STYLE_LABELS, PIECE_STYLE_HINTS, PIECE_TOKEN_NAMES, pieceStyleOf, themePieceStyle,
+  withPieceStyle,
+} from '../lib/pieceStyles';
 import { DEFAULT_SQUARE_LIGHT, DEFAULT_SQUARE_DARK } from '../components/Board';
 import {
   PROFILES, PROFILE_ORDER, SEQUENCE, STRATEGIC, REVIEW_PENS, profileOf,
@@ -203,15 +207,23 @@ function Swatch({ label, value, onChange }) {
 }
 
 // Four squares and two pieces — enough to judge a scheme without leaving the page.
-function BoardPreview({ squareLight, squareDark, pieceLight, pieceDark }) {
-  const pieces = makePieces(pieceLight, pieceDark);
+// `look` is that theme's pieces (lib/theme boardPieces): its set, kept pick
+// included, in its own colors. The theme's piece colors go on the preview
+// itself, so a card shows its own theme's, not the page's (`initial` where a
+// theme gives none: each set's own colors), and `data-pv` names the theme for
+// its drawing filter (styles.css, the @pieces block). The pieces come from
+// piecesFor, built once per look rather than on every render.
+function BoardPreview({ squareLight, squareDark, look, skin }) {
+  const pieces = piecesFor(look);
+  const inks = {};
+  for (const name of PIECE_TOKEN_NAMES) inks[name] = look.tokens?.[name] ?? 'initial';
   const cell = (sq, code, key) => (
     <div key={key} className="bpv-sq" style={{ background: sq }}>
       {code ? pieces[code]({ squareWidth: 44 }) : null}
     </div>
   );
   return (
-    <div className="board-preview">
+    <div className="board-preview" data-pv={skin} style={inks}>
       {cell(squareLight, 'bN', 0)}
       {cell(squareDark, 'bQ', 1)}
       {cell(squareDark, 'wK', 2)}
@@ -223,8 +235,9 @@ function BoardPreview({ squareLight, squareDark, pieceLight, pieceDark }) {
 // A theme card: the palette's own chrome behind a four-square corner of its
 // board, so each one is judged on what it actually looks like rather than on
 // its name. Painted from the skin's tokens directly instead of from the live
-// page, which is the only way to show five themes at once.
-function SkinCard({ skin, mode, active, onPick }) {
+// page, which is the only way to show five themes at once. `look` is the
+// theme's pieces, as its boards would draw them.
+function SkinCard({ skin, mode, active, onPick, look }) {
   const p = skin[mode] ?? skin.dark;
   return (
     <button
@@ -235,8 +248,8 @@ function SkinCard({ skin, mode, active, onPick }) {
       <BoardPreview
         squareLight={p.boardLight}
         squareDark={p.boardDark}
-        pieceLight={p.pieceLight}
-        pieceDark={p.pieceDark}
+        look={look}
+        skin={skin.id}
       />
       <span className="skin-name" style={{ color: p['--text'] }}>{skin.name}</span>
       <span className="skin-blurb" style={{ color: p['--muted'] }}>{skin.blurb}</span>
@@ -246,6 +259,48 @@ function SkinCard({ skin, mode, active, onPick }) {
         ))}
       </span>
     </button>
+  );
+}
+
+// Chess Arcade's piece sets, one button each, kept for the theme that's on
+// (settings.pieceStyleBySkin, lib/pieceStyles). Picking the theme's own set
+// removes its entry, so the theme decides again (and a later change to its
+// set reaches you). The names and descriptions are Chess Arcade's own. Plain
+// buttons: a tap, a click, or Tab and Space / Enter on a keyboard. The hint is
+// read out after a pick (aria-live), and the theme's card above redraws with
+// the set at once.
+function PieceStyleRow({ s, onSet, skin, skinName }) {
+  const pick = pieceStyleOf(s, skin);
+  const own = themePieceStyle(skin);
+  const ownLine = pick === own
+    ? `${PIECE_STYLE_LABELS[own]} is ${skinName}’s own set.`
+    : `${skinName}’s own set: ${PIECE_STYLE_LABELS[own]}.`;
+  return (
+    <>
+      <div className="settings-row" style={{ marginTop: 18 }}>
+        <span id="piece-style-label"><strong>Piece style</strong> — on every board, kept for each theme</span>
+      </div>
+      <div
+        className="speed-choices piece-style-choices"
+        role="group"
+        aria-labelledby="piece-style-label"
+        aria-describedby="piece-style-hint"
+      >
+        {PIECE_STYLE_ORDER.map((key) => (
+          <button
+            key={key}
+            type="button"
+            className={`theme-card${pick === key ? ' active' : ''}`}
+            aria-pressed={pick === key}
+            data-val={key}
+            onClick={() => onSet({ pieceStyleBySkin: withPieceStyle(s, skin, key) })}
+          >
+            <strong>{PIECE_STYLE_LABELS[key]}</strong>
+          </button>
+        ))}
+      </div>
+      <p className="hint" id="piece-style-hint" aria-live="polite">{PIECE_STYLE_HINTS[pick]} {ownLine}</p>
+    </>
   );
 }
 
@@ -488,6 +543,7 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
               mode={active}
               active={currentSkin === id}
               onPick={() => set({ skin: id })}
+              look={boardPieces({ ...s, skin: id }, active)}
             />
           ))}
           {/* Custom is the app's own palette — the one that was here before
@@ -500,8 +556,8 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
             <BoardPreview
               squareLight={s.squareLight ?? DEFAULT_SQUARE_LIGHT}
               squareDark={s.squareDark ?? DEFAULT_SQUARE_DARK}
-              pieceLight={s.pieceLight ?? DEFAULT_PIECE_LIGHT}
-              pieceDark={s.pieceDark ?? DEFAULT_PIECE_DARK}
+              look={boardPieces({ ...s, skin: 'custom' }, active)}
+              skin="custom"
             />
             <span className="skin-name">{CUSTOM_SKIN.name}</span>
             <span className="skin-blurb">{CUSTOM_SKIN.blurb}</span>
@@ -533,6 +589,7 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
             onChange={(v) => set({ skinArtOff: { ...(s.skinArtOff ?? {}), [currentSkin]: !v } })}
           />
         )}
+        <PieceStyleRow s={s} onSet={set} skin={currentSkin} skinName={skinName} />
         <p className="hint">
           {currentSkin === 'custom'
             ? 'Custom is on — the colours in The board are the ones in use, and your background picture sits behind them.'
@@ -550,11 +607,13 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
           </p>
         )}
         <div className="board-colours">
+          {/* These colors are Custom's, so the preview is Custom's look:
+              its set, in these colors, whichever theme is on. */}
           <BoardPreview
             squareLight={s.squareLight ?? DEFAULT_SQUARE_LIGHT}
             squareDark={s.squareDark ?? DEFAULT_SQUARE_DARK}
-            pieceLight={s.pieceLight ?? DEFAULT_PIECE_LIGHT}
-            pieceDark={s.pieceDark ?? DEFAULT_PIECE_DARK}
+            look={boardPieces({ ...s, skin: 'custom' })}
+            skin="custom"
           />
           <div className="colour-fields">
             <Swatch

@@ -61362,8 +61362,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // Hidden here: Chess Arcade's own ways around Chess Arcade, and the Settings that only
     // matter there — its accounts (Lichess, chess.com, Repertoire Lab, Spotify), its puzzles,
     // notes sync and Game History's opening checks, and its drills' titles and game intro. What
-    // stays is what the review looks and sounds like: theme, pieces, squares, arrows, line signs,
-    // background, the board's cards, sounds and the tactic sound.
+    // stays is what the review looks and sounds like: squares, arrows, line signs, background,
+    // the board's cards, sounds and the tactic sound; the theme and the pieces are always
+    // Repertoire Lab's own (look).
     const HIDE = ['#friends-tab', '#lichess-activity-widget',
       // a player's CLAMP and Tactics: Chess Arcade's page header, its way home, Game History's own header (its title,
       // the Lichess line, its tabs), its sites and the chess.com offer
@@ -61387,7 +61388,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       // the theme: always Repertoire Lab's own, dark or light as Repertoire Lab is (look)
       '#settings-overlay .field:has(#skin-row)', '#custom-colors-field',
       // "Hold a piece to draw": Repertoire Lab's own switch (Settings, the board), handed over with the look
-      '#holddraw-field'];
+      '#holddraw-field',
+      // the pieces too: the set picked in Repertoire Lab (Settings → Themes → Piece style), and Custom's outline as
+      // Repertoire Lab draws it (look); the Piece outline row only ever changed this frame
+      '#settings-overlay .field:has(#piece-style-row)', '#custom-piece-stroke-field'];
     const css = document.createElement('style');
     css.textContent = HIDE.map((s)=> (s.indexOf('html')===0 ? s : 'html.rl-embed '+s)).join(', ')+' { display:none !important; }'
       + ' #rl-menu { position:fixed; right:16px; bottom:16px; z-index:40; display:flex; flex-direction:row-reverse; gap:8px; align-items:center; }'
@@ -61715,25 +61719,36 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         try{ setAnnoProfile(id); } finally { quiet--; }
         return annoProfile()===id;
       },
-      // Repertoire Lab's theme, dark or light as it is there: { skin, theme:'dark'|'light', colors } (colors: Custom's
-      // own, as Repertoire Lab paints them). Chess Arcade's theme picker is hidden here: the look is Repertoire Lab's.
+      // Repertoire Lab's theme, dark or light as it is there: { skin, theme:'dark'|'light', colors, pieces } (colors:
+      // Custom's own, as Repertoire Lab paints them, its outline included; pieces: the piece set Repertoire Lab's boards
+      // draw, by its key). Chess Arcade's theme and piece pickers are hidden here: the look is Repertoire Lab's. The set
+      // is kept as this theme's pick (pieceStyleBySkin), and saved, so Chess Arcade's own row, data-pset and the boards
+      // all agree, and the next load paints it before Repertoire Lab says so again. A set this copy doesn't have (one
+      // newer than it) leaves the theme's own set.
       look(o){
         o = o || {};
         const SK = ['felt','hustler','bauhaus','gameboy','outerspace','drivethru','rose','chessbook','uptown','cards','custom'];
         const skin = SK.indexOf(o.skin)>=0 ? o.skin : 'custom';
         const theme = o.theme==='light' ? 'light' : 'dark';
         const col = (v)=> typeof v==='string' && /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\)|hsla?\([\d\s.,%deg]+\))$/i.test(v.trim()) ? v.trim() : null;
+        const has = (k)=> typeof k==='string' && Object.prototype.hasOwnProperty.call(PIECE_SETS, k);
+        const pieces = has(o.pieces) ? o.pieces : null;
         const c = o.colors || {};
         const colors = skin==='custom' ? { accent:col(c.accent), bg:col(c.bg), surface:col(c.surface), boardLight:col(c.boardLight),
-          boardDark:col(c.boardDark), pieceWhite:col(c.pieceWhite), pieceBlack:col(c.pieceBlack), pieceStroke:null } : null;
+          boardDark:col(c.boardDark), pieceWhite:col(c.pieceWhite), pieceBlack:col(c.pieceBlack), pieceStroke:col(c.pieceStroke) } : null;
         // A finger rested on a piece draws an arrow from it (Repertoire Lab's "Hold a piece to draw"), or picks it up.
         const hold = o.holdDraw===false ? 'off' : 'on';
-        const sig = skin+'|'+theme+'|'+JSON.stringify(colors)+'|'+hold;
+        const sig = skin+'|'+theme+'|'+JSON.stringify(colors)+'|'+hold+'|'+(pieces || '');
         if(sig===lookSig) return false;
         lookSig = sig;
         lookPrefs.skin = skin;
         lookPrefs.holdDrawPieces = hold;
         if(colors) lookPrefs.customColors = colors;
+        // the outline switch is hidden here: never left off
+        lookPrefs.pieceStrokeEnabled = true;
+        if(!lookPrefs.pieceStyleBySkin || typeof lookPrefs.pieceStyleBySkin!=='object') lookPrefs.pieceStyleBySkin = {};
+        if(pieces) lookPrefs.pieceStyleBySkin[skin] = pieces;
+        else delete lookPrefs.pieceStyleBySkin[skin];
         document.documentElement.setAttribute('data-theme', theme);
         applyLookPrefs();
         try{ saveLookPrefs(); }catch(e){}
@@ -61815,7 +61830,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         try{ void HR_BY_ID; }catch(e){ gone.push('HR_BY_ID'); }
         try{ void HR_BY_CODE; }catch(e){ gone.push('HR_BY_CODE'); }
         try{ void GH_FILTERS; }catch(e){ gone.push('GH_FILTERS'); }
-        return gone.concat(["home-fab","view-history","gh-oj"].filter((id)=> !document.getElementById(id)).map((id)=> '#'+id));
+        try{ void PIECE_SETS; }catch(e){ gone.push('PIECE_SETS'); }
+        return gone.concat(["home-fab","view-history","gh-oj","piece-style-row","custom-piece-stroke-field"].filter((id)=> !document.getElementById(id)).map((id)=> '#'+id));
       },
     };
     tell('ready');

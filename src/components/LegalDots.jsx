@@ -19,16 +19,17 @@ import { shownPick } from '../lib/pressed';
 // instant it's pressed (lib/pressed), not when the view has heard of the
 // pick: this part redraws by itself for a press, where the view's whole
 // screen would be felt. `suited`: Court Cards is the theme (a press has no
-// `suitPick` from the view yet; the suit is read off the piece).
+// `suitPick` from the view yet; the suit is read off the piece), and
+// `pieceSet` the set the board draws (the Card Crown set prints its own suits).
 export default function LegalDots({
-  game, square: picked, boardWidth, orientation, suitPick: viewPick = null, boardId = null, suited = false,
+  game, square: picked, boardWidth, orientation, suitPick: viewPick = null, boardId = null, suited = false, pieceSet = null,
 }) {
   const pressed = usePressed(boardId);
   const square = shownPick(pressed, picked);
   // The view's pick is of the square it has picked: a press on another piece
   // (or before any pick) names its own.
   const suitPick = pressed && pressed !== viewPick?.square
-    ? (suited && pieceCode(game, pressed) ? { code: pieceCode(game, pressed), square: pressed } : null)
+    ? (suited && pieceCode(game, pressed) ? { code: pieceCode(game, pressed), square: pressed, set: pieceSet } : null)
     : viewPick;
   if (!game || !square || !boardWidth) return null;
   let moves = [];
@@ -39,7 +40,7 @@ export default function LegalDots({
   moves = [...new Map(moves.map((mv) => [mv.to, mv])).values()];
 
   const size = boardWidth / 8;
-  const suit = suitOf(suitPick?.code);
+  const suit = suitOf(suitPick?.code, suitPick?.set);
   if (suit) {
     const quiet = moves.filter((mv) => !mv.captured);
     if (quiet.length === 0) return null;

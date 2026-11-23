@@ -14,7 +14,8 @@
 //      already ships — instead of a folder beside the page.
 //   2. A small bridge at the end of the app's own code (window.__rlReview),
 //      which Repertoire Lab's Game Review tab talks to: open a game, put a
-//      game's saved notes and analysis in, take them out when they change.
+//      game's saved notes and analysis in, take them out when they change,
+//      and wear Repertoire Lab's theme and piece set (look).
 //      It runs only inside Repertoire Lab's frame.
 //   3. In that frame, the parts of Chess Arcade that belong to Chess Arcade
 //      (its home button, Friends, the way back to its Game History, its
@@ -23,6 +24,11 @@
 // The copy is written to public/arcade/review.<hash>.html — a new name for
 // every new copy, so a phone never keeps an old one — and its name goes in
 // src/lib/arcadeBuild.js for the app to load.
+//
+// Chess Arcade's piece sets reach Repertoire Lab's own boards only through
+// `npm run sync:pieces` (scripts/sync-pieces.mjs), run by hand in an RL change
+// that gets screenshots. This sync never writes that module: when a new copy's
+// sets have moved on, the hourly job only warns (scripts/check-pieces.mjs).
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -47,7 +53,10 @@ async function source() {
   const file = resolve(flag('--from') || join(root, '..', 'chess-arcade', 'index.html'));
   let commit = '';
   try {
-    commit = execFileSync('git', ['-C', dirname(file), 'log', '-1', '--format=%h %s'], { encoding: 'utf8' }).trim();
+    const git = (...a) => execFileSync('git', ['-C', dirname(file), ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    commit = git('log', '-1', '--format=%h %s');
+    // a copy made from a working tree with changes of its own says so (ARCADE_FROM), as sync-pieces does
+    if (commit && git('status', '--porcelain', '--', file)) commit += ' + uncommitted changes';
   } catch { /* not a git checkout */ }
   return { html: readFileSync(file, 'utf8'), from: file, commit };
 }
@@ -76,10 +85,10 @@ const USES = [
   'hvNote', 'hvOnNode', 'hvOpen', 'hvRenderBoard', 'lookPrefs', 'rlDecode', 'rlEncode', 'rpFire',
   'rpMake', 'rpQueue', 'saveLookPrefs', 'showView', 'ttPractice', 'setAnnoProfile', 'annoProfile',
   'hrSave', 'hrLoad', 'hrSig', 'hrEncScore', 'hrDecScore', 'hrValidEntry', 'hrReadStore', 'hrJob',
-  'hrRenderAll', 'hvRedraw', 'HR_BY_ID', 'HR_BY_CODE', 'GH_FILTERS',
+  'hrRenderAll', 'hvRedraw', 'HR_BY_ID', 'HR_BY_CODE', 'GH_FILTERS', 'PIECE_SETS',
 ];
-// …and the parts of its page it reaches for.
-const USES_IDS = ['home-fab', 'view-history', 'gh-oj'];
+// …and the parts of its page it reaches for (or hides: a renamed one would show again).
+const USES_IDS = ['home-fab', 'view-history', 'gh-oj', 'piece-style-row', 'custom-piece-stroke-field'];
 
 // Inside the app's own closure, so it can reach the review's functions and
 // its notes store by name. Everything it touches is listed here, in one
@@ -95,8 +104,9 @@ const BRIDGE = String.raw`
     // Hidden here: Chess Arcade's own ways around Chess Arcade, and the Settings that only
     // matter there — its accounts (Lichess, chess.com, Repertoire Lab, Spotify), its puzzles,
     // notes sync and Game History's opening checks, and its drills' titles and game intro. What
-    // stays is what the review looks and sounds like: theme, pieces, squares, arrows, line signs,
-    // background, the board's cards, sounds and the tactic sound.
+    // stays is what the review looks and sounds like: squares, arrows, line signs, background,
+    // the board's cards, sounds and the tactic sound; the theme and the pieces are always
+    // Repertoire Lab's own (look).
     const HIDE = ['#friends-tab', '#lichess-activity-widget',
       // a player's CLAMP and Tactics: Chess Arcade's page header, its way home, Game History's own header (its title,
       // the Lichess line, its tabs), its sites and the chess.com offer
@@ -120,7 +130,10 @@ const BRIDGE = String.raw`
       // the theme: always Repertoire Lab's own, dark or light as Repertoire Lab is (look)
       '#settings-overlay .field:has(#skin-row)', '#custom-colors-field',
       // "Hold a piece to draw": Repertoire Lab's own switch (Settings, the board), handed over with the look
-      '#holddraw-field'];
+      '#holddraw-field',
+      // the pieces too: the set picked in Repertoire Lab (Settings → Themes → Piece style), and Custom's outline as
+      // Repertoire Lab draws it (look); the Piece outline row only ever changed this frame
+      '#settings-overlay .field:has(#piece-style-row)', '#custom-piece-stroke-field'];
     const css = document.createElement('style');
     css.textContent = HIDE.map((s)=> (s.indexOf('html')===0 ? s : 'html.rl-embed '+s)).join(', ')+' { display:none !important; }'
       + ' #rl-menu { position:fixed; right:16px; bottom:16px; z-index:40; display:flex; flex-direction:row-reverse; gap:8px; align-items:center; }'
@@ -448,25 +461,36 @@ const BRIDGE = String.raw`
         try{ setAnnoProfile(id); } finally { quiet--; }
         return annoProfile()===id;
       },
-      // Repertoire Lab's theme, dark or light as it is there: { skin, theme:'dark'|'light', colors } (colors: Custom's
-      // own, as Repertoire Lab paints them). Chess Arcade's theme picker is hidden here: the look is Repertoire Lab's.
+      // Repertoire Lab's theme, dark or light as it is there: { skin, theme:'dark'|'light', colors, pieces } (colors:
+      // Custom's own, as Repertoire Lab paints them, its outline included; pieces: the piece set Repertoire Lab's boards
+      // draw, by its key). Chess Arcade's theme and piece pickers are hidden here: the look is Repertoire Lab's. The set
+      // is kept as this theme's pick (pieceStyleBySkin), and saved, so Chess Arcade's own row, data-pset and the boards
+      // all agree, and the next load paints it before Repertoire Lab says so again. A set this copy doesn't have (one
+      // newer than it) leaves the theme's own set.
       look(o){
         o = o || {};
         const SK = ['felt','hustler','bauhaus','gameboy','outerspace','drivethru','rose','chessbook','uptown','cards','custom'];
         const skin = SK.indexOf(o.skin)>=0 ? o.skin : 'custom';
         const theme = o.theme==='light' ? 'light' : 'dark';
         const col = (v)=> typeof v==='string' && /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\)|hsla?\([\d\s.,%deg]+\))$/i.test(v.trim()) ? v.trim() : null;
+        const has = (k)=> typeof k==='string' && Object.prototype.hasOwnProperty.call(PIECE_SETS, k);
+        const pieces = has(o.pieces) ? o.pieces : null;
         const c = o.colors || {};
         const colors = skin==='custom' ? { accent:col(c.accent), bg:col(c.bg), surface:col(c.surface), boardLight:col(c.boardLight),
-          boardDark:col(c.boardDark), pieceWhite:col(c.pieceWhite), pieceBlack:col(c.pieceBlack), pieceStroke:null } : null;
+          boardDark:col(c.boardDark), pieceWhite:col(c.pieceWhite), pieceBlack:col(c.pieceBlack), pieceStroke:col(c.pieceStroke) } : null;
         // A finger rested on a piece draws an arrow from it (Repertoire Lab's "Hold a piece to draw"), or picks it up.
         const hold = o.holdDraw===false ? 'off' : 'on';
-        const sig = skin+'|'+theme+'|'+JSON.stringify(colors)+'|'+hold;
+        const sig = skin+'|'+theme+'|'+JSON.stringify(colors)+'|'+hold+'|'+(pieces || '');
         if(sig===lookSig) return false;
         lookSig = sig;
         lookPrefs.skin = skin;
         lookPrefs.holdDrawPieces = hold;
         if(colors) lookPrefs.customColors = colors;
+        // the outline switch is hidden here: never left off
+        lookPrefs.pieceStrokeEnabled = true;
+        if(!lookPrefs.pieceStyleBySkin || typeof lookPrefs.pieceStyleBySkin!=='object') lookPrefs.pieceStyleBySkin = {};
+        if(pieces) lookPrefs.pieceStyleBySkin[skin] = pieces;
+        else delete lookPrefs.pieceStyleBySkin[skin];
         document.documentElement.setAttribute('data-theme', theme);
         applyLookPrefs();
         try{ saveLookPrefs(); }catch(e){}

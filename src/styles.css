@@ -2382,7 +2382,21 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
    The square's own colour is an inline background-color from the board's
    theme props, and these rules only add background-image on top, so the two
    never fight. Square highlights live on a child element, so a texture here
-   sits under a last-move wash or a picked-square tint rather than over it. */
+   sits under a last-move wash or a picked-square tint rather than over it.
+
+   What lights a piece's drawing keys on the piece itself, lib/pieces' span
+   (data-pc = the piece, data-ps = its set), so it reaches every copy of a
+   drawn piece: on a square, in the Board Editor's tray and its drag ghost,
+   the carried piece and the wrong-move ghost. Two forms, as Chess Arcade's
+   .piece-wrap svg reaches its squares and drag ghost but not its promotion
+   picker:
+     the board's   :not(.bpv-sq):not(.promotion-option) > [data-pc]
+     the picker's  :not(.bpv-sq) > [data-pc]   (Game Boy only, as Chess Arcade)
+   Neither reaches Settings' theme cards (.bpv-sq), which get their own theme's
+   look in the @pieces block. The Court Cards Chess Set dresses itself (the
+   @pieces block), so every theme leaves it alone: :not([data-ps="courtCards"]).
+   A rule about the square rather than the drawing (Uptown's line tabs) keys
+   on <html data-pset>. */
 
 /* --- Game Boy: individual LCD sub-pixels, on a grid fine enough to read as
        screen texture rather than a pattern stamp. The pieces go through the
@@ -2400,7 +2414,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   background-image: radial-gradient(circle at 50% 50%, var(--dmg-dot-b) 0 1px, transparent 1.2px);
   background-size: 4px 4px;
 }
-:root[data-skin="gameboy"] [data-piece] svg {
+:root[data-skin="gameboy"] :not(.bpv-sq) > [data-pc]:not([data-ps="courtCards"]) > svg {
   filter: sepia(1) saturate(6) hue-rotate(45deg) brightness(0.75) contrast(1.1);
 }
 
@@ -2423,7 +2437,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
     radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255, 90, 54, 0.1), transparent 70%),
     repeating-linear-gradient(0deg, var(--scan-line) 0 1px, transparent 1px 3px);
 }
-:root[data-skin="outerspace"] [data-piece] svg {
+:root[data-skin="outerspace"] :not(.bpv-sq):not(.promotion-option) > [data-pc]:not([data-ps="courtCards"]) > svg {
   filter: sepia(0.3) saturate(1.5) hue-rotate(-6deg) contrast(1.1) brightness(1.03)
     drop-shadow(0 0 2px var(--skin-focus)) drop-shadow(0 0 5px var(--skin-focus));
 }
@@ -2472,16 +2486,22 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
    drop-shadow pair rings the rendered shape from outside instead, light around
    black pieces and dark around white ones. Kept thin: this is a rim for
    contrast, not a glow. Written out per colour because a second `filter`
-   declaration replaces the first rather than adding to it. */
-:root[data-skin="hustler"] [data-piece^="b"] svg {
+   declaration replaces the first rather than adding to it. The rims are the
+   Default Chess Set's only; every other set (bar Court Cards, which dresses
+   itself) goes monochrome as in Chess Arcade, under the sets' shadow (the
+   @pieces block), so Wavy Coach looks as it does there. */
+:root[data-skin="hustler"] :not(.bpv-sq):not(.promotion-option) > [data-pc^="b"][data-ps="default"] > svg {
   filter: grayscale(0.92) contrast(1.12) brightness(1.03) saturate(0.85)
     drop-shadow(0 0 0.8px rgba(255, 255, 255, 0.95))
     drop-shadow(0 0 1.6px rgba(255, 255, 255, 0.55));
 }
-:root[data-skin="hustler"] [data-piece^="w"] svg {
+:root[data-skin="hustler"] :not(.bpv-sq):not(.promotion-option) > [data-pc^="w"][data-ps="default"] > svg {
   filter: grayscale(0.92) contrast(1.12) brightness(1.03) saturate(0.85)
     drop-shadow(0 0 0.8px rgba(0, 0, 0, 0.75))
     drop-shadow(0 0 1.6px rgba(0, 0, 0, 0.4));
+}
+:root[data-skin="hustler"] :not(.bpv-sq):not(.promotion-option) > [data-pc]:not([data-ps="default"]):not([data-ps="courtCards"]) > svg {
+  filter: grayscale(0.92) contrast(1.12) brightness(1.03) saturate(0.85);
 }
 
 /* --- Drive-Thru: a fifties counter's red-and-white tile floor in a golden
@@ -2494,7 +2514,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 :root[data-skin="drivethru"] [data-boardid] {
   box-shadow: 0 0 0 4px var(--dt-frame), 0 0 0 5px rgba(58, 20, 8, 0.35);
 }
-:root[data-skin="drivethru"] [data-piece] svg {
+:root[data-skin="drivethru"] :not(.bpv-sq):not(.promotion-option) > [data-pc]:not([data-ps="courtCards"]) > svg {
   filter: drop-shadow(0 0 1.3px rgba(255, 250, 240, 0.95)) drop-shadow(0 2px 0 rgba(90, 20, 8, 0.38));
 }
 
@@ -2504,7 +2524,7 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 :root[data-skin="rose"] { --rose-rule: #12080d; }
 :root[data-skin="rose"][data-theme="light"] { --rose-rule: #9c5a6e; }
 :root[data-skin="rose"] [data-boardid] { box-shadow: 0 0 0 2px var(--rose-rule); }
-:root[data-skin="rose"] [data-piece] svg { filter: drop-shadow(0 1px 1.5px rgba(120, 20, 60, 0.4)); }
+:root[data-skin="rose"] :not(.bpv-sq):not(.promotion-option) > [data-pc]:not([data-ps="courtCards"]) > svg { filter: drop-shadow(0 1px 1.5px rgba(120, 20, 60, 0.4)); }
 
 /* --- Chess Book: the diagram in a printed book. Dark squares aren't a
        colour, they're paper hatched with fine diagonal ink lines, and the
@@ -2558,8 +2578,8 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700; line-height: 1;
   text-shadow: 0 0 1px rgba(0, 0, 0, 0.35); user-select: none;
 }
-:root[data-skin="uptown"] [data-piece] svg { filter: drop-shadow(0 1.2px 0 rgba(0, 0, 0, 0.3)); }
-:root[data-skin="uptown"] [data-piece^="b"] svg { filter: drop-shadow(0 0 0.8px rgba(244, 244, 240, 0.92)) drop-shadow(0 1.2px 0 rgba(0, 0, 0, 0.3)); }
+:root[data-skin="uptown"] :not(.bpv-sq):not(.promotion-option) > [data-pc]:not([data-ps="courtCards"]) > svg { filter: drop-shadow(0 1.2px 0 rgba(0, 0, 0, 0.3)); }
+:root[data-skin="uptown"] :not(.bpv-sq):not(.promotion-option) > [data-pc^="b"]:not([data-ps="courtCards"]) > svg { filter: drop-shadow(0 0 0.8px rgba(244, 244, 240, 0.92)) drop-shadow(0 1.2px 0 rgba(0, 0, 0, 0.3)); }
 :root[data-skin="uptown"] [data-piece="bK"] { --ux-pl: #ff6b5e; }
 :root[data-skin="uptown"] [data-piece="bQ"] { --ux-pl: #e58bdd; }
 :root[data-skin="uptown"] [data-piece="bR"] { --ux-pl: #7fa6ff; }
@@ -2571,7 +2591,8 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 :root[data-skin="uptown"] [data-piece$="B"] { --ux-tab: #fccc0a; }
 :root[data-skin="uptown"] [data-piece$="N"] { --ux-tab: #6cbe45; }
 :root[data-skin="uptown"] [data-square] [data-piece] { position: relative; }
-:root[data-skin="uptown"] [data-square] [data-piece]:not([data-piece$="P"])::after {
+/* (the Court Cards Chess Set carries its suits instead: no tab under it) */
+:root[data-skin="uptown"]:not([data-pset="courtCards"]) [data-square] [data-piece]:not([data-piece$="P"])::after {
   content: ''; position: absolute; left: 33%; right: 33%; bottom: 3%; height: 5%; min-height: 2px;
   border-radius: 2px; background: var(--ux-tab); box-shadow: 0 0 0 1px rgba(20, 21, 23, 0.9); pointer-events: none;
 }
@@ -2640,57 +2661,9 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 :root[data-skin="cards"] [data-square-color="white"] > div > div[style*="position: absolute"] { color: var(--cc-label) !important; }
 :root[data-skin="cards"] [data-square-color="black"] > div > div[style*="position: absolute"] { color: var(--cc-label-back) !important; }
-
-/* The pieces keep their shapes. White is laminated ivory (a soft diagonal
-   glint, the gradients in index.html's #cc-defs) and Black laminated black
-   stock with gilt detail lines, the knight's mane and eye too: skins.js
-   paints Court Cards' two inks through --cc-pl and --cc-pd, so these reach
-   every piece drawn in its colours, the theme picker's included, and
-   nothing else (no other theme names them). */
-[data-pc^="w"] { --cc-pl: url(#cc-lam-w) #fbf7ec; }
-[data-pc^="b"] { --cc-pl: #d9ad55; --cc-pd: url(#cc-lam-b) #1b1c27; }
-:root[data-theme="dark"] [data-pc^="w"] { --cc-pl: url(#cc-lam-w) #f6f1e4; }
-:root[data-theme="dark"] [data-pc^="b"] { --cc-pl: #e8c36c; --cc-pd: url(#cc-lam-b) #181923; }
-/* A soft shadow under each piece; Black also gets a fine gilt edge, gilded
-   card edges, which keeps it clear of the card backs (pawns, with no detail
-   lines of their own, a slightly fuller one). */
-:root[data-skin="cards"] [data-pc] { position: relative; filter: drop-shadow(0 1.2px 1.2px rgba(30, 20, 12, 0.34)); }
-:root[data-skin="cards"] [data-pc^="b"] { filter: drop-shadow(0 0 0.55px var(--cc-gilt-hi)) drop-shadow(0 0 0.55px var(--cc-gilt-hi)) drop-shadow(0 1.2px 1.2px rgba(0, 0, 0, 0.34)); }
-:root[data-skin="cards"] [data-pc="bP"] { filter: drop-shadow(0 0 0.6px var(--cc-gilt-hi)) drop-shadow(0 0 0.6px var(--cc-gilt-hi)) drop-shadow(0 0 0.45px var(--cc-gilt-hi)) drop-shadow(0 1.2px 1.2px rgba(0, 0, 0, 0.34)); }
-/* Every officer wears its suit, printed on the body where a court card
-   carries it: hearts on White's king and queen, diamonds on its rook and
-   knight (in red); spades on Black's king and queen, clubs on its rook and
-   knight (in gilt). Both bishops, chess's fou, the jester, carry the Joker's
-   four-point star where the mitre's cross was. Pawns are the spot cards.
-   Each pip is a mask over a halo of the piece's own fill (1.55 times the
-   pip), so it looks printed and goes wherever the piece goes: on a square,
-   in the promotion picker, in the drag ghost and the Board Editor's tray. */
-:root[data-skin="cards"] [data-pc]:not([data-pc$="P"])::before,
-:root[data-skin="cards"] [data-pc]:not([data-pc$="P"])::after {
-  content: ''; position: absolute; left: var(--cc-px, 50%); top: var(--cc-py, 70%); width: var(--cc-pw, 15%); aspect-ratio: 1;
-  transform: translate(-50%, -50%); pointer-events: none;
-  -webkit-mask: var(--cc-pip) center / contain no-repeat; mask: var(--cc-pip) center / contain no-repeat;
-}
-:root[data-skin="cards"] [data-pc]:not([data-pc$="P"])::before { width: calc(var(--cc-pw, 15%) * 1.55); background: var(--cc-halo); }
-:root[data-skin="cards"] [data-pc]:not([data-pc$="P"])::after { background: var(--cc-pipc); }
-:root[data-skin="cards"] [data-pc^="w"] { --cc-pipc: var(--cc-pip-w); --cc-halo: var(--cc-halo-w); }
-:root[data-skin="cards"] [data-pc^="b"] { --cc-pipc: var(--cc-pip-b); --cc-halo: var(--cc-halo-b); }
-:root[data-skin="cards"] :is([data-pc="wK"], [data-pc="wQ"]) { --cc-pip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 17.6C6.2 14.6 1.6 11.2 1.6 6.9 1.6 4.2 3.6 2.3 6 2.3c1.8 0 3.2 1 4 2.6.8-1.6 2.2-2.6 4-2.6 2.4 0 4.4 1.9 4.4 4.6 0 4.3-4.6 7.7-8.4 10.7z' fill='%23000'/%3E%3C/svg%3E"); }
-:root[data-skin="cards"] :is([data-pc="wR"], [data-pc="wN"]) { --cc-pip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 1.4C11.9 4.6 14.3 7.6 17.2 10 14.3 12.4 11.9 15.4 10 18.6 8.1 15.4 5.7 12.4 2.8 10 5.7 7.6 8.1 4.6 10 1.4z' fill='%23000'/%3E%3C/svg%3E"); }
-:root[data-skin="cards"] :is([data-pc="bK"], [data-pc="bQ"]) { --cc-pip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 1.6C8.2 4.6 2 7.7 2 11.8c0 2.3 1.8 3.9 3.9 3.9 1.4 0 2.6-.7 3.3-1.8-.2 1.9-1 3.4-2.7 4.5h7c-1.7-1.1-2.5-2.6-2.7-4.5.7 1.1 1.9 1.8 3.3 1.8 2.1 0 3.9-1.6 3.9-3.9C18 7.7 11.8 4.6 10 1.6z' fill='%23000'/%3E%3C/svg%3E"); }
-:root[data-skin="cards"] :is([data-pc="bR"], [data-pc="bN"]) { --cc-pip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 1.9a3.7 3.7 0 0 0-2.6 6.3A3.7 3.7 0 1 0 9.1 14c-.2 1.9-1 3.3-2.6 4.4h7c-1.6-1.1-2.4-2.5-2.6-4.4a3.7 3.7 0 1 0 1.7-5.8A3.7 3.7 0 0 0 10 1.9z' fill='%23000'/%3E%3C/svg%3E"); }
-:root[data-skin="cards"] [data-pc$="B"] { --cc-pip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 .4C10.7 6.6 12.3 8.9 19.6 10 12.3 11.1 10.7 13.4 10 19.6 9.3 13.4 7.7 11.1 .4 10 7.7 8.9 9.3 6.6 10 .4z' fill='%23000'/%3E%3C/svg%3E"); }
-/* Where each sits on the set's shapes (x, y, width as % of the piece box). */
-:root[data-skin="cards"] [data-pc$="K"] { --cc-px: 50%; --cc-py: 65.5%; --cc-pw: 15%; }
-:root[data-skin="cards"] [data-pc$="Q"] { --cc-px: 50%; --cc-py: 69.5%; --cc-pw: 14%; }
-:root[data-skin="cards"] [data-pc$="R"] { --cc-px: 50%; --cc-py: 51%; --cc-pw: 19%; }
-:root[data-skin="cards"] [data-pc$="B"] { --cc-px: 50%; --cc-py: 40.2%; --cc-pw: 17%; }
-:root[data-skin="cards"] [data-pc$="N"] { --cc-px: 63%; --cc-py: 70%; --cc-pw: 16%; }
-/* Not in Settings' four-square previews, which each show their own theme's
-   board: a pip there would only be a speck, and the edge isn't theirs. */
-:root[data-skin="cards"] .board-preview [data-pc] { filter: none; }
-:root[data-skin="cards"] .board-preview [data-pc]::before,
-:root[data-skin="cards"] .board-preview [data-pc]::after { content: none; }
+/* The pieces' laminate, gilt edge and suits are the Court Cards Chess Set's,
+   in the @pieces block, so the set looks the same on any theme and this
+   theme's other sets keep their own look. */
 
 /* Suit-engraved square highlights (from Chess Arcade, 2026-11-16). A picked piece's square gets a thin gilt
    card frame (ink, gilt, ink; card corners) and, under the piece, the suit it wears pressed faintly into the
@@ -2700,15 +2673,18 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
    Black K Q spades, R N clubs; both bishops the Joker's star; pawns their army's suit. In Court Cards only,
    Board adds the marks to the squares' own styles (lib/suitMarks.js): --shl-em on the picked square, --shl-c
    and --shl-d on each capture square, so a pick restyles those squares alone. PICKED_STYLE is as it was, and
-   every other theme gets none of this. Chess Arcade's suit also fades in and its gilt glows once; here they
-   are still. The drawings are Chess Arcade's gen_suithl.py's, through the Repertoire Lab kit's
-   suithl/gen_rl_suithl.py (test-kits/repertoire-lab): keep the two in step. */
+   every other theme gets none of this. With the Card Crown set picked, its own pips: White Q R N the set's
+   narrow diamond (kdiamond), Black Q clubs (lib/suitMarks.js SET_SUITS). Chess Arcade's suit also fades in
+   and its gilt glows once; here they are still. The drawings are Chess Arcade's gen_suithl.py's, through
+   the Repertoire Lab kit's suithl/gen_rl_suithl.py (test-kits/repertoire-lab): keep the two in step. */
 :root[data-skin="cards"] {
   --shl-ring: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3CclipPath id='k'%3E%3Crect width='100%25' height='100%25' rx='13%25'/%3E%3C/clipPath%3E%3C/defs%3E%3Cg clip-path='url(%23k)'%3E%3Crect width='100%25' height='100%25' rx='13%25' fill='none' stroke='%231c1b22' stroke-width='9'/%3E%3Crect width='100%25' height='100%25' rx='13%25' fill='none' stroke='%23e8c36c' stroke-width='7'/%3E%3Crect width='100%25' height='100%25' rx='13%25' fill='none' stroke='%231c1b22' stroke-width='2'/%3E%3C/g%3E%3C/svg%3E");
   --shl-ef-heart: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='1 1 18 18'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Cpath d='M10 17.6C6.2 14.6 1.6 11.2 1.6 6.9 1.6 4.2 3.6 2.3 6 2.3c1.8 0 3.2 1 4 2.6.8-1.6 2.2-2.6 4-2.6 2.4 0 4.4 1.9 4.4 4.6 0 4.3-4.6 7.7-8.4 10.7z'/%3E%3C/clipPath%3E%3Cfilter id='b' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeGaussianBlur stdDeviation='0.45'/%3E%3C/filter%3E%3Cmask id='s'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 17.6C6.2 14.6 1.6 11.2 1.6 6.9 1.6 4.2 3.6 2.3 6 2.3c1.8 0 3.2 1 4 2.6.8-1.6 2.2-2.6 4-2.6 2.4 0 4.4 1.9 4.4 4.6 0 4.3-4.6 7.7-8.4 10.7z' transform='translate(0.55 0.55)'/%3E%3C/mask%3E%3Cmask id='h'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 17.6C6.2 14.6 1.6 11.2 1.6 6.9 1.6 4.2 3.6 2.3 6 2.3c1.8 0 3.2 1 4 2.6.8-1.6 2.2-2.6 4-2.6 2.4 0 4.4 1.9 4.4 4.6 0 4.3-4.6 7.7-8.4 10.7z' transform='translate(-0.55 -0.55)'/%3E%3C/mask%3E%3C/defs%3E%3Cg opacity='.55'%3E%3Cg clip-path='url(%23c)'%3E%3Cpath d='M10 17.6C6.2 14.6 1.6 11.2 1.6 6.9 1.6 4.2 3.6 2.3 6 2.3c1.8 0 3.2 1 4 2.6.8-1.6 2.2-2.6 4-2.6 2.4 0 4.4 1.9 4.4 4.6 0 4.3-4.6 7.7-8.4 10.7z' fill='%234a3212' fill-opacity='0.2'/%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%234a3212' fill-opacity='0.62' mask='url(%23s)'/%3E%3C/g%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff' fill-opacity='0.95' mask='url(%23h)'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   --shl-eb-heart: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='1 1 18 18'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Cpath d='M10 17.6C6.2 14.6 1.6 11.2 1.6 6.9 1.6 4.2 3.6 2.3 6 2.3c1.8 0 3.2 1 4 2.6.8-1.6 2.2-2.6 4-2.6 2.4 0 4.4 1.9 4.4 4.6 0 4.3-4.6 7.7-8.4 10.7z'/%3E%3C/clipPath%3E%3Cfilter id='b' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeGaussianBlur stdDeviation='0.45'/%3E%3C/filter%3E%3Cmask id='s'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 17.6C6.2 14.6 1.6 11.2 1.6 6.9 1.6 4.2 3.6 2.3 6 2.3c1.8 0 3.2 1 4 2.6.8-1.6 2.2-2.6 4-2.6 2.4 0 4.4 1.9 4.4 4.6 0 4.3-4.6 7.7-8.4 10.7z' transform='translate(0.55 0.55)'/%3E%3C/mask%3E%3Cmask id='h'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 17.6C6.2 14.6 1.6 11.2 1.6 6.9 1.6 4.2 3.6 2.3 6 2.3c1.8 0 3.2 1 4 2.6.8-1.6 2.2-2.6 4-2.6 2.4 0 4.4 1.9 4.4 4.6 0 4.3-4.6 7.7-8.4 10.7z' transform='translate(-0.55 -0.55)'/%3E%3C/mask%3E%3C/defs%3E%3Cg opacity='.66'%3E%3Cg clip-path='url(%23c)'%3E%3Cpath d='M10 17.6C6.2 14.6 1.6 11.2 1.6 6.9 1.6 4.2 3.6 2.3 6 2.3c1.8 0 3.2 1 4 2.6.8-1.6 2.2-2.6 4-2.6 2.4 0 4.4 1.9 4.4 4.6 0 4.3-4.6 7.7-8.4 10.7z' fill='%230c0e18' fill-opacity='0.26'/%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%230c0e18' fill-opacity='0.7' mask='url(%23s)'/%3E%3C/g%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff' fill-opacity='0.5' mask='url(%23h)'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   --shl-ef-diamond: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0.8 0.8 18.4 18.4'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Cpath d='M10 1.4C11.9 4.6 14.3 7.6 17.2 10 14.3 12.4 11.9 15.4 10 18.6 8.1 15.4 5.7 12.4 2.8 10 5.7 7.6 8.1 4.6 10 1.4z'/%3E%3C/clipPath%3E%3Cfilter id='b' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeGaussianBlur stdDeviation='0.45'/%3E%3C/filter%3E%3Cmask id='s'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 1.4C11.9 4.6 14.3 7.6 17.2 10 14.3 12.4 11.9 15.4 10 18.6 8.1 15.4 5.7 12.4 2.8 10 5.7 7.6 8.1 4.6 10 1.4z' transform='translate(0.55 0.55)'/%3E%3C/mask%3E%3Cmask id='h'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 1.4C11.9 4.6 14.3 7.6 17.2 10 14.3 12.4 11.9 15.4 10 18.6 8.1 15.4 5.7 12.4 2.8 10 5.7 7.6 8.1 4.6 10 1.4z' transform='translate(-0.55 -0.55)'/%3E%3C/mask%3E%3C/defs%3E%3Cg opacity='.55'%3E%3Cg clip-path='url(%23c)'%3E%3Cpath d='M10 1.4C11.9 4.6 14.3 7.6 17.2 10 14.3 12.4 11.9 15.4 10 18.6 8.1 15.4 5.7 12.4 2.8 10 5.7 7.6 8.1 4.6 10 1.4z' fill='%234a3212' fill-opacity='0.2'/%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%234a3212' fill-opacity='0.62' mask='url(%23s)'/%3E%3C/g%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff' fill-opacity='0.95' mask='url(%23h)'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   --shl-eb-diamond: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0.8 0.8 18.4 18.4'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Cpath d='M10 1.4C11.9 4.6 14.3 7.6 17.2 10 14.3 12.4 11.9 15.4 10 18.6 8.1 15.4 5.7 12.4 2.8 10 5.7 7.6 8.1 4.6 10 1.4z'/%3E%3C/clipPath%3E%3Cfilter id='b' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeGaussianBlur stdDeviation='0.45'/%3E%3C/filter%3E%3Cmask id='s'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 1.4C11.9 4.6 14.3 7.6 17.2 10 14.3 12.4 11.9 15.4 10 18.6 8.1 15.4 5.7 12.4 2.8 10 5.7 7.6 8.1 4.6 10 1.4z' transform='translate(0.55 0.55)'/%3E%3C/mask%3E%3Cmask id='h'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 1.4C11.9 4.6 14.3 7.6 17.2 10 14.3 12.4 11.9 15.4 10 18.6 8.1 15.4 5.7 12.4 2.8 10 5.7 7.6 8.1 4.6 10 1.4z' transform='translate(-0.55 -0.55)'/%3E%3C/mask%3E%3C/defs%3E%3Cg opacity='.66'%3E%3Cg clip-path='url(%23c)'%3E%3Cpath d='M10 1.4C11.9 4.6 14.3 7.6 17.2 10 14.3 12.4 11.9 15.4 10 18.6 8.1 15.4 5.7 12.4 2.8 10 5.7 7.6 8.1 4.6 10 1.4z' fill='%230c0e18' fill-opacity='0.26'/%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%230c0e18' fill-opacity='0.7' mask='url(%23s)'/%3E%3C/g%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff' fill-opacity='0.5' mask='url(%23h)'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  --shl-ef-kdiamond: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-0.6 -0.6 21.2 21.2'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Cpath d='M10 0L16.3 10 10 20 3.7 10z'/%3E%3C/clipPath%3E%3Cfilter id='b' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeGaussianBlur stdDeviation='0.45'/%3E%3C/filter%3E%3Cmask id='s'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 0L16.3 10 10 20 3.7 10z' transform='translate(0.55 0.55)'/%3E%3C/mask%3E%3Cmask id='h'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 0L16.3 10 10 20 3.7 10z' transform='translate(-0.55 -0.55)'/%3E%3C/mask%3E%3C/defs%3E%3Cg opacity='.55'%3E%3Cg clip-path='url(%23c)'%3E%3Cpath d='M10 0L16.3 10 10 20 3.7 10z' fill='%234a3212' fill-opacity='0.2'/%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%234a3212' fill-opacity='0.62' mask='url(%23s)'/%3E%3C/g%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff' fill-opacity='0.95' mask='url(%23h)'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  --shl-eb-kdiamond: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-0.6 -0.6 21.2 21.2'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Cpath d='M10 0L16.3 10 10 20 3.7 10z'/%3E%3C/clipPath%3E%3Cfilter id='b' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeGaussianBlur stdDeviation='0.45'/%3E%3C/filter%3E%3Cmask id='s'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 0L16.3 10 10 20 3.7 10z' transform='translate(0.55 0.55)'/%3E%3C/mask%3E%3Cmask id='h'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 0L16.3 10 10 20 3.7 10z' transform='translate(-0.55 -0.55)'/%3E%3C/mask%3E%3C/defs%3E%3Cg opacity='.66'%3E%3Cg clip-path='url(%23c)'%3E%3Cpath d='M10 0L16.3 10 10 20 3.7 10z' fill='%230c0e18' fill-opacity='0.26'/%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%230c0e18' fill-opacity='0.7' mask='url(%23s)'/%3E%3C/g%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff' fill-opacity='0.5' mask='url(%23h)'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   --shl-ef-spade: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='1 1 18 18'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Cpath d='M10 1.6C8.2 4.6 2 7.7 2 11.8c0 2.3 1.8 3.9 3.9 3.9 1.4 0 2.6-.7 3.3-1.8-.2 1.9-1 3.4-2.7 4.5h7c-1.7-1.1-2.5-2.6-2.7-4.5.7 1.1 1.9 1.8 3.3 1.8 2.1 0 3.9-1.6 3.9-3.9C18 7.7 11.8 4.6 10 1.6z'/%3E%3C/clipPath%3E%3Cfilter id='b' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeGaussianBlur stdDeviation='0.45'/%3E%3C/filter%3E%3Cmask id='s'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 1.6C8.2 4.6 2 7.7 2 11.8c0 2.3 1.8 3.9 3.9 3.9 1.4 0 2.6-.7 3.3-1.8-.2 1.9-1 3.4-2.7 4.5h7c-1.7-1.1-2.5-2.6-2.7-4.5.7 1.1 1.9 1.8 3.3 1.8 2.1 0 3.9-1.6 3.9-3.9C18 7.7 11.8 4.6 10 1.6z' transform='translate(0.55 0.55)'/%3E%3C/mask%3E%3Cmask id='h'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 1.6C8.2 4.6 2 7.7 2 11.8c0 2.3 1.8 3.9 3.9 3.9 1.4 0 2.6-.7 3.3-1.8-.2 1.9-1 3.4-2.7 4.5h7c-1.7-1.1-2.5-2.6-2.7-4.5.7 1.1 1.9 1.8 3.3 1.8 2.1 0 3.9-1.6 3.9-3.9C18 7.7 11.8 4.6 10 1.6z' transform='translate(-0.55 -0.55)'/%3E%3C/mask%3E%3C/defs%3E%3Cg opacity='.55'%3E%3Cg clip-path='url(%23c)'%3E%3Cpath d='M10 1.6C8.2 4.6 2 7.7 2 11.8c0 2.3 1.8 3.9 3.9 3.9 1.4 0 2.6-.7 3.3-1.8-.2 1.9-1 3.4-2.7 4.5h7c-1.7-1.1-2.5-2.6-2.7-4.5.7 1.1 1.9 1.8 3.3 1.8 2.1 0 3.9-1.6 3.9-3.9C18 7.7 11.8 4.6 10 1.6z' fill='%234a3212' fill-opacity='0.2'/%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%234a3212' fill-opacity='0.62' mask='url(%23s)'/%3E%3C/g%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff' fill-opacity='0.95' mask='url(%23h)'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   --shl-eb-spade: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='1 1 18 18'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Cpath d='M10 1.6C8.2 4.6 2 7.7 2 11.8c0 2.3 1.8 3.9 3.9 3.9 1.4 0 2.6-.7 3.3-1.8-.2 1.9-1 3.4-2.7 4.5h7c-1.7-1.1-2.5-2.6-2.7-4.5.7 1.1 1.9 1.8 3.3 1.8 2.1 0 3.9-1.6 3.9-3.9C18 7.7 11.8 4.6 10 1.6z'/%3E%3C/clipPath%3E%3Cfilter id='b' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeGaussianBlur stdDeviation='0.45'/%3E%3C/filter%3E%3Cmask id='s'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 1.6C8.2 4.6 2 7.7 2 11.8c0 2.3 1.8 3.9 3.9 3.9 1.4 0 2.6-.7 3.3-1.8-.2 1.9-1 3.4-2.7 4.5h7c-1.7-1.1-2.5-2.6-2.7-4.5.7 1.1 1.9 1.8 3.3 1.8 2.1 0 3.9-1.6 3.9-3.9C18 7.7 11.8 4.6 10 1.6z' transform='translate(0.55 0.55)'/%3E%3C/mask%3E%3Cmask id='h'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 1.6C8.2 4.6 2 7.7 2 11.8c0 2.3 1.8 3.9 3.9 3.9 1.4 0 2.6-.7 3.3-1.8-.2 1.9-1 3.4-2.7 4.5h7c-1.7-1.1-2.5-2.6-2.7-4.5.7 1.1 1.9 1.8 3.3 1.8 2.1 0 3.9-1.6 3.9-3.9C18 7.7 11.8 4.6 10 1.6z' transform='translate(-0.55 -0.55)'/%3E%3C/mask%3E%3C/defs%3E%3Cg opacity='.66'%3E%3Cg clip-path='url(%23c)'%3E%3Cpath d='M10 1.6C8.2 4.6 2 7.7 2 11.8c0 2.3 1.8 3.9 3.9 3.9 1.4 0 2.6-.7 3.3-1.8-.2 1.9-1 3.4-2.7 4.5h7c-1.7-1.1-2.5-2.6-2.7-4.5.7 1.1 1.9 1.8 3.3 1.8 2.1 0 3.9-1.6 3.9-3.9C18 7.7 11.8 4.6 10 1.6z' fill='%230c0e18' fill-opacity='0.26'/%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%230c0e18' fill-opacity='0.7' mask='url(%23s)'/%3E%3C/g%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff' fill-opacity='0.5' mask='url(%23h)'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   --shl-ef-club: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0.9 0.9 18.2 18.2'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Cpath d='M10 1.9a3.7 3.7 0 0 0-2.6 6.3A3.7 3.7 0 1 0 9.1 14c-.2 1.9-1 3.3-2.6 4.4h7c-1.6-1.1-2.4-2.5-2.6-4.4a3.7 3.7 0 1 0 1.7-5.8A3.7 3.7 0 0 0 10 1.9z'/%3E%3C/clipPath%3E%3Cfilter id='b' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeGaussianBlur stdDeviation='0.45'/%3E%3C/filter%3E%3Cmask id='s'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 1.9a3.7 3.7 0 0 0-2.6 6.3A3.7 3.7 0 1 0 9.1 14c-.2 1.9-1 3.3-2.6 4.4h7c-1.6-1.1-2.4-2.5-2.6-4.4a3.7 3.7 0 1 0 1.7-5.8A3.7 3.7 0 0 0 10 1.9z' transform='translate(0.55 0.55)'/%3E%3C/mask%3E%3Cmask id='h'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff'/%3E%3Cpath d='M10 1.9a3.7 3.7 0 0 0-2.6 6.3A3.7 3.7 0 1 0 9.1 14c-.2 1.9-1 3.3-2.6 4.4h7c-1.6-1.1-2.4-2.5-2.6-4.4a3.7 3.7 0 1 0 1.7-5.8A3.7 3.7 0 0 0 10 1.9z' transform='translate(-0.55 -0.55)'/%3E%3C/mask%3E%3C/defs%3E%3Cg opacity='.55'%3E%3Cg clip-path='url(%23c)'%3E%3Cpath d='M10 1.9a3.7 3.7 0 0 0-2.6 6.3A3.7 3.7 0 1 0 9.1 14c-.2 1.9-1 3.3-2.6 4.4h7c-1.6-1.1-2.4-2.5-2.6-4.4a3.7 3.7 0 1 0 1.7-5.8A3.7 3.7 0 0 0 10 1.9z' fill='%234a3212' fill-opacity='0.2'/%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%234a3212' fill-opacity='0.62' mask='url(%23s)'/%3E%3C/g%3E%3Cg filter='url(%23b)'%3E%3Crect x='-2' y='-2' width='24' height='24' fill='%23fff' fill-opacity='0.95' mask='url(%23h)'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
@@ -2719,6 +2695,8 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
   --shl-d-heart: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-1.15 -1.15 22.3 22.3'%3E%3Cg transform='rotate(180 10 10)'%3E%3Cpath d='M10 17.6C6.2 14.6 1.6 11.2 1.6 6.9 1.6 4.2 3.6 2.3 6 2.3c1.8 0 3.2 1 4 2.6.8-1.6 2.2-2.6 4-2.6 2.4 0 4.4 1.9 4.4 4.6 0 4.3-4.6 7.7-8.4 10.7z' fill='none' stroke='%23fbf7ec' stroke-opacity='.94' stroke-width='5.2' stroke-linejoin='round'/%3E%3Cpath d='M10 17.6C6.2 14.6 1.6 11.2 1.6 6.9 1.6 4.2 3.6 2.3 6 2.3c1.8 0 3.2 1 4 2.6.8-1.6 2.2-2.6 4-2.6 2.4 0 4.4 1.9 4.4 4.6 0 4.3-4.6 7.7-8.4 10.7z' fill='%23b3192e'/%3E%3C/g%3E%3C/svg%3E");
   --shl-c-diamond: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-1.35 -1.35 22.7 22.7'%3E%3Cg%3E%3Cpath d='M10 1.4C11.9 4.6 14.3 7.6 17.2 10 14.3 12.4 11.9 15.4 10 18.6 8.1 15.4 5.7 12.4 2.8 10 5.7 7.6 8.1 4.6 10 1.4z' fill='none' stroke='%23fbf7ec' stroke-opacity='.94' stroke-width='5.2' stroke-linejoin='round'/%3E%3Cpath d='M10 1.4C11.9 4.6 14.3 7.6 17.2 10 14.3 12.4 11.9 15.4 10 18.6 8.1 15.4 5.7 12.4 2.8 10 5.7 7.6 8.1 4.6 10 1.4z' fill='%23b3192e'/%3E%3C/g%3E%3C/svg%3E");
   --shl-d-diamond: var(--shl-c-diamond);
+  --shl-c-kdiamond: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-2.75 -2.75 25.5 25.5'%3E%3Cg%3E%3Cpath d='M10 0L16.3 10 10 20 3.7 10z' fill='none' stroke='%23fbf7ec' stroke-opacity='.94' stroke-width='5.2' stroke-linejoin='round'/%3E%3Cpath d='M10 0L16.3 10 10 20 3.7 10z' fill='%23b3192e'/%3E%3C/g%3E%3C/svg%3E");
+  --shl-d-kdiamond: var(--shl-c-kdiamond);
   --shl-c-starw: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-3.4 -3.4 26.8 26.8'%3E%3Cg%3E%3Cpath d='M10 .4C10.7 6.6 12.3 8.9 19.6 10 12.3 11.1 10.7 13.4 10 19.6 9.3 13.4 7.7 11.1 .4 10 7.7 8.9 9.3 6.6 10 .4z' fill='none' stroke='%23fbf7ec' stroke-opacity='.94' stroke-width='7.3' stroke-linejoin='round'/%3E%3Cpath d='M10 .4C10.7 6.6 12.3 8.9 19.6 10 12.3 11.1 10.7 13.4 10 19.6 9.3 13.4 7.7 11.1 .4 10 7.7 8.9 9.3 6.6 10 .4z' fill='%23b3192e' stroke='%23b3192e' stroke-width='1.7' stroke-linejoin='round'/%3E%3C/g%3E%3C/svg%3E");
   --shl-d-starw: var(--shl-c-starw);
   --shl-c-spade: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-1.15 -1.15 22.3 22.3'%3E%3Cg%3E%3Cpath d='M10 1.6C8.2 4.6 2 7.7 2 11.8c0 2.3 1.8 3.9 3.9 3.9 1.4 0 2.6-.7 3.3-1.8-.2 1.9-1 3.4-2.7 4.5h7c-1.7-1.1-2.5-2.6-2.7-4.5.7 1.1 1.9 1.8 3.3 1.8 2.1 0 3.9-1.6 3.9-3.9C18 7.7 11.8 4.6 10 1.6z' fill='none' stroke='%23fbf7ec' stroke-opacity='.94' stroke-width='5.2' stroke-linejoin='round'/%3E%3Cpath d='M10 1.6C8.2 4.6 2 7.7 2 11.8c0 2.3 1.8 3.9 3.9 3.9 1.4 0 2.6-.7 3.3-1.8-.2 1.9-1 3.4-2.7 4.5h7c-1.7-1.1-2.5-2.6-2.7-4.5.7 1.1 1.9 1.8 3.3 1.8 2.1 0 3.9-1.6 3.9-3.9C18 7.7 11.8 4.6 10 1.6z' fill='%231c1b22'/%3E%3C/g%3E%3C/svg%3E");
@@ -2896,6 +2874,113 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 :root[data-skin="cards"] .practice-moves-played .mvnum { color: var(--accent); }
 /* written by gen_rl_orn.py; sha256 of the lines above, from the opening comment: fd990fc10257276fa0e791c5bf982815b9b73388892fa20c78bab343434882ca */
 /* @cards:ornaments:end */
+/* @pieces */
+/* ---------- Piece sets (Chess Arcade's, 2026-11-22) ---------- */
+/* Each piece is lib/pieces' span: data-pc (the piece) and data-ps (its set),
+   its drawing the svg inside. The theme rules above light the drawing; what
+   belongs to a set comes here, after every theme's rules, so the set wins, as
+   in Chess Arcade. The board's form (:not(.bpv-sq):not(.promotion-option) >
+   [data-pc]) is where Chess Arcade's .piece-wrap reaches: the squares, the
+   Board Editor's tray and drag ghost, the carried piece, the wrong-move ghost.
+   Settings' theme cards (.board-preview, data-pv = the card's theme) get
+   their own theme's drawing filter at the end and no shadow. The piece colors
+   (--pw-white-fill, --pw-black-fill, --pw-stroke) are inline on <html>
+   (lib/theme applySkin), or on a card's preview. Chess Arcade's piece CSS
+   this follows is recorded in src/lib/pieceCss.ported.json (npm run
+   check:pieces warns when it moves on). */
+
+/* Rim Light's cream: the theme's white warmed (near-white turns cream,
+   Drive-Thru's yellow keeps its color), worked out on each piece so a theme
+   card's preview gets its own theme's cream. */
+[data-pc] { --pw-rim-white: var(--pw-white-fill, #f4ecd6); }
+@supports (color: rgb(from red r g b)) {
+  [data-pc] { --pw-rim-white: rgb(from var(--pw-white-fill, #fff) calc(r * 0.957) calc(g * 0.925) calc(b * 0.839)); }
+}
+
+/* Chess Arcade's shadow under every piece of its own sets, on each theme that
+   doesn't cast its own (Drive-Thru, Rose and Uptown do; Chess Book prints flat
+   ink). Custom has no data-skin, so it has it too, as in Chess Arcade. Not on
+   the Default Chess Set, which keeps Repertoire Lab's look, nor Court Cards
+   (its own, below). The second rule is the shadow half of Q3's switch
+   (lib/pieceStyles DEFAULT_SET_INKS = 'ca' puts data-pinks="ca" on <html>):
+   then the Default set takes Chess Arcade's shadow too, on a theme. */
+:root:not([data-skin="drivethru"]):not([data-skin="rose"]):not([data-skin="chessbook"]):not([data-skin="uptown"]) :not(.bpv-sq):not(.promotion-option) > [data-pc]:not([data-ps="default"]):not([data-ps="courtCards"]),
+:root[data-pinks="ca"][data-skin]:not([data-skin="drivethru"]):not([data-skin="rose"]):not([data-skin="chessbook"]):not([data-skin="uptown"]) :not(.bpv-sq):not(.promotion-option) > [data-pc][data-ps="default"] {
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.4));
+}
+
+/* --- The Court Cards Chess Set, on any theme (it was the Court Cards
+       theme's look): its own palette, Chess Arcade's --ccs-* (the theme's
+       --cc-* stay the theme's), by day and after dark. --- */
+[data-pc][data-ps="courtCards"] { --ccs-pip-w: #b3192e; --ccs-pip-b: #d4a64e; --ccs-halo-w: #fbf7ec; --ccs-halo-b: #1b1c27; --ccs-gilt: #d9ad55; }
+:root[data-theme="dark"] [data-pc][data-ps="courtCards"] { --ccs-pip-w: #b81d35; --ccs-pip-b: #dcb562; --ccs-halo-w: #f6f1e4; --ccs-halo-b: #181923; --ccs-gilt: #e8c36c; }
+/* The pieces keep their shapes. White is laminated ivory (a soft diagonal
+   glint, the gradients in index.html's #cc-defs) and Black laminated black
+   stock with gilt detail lines, the knight's mane and eye too: the set is
+   drawn in the Court Cards theme's two inks on every theme (lib/theme
+   boardPieces; skins.js: var(--cc-pl), var(--cc-pd)), and these give them
+   the laminate, on this set's pieces only. */
+[data-pc^="w"][data-ps="courtCards"] { --cc-pl: url(#cc-lam-w) #fbf7ec; }
+[data-pc^="b"][data-ps="courtCards"] { --cc-pl: #d9ad55; --cc-pd: url(#cc-lam-b) #1b1c27; }
+:root[data-theme="dark"] [data-pc^="w"][data-ps="courtCards"] { --cc-pl: url(#cc-lam-w) #f6f1e4; }
+:root[data-theme="dark"] [data-pc^="b"][data-ps="courtCards"] { --cc-pl: #e8c36c; --cc-pd: url(#cc-lam-b) #181923; }
+/* A soft shadow under each piece; Black also gets a fine gilt edge, gilded
+   card edges, which keeps it clear of the card backs (pawns, with no detail
+   lines of their own, a slightly fuller one). */
+[data-pc][data-ps="courtCards"] { position: relative; filter: drop-shadow(0 1.2px 1.2px rgba(30, 20, 12, 0.34)); }
+[data-pc^="b"][data-ps="courtCards"] { filter: drop-shadow(0 0 0.55px var(--ccs-gilt)) drop-shadow(0 0 0.55px var(--ccs-gilt)) drop-shadow(0 1.2px 1.2px rgba(0, 0, 0, 0.34)); }
+[data-pc="bP"][data-ps="courtCards"] { filter: drop-shadow(0 0 0.6px var(--ccs-gilt)) drop-shadow(0 0 0.6px var(--ccs-gilt)) drop-shadow(0 0 0.45px var(--ccs-gilt)) drop-shadow(0 1.2px 1.2px rgba(0, 0, 0, 0.34)); }
+/* Every officer wears its suit, printed on the body where a court card
+   carries it: hearts on White's king and queen, diamonds on its rook and
+   knight (in red); spades on Black's king and queen, clubs on its rook and
+   knight (in gilt). Both bishops, chess's fou, the jester, carry the Joker's
+   four-point star where the mitre's cross was. Pawns are the spot cards.
+   Each pip is a mask over a halo of the piece's own fill (1.55 times the
+   pip), so it looks printed and goes wherever the piece goes: on a square,
+   in the promotion picker, in the drag ghost and the Board Editor's tray. */
+[data-pc][data-ps="courtCards"]:not([data-pc$="P"])::before,
+[data-pc][data-ps="courtCards"]:not([data-pc$="P"])::after {
+  content: ''; position: absolute; left: var(--cc-px, 50%); top: var(--cc-py, 70%); width: var(--cc-pw, 15%); aspect-ratio: 1;
+  transform: translate(-50%, -50%); pointer-events: none;
+  -webkit-mask: var(--cc-pip) center / contain no-repeat; mask: var(--cc-pip) center / contain no-repeat;
+}
+[data-pc][data-ps="courtCards"]:not([data-pc$="P"])::before { width: calc(var(--cc-pw, 15%) * 1.55); background: var(--cc-halo); }
+[data-pc][data-ps="courtCards"]:not([data-pc$="P"])::after { background: var(--cc-pipc); }
+[data-pc^="w"][data-ps="courtCards"] { --cc-pipc: var(--ccs-pip-w); --cc-halo: var(--ccs-halo-w); }
+[data-pc^="b"][data-ps="courtCards"] { --cc-pipc: var(--ccs-pip-b); --cc-halo: var(--ccs-halo-b); }
+[data-ps="courtCards"]:is([data-pc="wK"], [data-pc="wQ"]) { --cc-pip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 17.6C6.2 14.6 1.6 11.2 1.6 6.9 1.6 4.2 3.6 2.3 6 2.3c1.8 0 3.2 1 4 2.6.8-1.6 2.2-2.6 4-2.6 2.4 0 4.4 1.9 4.4 4.6 0 4.3-4.6 7.7-8.4 10.7z' fill='%23000'/%3E%3C/svg%3E"); }
+[data-ps="courtCards"]:is([data-pc="wR"], [data-pc="wN"]) { --cc-pip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 1.4C11.9 4.6 14.3 7.6 17.2 10 14.3 12.4 11.9 15.4 10 18.6 8.1 15.4 5.7 12.4 2.8 10 5.7 7.6 8.1 4.6 10 1.4z' fill='%23000'/%3E%3C/svg%3E"); }
+[data-ps="courtCards"]:is([data-pc="bK"], [data-pc="bQ"]) { --cc-pip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 1.6C8.2 4.6 2 7.7 2 11.8c0 2.3 1.8 3.9 3.9 3.9 1.4 0 2.6-.7 3.3-1.8-.2 1.9-1 3.4-2.7 4.5h7c-1.7-1.1-2.5-2.6-2.7-4.5.7 1.1 1.9 1.8 3.3 1.8 2.1 0 3.9-1.6 3.9-3.9C18 7.7 11.8 4.6 10 1.6z' fill='%23000'/%3E%3C/svg%3E"); }
+[data-ps="courtCards"]:is([data-pc="bR"], [data-pc="bN"]) { --cc-pip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 1.9a3.7 3.7 0 0 0-2.6 6.3A3.7 3.7 0 1 0 9.1 14c-.2 1.9-1 3.3-2.6 4.4h7c-1.6-1.1-2.4-2.5-2.6-4.4a3.7 3.7 0 1 0 1.7-5.8A3.7 3.7 0 0 0 10 1.9z' fill='%23000'/%3E%3C/svg%3E"); }
+[data-pc$="B"][data-ps="courtCards"] { --cc-pip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 .4C10.7 6.6 12.3 8.9 19.6 10 12.3 11.1 10.7 13.4 10 19.6 9.3 13.4 7.7 11.1 .4 10 7.7 8.9 9.3 6.6 10 .4z' fill='%23000'/%3E%3C/svg%3E"); }
+/* Where each sits on the set's shapes (x, y, width as % of the piece box). */
+[data-pc$="K"][data-ps="courtCards"] { --cc-px: 50%; --cc-py: 65.5%; --cc-pw: 15%; }
+[data-pc$="Q"][data-ps="courtCards"] { --cc-px: 50%; --cc-py: 69.5%; --cc-pw: 14%; }
+[data-pc$="R"][data-ps="courtCards"] { --cc-px: 50%; --cc-py: 51%; --cc-pw: 19%; }
+[data-pc$="B"][data-ps="courtCards"] { --cc-px: 50%; --cc-py: 40.2%; --cc-pw: 17%; }
+[data-pc$="N"][data-ps="courtCards"] { --cc-px: 63%; --cc-py: 70%; --cc-pw: 16%; }
+/* Not in Settings' four-square previews, which each show their own theme's
+   board: a pip there would only be a speck, and the edge isn't theirs. Last
+   in this part: the pip rules above tie these at (0,3,1), so these win only
+   by coming after them. */
+.board-preview [data-pc][data-ps="courtCards"] { filter: none; }
+.board-preview [data-pc][data-ps="courtCards"]::before,
+.board-preview [data-pc][data-ps="courtCards"]::after { content: none; }
+
+/* Settings' theme cards: each card's own theme's drawing filter (Game Boy's
+   duotone, Hustler's monochrome without the Default set's rims, Outer Space's
+   with its glow), whatever theme the page is in. No shadows here, as before. */
+.board-preview[data-pv="gameboy"] [data-pc]:not([data-ps="courtCards"]) > svg {
+  filter: sepia(1) saturate(6) hue-rotate(45deg) brightness(0.75) contrast(1.1);
+}
+.board-preview[data-pv="hustler"] [data-pc]:not([data-ps="courtCards"]) > svg {
+  filter: grayscale(0.92) contrast(1.12) brightness(1.03) saturate(0.85);
+}
+.board-preview[data-pv="outerspace"] [data-pc]:not([data-ps="courtCards"]) > svg {
+  filter: sepia(0.3) saturate(1.5) hue-rotate(-6deg) contrast(1.1) brightness(1.03)
+    drop-shadow(0 0 2px var(--skin-focus, #5eead4)) drop-shadow(0 0 5px var(--skin-focus, #5eead4));
+}
+/* @pieces:end */
 /* ---------- Theme wallpapers (Chess Arcade) ---------- */
 
 /* Each skin brought its own page surface across with its palette — a theme is
@@ -4301,15 +4386,11 @@ input[type="date"] {
 }
 .mb-sq.dark { background: var(--board-dark); }
 .mb-sq.marked { box-shadow: inset 0 0 0 2px var(--accent); }
-.mb-piece.white {
-  color: #fff;
-  -webkit-text-stroke: 0.5px #1b2430;
-  text-shadow: 0 0 1px #24303f, 0 1px 1px rgba(0,0,0,0.45);
-}
-.mb-piece.black {
-  color: #10151d;
-  -webkit-text-stroke: 0.5px #eef2f7;
-  text-shadow: 0 1px 1px rgba(255,255,255,0.18);
+/* Each piece is the boards' own set, drawn as a picture filling its square
+   (components/MiniBoard), the same size a piece stands on a full board. */
+.mb-piece {
+  display: block; width: 100%; height: 100%;
+  background-position: center; background-size: 100% 100%; background-repeat: no-repeat;
 }
 
 /* Captured-material readout — chess.com's little row of icons plus a "+N"
@@ -4561,6 +4642,14 @@ input[type="date"] {
 /* The heading no longer opens or closes anything, so it shouldn't invite a click. */
 .settings-head.static { cursor: default; padding-top: 0; }
 .speed-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+/* Themes → Piece style: Chess Arcade's eight sets, narrower than the other
+   choices: four across on an iPad or a Mac (two even rows, never seven and
+   one left over), three in a narrow window, two on a phone; a long name wraps
+   inside its card. Never under 44px, a fingertip's worth, and a clear ring
+   when a keyboard's Tab lands on one. */
+.piece-style-choices { grid-template-columns: repeat(auto-fit, minmax(max(120px, calc(25% - 8px)), 1fr)); }
+.piece-style-choices .theme-card { min-width: 0; min-height: 44px; justify-content: center; }
+.piece-style-choices .theme-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Wraps the annotation card at the top of the analysis board's side column.
    Deliberately left OUT of the .has-custom-bg translucency rules above: a

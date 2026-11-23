@@ -9,12 +9,23 @@
 # the app keeps the copy it has, the run shows red, and GitHub emails the repository's owner —
 # once: the same two versions (Chess Arcade's and Repertoire Lab's) aren't tried again until
 # either has a new commit, so a copy that can't go out doesn't fail every hour.
+#
+# Run by hand with "check" ticked (gh workflow run sync-arcade.yml --ref <branch> -f check=true), it runs the
+# tests, the build and the browser check on that branch even when Chess Arcade has nothing new; such a run can
+# never push (main has to be the commit just below it) and a failure there isn't remembered. Every run that
+# checks also says, as a warning only, when Chess Arcade's piece sets have moved ahead of what Repertoire Lab's
+# own boards draw (scripts/check-pieces.mjs): those reach RL's boards only by `npm run sync:pieces`, by hand.
 name: Sync Chess Arcade
 
 on:
   schedule:
     - cron: '17 * * * *'
   workflow_dispatch:
+    inputs:
+      check:
+        description: 'Run the tests, the build and the browser check even with nothing new (for a branch)'
+        type: boolean
+        default: false
   # For Chess Arcade to ask straight after a push, if that's ever set up (a token there).
   repository_dispatch:
     types: [chess-arcade-updated]
@@ -73,21 +84,27 @@ jobs:
           else
             echo "Chess Arcade's Game Review hasn't changed."
           fi
+      # Warns, never fails: a Chess Arcade piece change must not stop the Game Review sync.
+      - name: Piece styles still in step? (warns only)
+        if: steps.changed.outputs.new || inputs.check
+        continue-on-error: true
+        working-directory: repertoire-lab
+        run: node --import ./tests/resolve.mjs scripts/check-pieces.mjs
 
       - name: Install
-        if: steps.changed.outputs.new
+        if: steps.changed.outputs.new || inputs.check
         working-directory: repertoire-lab
         run: npm ci
       - name: Tests
-        if: steps.changed.outputs.new
+        if: steps.changed.outputs.new || inputs.check
         working-directory: repertoire-lab
         run: npm test
       - name: Build
-        if: steps.changed.outputs.new
+        if: steps.changed.outputs.new || inputs.check
         working-directory: repertoire-lab
         run: npm run build
       - name: Browser check
-        if: steps.changed.outputs.new
+        if: steps.changed.outputs.new || inputs.check
         working-directory: repertoire-lab
         run: |
           # Playwright on its own, so the app's own packages stay exactly as locked.
@@ -116,9 +133,9 @@ jobs:
 
       # A failure is remembered for these two versions (see the top).
       - name: Remember it failed
-        if: failure()
+        if: failure() && !inputs.check
         run: mkdir -p .sync-arcade-failed && date -u > .sync-arcade-failed/at
-      - if: failure()
+      - if: failure() && !inputs.check
         uses: actions/cache/save@v4
         with:
           path: .sync-arcade-failed

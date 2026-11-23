@@ -31,7 +31,10 @@ export const DEFAULT_SETTINGS = {
   positionFolderOrder: [], // the Board Editor's saved-position folders as arranged; [] = A–Z
   // (A student's lessons are arranged in positionFolderOrders, { cardId: [...] }.
   // It has no default on purpose: absent reads as A–Z, and a new default here
-  // would rewrite the settings of every device on its first sync after the update.)
+  // would rewrite the settings of every device on its first sync after the update.
+  // pieceStyleBySkin, the piece set picked per theme ({ gameboy: 'minimalTwo' }),
+  // has none for the same reason: absent reads as each theme's own set
+  // (lib/pieceStyles.js pieceStyleOf).)
   telestratorFade: 0, // seconds before telestrator ink fades by itself; 0 = stays until cleared
   clickerMode: false, // ↑/↓ step one move on the analysis board (a presenter clicker), not jump to first/last
   arrowBest: true, // …the first choice

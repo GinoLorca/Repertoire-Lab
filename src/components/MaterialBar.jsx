@@ -1,6 +1,7 @@
 import React from 'react';
 
-// Same solid-glyph-tinted-by-CSS trick as MiniBoard, at icon size. The
+// Solid glyphs tinted by CSS, at icon size (a count, not a board: it keeps
+// these whatever the piece set; MiniBoard draws the set). The
 // trailing U+FE0E forces text (outline) presentation — without it some
 // fonts substitute a fixed-colour emoji glyph that ignores our CSS `color`
 // entirely, so both sides silently render the same shade.

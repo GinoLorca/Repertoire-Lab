@@ -9,8 +9,8 @@ import BoardArrows from './BoardArrows';
 import {
   START_MAP, fenToBoardMap, fenMeta, boardMapToFen, PRESETS, PRESET_SLUGS, SLUG_OF_PRESET,
 } from '../lib/boardEditor';
-import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
-import { boardColors } from '../lib/theme';
+import { piecesFor } from '../lib/pieces';
+import { boardPieces } from '../lib/theme';
 import { shortcutMap, PENS, defaultPen } from '../lib/shortcuts';
 import { pathFor } from '../lib/routes';
 import { copyText } from '../lib/clipboard';
@@ -231,10 +231,9 @@ export default function BoardEditor({
     if (Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > 8) endPress();
   };
 
-  const chosenColors = boardColors(state.settings);
-  const pieceLight = chosenColors.pieceLight ?? DEFAULT_PIECE_LIGHT;
-  const pieceDark = chosenColors.pieceDark ?? DEFAULT_PIECE_DARK;
-  const pieces = useMemo(() => makePieces(pieceLight, pieceDark), [pieceLight, pieceDark]);
+  // The tray's pieces: the board's own set and colors (lib/theme boardPieces),
+  // the same map for the same look.
+  const pieces = piecesFor(boardPieces(state.settings));
 
   const fen = useMemo(
     () => boardMapToFen(map, sideToMove, castling, halfmove, fullmove),

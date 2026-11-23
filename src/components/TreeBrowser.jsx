@@ -5,6 +5,7 @@ import { lineFens } from '../lib/pgn';
 import { lastMoveOf, PICKED_STYLE } from '../lib/legalMoves';
 import { suitPick } from '../lib/suitMarks';
 import { skinId } from '../lib/skins';
+import { pieceStyleOf } from '../lib/pieceStyles';
 import { useStore } from '../store';
 import { useBackGuard } from '../lib/backGuard';
 import {
@@ -86,11 +87,13 @@ export default function TreeBrowser({
   // Court Cards marks the pick with its piece's suit (lib/suitMarks.js): the
   // frame and the suit on its square. Its targets here are the chapter's
   // moves, marked in green, so no pips or corners. Other themes: nothing.
+  // (The Card Crown set prints its own suits: the set goes with the pick.)
   const { state } = useStore();
   const suitedSkin = skinId(state.settings) === 'cards';
+  const suitSet = suitedSkin ? pieceStyleOf(state.settings) : null;
   const cardsPick = useMemo(
-    () => (suitedSkin && picked ? suitPick(new Chess(fen), picked, { captures: false }) : null),
-    [suitedSkin, picked, fen],
+    () => (suitedSkin && picked ? suitPick(new Chess(fen), picked, { captures: false, set: suitSet }) : null),
+    [suitedSkin, suitSet, picked, fen],
   );
 
   // Down a forced run in one go: everything up to the next real decision.

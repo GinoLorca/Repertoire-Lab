@@ -51,6 +51,7 @@ import GameFlagPicker from '../components/GameFlagPicker';
 import { lastMoveOf, NOTE_HIGHLIGHT_STYLE, PICKED_STYLE } from '../lib/legalMoves';
 import { suitPick } from '../lib/suitMarks';
 import { skinId } from '../lib/skins';
+import { pieceStyleOf } from '../lib/pieceStyles';
 import { useBackGuard } from '../lib/backGuard';
 import { parseStudyUrl, fetchStudyPgn } from '../lib/lichess';
 import { pgnTextToEntries } from '../lib/pgnImport';
@@ -1720,11 +1721,13 @@ export default function AnalysisView({
 
   // Court Cards marks a pick with its piece's suit (lib/suitMarks.js): the
   // picked square, the pips on its moves, the corners on its captures. Worked
-  // out in that theme only; every other theme draws what it always has.
+  // out in that theme only; every other theme draws what it always has. The
+  // set the board draws goes with it (the Card Crown set prints its own suits).
   const suitedSkin = skinId(state.settings) === 'cards';
+  const suitSet = suitedSkin ? pieceStyleOf(state.settings) : null;
   const cardsPick = useMemo(
-    () => (suitedSkin ? suitPick(position, picked, { captures: showLegal }) : null),
-    [suitedSkin, position, picked, showLegal],
+    () => (suitedSkin ? suitPick(position, picked, { captures: showLegal, set: suitSet }) : null),
+    [suitedSkin, suitSet, position, picked, showLegal],
   );
   // …and the same marks for a piece as it's pressed (Board, lib/pressed).
   const pickAtPress = useMemo(() => ({ captures: showLegal }), [showLegal]);
@@ -2686,6 +2689,7 @@ export default function AnalysisView({
         // The moves of a piece as it's pressed, not when it's let go (lib/pressed).
         boardId="analysis"
         suited={suitedSkin}
+        pieceSet={suitSet}
       />
     )}
     </div>

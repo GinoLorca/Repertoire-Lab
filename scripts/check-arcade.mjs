@@ -16,6 +16,10 @@
 //     comes back out as it went in, and goes when the record does
 //   · Repertoire Lab's theme, dark and light, is the one it wears, and its
 //     arrow colour profile, set from here and told back when picked in there
+//   · Repertoire Lab's piece set is the one it draws (any set the copy's own
+//     Piece style row offers; a set it doesn't have, or 'constructor', leaves
+//     one of its own), Custom's outline is Repertoire Lab's or the set's own,
+//     and its own Piece style and Piece outline rows are hidden
 //   · a repertoire goes in, and CLAMP, Tactics and Openings each open; the Puzzles tab
 //     (its Settings field and its panel) and the review's "your usual in this line" stay
 //     out of the copy
@@ -183,6 +187,52 @@ try {
     await frame.evaluate((t) => window.__rlReview.look({ skin: 'felt', theme: t }), theme);
     ok(await frame.evaluate(() => document.documentElement.getAttribute('data-theme')) === theme, `it wears Repertoire Lab’s ${theme} theme`);
   }
+
+  // ---- Repertoire Lab's piece set ----
+  // The sets are the copy's own (its Piece style row's buttons), so a set Chess Arcade renames or adds can't turn this
+  // red: only a bridge that stopped passing the set on can.
+  const sets = await frame.evaluate(() => [...document.querySelectorAll('#piece-style-row .toggle')].map((b) => b.dataset.val).filter(Boolean));
+  const [setX, setY] = sets.filter((k) => k !== 'default');
+  ok(sets.includes('default') && setX && setY, `the copy offers piece sets (${sets.join(', ') || 'none'})`);
+  if (setX && setY) {
+    const boardSvgs = () => frame.evaluate(() => [...document.querySelectorAll('#hv-board .piece-wrap > svg[data-p]')].map((s) => s.outerHTML).join(''));
+    await frame.evaluate(() => window.__rlReview.look({ skin: 'felt', theme: 'dark', pieces: 'default' }));
+    const plainSvgs = await boardSvgs();
+    const tookX = await frame.evaluate((x) => window.__rlReview.look({ skin: 'gameboy', theme: 'dark', pieces: x }), setX);
+    const psetX = await frame.evaluate(() => document.documentElement.dataset.pset);
+    const xSvgs = await boardSvgs();
+    ok(tookX === true && psetX === setX && xSvgs && xSvgs !== plainSvgs, `it draws Repertoire Lab’s piece set (${setX} on Game Boy: data-pset ${psetX}, the board’s pieces redrawn)`);
+    const tookY = await frame.evaluate((y) => window.__rlReview.look({ skin: 'gameboy', theme: 'dark', pieces: y }), setY);
+    ok(tookY === true && await frame.evaluate(() => document.documentElement.dataset.pset) === setY, `another set on the same theme is a change too (${setY})`);
+    for (const bad of ['constructor', 'nope']) {
+      await frame.evaluate((b) => window.__rlReview.look({ skin: 'gameboy', theme: 'dark', pieces: b }), bad);
+      const got = await frame.evaluate(() => document.documentElement.dataset.pset);
+      ok(sets.includes(got), `a set it doesn’t have ('${bad}') leaves one of its own (${got})`);
+    }
+    // Custom: Repertoire Lab's outline for a set it draws in two inks; each other set keeps its own
+    const stroke = () => frame.evaluate(() => document.documentElement.style.getPropertyValue('--pw-stroke').trim());
+    // (the outline switch turned off first, in Chess Arcade's own hidden row: a look() turns it back on)
+    const saved = () => frame.evaluate(() => JSON.parse(localStorage.getItem('wavyChessPrepLookPrefs') || '{}').pieceStrokeEnabled);
+    await frame.evaluate(() => document.querySelector('#piece-stroke-row .toggle[data-val="off"]')?.click());
+    const wasOff = await saved();
+    await frame.evaluate((x) => window.__rlReview.look({ skin: 'custom', theme: 'dark', colors: { pieceBlack: '#123456', pieceStroke: null }, pieces: x }), setX);
+    ok(await stroke() === '', `Custom with ${setX}: the set’s own outline (no --pw-stroke)`);
+    ok(wasOff === false && await saved() === true, `the outline switch is never left off here (pieceStrokeEnabled ${wasOff} → ${await saved()})`);
+    await frame.evaluate(() => window.__rlReview.look({ skin: 'custom', theme: 'dark', colors: { pieceBlack: '#123456', pieceStroke: '#123456' }, pieces: 'default' }));
+    ok(await stroke() === '#123456', 'Custom with the Default set: Repertoire Lab’s outline (--pw-stroke)');
+  }
+  // Its own Piece style and Piece outline rows are hidden (unhidden for a moment, so the bridge's rule is what's asked)
+  const piecesOut = await frame.evaluate(() => {
+    const row = document.getElementById('piece-style-row'), stroke = document.getElementById('custom-piece-stroke-field');
+    if (!row || !stroke) return `not in this copy (${!row ? '#piece-style-row' : '#custom-piece-stroke-field'})`;
+    const field = row.closest('.field');
+    const was = stroke.style.display; stroke.style.display = 'flex';
+    const out = !!field && getComputedStyle(field).display === 'none' && getComputedStyle(stroke).display === 'none';
+    stroke.style.display = was;
+    return out;
+  });
+  ok(piecesOut === true, `its own Piece style and Piece outline rows are hidden${piecesOut === true ? '' : ` — ${piecesOut}`}`);
+  await frame.evaluate(() => window.__rlReview.look({ skin: 'felt', theme: 'dark', pieces: 'default' }));
 
   // ---- Repertoire Lab's arrow colour profile, both ways ----
   const took = await frame.evaluate(() => window.__rlReview.arrows?.('gamereview') === true

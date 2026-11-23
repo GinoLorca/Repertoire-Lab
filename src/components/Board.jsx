@@ -4,11 +4,11 @@ import { TouchBackend } from 'react-dnd-touch-backend';
 import { Chess } from 'chess.js';
 import { useSettings } from '../store';
 import { checkedKingSquare, CHECK_STYLE, LAST_MOVE_STYLE } from '../lib/legalMoves';
-import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
+import { piecesFor, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
 import { boardBadgeStyle, boardBadgeTint, BADGE_BY_ID } from '../lib/badges';
 import { suitSquareStyles, suitPick as suitPickOf } from '../lib/suitMarks';
 import { usePressed } from '../lib/usePressed';
-import { boardColors } from '../lib/theme';
+import { boardColors, boardPieces } from '../lib/theme';
 import BoardArrows, { cell } from './BoardArrows';
 import { TelestratorLayer } from './Telestrator';
 import { useHoldToDraw, swallowClickAt, HOLD_SLOP } from './useHoldToDraw';
@@ -30,15 +30,6 @@ const BOARD_THEME = {
   customDarkSquareStyle: { backgroundColor: DEFAULT_SQUARE_DARK },
   customLightSquareStyle: { backgroundColor: DEFAULT_SQUARE_LIGHT },
 };
-
-// Rebuilding the piece set on every render would remount all 32 of them and
-// kill the move animation, so each colour pair is built once and reused.
-const pieceCache = new Map();
-function pieceSet(light, dark) {
-  const key = `${light}|${dark}`;
-  if (!pieceCache.has(key)) pieceCache.set(key, makePieces(light, dark));
-  return pieceCache.get(key);
-}
 
 // react-chessboard picks its drag backend with `"ontouchstart" in window`.
 // An iPad reports touch support, so it gets the touch backend — which ignores
@@ -283,17 +274,20 @@ function Board({
   const sized = typeof rest.boardWidth === 'number';
 
   // A Chess Arcade skin brings its own board and pieces; Custom falls through
-  // to the colours picked in Settings, and then to the built-in pair.
+  // to the colours picked in Settings, and then to the built-in pair. The set
+  // is the one picked for this theme, else the theme's own (lib/theme
+  // boardPieces).
   const chosen = boardColors(state.settings);
   const squareLight = chosen.squareLight ?? DEFAULT_SQUARE_LIGHT;
   const squareDark = chosen.squareDark ?? DEFAULT_SQUARE_DARK;
-  const pieceLight = chosen.pieceLight ?? DEFAULT_PIECE_LIGHT;
-  const pieceDark = chosen.pieceDark ?? DEFAULT_PIECE_DARK;
+  const look = boardPieces(state.settings);
   // Only hand react-chessboard a custom set when it differs from its own, so an
-  // untouched board keeps the package's pieces exactly as they were.
-  const customPieces = (pieceLight === DEFAULT_PIECE_LIGHT && pieceDark === DEFAULT_PIECE_DARK)
+  // untouched board keeps the package's pieces exactly as they were. The map
+  // is the same one for the same look (piecesFor): a new one would remount all
+  // 32 pieces and kill the move animation.
+  const customPieces = (look.set === 'default' && look.light === DEFAULT_PIECE_LIGHT && look.dark === DEFAULT_PIECE_DARK)
     ? undefined
-    : pieceSet(pieceLight, pieceDark);
+    : piecesFor(look);
 
   // Court Cards, on a board whose view marks a pick (`pickAtPress`: the
   // analysis board, Learn and Practice): a pressed piece wears its suit, and
@@ -304,9 +298,9 @@ function Board({
   const pressPick = useMemo(() => {
     if (!pressedSquare || typeof position !== 'string') return null;
     try {
-      return suitPickOf(position === 'start' ? new Chess() : new Chess(position), pressedSquare, { captures: pickAtPress?.captures !== false });
+      return suitPickOf(position === 'start' ? new Chess() : new Chess(position), pressedSquare, { captures: pickAtPress?.captures !== false, set: look.set });
     } catch { return null; }
-  }, [pressedSquare, position, pickAtPress?.captures]);
+  }, [pressedSquare, position, pickAtPress?.captures, look.set]);
 
   const styles = useMemo(() => {
     let out = customSquareStyles;

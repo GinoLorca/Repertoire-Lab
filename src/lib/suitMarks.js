@@ -26,13 +26,34 @@
 // rook and knight diamonds; Black's spades and clubs; both bishops the Joker's
 // star; pawns their army's suit (the spot cards: hearts, spades). Chess Arcade
 // also lets the suit fade in and the gilt glow once; here they're still.
+//
+// Whatever set the boards draw on Court Cards, those are the suits, except the
+// Card Crown set, which prints its own (Chess Arcade's
+// :root[data-skin="cards"][data-pset="cardCrown"] rules): White's queen, rook
+// and knight its narrow diamond, Black's queen clubs (SET_SUITS). So a view
+// hands its set in with the pick (suitPick's `set`).
 
 export const SUIT_OF = {
   wK: 'heart', wQ: 'heart', wP: 'heart', wR: 'diamond', wN: 'diamond', wB: 'star',
   bK: 'spade', bQ: 'spade', bP: 'spade', bR: 'club', bN: 'club', bB: 'star',
 };
 
-export const suitOf = (code) => SUIT_OF[code] ?? null;
+// A set's own suits, where they differ from SUIT_OF (Chess Arcade's gen_suithl.py
+// CROWN; the kit's suithl/gen_rl_suithl.py checks the two agree).
+export const SET_SUITS = {
+  cardCrown: { wQ: 'kdiamond', wR: 'kdiamond', wN: 'kdiamond', bQ: 'club' },
+};
+
+// Object.prototype.hasOwnProperty, not Object.hasOwn: the build runs on Safari 14
+// (Vite's target), and Object.hasOwn came in 15.4 (tests/supportFloor.test.mjs).
+const own = (obj, key) => typeof key === 'string' && Object.prototype.hasOwnProperty.call(obj, key);
+
+// The suit a piece wears on Court Cards: its set's own, else the Court Cards
+// set's. null for anything that isn't a piece.
+export const suitOf = (code, set = null) => {
+  if (!own(SUIT_OF, code)) return null;
+  return own(SET_SUITS, set) && own(SET_SUITS[set], code) ? SET_SUITS[set][code] : SUIT_OF[code];
+};
 
 // The piece on `square` as its code ('wQ'), or null for an empty square, no
 // game, or no square at all.
@@ -42,7 +63,7 @@ export function pieceCode(game, square) {
   try { piece = game.get(square); } catch { return null; }
   if (!piece) return null;
   const code = piece.color + piece.type.toUpperCase();
-  return SUIT_OF[code] ? code : null;
+  return own(SUIT_OF, code) ? code : null;
 }
 
 // Where the piece on `square` captures: every legal destination with a piece
@@ -55,12 +76,15 @@ export function captureSquares(game, square) {
 }
 
 // A pick, for Court Cards' marks: the piece's code, its square and, when its
-// legal moves are shown, the squares it captures on. null when nothing (or
-// nothing that wears a suit) is picked.
-export function suitPick(game, square, { captures = true } = {}) {
+// legal moves are shown, the squares it captures on; with `set` (the set the
+// board draws), that too, for its own suits. null when nothing (or nothing
+// that wears a suit) is picked.
+export function suitPick(game, square, { captures = true, set = null } = {}) {
   const code = pieceCode(game, square);
   if (!code) return null;
-  return { code, square, caps: captures ? captureSquares(game, square) : [] };
+  const pick = { code, square, caps: captures ? captureSquares(game, square) : [] };
+  if (typeof set === 'string' && set) pick.set = set;
+  return pick;
 }
 
 // A dark square (a card back on this board): a1, c1, b2 ...
@@ -86,7 +110,7 @@ export function hasCoordinate(sq, orientation = 'white') {
 //   corner too, that pip is left out and the bottom left one stays.
 // `badge` is the square with a badge on it (the last move's), if any.
 export function suitSquareStyles(pick, { orientation = 'white', notation = true, badge = null } = {}) {
-  const suit = suitOf(pick?.code);
+  const suit = suitOf(pick?.code, pick?.set);
   if (!suit) return {};
   const side = pick.code[0];
   const out = { [pick.square]: { '--shl-em': `var(--shl-e${isDarkSquare(pick.square) ? 'b' : 'f'}-${suit})` } };
@@ -102,11 +126,13 @@ export function suitSquareStyles(pick, { orientation = 'white', notation = true,
   return out;
 }
 
-// The deck's pips, in a 20-unit box (Chess Arcade's art.py PIP), and how far
-// each reaches from the box's center.
+// The deck's pips, in a 20-unit box (Chess Arcade's art.py PIP; kdiamond, the
+// Card Crown set's narrow diamond, from its gen_suithl.py), and how far each
+// reaches from the box's center.
 export const PIP = {
   heart: 'M10 17.6C6.2 14.6 1.6 11.2 1.6 6.9 1.6 4.2 3.6 2.3 6 2.3c1.8 0 3.2 1 4 2.6.8-1.6 2.2-2.6 4-2.6 2.4 0 4.4 1.9 4.4 4.6 0 4.3-4.6 7.7-8.4 10.7z',
   diamond: 'M10 1.4C11.9 4.6 14.3 7.6 17.2 10 14.3 12.4 11.9 15.4 10 18.6 8.1 15.4 5.7 12.4 2.8 10 5.7 7.6 8.1 4.6 10 1.4z',
+  kdiamond: 'M10 0L16.3 10 10 20 3.7 10z',
   spade: 'M10 1.6C8.2 4.6 2 7.7 2 11.8c0 2.3 1.8 3.9 3.9 3.9 1.4 0 2.6-.7 3.3-1.8-.2 1.9-1 3.4-2.7 4.5h7c-1.7-1.1-2.5-2.6-2.7-4.5.7 1.1 1.9 1.8 3.3 1.8 2.1 0 3.9-1.6 3.9-3.9C18 7.7 11.8 4.6 10 1.6z',
   club: 'M10 1.9a3.7 3.7 0 0 0-2.6 6.3A3.7 3.7 0 1 0 9.1 14c-.2 1.9-1 3.3-2.6 4.4h7c-1.6-1.1-2.4-2.5-2.6-4.4a3.7 3.7 0 1 0 1.7-5.8A3.7 3.7 0 0 0 10 1.9z',
   star: 'M10 .4C10.7 6.6 12.3 8.9 19.6 10 12.3 11.1 10.7 13.4 10 19.6 9.3 13.4 7.7 11.1 .4 10 7.7 8.9 9.3 6.6 10 .4z',

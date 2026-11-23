@@ -21,6 +21,7 @@ import { lastMoveOf, NOTE_HIGHLIGHT_STYLE, PICKED_STYLE } from '../lib/legalMove
 import { suitPick } from '../lib/suitMarks';
 import { ownPiece, takenSquare } from '../lib/grab';
 import { skinId } from '../lib/skins';
+import { pieceStyleOf } from '../lib/pieceStyles';
 import { badgeAt } from '../lib/badges';
 import BoardArrows from '../components/BoardArrows';
 import { marksAt } from '../lib/studyText';
@@ -710,12 +711,14 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
 
   // Court Cards marks a pick with its piece's suit (lib/suitMarks.js), while
   // the pick shows (not while looking back or after a wrong move). Worked out
-  // in that theme only; every other theme draws what it always has.
+  // in that theme only; every other theme draws what it always has. The set
+  // the board draws goes with it (the Card Crown set prints its own suits).
   const suitedSkin = skinId(state.settings) === 'cards';
+  const suitSet = suitedSkin ? pieceStyleOf(state.settings) : null;
   const pickShown = !reviewing && !wrongMove ? pickedSquare : null;
   const cardsPick = useMemo(
-    () => (suitedSkin ? suitPick(game, pickShown, { captures: showLegal }) : null),
-    [suitedSkin, game, pickShown, showLegal],
+    () => (suitedSkin ? suitPick(game, pickShown, { captures: showLegal, set: suitSet }) : null),
+    [suitedSkin, suitSet, game, pickShown, showLegal],
   );
   // …and the same marks for a piece as it's pressed (Board, lib/pressed).
   const pickAtPress = useMemo(() => ({ captures: showLegal }), [showLegal]);
@@ -1702,6 +1705,7 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
               // The moves of a piece as it's pressed, not when it's let go (lib/pressed).
               boardId="practice"
               suited={suitedSkin}
+              pieceSet={suitSet}
             />
           )}
           {wrongMove && (

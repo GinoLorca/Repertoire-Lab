@@ -212,3 +212,20 @@ test('a position recycled into Wavy\'s Lesson 1 here, the coach\'s own Lesson 1 
   assert.equal(where('card-wavy'), 'w1@Lesson 1 cp@Lesson 1', 'Wavy\'s lesson kept its own, copy and all');
   assert.equal(m.savedPositions.find((p) => p.id === 'cp').recycledFrom, 'a');
 });
+
+// --- the piece set picked per theme (settings.pieceStyleBySkin) -----------------
+import { merge3 } from '../src/lib/cloud/merge3.js';
+
+test('piece styles: picks on different themes from two devices both land; one cleared stays cleared', () => {
+  const base = { skin: 'gameboy', pieceStyleBySkin: { hustler: 'rimLight' } };
+  const mac = { skin: 'gameboy', pieceStyleBySkin: { hustler: 'rimLight', gameboy: 'minimalTwo' } };
+  const ipad = { skin: 'gameboy', pieceStyleBySkin: { hustler: 'rimLight', rose: 'cardCrown' } };
+  assert.deepEqual(merge3(base, mac, ipad).pieceStyleBySkin, { hustler: 'rimLight', gameboy: 'minimalTwo', rose: 'cardCrown' });
+  // Hustler's own set picked on the iPad (its entry cleared) while the Mac picked on Game Boy
+  const cleared = { skin: 'gameboy', pieceStyleBySkin: {} };
+  assert.deepEqual(merge3(base, mac, cleared).pieceStyleBySkin, { gameboy: 'minimalTwo' });
+  assert.deepEqual(merge3(base, clone(base), cleared).pieceStyleBySkin, {});
+  // merge3 with no baseline still merges the two picks, theme by theme (sync.js only hands settings to
+  // merge3 when there is a baseline; a device's very first sync goes by mergeSettings' recency rules)
+  assert.deepEqual(merge3(undefined, mac, ipad).pieceStyleBySkin, { hustler: 'rimLight', gameboy: 'minimalTwo', rose: 'cardCrown' });
+});

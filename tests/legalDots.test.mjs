@@ -121,3 +121,25 @@ test('nothing to draw: no moves, no square, no board', () => {
   assert.equal(draw(QUEEN, 'e8'), ''); // not the side to move: chess.js lists nothing
   assert.equal(renderToStaticMarkup(React.createElement(LegalDots, { game: new Chess(), square: null, boardWidth: 400 })), '');
 });
+
+test('the Card Crown set on Court Cards: its own pips (White Q R N the narrow diamond, Black Q clubs), the rest the deck\'s; a press too', () => {
+  const crown = (fen, square) => {
+    const game = new Chess(fen);
+    return renderToStaticMarkup(React.createElement(LegalDots, {
+      game, square, boardWidth: 480, orientation: 'white', suitPick: suitPick(game, square, { set: 'cardCrown' }),
+    }));
+  };
+  const wq = crown(QUEEN, 'd4');
+  assert.ok(wq.includes(`d="${PIP.kdiamond}"`) && !wq.includes(`d="${PIP.heart}"`));
+  assert.match(wq, /<g class="ld-pips w">/);
+  const bq = crown(QUEEN.replace(' w ', ' b '), 'd5');
+  assert.ok(bq.includes(`d="${PIP.club}"`) && !bq.includes(`d="${PIP.spade}"`));
+  // the king keeps the deck's heart; the Court Cards set (or none) keeps the queen's
+  assert.ok(crown('4k3/8/8/8/8/8/8/4K3 w - - 0 1', 'e1').includes(`d="${PIP.heart}"`));
+  const game = new Chess(QUEEN);
+  const cc = renderToStaticMarkup(React.createElement(LegalDots, {
+    game, square: 'd4', boardWidth: 480, orientation: 'white', suitPick: suitPick(game, 'd4', { set: 'courtCards' }),
+  }));
+  assert.ok(cc.includes(`d="${PIP.heart}"`) && !cc.includes(`d="${PIP.kdiamond}"`));
+  // (a press before the view has a pick, the pieceSet prop, is the kit's: a server render never sees a press)
+});

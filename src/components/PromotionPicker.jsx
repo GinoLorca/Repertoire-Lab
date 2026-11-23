@@ -1,16 +1,9 @@
 import React, { useEffect } from 'react';
 import { useStore } from '../store';
 import { squareCell } from '../lib/legalMoves';
-import { makePieces, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
-import { boardColors } from '../lib/theme';
+import { piecesFor } from '../lib/pieces';
+import { boardColors, boardPieces } from '../lib/theme';
 import { DEFAULT_SQUARE_LIGHT, DEFAULT_SQUARE_DARK } from './Board';
-
-const pieceCache = new Map();
-function pieceSet(light, dark) {
-  const key = `${light}|${dark}`;
-  if (!pieceCache.has(key)) pieceCache.set(key, makePieces(light, dark));
-  return pieceCache.get(key);
-}
 
 // Queen first — nearest the pawn's own square, since that's what almost
 // every promotion actually wants — then the underpromotion options.
@@ -39,13 +32,12 @@ export default function PromotionPicker({
 
   if (!square || !boardWidth) return null;
 
-  // Same source as the board underneath it — see boardColors in lib/theme.
+  // Same source as the board underneath it — see boardColors and
+  // boardPieces in lib/theme: its squares, and its set in its colors.
   const chosen = boardColors(state.settings);
   const squareLight = chosen.squareLight ?? DEFAULT_SQUARE_LIGHT;
   const squareDark = chosen.squareDark ?? DEFAULT_SQUARE_DARK;
-  const pieceLight = chosen.pieceLight ?? DEFAULT_PIECE_LIGHT;
-  const pieceDark = chosen.pieceDark ?? DEFAULT_PIECE_DARK;
-  const pieces = pieceSet(pieceLight, pieceDark);
+  const pieces = piecesFor(boardPieces(state.settings));
 
   const size = boardWidth / 8;
   const cell = squareCell(square, orientation);

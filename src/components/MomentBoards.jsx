@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Board from './Board';
 import { MomentPip, ROLE_LABEL } from './MomentsPanel';
 import { useStore } from '../store';
-import { boardColors } from '../lib/theme';
-import { pieceImage, DEFAULT_PIECE_LIGHT, DEFAULT_PIECE_DARK } from '../lib/pieces';
+import { boardPieces } from '../lib/theme';
+import { pieceImage } from '../lib/pieces';
 import { drawnSquareStyle } from '../lib/reviewText';
 import {
   SLOTS, placeAt, placeLabel, defaultTitle, movesText, slotScore, swing, boardChange, materialLabel,
@@ -23,7 +23,9 @@ const GAP = 12;
 
 // The squares a board shows: what was drawn on that position, then — on an
 // After or a Better — the faded pieces left behind and the outlined arrivals.
-export function momentSquareStyles({ drawn, change, slot, light, dark }) {
+// `look` is the board's pieces (lib/theme boardPieces): a ghost is the board's
+// own set, in its colors.
+export function momentSquareStyles({ drawn, change, slot, look }) {
   const out = {};
   for (const [sq, colour] of Object.entries(drawn?.squares ?? {})) out[sq] = drawnSquareStyle(colour);
   if (!change) return out;
@@ -31,7 +33,7 @@ export function momentSquareStyles({ drawn, change, slot, light, dark }) {
   for (const { square, piece } of change.left) {
     // Only where the square is empty now — under a piece, a ghost is noise.
     if (standing.has(square)) continue;
-    const img = pieceImage(piece, light, dark, 0.32);
+    const img = pieceImage(piece, look, 0.32);
     if (img) {
       out[square] = {
         ...(out[square] ?? {}),
@@ -77,13 +79,13 @@ export function MomentBoard({
   label, scored = true, showDrawn = true, animate = false,
 }) {
   const { state } = useStore();
-  const colours = boardColors(state.settings);
-  const light = colours.pieceLight ?? DEFAULT_PIECE_LIGHT;
-  const dark = colours.pieceDark ?? DEFAULT_PIECE_DARK;
+  const look = boardPieces(state.settings);
+  // A new look object comes with every render; what it draws is its key.
+  const lookKey = `${look.set}|${look.skin}|${look.light}|${look.dark}|${JSON.stringify(look.tokens)}${look.inks ? `|${look.inks}` : ''}`;
   const drawn = showDrawn ? annotations?.[place.fen] : null;
   const styles = useMemo(
-    () => momentSquareStyles({ drawn, change: place.change, slot, light, dark }),
-    [drawn, place.change, slot, light, dark],
+    () => momentSquareStyles({ drawn, change: place.change, slot, look }),
+    [drawn, place.change, slot, lookKey], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const tone = slot !== 'before' ? swing(moment, baseFen, slot)?.tone : null;
   const m = place.change?.material;

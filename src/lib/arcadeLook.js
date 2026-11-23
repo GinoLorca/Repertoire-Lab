@@ -12,6 +12,13 @@
 // (a theme added here before the next `npm run sync:arcade`) wears it as
 // Custom, in these colours, rather than in its own default green.
 //
+// The piece set goes across too: the one Repertoire Lab's boards draw on this
+// theme (lib/theme.js paints it as data-pset), by its name, never left to the
+// copy's own default for the theme. So a pick in Settings → Themes → Piece
+// style is what Game Review wears, and Game Boy with nothing picked is
+// Minimal Chess ONE there even while the copy is a sync behind. The copy's own
+// Piece style and Piece outline rows are hidden (scripts/sync-arcade.mjs).
+//
 // Every component that shows Chess Arcade calls useArcadeLook once it's ready.
 // It hands over the arrow colour profile as well (Settings, the "Arrows:"
 // label): one setting for the boards of both.
@@ -19,6 +26,7 @@ import { useEffect } from 'react';
 import { useStore } from '../store';
 import { boardColors } from './theme';
 import { profileOf } from './arrowProfiles';
+import { drawnByTrees } from './pieceStyles';
 
 // A piece ink a theme gives as var(--x, #colour) (Uptown, Court Cards) goes
 // across as the plain colour after the comma: the frame can't see --x.
@@ -31,6 +39,7 @@ export function currentLook(settings) {
   const cs = getComputedStyle(root);
   const v = (name) => cs.getPropertyValue(name).trim() || null;
   const board = boardColors(settings, theme);
+  const pieces = root.dataset.pset || 'default';
   return {
     skin,
     theme,
@@ -38,6 +47,8 @@ export function currentLook(settings) {
     // (switched off in Settings) always picks it up — the analysis board's
     // own switch, so Game Review's board answers a finger the same way.
     holdDraw: settings?.holdDrawFromPieces !== false,
+    // the set, by its name (lib/pieceStyles pieceStyleOf, as applySkin paints it)
+    pieces,
     colors: {
       accent: v('--accent'),
       bg: v('--bg'),
@@ -46,6 +57,11 @@ export function currentLook(settings) {
       boardDark: plain(board.squareDark) ?? v('--board-dark'),
       pieceWhite: plain(board.pieceLight),
       pieceBlack: plain(board.pieceDark),
+      // Custom's outline: Black's color, as Repertoire Lab draws the Default
+      // and Court Cards sets (TREES: two inks, the outline in the dark one).
+      // Any other set keeps its own outline, as Chess Arcade's Custom does
+      // with no outline color of its own.
+      pieceStroke: skin === 'custom' && drawnByTrees(pieces) ? plain(board.pieceDark) : null,
     },
   };
 }
@@ -58,7 +74,7 @@ export function useArcadeLook(api, ready) {
     const push = () => { try { api()?.look?.(currentLook(state.settings)); } catch { /* frame gone */ } };
     push();
     const watch = new MutationObserver(push);
-    watch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-skin', 'data-theme', 'style'] });
+    watch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-skin', 'data-theme', 'data-pset', 'style'] });
     return () => watch.disconnect();
   }, [ready, state.settings]); // eslint-disable-line react-hooks/exhaustive-deps
   // The arrow colour profile too: one setting for both apps' boards. One

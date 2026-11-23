@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Chess } from 'chess.js';
 import {
-  SUIT_OF, suitOf, pieceCode, captureSquares, suitPick, isDarkSquare, hasCoordinate, suitSquareStyles, quietPip, PIP,
+  SUIT_OF, SET_SUITS, suitOf, pieceCode, captureSquares, suitPick, isDarkSquare, hasCoordinate, suitSquareStyles, quietPip, PIP,
 } from '../src/lib/suitMarks.js';
 
 const QUEEN = '4k2r/ppp2pbp/1n6/3q4/r2Q4/8/PPP2PPP/R3KBNR w KQk - 0 1'; // Qd4 takes a queen, rook, bishop, knight
@@ -150,4 +150,65 @@ test('the quiet pip: 34% of the square from 11 to 30 px, centered, the halo and 
   assert.equal(quietPip('star', 72, 0, 0).star, true);
   assert.equal(quietPip('club', 72, 0, 0).star, false);
   assert.equal(quietPip('cup', 72, 0, 0), null);
+});
+
+test('the Card Crown set prints its own suits on Court Cards: White Q R N the narrow diamond, Black Q clubs, the rest the deck\'s', () => {
+  assert.deepEqual(SET_SUITS, { cardCrown: { wQ: 'kdiamond', wR: 'kdiamond', wN: 'kdiamond', bQ: 'club' } });
+  const crown = Object.fromEntries(Object.keys(SUIT_OF).map((c) => [c, suitOf(c, 'cardCrown')]));
+  assert.deepEqual(crown, {
+    wK: 'heart', wQ: 'kdiamond', wP: 'heart', wR: 'kdiamond', wN: 'kdiamond', wB: 'star',
+    bK: 'spade', bQ: 'club', bP: 'spade', bR: 'club', bN: 'club', bB: 'star',
+  });
+  // every other set, and none, wears the Court Cards set's suits; a set name that isn't one changes nothing
+  for (const set of [null, undefined, 'default', 'courtCards', 'minimalOne', 'constructor', '__proto__', 5]) {
+    for (const c of Object.keys(SUIT_OF)) assert.equal(suitOf(c, set), SUIT_OF[c], `${c} ${set}`);
+  }
+  assert.equal(suitOf('constructor'), null);
+  assert.equal(suitOf('toString', 'cardCrown'), null);
+  // the narrow diamond has its drawing (Chess Arcade's gen_suithl.py PIP.kdiamond)
+  assert.equal(PIP.kdiamond, 'M10 0L16.3 10 10 20 3.7 10z');
+});
+
+test('a pick carries its set when given: the emblem, the corners and the pip take its suits', () => {
+  const g = new Chess(QUEEN);
+  const p = suitPick(g, 'd4', { set: 'cardCrown' });
+  assert.deepEqual(p, { code: 'wQ', square: 'd4', caps: p.caps, set: 'cardCrown' });
+  const s = suitSquareStyles(p);
+  assert.deepEqual(s.d4, { '--shl-em': 'var(--shl-eb-kdiamond)' });
+  assert.deepEqual(s.d5, { '--shl-c': 'var(--shl-c-kdiamond)', '--shl-d': 'var(--shl-d-kdiamond)' });
+  assert.deepEqual(s.a4, { '--shl-c': 'var(--shl-c-kdiamond)', '--shl-d': 'var(--shl-d-kdiamond)', '--shl-alt': '1' });
+  // Black's queen: clubs, on a face (d5)
+  const b = suitSquareStyles(suitPick(new Chess(QUEEN.replace(' w ', ' b ')), 'd5', { set: 'cardCrown' }));
+  assert.deepEqual(b.d5, { '--shl-em': 'var(--shl-ef-club)' });
+  assert.equal(b.d4['--shl-c'], 'var(--shl-c-club)');
+  // a rook and a knight: the diamond too; the king: the deck's heart
+  const r = suitSquareStyles(suitPick(new Chess('4k3/8/8/8/8/8/8/R3K3 w - - 0 1'), 'a1', { set: 'cardCrown' }));
+  assert.deepEqual(r.a1, { '--shl-em': 'var(--shl-eb-kdiamond)' });
+  const n = suitSquareStyles(suitPick(new Chess(), 'g1', { set: 'cardCrown' }));
+  assert.deepEqual(n.g1, { '--shl-em': 'var(--shl-eb-kdiamond)' });
+  const k = suitSquareStyles(suitPick(new Chess(), 'e1', { set: 'cardCrown' }));
+  assert.deepEqual(k.e1, { '--shl-em': 'var(--shl-eb-heart)' });
+  // without a set (or the Court Cards set) the pick is as it was
+  assert.deepEqual(suitPick(g, 'd4', { captures: false, set: null }), { code: 'wQ', square: 'd4', caps: [] });
+  assert.deepEqual(suitSquareStyles(suitPick(g, 'd4', { set: 'courtCards' })).d4, { '--shl-em': 'var(--shl-eb-heart)' });
+  // the narrow diamond's quiet pip: its own drawing, the same box as every suit
+  const qp = quietPip('kdiamond', 72, 300, 108);
+  assert.equal(qp.d, PIP.kdiamond);
+  assert.equal(qp.star, false);
+  assert.equal(qp.halo, 4.8);
+});
+
+test('the stylesheet has every token a pick can name, Card Crown\'s narrow diamond included', async () => {
+  const { readFileSync } = await import('node:fs');
+  const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+  const suits = new Set([...Object.values(SUIT_OF), ...Object.values(SET_SUITS).flatMap((m) => Object.values(m))]);
+  for (const suit of suits) {
+    for (const k of ['ef', 'eb']) assert.match(css, new RegExp(`--shl-${k}-${suit}: url\\("data:image/svg\\+xml,`), `--shl-${k}-${suit}`);
+    for (const pip of suit === 'star' ? ['starw', 'starb'] : [suit]) {
+      assert.match(css, new RegExp(`--shl-c-${pip}: url\\("data:image/svg\\+xml,`), `--shl-c-${pip}`);
+      assert.match(css, new RegExp(`--shl-d-${pip}: (url\\("data:image/svg\\+xml,|var\\(--shl-c-${pip}\\))`), `--shl-d-${pip}`);
+    }
+  }
+  // the narrow diamond drawn in court red, as Chess Arcade's (its corner pip is Chess Arcade's own token, byte for byte)
+  assert.match(css.match(/--shl-c-kdiamond: url\("([^"]+)"\)/)[1], /M10 0L16\.3 10 10 20 3\.7 10z' fill='%23b3192e'/);
 });

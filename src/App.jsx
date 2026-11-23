@@ -295,7 +295,8 @@ function AppInner() {
   useEffect(() => {
     // The skin rides along with the palette: each one has a light and a dark
     // face, so whatever flips light/dark has to repaint it too — including the
-    // once-a-minute tick that drives Auto.
+    // once-a-minute tick that drives Auto. The piece set and its colors ride
+    // along (data-pset, --pw-*: a pick per theme, Custom's piece inks).
     const paint = () => {
       const mode = resolveTheme(themeSettings);
       applyTheme(mode);
@@ -305,7 +306,7 @@ function AppInner() {
     if (themeSettings?.theme !== 'auto') return undefined;
     const t = setInterval(paint, 60000);
     return () => clearInterval(t);
-  }, [themeSettings?.theme, themeSettings?.lightFrom, themeSettings?.darkFrom, themeSettings?.skin, themeSettings?.skinWallpaper, themeSettings?.skinArtOff]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [themeSettings?.theme, themeSettings?.lightFrom, themeSettings?.darkFrom, themeSettings?.skin, themeSettings?.skinWallpaper, themeSettings?.skinArtOff, themeSettings?.pieceStyleBySkin, themeSettings?.pieceLight, themeSettings?.pieceDark]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     applyBackground(themeSettings);
