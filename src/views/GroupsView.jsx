@@ -219,7 +219,10 @@ function SubList({ label, children, count }) {
 
 export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initialScope }) {
   const { state, dispatch } = useStore();
-  const [openKeys, setOpenKeys] = useState({ __fav: true });
+  // Which collections are open. All closed to begin with — Favorites too, so
+  // the page opens as a list of collections to pick from, not Favorites'
+  // dozens of lines with the rest below them.
+  const [openKeys, setOpenKeys] = useState({});
   const [filter, setFilter] = useState('');
   const [fading, setFading] = useState({});
   // The collection picker: { tag } to add to one, {} for a new one.
