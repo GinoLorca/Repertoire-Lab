@@ -11,6 +11,17 @@ export function cell(square, orientation) {
     : { x: 7 - file, y: rank };
 }
 
+// How see-through every arrow on a board is. Every arrow Repertoire Lab draws
+// comes through here: yours, a line's and a course's, the engine's best moves,
+// Practice's move to play, the telestrator's, the compare board's. Each arrow
+// is one group at this opacity, halo and all, so its parts never darken one
+// another where they meet. It was .85; an arrow over a mark or a note's square
+// hid it, so (2026-11-22) every arrow is faded by ARROW_FADE: .85 x .65 = .55,
+// Chess Arcade's own arrow (its Game Review here gets the same through the
+// hourly sync). The engine's colours keep their own alpha on top of this.
+export const ARROW_FADE = 0.65;
+export const ARROW_OPACITY = Number((0.85 * ARROW_FADE).toFixed(2)); // 0.55
+
 const isKnightHop = (dx, dy) => {
   const ax = Math.abs(dx);
   const ay = Math.abs(dy);
@@ -94,7 +105,7 @@ export default function BoardArrows({
 
         const head = `${end.x},${end.y} ${baseX + px * headHalf},${baseY + py * headHalf} ${baseX - px * headHalf},${baseY - py * headHalf}`;
         return (
-          <g key={`${from}-${to}-${i}`} opacity="0.85">
+          <g key={`${from}-${to}-${i}`} opacity={ARROW_OPACITY}>
             {halo && (
               <>
                 <polyline points={points} fill="none" stroke={haloOf(stroke)} strokeWidth={shaft + 3} strokeLinecap="butt" strokeLinejoin="miter" />
