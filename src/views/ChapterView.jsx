@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
-import ChapterVideo from '../components/ChapterVideo';
+import ChapterVideos from '../components/ChapterVideos';
 import { fmtTime } from '../lib/videoLinks';
+import { videosOf, videoOfLine, videoLabel } from '../lib/chapterVideos';
 import { chapterToPgn, downloadText, safeFilename } from '../lib/pgn';
 import {
   isDue, unlearnedCount, isPracticed, dueLabel, levelLabel, intervalLabel, practicedCount, dueCount,
@@ -107,6 +108,36 @@ export default function ChapterView({
   }
 
   const lineById = new Map(chapter.variations.map((v) => [v.id, v]));
+  // The chapter's videos (lib/chapterVideos.js: one, or several stacked —
+  // components/ChapterVideos.jsx), and a line's link into one of them:
+  // which video, and its number and name where there's more than one to tell
+  // apart. Null: not linked (or its video has gone).
+  const videos = showVideo ? videosOf(chapter) : [];
+  const hasVideos = videos.length > 0;
+  const manyVideos = videos.length > 1;
+  const linkOf = (variation) => {
+    const video = hasVideos ? videoOfLine(chapter, variation) : null;
+    if (!video) return null;
+    const index = videos.findIndex((v) => v.id === video.id);
+    return { video, n: index + 1, name: videoLabel(video, index), at: variation.videoTimestamp };
+  };
+  // Watch a line's moment: its video comes to the front if it isn't there.
+  const watchLink = (link) => {
+    videoBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    videoRef.current?.seekTo(link.at, link.video.id);
+  };
+  // Link a line to where the video in front is paused.
+  const linkHere = (variation) => dispatch({
+    type: 'setVariationTimestamp',
+    openingId,
+    chapterId,
+    variationId: variation.id,
+    seconds: videoRef.current?.getCurrentTime?.() ?? 0,
+    videoId: videoRef.current?.frontId?.() ?? null,
+  });
+  const unlink = (variation) => dispatch({
+    type: 'setVariationTimestamp', openingId, chapterId, variationId: variation.id, seconds: null,
+  });
   // Where this chapter sits among sub-variations, the way the Library files
   // them (lib/subVariations.js): the ones filed under it, or the one it's
   // filed under.
@@ -118,7 +149,7 @@ export default function ChapterView({
   // Everything you can do to one line: behind ⋯ on a phone, and a long
   // press or right-click on any line anywhere.
   const lineMenu = (variation) => {
-    const linked = showVideo && chapter.video && variation.videoTimestamp != null;
+    const link = linkOf(variation);
     const move = (dir) => () => dispatch({ type: 'moveVariation', openingId, chapterId, variationId: variation.id, dir });
     return [
       {
@@ -173,26 +204,20 @@ export default function ChapterView({
         icon: <UsersIcon size={16} />,
         onClick: () => setGivingId(variation.id),
       },
-      showVideo && chapter.video && { sep: true },
-      showVideo && chapter.video && !linked && {
+      hasVideos && { sep: true },
+      hasVideos && !link && {
         label: 'Link to the video here',
-        hint: 'pause the video where this line starts first',
+        hint: manyVideos
+          ? 'the video in front — pause it where this line starts first'
+          : 'pause the video where this line starts first',
         icon: <VideoIcon size={16} />,
-        onClick: () => dispatch({
-          type: 'setVariationTimestamp',
-          openingId,
-          chapterId,
-          variationId: variation.id,
-          seconds: videoRef.current?.getCurrentTime?.() ?? 0,
-        }),
+        onClick: () => linkHere(variation),
       },
-      linked && {
+      link && {
         label: 'Unlink from the video',
-        hint: `linked at ${fmtTime(variation.videoTimestamp)}`,
+        hint: `linked at ${fmtTime(link.at)}${manyVideos ? ` in “${link.name}”` : ''}`,
         icon: <VideoIcon size={16} />,
-        onClick: () => dispatch({
-          type: 'setVariationTimestamp', openingId, chapterId, variationId: variation.id, seconds: null,
-        }),
+        onClick: () => unlink(variation),
       },
       { sep: true },
       { label: 'Move up', icon: '▲', onClick: move(-1) },
@@ -323,14 +348,17 @@ export default function ChapterView({
                   icon: <FolderIcon size={16} />,
                   onClick: () => setBrowsing(true),
                 },
-                showVideo && !chapter.video && { sep: true },
-                showVideo && !chapter.video && {
-                  label: 'Add a video file',
+                // (A chapter can have several videos — a second course's, a
+                // second part — so these stay once it has one.)
+                showVideo && { sep: true },
+                showVideo && {
+                  label: hasVideos ? 'Add another video file' : 'Add a video file',
+                  hint: hasVideos ? 'it stacks with the one here — tap one to bring it forward' : undefined,
                   icon: <VideoIcon size={16} />,
                   onClick: () => videoRef.current?.openAdd('upload'),
                 },
-                showVideo && !chapter.video && {
-                  label: 'Paste a video link',
+                showVideo && {
+                  label: hasVideos ? 'Paste another video link' : 'Paste a video link',
                   icon: <LinkIcon size={16} />,
                   onClick: () => videoRef.current?.openAdd('url'),
                 },
@@ -516,13 +544,21 @@ export default function ChapterView({
           nothing. */}
       {showVideo && (
         <div ref={videoBlockRef}>
-          <ChapterVideo
+          <ChapterVideos
             ref={videoRef}
-            video={chapter.video}
+            chapterId={chapterId}
+            videos={videos}
             // On a phone the "add a video" row lives in the ⋯ sheet instead
-            // of taking a strip of the screen on every chapter without one.
+            // of taking a strip of the screen on every chapter.
             hideEmpty={isPhone}
-            onChange={(video) => dispatch({ type: 'setChapterVideo', openingId, chapterId, video })}
+            onAdd={(video) => dispatch({ type: 'addChapterVideo', openingId, chapterId, video })}
+            onReplace={(videoId, video) => dispatch({
+              type: 'replaceChapterVideo', openingId, chapterId, videoId, video,
+            })}
+            onRemove={(videoId) => dispatch({ type: 'removeChapterVideo', openingId, chapterId, videoId })}
+            onTitle={(videoId, title) => dispatch({
+              type: 'setChapterVideoTitle', openingId, chapterId, videoId, title,
+            })}
             onCloud={(videoId, cloud) => dispatch({
               type: 'setChapterVideoCloud', openingId, chapterId, videoId, cloud,
             })}
@@ -618,9 +654,9 @@ export default function ChapterView({
               // the line under, and everything else in ⋯. A row of nine
               // controls beside the name had been squeezing "Jobava London
               // Mainline: 3...e6 with 4...c6" down to one word per line.
-              const linked = showVideo && chapter.video && variation.videoTimestamp != null;
+              const link = linkOf(variation);
               const hasMeta = green || variation.learned || due || variation.srs?.level > 0
-                || variation.tags?.length > 0 || linked;
+                || variation.tags?.length > 0 || link;
               return (
                 <>
                   <div className="row-head phone-line-head">
@@ -656,18 +692,16 @@ export default function ChapterView({
                         </span>
                       )}
                       <TagChips tags={variation.tags} max={3} />
-                      {linked && (
+                      {link && (
                         <button
                           type="button"
                           className="small ghost video-link-btn on"
-                          title="Watch the video from here"
-                          onClick={() => {
-                            videoBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            videoRef.current?.seekTo(variation.videoTimestamp);
-                          }}
+                          title={manyVideos ? `Watch “${link.name}” from here` : 'Watch the video from here'}
+                          onClick={() => watchLink(link)}
                         >
                           <VideoIcon size={15} />
-                          <span className="video-link-time">{fmtTime(variation.videoTimestamp)}</span>
+                          {manyVideos && <span className="video-link-n">{link.n}</span>}
+                          <span className="video-link-time">{fmtTime(link.at)}</span>
                         </button>
                       )}
                     </div>
@@ -712,41 +746,41 @@ export default function ChapterView({
                   {!due && dueLabel(variation) ? ` · ${dueLabel(variation)}` : ''}
                 </span>
               )}
-              {showVideo && chapter.video && (
-                <button
-                  className={`small ghost video-link-btn${variation.videoTimestamp != null ? ' on' : ''}`}
-                  title={variation.videoTimestamp != null
-                    ? `Watch the video from ${fmtTime(variation.videoTimestamp)} — click to jump there`
-                    : 'Pause the video where the explanation for this line starts, then click here to link it'}
-                  onClick={() => {
-                    if (variation.videoTimestamp != null) {
-                      videoBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      videoRef.current?.seekTo(variation.videoTimestamp);
-                      return;
-                    }
-                    const seconds = videoRef.current?.getCurrentTime?.() ?? 0;
-                    dispatch({
-                      type: 'setVariationTimestamp', openingId, chapterId, variationId: variation.id, seconds,
-                    });
-                  }}
-                >
-                  <VideoIcon size={15} />
-                  {variation.videoTimestamp != null && (
-                    <span className="video-link-time">{fmtTime(variation.videoTimestamp)}</span>
-                  )}
-                </button>
-              )}
-              {showVideo && chapter.video && variation.videoTimestamp != null && (
-                <button
-                  className="small ghost"
-                  title="Unlink this line from the video"
-                  onClick={() => dispatch({
-                    type: 'setVariationTimestamp', openingId, chapterId, variationId: variation.id, seconds: null,
-                  })}
-                >
-                  ✕
-                </button>
-              )}
+              {hasVideos && (() => {
+                // The line's moment in the video — in which video, where the
+                // chapter has several — or the way to link it to one.
+                const link = linkOf(variation);
+                let title = 'Pause the video where the explanation for this line starts, then click here to link it';
+                if (link) {
+                  title = manyVideos
+                    ? `Watch “${link.name}” from ${fmtTime(link.at)} — click to bring it to the front and jump there`
+                    : `Watch the video from ${fmtTime(link.at)} — click to jump there`;
+                } else if (manyVideos) {
+                  title = 'Bring the right video to the front and pause it where the explanation for this line starts, then click here to link it';
+                }
+                return (
+                  <>
+                    <button
+                      className={`small ghost video-link-btn${link ? ' on' : ''}`}
+                      title={title}
+                      onClick={() => (link ? watchLink(link) : linkHere(variation))}
+                    >
+                      <VideoIcon size={15} />
+                      {link && manyVideos && <span className="video-link-n">{link.n}</span>}
+                      {link && <span className="video-link-time">{fmtTime(link.at)}</span>}
+                    </button>
+                    {link && (
+                      <button
+                        className="small ghost"
+                        title="Unlink this line from the video"
+                        onClick={() => unlink(variation)}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
               <span className="reorder">
                 <button
                   className="small ghost"

@@ -1,4 +1,5 @@
 import { sameStart, startFenOf, moveNumberLabel } from './startPos';
+import { lineBetween } from './chapterVideos';
 
 // Sub-variations, the way the Library already shows them: a section is a
 // folder ("Classical (Mainline) Variation") and each sub-section in it is a
@@ -135,15 +136,10 @@ export function mergeLine(into, from) {
   return out;
 }
 
-const videoOf = (c) => c?.video?.id ?? null;
-
-// A line's video timestamp is into its chapter's video: moved to a chapter
-// with a different video (or none), it would jump to the wrong film.
-const forChapter = (line, from, to) => {
-  if (line.videoTimestamp == null || videoOf(from) === videoOf(to)) return line;
-  const { videoTimestamp: _gone, ...rest } = line;
-  return rest;
-};
+// A line's video timestamp is into one of its chapter's videos: moved to a
+// chapter that doesn't have that video, it would jump into the wrong film —
+// so it keeps its moment only where the film came too (lib/chapterVideos.js).
+const forChapter = (line, from, to) => lineBetween(line, from, to);
 
 // Send lines from a chapter to a sub-variation of it — an existing chapter
 // (`toId`), or a new one (`newId` + `name`). The lines keep everything:

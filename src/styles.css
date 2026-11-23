@@ -207,6 +207,155 @@
 .cv-resume strong { font-variant-numeric: tabular-nums; }
 .cv-resume button { margin-left: auto; min-height: 36px; }
 
+/* How fast it plays (lib/videoSpeed.js): a step slower, a step faster, or
+   picked outright. Lit while it isn't normal speed, so a slowed-down video
+   doesn't look like a broken one. */
+.cv-speed { display: inline-flex; align-items: center; gap: 2px; }
+.cv-speed-label { font-size: 12.5px; margin-right: 4px; }
+.cv-speed button.cv-speed-step {
+  min-width: 30px; padding: 3px 0; font-size: 17px; line-height: 1.15; font-weight: 600;
+}
+.cv-speed select.cv-speed-pick {
+  padding: 3px 6px; font-size: 13px; border-radius: 6px; font-variant-numeric: tabular-nums;
+  font-weight: 600; cursor: pointer;
+}
+.cv-speed select.cv-speed-pick.on { border-color: var(--accent); color: var(--accent); }
+.cv-speed-note { font-size: 12.5px; margin-left: 6px; color: var(--amber); }
+
+/* Several videos in one chapter (components/ChapterVideos.jsx). The one being
+   watched is in front; the others stand behind it like cards, each a step up
+   and to the right so its name shows on the strip that sticks out. Pressing
+   one swaps the two: they draw apart side by side and come back together the
+   other way round (cv-to-front / cv-to-back below). */
+.cv-deck .chapter-video.empty { margin-top: -6px; }
+.cv-stack { position: relative; }
+.cv-stack.many {
+  --cv-up: 30px;   /* how far each card behind stands out above… */
+  --cv-out: 16px;  /* …and to the right */
+  --cv-layers: 1;
+  padding-top: calc(var(--cv-layers) * var(--cv-up));
+  padding-right: calc(var(--cv-layers) * var(--cv-out));
+  /* Which card is over which is the stack's own business: none of it rises
+     over the page's menus and bars. */
+  isolation: isolate;
+}
+.cv-stack.layers-2 { --cv-layers: 2; }
+.cv-stack.layers-3 { --cv-layers: 3; }
+.cv-stack.many > .cv-player { z-index: 6; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), -6px 8px 22px rgba(0, 0, 0, 0.45); }
+/* A card behind: the same box as the player, moved a step per place back. */
+.cv-stack button.cv-back {
+  position: absolute; left: 0; bottom: 0; display: block;
+  width: calc(100% - var(--cv-layers) * var(--cv-out));
+  height: calc(100% - var(--cv-layers) * var(--cv-up));
+  margin: 0; padding: 0; overflow: hidden;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: linear-gradient(135deg, #262c3a, #12151b);
+  color: #fff; text-align: left; font: inherit; cursor: pointer;
+  z-index: calc(5 - var(--i));
+  transform: translate(calc(var(--i) * var(--cv-out)), calc(var(--i) * -1 * var(--cv-up)));
+  filter: brightness(calc(1 - (var(--i) - 1) * 0.14));
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.2s, border-color 0.2s;
+}
+.cv-stack button.cv-back:hover,
+.cv-stack button.cv-back:focus-visible {
+  transform: translate(calc(var(--i) * var(--cv-out)), calc(var(--i) * -1 * var(--cv-up) - 6px));
+  border-color: var(--accent); filter: brightness(1.12); outline: none;
+}
+.cv-back-poster {
+  position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.6;
+}
+.cv-back-shade {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.78) 0, rgba(0, 0, 0, 0.5) 34px, rgba(0, 0, 0, 0.3) 100%);
+}
+/* Its name, on the strip that shows. */
+.cv-back-tab {
+  position: absolute; top: 0; left: 0; right: 0; height: var(--cv-up);
+  display: flex; align-items: center; gap: 8px; padding: 0 10px;
+  font-size: 13px; font-weight: 600; line-height: 1;
+}
+.cv-back-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cv-back-swap {
+  margin-left: auto; flex: none; font-size: 11.5px; font-weight: 500; opacity: 0.75; white-space: nowrap;
+}
+.cv-stack button.cv-back:hover .cv-back-swap,
+.cv-stack button.cv-back:focus-visible .cv-back-swap { opacity: 1; color: var(--accent); }
+/* A video's number among the chapter's: on its card, by its name under the
+   player, and on the lines linked into it. */
+.cv-back-n, .video-link-n {
+  display: inline-grid; place-items: center; flex: none;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--accent); color: #fff;
+  font-size: 11px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
+}
+.video-link-n { min-width: 15px; height: 15px; padding: 0 4px; font-size: 10px; }
+/* The name of the video in front, under it: press to change. */
+button.cv-name {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+  color: var(--text); text-decoration: none; text-align: left;
+}
+button.cv-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+button.cv-name svg { flex: none; color: var(--muted); }
+button.cv-name:hover svg { color: var(--accent); }
+/* More videos than fit as cards: all of them by name, above the stack. */
+.cv-names { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 -8px; }
+.cv-names button.cv-name-tab {
+  display: inline-flex; align-items: center; gap: 6px; max-width: min(260px, 100%);
+}
+.cv-names button.cv-name-tab.on { border-color: var(--accent); color: var(--accent); }
+
+/* The swap. Both cards shrink and draw apart until they're side by side —
+   nothing overlapping, so which is on top can change unseen — then grow back
+   into each other's place. The one coming forward is the player itself (out
+   from behind to the left, where the front sits); the one going back, its
+   card (off to the right, where the cards stand). */
+.cv-stack.many { --cv-from: 1; }
+.cv-stack.from-2 { --cv-from: 2; }
+.cv-stack.from-3 { --cv-from: 3; }
+.cv-stack.cv-swapping > .cv-player {
+  animation: cv-to-front 0.62s both;
+}
+.cv-stack button.cv-back.cv-just-back {
+  animation: cv-to-back 0.62s both;
+}
+@keyframes cv-to-front {
+  0% {
+    transform: translate(calc(var(--cv-from) * var(--cv-out)), calc(var(--cv-from) * -1 * var(--cv-up))) scale(1);
+    z-index: 1; animation-timing-function: cubic-bezier(0.5, 0, 0.6, 1);
+  }
+  49.9% { z-index: 1; }
+  50% {
+    transform: translate(-26.5%, 3%) scale(0.46);
+    z-index: 8; animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+  }
+  100% { transform: translate(0, 0) scale(1); z-index: 8; }
+}
+@keyframes cv-to-back {
+  0% {
+    transform: translate(0, 0) scale(1);
+    z-index: 7; filter: brightness(1); animation-timing-function: cubic-bezier(0.5, 0, 0.6, 1);
+  }
+  49.9% { z-index: 7; }
+  50% {
+    transform: translate(26.5%, -3%) scale(0.46);
+    z-index: 2; filter: brightness(1); animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+  }
+  100% {
+    transform: translate(calc(var(--i) * var(--cv-out)), calc(var(--i) * -1 * var(--cv-up))) scale(1);
+    z-index: calc(5 - var(--i));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cv-stack button.cv-back { transition: none; }
+  .cv-stack.cv-swapping > .cv-player,
+  .cv-stack button.cv-back.cv-just-back { animation: none; }
+}
+@media (max-width: 600px) {
+  .cv-stack.many { --cv-up: 28px; --cv-out: 9px; }
+  .cv-back-swap { font-size: 11px; }
+  .cv-speed-label { display: none; }
+}
+
 /* The camera icon on a variation card. */
 .video-link-btn { display: inline-flex; align-items: center; gap: 4px; }
 .video-link-btn.on { color: var(--accent); border-color: var(--accent); }

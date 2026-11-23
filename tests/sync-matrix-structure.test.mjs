@@ -54,6 +54,9 @@ import { curateInto, reorganise } from '../src/lib/curate.js';
 import { collectionPlan } from '../src/lib/collectionCopy.js';
 import { withSpot } from '../src/lib/videoSpots.js';
 import { stampChanges } from '../src/lib/settingStamps.js';
+import {
+  videosOf, addVideo, replaceVideo, removeVideo, withVideoCloud, withVideoTitle, linkLine,
+} from '../src/lib/chapterVideos.js';
 
 // ---------------------------------------------------------------------------
 // The app's own reducer and emptyState, straight from src/store.jsx.
@@ -76,9 +79,10 @@ const { reducer, emptyState } = (() => {
     'return { reducer, emptyState };',
   ].join('\n');
   // eslint-disable-next-line no-new-func
-  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', 'canonicalStartFen', 'fen4', 'sendToChapter', 'kidArtwork', 'kidArtForStudents', 'isKidArt', 'cleanGameReview', 'sameGameReview', 'curateInto', 'reorganise', 'collectionPlan', 'withSpot', 'stampChanges', body)(
+  return new Function('DEFAULT_SETTINGS', 'mergeLinkedGames', 'undoCoachChanges', 'defaultMonsterId', 'foldInFlight', 'sendLines', 'makeSub', 'leaveFolder', 'withFolderMates', 'arrangeTop', 'arrangeFolder', 'gatherIntoFolder', 'parseMarks', 'withText', 'withMarks', 'canonicalStartFen', 'fen4', 'sendToChapter', 'kidArtwork', 'kidArtForStudents', 'isKidArt', 'cleanGameReview', 'sameGameReview', 'curateInto', 'reorganise', 'collectionPlan', 'withSpot', 'stampChanges', 'videosOf', 'addVideo', 'replaceVideo', 'removeVideo', 'withVideoCloud', 'withVideoTitle', 'linkLine', body)(
     DEFAULT_SETTINGS, mergeLinkedGames, undoCoachChanges, defaultMonsterId, foldInFlight, sendLines, makeSub, leaveFolder, withFolderMates, arrangeTop, arrangeFolder, gatherIntoFolder, parseMarks, withText, withMarks, canonicalStartFen, fen4,
     sendToChapter, kidArtwork, kidArtForStudents, isKidArt, cleanGameReview, sameGameReview, curateInto, reorganise, collectionPlan, withSpot, stampChanges,
+    videosOf, addVideo, replaceVideo, removeVideo, withVideoCloud, withVideoTitle, linkLine,
   );
 })();
 
@@ -1553,4 +1557,133 @@ test('the store stamps a setting changed by something done here, and leaves alon
   assert.equal(folded.settings.volume, 0.4, 'and what the sync brought is kept beside it');
   assert.equal(folded.settings.changedAt.evalBar, during.settings.changedAt.evalBar);
   assert.equal(folded.settings.engineArrows, false);
+});
+
+// ---------------------------------------------------------------------------
+// Several videos in one chapter (lib/chapterVideos.js): the first where a
+// chapter's one video has always been, the others beside it, and each linked
+// line saying which video its moment is in.
+// ---------------------------------------------------------------------------
+const VID = {
+  simon: { id: 'vid-simon', kind: 'file', name: 'Simon.mp4', mime: 'video/mp4', size: 10, addedAt: 1 },
+  midas: { id: 'dQw4w9WgXcQ', kind: 'youtube', addedAt: 2, sourceUrl: 'https://youtu.be/dQw4w9WgXcQ' },
+  third: { id: '76979871', kind: 'vimeo', addedAt: 3, sourceUrl: 'https://vimeo.com/76979871' },
+};
+const advance = (st) => chapter(st, 'o-caro', 'c-advance');
+const videoIds = (st) => [advance(st).video, ...(advance(st).moreVideos ?? [])].filter(Boolean).map((v) => v.id);
+const linkOfLine = (st, name) => {
+  const v = advance(st).variations.find((x) => x.name === name);
+  return v.videoTimestamp == null ? null : [v.videoTimestamp, v.videoId ?? null];
+};
+const inAdvance = (extra) => ({ openingId: 'o-caro', chapterId: 'c-advance', ...extra });
+
+test('a chapter’s second video: added on the Mac, there on the iPad, each line linked into its own', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  const [short, tal] = advance(mac.state).variations.map((v) => v.id);
+
+  // One video, the way it has always been stored — nothing new on the chapter.
+  mac.do({ type: 'addChapterVideo', ...inAdvance({ video: VID.simon }) });
+  assert.deepEqual(advance(mac.state).video, VID.simon);
+  assert.equal('moreVideos' in advance(mac.state), false);
+  mac.do({ type: 'setVariationTimestamp', ...inAdvance({ variationId: short, seconds: 95, videoId: VID.simon.id }) });
+  await mac.sync();
+  await ipad.sync();
+  assert.deepEqual(videoIds(ipad.state), ['vid-simon']);
+  assert.equal('moreVideos' in advance(ipad.state), false);
+
+  // A second course's video, and a line linked to a moment in it.
+  mac.do({ type: 'addChapterVideo', ...inAdvance({ video: VID.midas }) });
+  mac.do({ type: 'setVariationTimestamp', ...inAdvance({ variationId: tal, seconds: 40, videoId: VID.midas.id }) });
+  mac.do({ type: 'setChapterVideoTitle', ...inAdvance({ videoId: VID.midas.id, title: 'Midas — the Tal' }) });
+  await mac.sync();
+  await ipad.sync();
+  for (const d of [mac, ipad]) {
+    assert.deepEqual(videoIds(d.state), ['vid-simon', 'dQw4w9WgXcQ'], d.label);
+    assert.deepEqual(linkOfLine(d.state, 'Short System'), [95, 'vid-simon'], d.label);
+    assert.deepEqual(linkOfLine(d.state, 'Tal Variation'), [40, 'dQw4w9WgXcQ'], d.label);
+    assert.equal(advance(d.state).moreVideos[0].title, 'Midas — the Tal', d.label);
+  }
+
+  // The file finishes uploading on the Mac: recorded on that video, wherever it sits.
+  mac.do({ type: 'setChapterVideoCloud', ...inAdvance({ videoId: VID.simon.id, cloud: { path: 'users/student1/videos/vid-simon', size: 10 } }) });
+  mac.do({ type: 'setChapterVideoCloud', ...inAdvance({ videoId: 'a-video-since-removed', cloud: { path: 'x' } }) });
+  await mac.sync();
+  await ipad.sync();
+  assert.deepEqual(advance(ipad.state).video.cloud, { path: 'users/student1/videos/vid-simon', size: 10 });
+
+  // Removed on the iPad: its line loses the link, the other keeps its own.
+  ipad.do({ type: 'removeChapterVideo', ...inAdvance({ videoId: VID.midas.id }) });
+  await ipad.sync();
+  await mac.sync();
+  for (const d of [mac, ipad]) {
+    assert.deepEqual(videoIds(d.state), ['vid-simon'], d.label);
+    assert.equal('moreVideos' in advance(d.state), false, `${d.label}: back to one video, stored as one`);
+    assert.deepEqual(linkOfLine(d.state, 'Short System'), [95, 'vid-simon'], d.label);
+    assert.equal(linkOfLine(d.state, 'Tal Variation'), null, d.label);
+  }
+});
+
+test('each device adds a different second video while apart: both are kept, in the same order everywhere', async () => {
+  const { mac, ipad } = await macAndIpadInSync();
+  const [short] = advance(mac.state).variations.map((v) => v.id);
+  mac.do({ type: 'setChapterVideo', ...inAdvance({ video: VID.simon }) }); // how the first one was always set
+  mac.do({ type: 'setVariationTimestamp', ...inAdvance({ variationId: short, seconds: 30 }) }); // a link from before lines named their video
+  await mac.sync();
+  await ipad.sync();
+  assert.deepEqual(linkOfLine(ipad.state, 'Short System'), [30, null]);
+
+  mac.do({ type: 'addChapterVideo', ...inAdvance({ video: VID.midas }) });
+  ipad.do({ type: 'addChapterVideo', ...inAdvance({ video: VID.third }) });
+  await mac.sync();
+  await ipad.sync();
+  await mac.sync();
+  await ipad.sync();
+  assert.deepEqual([...videoIds(mac.state)].sort(), ['76979871', 'dQw4w9WgXcQ', 'vid-simon']);
+  assert.deepEqual(videoIds(ipad.state), videoIds(mac.state), 'the same order on both');
+  assert.equal(videoIds(mac.state)[0], 'vid-simon', 'the first stays the first');
+  for (const d of [mac, ipad]) assert.deepEqual(linkOfLine(d.state, 'Short System'), [30, 'vid-simon'], `${d.label}: the old link now says which video`);
+
+  // Replaced on one, renamed on the other: the new file, with the name.
+  const better = { ...VID.third, id: '11111111' };
+  mac.do({ type: 'replaceChapterVideo', ...inAdvance({ videoId: VID.simon.id, video: { ...VID.simon, id: 'vid-simon-2' } }) });
+  ipad.do({ type: 'setChapterVideoTitle', ...inAdvance({ videoId: VID.midas.id, title: 'Midas' }) });
+  ipad.do({ type: 'replaceChapterVideo', ...inAdvance({ videoId: VID.third.id, video: better }) });
+  await mac.sync();
+  await ipad.sync();
+  await mac.sync();
+  for (const d of [mac, ipad]) {
+    assert.deepEqual([...videoIds(d.state)].sort(), ['11111111', 'dQw4w9WgXcQ', 'vid-simon-2'], d.label);
+    assert.deepEqual(linkOfLine(d.state, 'Short System'), [30, 'vid-simon-2'], `${d.label}: the link went with the replacement`);
+    const midas = [advance(d.state).video, ...advance(d.state).moreVideos].find((v) => v.id === VID.midas.id);
+    assert.equal(midas.title, 'Midas', d.label);
+  }
+});
+
+test('the chapter’s one video, set and removed the way it always was — and a line that has moved chapter isn’t linked into a video its new chapter doesn’t have', () => {
+  let st = buildLibrary(new Device('mac', 'Mac')).state;
+  const [short, tal] = advance(st).variations.map((v) => v.id);
+  const act = (action) => { st = reducer(st, action); };
+  act({ type: 'setChapterVideo', ...inAdvance({ video: VID.simon }) });
+  act({ type: 'setVariationTimestamp', ...inAdvance({ variationId: short, seconds: 12, videoId: VID.simon.id }) });
+  act({ type: 'setChapterVideo', ...inAdvance({ video: VID.midas }) });
+  assert.deepEqual(videoIds(st), ['dQw4w9WgXcQ'], 'replaced, not added to');
+  assert.deepEqual(linkOfLine(st, 'Short System'), [12, 'dQw4w9WgXcQ']);
+  act({ type: 'setChapterVideo', ...inAdvance({ video: null }) });
+  assert.equal(advance(st).video, null);
+  assert.equal(advance(st).variations.find((v) => v.id === short).videoTimestamp, 12, 'the moment waits for a replacement');
+  const same = st;
+  act({ type: 'setChapterVideo', ...inAdvance({ video: null }) });
+  assert.equal(st, same, 'nothing to remove: nothing changes');
+  act({ type: 'removeChapterVideo', ...inAdvance({ videoId: 'nope' }) });
+  act({ type: 'setChapterVideoTitle', ...inAdvance({ videoId: 'nope', title: 'x' }) });
+  assert.equal(st, same);
+
+  // The Tal line goes to the Exchange chapter while the Advance page is
+  // still open; "link it here" from that page names the Advance's video.
+  act({ type: 'addChapterVideo', ...inAdvance({ video: VID.simon }) });
+  act({ type: 'sendToChapter', from: { openingId: 'o-caro', chapterId: 'c-advance' }, to: { openingId: 'o-caro', chapterId: 'c-exchange' }, ids: [tal], mode: 'move' });
+  const moved = chapter(st, 'o-caro', 'c-exchange').variations.find((v) => v.id === tal);
+  assert.ok(moved, 'the line moved');
+  act({ type: 'setVariationTimestamp', ...inAdvance({ variationId: tal, seconds: 50, videoId: VID.simon.id }) });
+  assert.equal('videoTimestamp' in chapter(st, 'o-caro', 'c-exchange').variations.find((v) => v.id === tal), false);
 });

@@ -15,6 +15,9 @@ import { sendToChapter } from './lib/chapterTransfer';
 import { curateInto, reorganise } from './lib/curate';
 import { collectionPlan } from './lib/collectionCopy';
 import { withSpot } from './lib/videoSpots';
+import {
+  videosOf, addVideo, replaceVideo, removeVideo, withVideoCloud, withVideoTitle, linkLine,
+} from './lib/chapterVideos';
 import { kidArtwork, kidArtForStudents, isKidArt } from './lib/kidArtwork';
 import { cleanGameReview, sameGameReview } from './lib/analysisDoc';
 import { parseMarks, withText, withMarks } from './lib/marks';
@@ -137,11 +140,19 @@ function mapOpening(state, openingId, fn) {
   return changed ? { ...state, openings } : state;
 }
 
+// (A chapter `fn` hands back as it was leaves the opening — and so the state
+// — as it was: nothing to redraw, save or sync.)
 function mapChapter(state, openingId, chapterId, fn) {
-  return mapOpening(state, openingId, (o) => ({
-    ...o,
-    chapters: o.chapters.map((c) => (c.id === chapterId ? fn(c) : c)),
-  }));
+  return mapOpening(state, openingId, (o) => {
+    let changed = false;
+    const chapters = o.chapters.map((c) => {
+      if (c.id !== chapterId) return c;
+      const next = fn(c);
+      if (next !== c) changed = true;
+      return next;
+    });
+    return changed ? { ...o, chapters } : o;
+  });
 }
 
 // ---------- Ordering helpers ----------
@@ -666,30 +677,58 @@ function reduce(state, action) {
         return chapters === o.chapters ? o : { ...o, chapters };
       });
     }
-    // The video at the top of a chapter. `video` is metadata only (see
-    // lib/videoStore.js for the actual file) — set to null to remove it. The
-    // caller is responsible for deleting the stored blob first, since the
-    // reducer has no way to run that async cleanup itself.
+    // The videos at the top of a chapter (lib/chapterVideos.js: the first in
+    // `video`, where a chapter's one video has always been; any others in
+    // `moreVideos`). A `video` is metadata only (see lib/videoStore.js for the
+    // actual file). The caller is responsible for deleting a stored blob
+    // first, since the reducer has no way to run that async cleanup itself.
+    //
+    // The chapter's one video, set outright — null to remove it. (How it was
+    // done while a chapter had one: kept for that, and it still means "the
+    // first video".)
     case 'setChapterVideo':
-      return mapChapter(state, action.openingId, action.chapterId, (c) => ({
-        ...c,
-        video: action.video,
-      }));
+      return mapChapter(state, action.openingId, action.chapterId, (c) => {
+        const first = videosOf(c)[0];
+        if (!action.video) return first ? removeVideo(c, first.id) : c;
+        return first ? replaceVideo(c, first.id, action.video) : addVideo(c, action.video);
+      });
+    // Another video for the chapter: a second course's, a second part.
+    case 'addChapterVideo':
+      return mapChapter(state, action.openingId, action.chapterId, (c) => addVideo(c, action.video));
+    // One of them replaced by another, in its place; the lines linked to
+    // moments in it stay linked, in case the new one runs the same way.
+    case 'replaceChapterVideo':
+      return mapChapter(state, action.openingId, action.chapterId,
+        (c) => replaceVideo(c, action.videoId, action.video));
+    // One of them taken out. Lines linked to it lose that link while other
+    // videos remain; the last video leaves its moments for a replacement.
+    case 'removeChapterVideo':
+      return mapChapter(state, action.openingId, action.chapterId, (c) => removeVideo(c, action.videoId));
+    // A video's own name, to tell them apart ("Simon's course", "Part 2").
+    case 'setChapterVideoTitle':
+      return mapChapter(state, action.openingId, action.chapterId,
+        (c) => withVideoTitle(c, action.videoId, action.title));
     // A chapter's video, now in the cloud too (lib/cloud/videos.js) — only if
-    // it's still the chapter's video by the time the upload finishes.
+    // it's still one of the chapter's videos by the time the upload finishes.
     case 'setChapterVideoCloud':
-      return mapChapter(state, action.openingId, action.chapterId, (c) => (c.video?.id === action.videoId
-        ? { ...c, video: { ...c.video, cloud: action.cloud } }
-        : c));
-    // The moment in that video where a variation's explanation starts. Clears
-    // on its own if the video is ever removed — a stray timestamp with
-    // nothing to seek in is silently ignored rather than tracked as an error.
+      return mapChapter(state, action.openingId, action.chapterId,
+        (c) => withVideoCloud(c, action.videoId, action.cloud));
+    // The moment in a video where a variation's explanation starts, and which
+    // of the chapter's videos it's in (`videoId`; none: the first). A stray
+    // timestamp with nothing to seek in is silently ignored rather than
+    // tracked as an error.
     case 'setVariationTimestamp':
-      return mapChapter(state, action.openingId, action.chapterId, (c) => ({
-        ...c,
-        variations: c.variations.map((v) => (
-          v.id === action.variationId ? { ...v, videoTimestamp: action.seconds } : v)),
-      }));
+      return mapChapter(state, action.openingId, action.chapterId, (c) => {
+        // (The line went to another chapter while this one's page stayed
+        // open — FOLLOWS_LINE — and that chapter doesn't have this video: a
+        // moment in a film it can't play is no link at all.)
+        if (action.seconds != null && action.videoId && !videosOf(c).some((x) => x.id === action.videoId)) return c;
+        return {
+          ...c,
+          variations: c.variations.map((v) => (
+            v.id === action.variationId ? linkLine(v, action.seconds, action.videoId ?? null) : v)),
+        };
+      });
     case 'moveOpening':
       return { ...state, openings: moveInArray(state.openings, action.openingId, action.dir) };
     case 'moveChapter':

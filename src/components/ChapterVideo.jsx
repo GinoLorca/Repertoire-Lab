@@ -11,11 +11,23 @@ import { classifyVideoUrl, embedSrc, fmtTime } from '../lib/videoLinks';
 import {
   spotFor, spotOf, resumeAt, saveDeviceSpot, readYouTube, readVimeo, YOUTUBE_LISTEN, VIMEO_LISTEN,
 } from '../lib/videoSpots';
+import {
+  SPEEDS, nearestSpeed, stepSpeed, speedName, youTubeSpeed, vimeoSpeed, readSpeed, keepSpeed,
+} from '../lib/videoSpeed';
 import { uid, useStore } from '../store';
 import { UploadIcon, LinkIcon, PencilIcon } from './Icons';
 
 // One video at the top of a chapter, with the moment it's paused at capturable
 // as the timestamp for whichever variation that explanation belongs to.
+//
+// (A chapter can have several: components/ChapterVideos.jsx stacks them and
+// shows one of these for the video in front. What that needs of this one is
+// small — `startAt`, a moment to open at instead of where you left off;
+// `behind`, the cards of the videos behind it, drawn under the player;
+// `another`, the "add" strip worded for a chapter that already has a video;
+// `label` / `number` / `onRename`, the video's own name and place, the name
+// there to be changed; and `snapshot()` on the ref, the frame it's showing,
+// for its card once it's the one behind.)
 //
 // A file you upload is stored as a Blob in this device's IndexedDB (see
 // lib/videoStore.js) and plays with a native <video> element — no network
@@ -44,13 +56,19 @@ import { UploadIcon, LinkIcon, PencilIcon } from './Icons';
 // the end clears it. YouTube and Vimeo players report where they are by
 // postMessage, so they're remembered too, and "link this variation here"
 // takes the moment you're really at in them.
+// How fast it plays is yours to set (lib/videoSpeed.js): slower and faster
+// steps under the player, for a file, a YouTube video or a Vimeo one alike,
+// remembered on this device.
 const mb = (bytes) => `${Math.max(1, Math.round((bytes ?? 0) / 1024 / 1024))} MB`;
 const pct = (p) => `${Math.floor((p ?? 0) * 100)}%`;
 
 const ChapterVideo = forwardRef(({
   video, onChange, onCloud, hideEmpty = false,
+  startAt = null, behind = null, stackClass = '', another = false, removeText = null,
+  label = null, number = null, onRename = null,
 }, ref) => {
-  const [mode, setMode] = useState(null); // null | 'upload' | 'url'
+  const [mode, setMode] = useState(null); // null | 'upload' | 'url' | 'replace' | 'rename'
+  const [nameInput, setNameInput] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -78,14 +96,56 @@ const ChapterVideo = forwardRef(({
   const { state, dispatch } = useStore();
   const synced = state.settings?.videoSpots;
   const key = video?.id ?? null;
-  const [resume, setResume] = useState(() => resumeAt(spotOf(key, synced)));
-  const [embedStart, setEmbedStart] = useState(() => resume ?? 0);
+  // (Opened at a line's own moment — `startAt` — it goes there instead, and
+  // says nothing of where you left off.)
+  const [resume, setResume] = useState(() => (startAt != null ? null : resumeAt(spotOf(key, synced))));
+  const [embedStart, setEmbedStart] = useState(() => startAt ?? resume ?? 0);
   const [live, setLive] = useState(false); // an embed has said where it is
-  const pendingSeek = useRef(resume);
+  const pendingSeek = useRef(startAt ?? resume);
   const keyRef = useRef(key);
-  const last = useRef({ at: 0, dur: null }); // where it is now, and how long
-  const touched = useRef(false); // played since it opened: only then is a spot saved
+  const last = useRef({ at: startAt ?? 0, dur: null }); // where it is now, and how long
+  const touched = useRef(startAt != null); // played since it opened: only then is a spot saved
+  const playOnOpen = useRef(startAt != null); // opened at a line's moment: it plays from there
   const savedAt = useRef(0);
+
+  // How fast it plays. A <video> takes the rate itself. A YouTube or Vimeo
+  // player is told — again, until it says it's at that speed, since one that
+  // has only just loaded isn't listening yet — and, once it has taken ours,
+  // believed when it reports another (its own speed menu was used). One that
+  // refuses (Vimeo, where the video's owner hasn't allowed it) is said so.
+  const [rate, setRate] = useState(readSpeed);
+  const rateRef = useRef(rate);
+  rateRef.current = rate;
+  const [rateRefused, setRateRefused] = useState(null); // why a player wouldn't take the speed
+  const fresh = () => ({
+    confirmed: false, refused: false, tries: 0, at: 0, asks: 0,
+  });
+  const told = useRef(fresh());
+  const loadedFrame = useRef(null); // the embed's frame, once it has loaded (a reload is a new one)
+  const heard = useRef(false); // …and whether it has said anything since
+  const tellEmbed = () => {
+    const win = frameRef.current?.contentWindow;
+    if (!win || loadedFrame.current !== frameRef.current) return;
+    told.current.at = Date.now();
+    told.current.tries += 1;
+    if (video?.kind === 'youtube') win.postMessage(youTubeSpeed(rateRef.current), 'https://www.youtube.com');
+    else if (video?.kind === 'vimeo') win.postMessage(vimeoSpeed(rateRef.current), 'https://player.vimeo.com');
+  };
+  const chooseRate = (r) => {
+    const next = nearestSpeed(r);
+    rateRef.current = next;
+    told.current = { ...fresh(), asks: told.current.asks };
+    setRateRefused(null);
+    setRate(next);
+    keepSpeed(next);
+  };
+  // What a player says its speed is.
+  const heardRate = (r) => {
+    if (!Number.isFinite(r)) return;
+    const t = told.current;
+    if (nearestSpeed(r) === rateRef.current) { t.confirmed = true; return; }
+    if (t.confirmed) chooseRate(r);
+  };
 
   // Another video in this chapter (or another chapter): its own spot.
   useEffect(() => {
@@ -157,6 +217,20 @@ const ChapterVideo = forwardRef(({
       pendingSeek.current = null;
       last.current = { ...last.current, dur: e.currentTarget.duration };
       if (to != null && to < (e.currentTarget.duration || Infinity)) e.currentTarget.currentTime = to;
+      // A new source plays at the browser's default again: at ours.
+      e.currentTarget.defaultPlaybackRate = rateRef.current;
+      e.currentTarget.playbackRate = rateRef.current;
+      // Brought to the front for a line's moment: it plays from there, as
+      // jumping within the one in front does (where the browser allows it).
+      if (playOnOpen.current) {
+        playOnOpen.current = false;
+        e.currentTarget.play()?.catch?.(() => {});
+      }
+    },
+    // The browser's own speed menu (⋮ on its controls) was used: ours follows.
+    onRateChange: (e) => {
+      const r = e.currentTarget.playbackRate;
+      if (Number.isFinite(r) && r > 0 && nearestSpeed(r) !== rateRef.current) chooseRate(r);
     },
     onTimeUpdate: (e) => moved(e.currentTarget.currentTime, e.currentTarget.duration),
     onPlay: () => { touched.current = true; },
@@ -179,7 +253,13 @@ const ChapterVideo = forwardRef(({
       if (!win || e.source !== win) return;
       const r = video.kind === 'youtube' ? readYouTube(e.data) : readVimeo(e.data);
       if (!r) return;
+      // The first word from a player that has just (re)loaded: it's listening
+      // now, so it's told the speed.
+      heard.current = true;
+      if (told.current.at === 0) tellEmbed();
       if (r.ready) { ask(); return; }
+      if (r.rateRefused) { told.current.refused = true; setRateRefused(r.rateRefused); return; }
+      heardRate(r.rate);
       if (r.playing) touched.current = true;
       if (Number.isFinite(r.at)) { setLive(true); moved(r.at, r.dur); }
       if (r.ended) { saveRef.current(true, true); setResume(null); } else if (r.paused) saveRef.current(true);
@@ -187,6 +267,32 @@ const ChapterVideo = forwardRef(({
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
   }, [key, video?.kind]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The speed, set: on the <video> that's there, or told to the embed.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (el) { el.defaultPlaybackRate = rate; el.playbackRate = rate; }
+    if (isEmbedKind) tellEmbed();
+  }, [rate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // An embed that has only just loaded isn't listening for its first moments
+  // (YouTube's own script asks over and over until it's answered, for the
+  // same reason). So: asked to report until it says something, then told the
+  // speed until it says it's at it — a handful of times, then left alone.
+  useEffect(() => {
+    if (!isEmbedKind) return undefined;
+    const timer = setInterval(() => {
+      if (!frameRef.current || loadedFrame.current !== frameRef.current) return;
+      const t = told.current;
+      if (!heard.current) {
+        if (t.asks < 24) { t.asks += 1; ask(); }
+        return;
+      }
+      if (t.confirmed || t.refused || t.tries >= 8) return;
+      if (Date.now() - t.at >= 900) tellEmbed();
+    }, 500);
+    return () => clearInterval(timer);
+  }, [key, isEmbedKind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Back to the beginning: the bookmark goes, everywhere.
   const startOver = () => {
@@ -280,6 +386,9 @@ const ChapterVideo = forwardRef(({
         videoRef.current.currentTime = seconds;
         videoRef.current.play().catch(() => {}); // autoplay can be blocked; a paused seek is still a correct jump
       } else if (video?.kind === 'youtube' || video?.kind === 'vimeo') {
+        // (Where it is now, until the reloaded player says so itself: what
+        // "where you left off" keeps if you leave before it does.)
+        last.current = { ...last.current, at: seconds };
         setEmbedStart(seconds);
         setCurrentTime(seconds);
         setReloadKey((k) => k + 1);
@@ -290,6 +399,23 @@ const ChapterVideo = forwardRef(({
     // doesn't) gives the moment it was last (re)loaded at.
     getCurrentTime: () => (isEmbedKind && !live ? embedStart : currentTime),
     openAdd(which) { setMode(which); setError(null); },
+    // The frame it's showing, as a small picture — its card's face once it's
+    // the video behind (components/ChapterVideos.jsx). Only a file playing
+    // from this device can be read like this; anything else gives none.
+    snapshot() {
+      const el = videoRef.current;
+      if (!el || !el.videoWidth || el.readyState < 2) return null;
+      try {
+        const w = Math.min(480, el.videoWidth);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = Math.round(w * (el.videoHeight / el.videoWidth));
+        canvas.getContext('2d').drawImage(el, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL('image/jpeg', 0.72);
+      } catch {
+        return null; // frames from another site aren't this page's to read
+      }
+    },
   }), [currentTime, live, embedStart, isEmbedKind]);
 
   const upload = async (file) => {
@@ -364,8 +490,13 @@ const ChapterVideo = forwardRef(({
     setError(null);
   };
 
+  const saveName = () => {
+    onRename?.(nameInput);
+    setMode(null);
+  };
+
   const remove = () => {
-    if (!window.confirm('Remove this chapter’s video? Variations linked to a moment in it keep their timestamp, in case a replacement video runs the same way.')) return;
+    if (!window.confirm(removeText ?? 'Remove this chapter’s video? Variations linked to a moment in it keep their timestamp, in case a replacement video runs the same way.')) return;
     if (video?.kind === 'file') deleteVideo(video.id).catch(() => {});
     if (video?.cloud?.path) deleteCloudVideo(video.cloud.path);
     onChange(null);
@@ -378,7 +509,7 @@ const ChapterVideo = forwardRef(({
         {mode === null ? (
           <div className="cv-add-row">
             <button className="small ghost" onClick={() => setMode('upload')}>
-              <UploadIcon size={14} /> Add a video for this chapter
+              <UploadIcon size={14} /> {another ? 'Add another video' : 'Add a video for this chapter'}
             </button>
             <button className="small ghost" onClick={() => setMode('url')}>
               <LinkIcon size={14} /> …or paste a link
@@ -438,8 +569,13 @@ const ChapterVideo = forwardRef(({
     return fileStatus === 'missing' ? 'Not on this device' : '';
   };
 
+  const canPlay = isEmbed || video.kind === 'file-url' || fileStatus !== 'missing' || Boolean(streamUrl);
   return (
     <div className="chapter-video">
+      {/* The player — and, where the chapter has more videos, their cards
+          behind it (components/ChapterVideos.jsx). */}
+      <div className={`cv-stack${stackClass ? ` ${stackClass}` : ''}`}>
+      {behind}
       <div className={`cv-player${video.kind === 'file' && fileStatus === 'missing' ? ' missing' : ''}`}>
         {video.kind === 'file' && streamUrl && (
           <video
@@ -496,7 +632,13 @@ const ChapterVideo = forwardRef(({
           <iframe
             key={reloadKey}
             ref={frameRef}
-            onLoad={ask}
+            onLoad={(e) => {
+              loadedFrame.current = e.currentTarget;
+              heard.current = false;
+              told.current = fresh();
+              setRateRefused(null);
+              ask();
+            }}
             title={video.name || 'Chapter video'}
             src={embedSrc(video, embedStart, { origin: typeof window !== 'undefined' ? window.location.origin : undefined })}
             allow="accelerate-compute; autoplay; encrypted-media; picture-in-picture"
@@ -513,6 +655,7 @@ const ChapterVideo = forwardRef(({
           />
         )}
       </div>
+      </div>
       {resume != null && (
         <div className="cv-resume" role="status">
           <span>Picking up where you left off · <strong>{fmtTime(resume)}</strong></span>
@@ -520,6 +663,17 @@ const ChapterVideo = forwardRef(({
         </div>
       )}
       <div className="cv-bar">
+        {label != null && (
+          <button
+            type="button"
+            className="linkish cv-name"
+            title="This video’s name — click to change it"
+            onClick={() => { setNameInput(video.title ?? ''); setMode(mode === 'rename' ? null : 'rename'); }}
+          >
+            {number != null && <span className="cv-back-n">{number}</span>}
+            <strong>{label}</strong> <PencilIcon size={12} />
+          </button>
+        )}
         <span className="muted-note cv-source">
           {video.kind === 'file'
             ? fileLine()
@@ -529,11 +683,69 @@ const ChapterVideo = forwardRef(({
         {((!isEmbed && (fileStatus !== 'missing' || streamUrl)) || (isEmbed && live)) && (
           <span className="muted-note cv-time">{fmtTime(currentTime)}</span>
         )}
+        {/* How fast it plays: a step slower, a step faster, or picked outright. */}
+        {canPlay && (
+          <span className="cv-speed" role="group" aria-label="Playback speed">
+            <span className="muted-note cv-speed-label" aria-hidden="true">Speed</span>
+            <button
+              type="button"
+              className="small ghost cv-speed-step"
+              title="Slower"
+              aria-label="Slower"
+              disabled={rate <= SPEEDS[0]}
+              onClick={() => chooseRate(stepSpeed(rate, -1))}
+            >
+              −
+            </button>
+            <select
+              className={`cv-speed-pick${rate !== 1 ? ' on' : ''}`}
+              aria-label="Playback speed"
+              title="Playback speed"
+              value={String(rate)}
+              onChange={(e) => chooseRate(Number(e.target.value))}
+            >
+              {SPEEDS.map((s) => <option key={s} value={String(s)}>{speedName(s)}</option>)}
+            </select>
+            <button
+              type="button"
+              className="small ghost cv-speed-step"
+              title="Faster"
+              aria-label="Faster"
+              disabled={rate >= SPEEDS[SPEEDS.length - 1]}
+              onClick={() => chooseRate(stepSpeed(rate, 1))}
+            >
+              +
+            </button>
+            {/* A player that wouldn't take it: said, not left looking set. */}
+            {rateRefused && (
+              <span className="muted-note cv-speed-note" role="status">
+                {rateRefused === 'RangeError'
+                  ? 'Vimeo can’t play this video at that speed'
+                  : 'This Vimeo video doesn’t allow changing its speed'}
+              </span>
+            )}
+          </span>
+        )}
         <button className="small ghost" title="Replace this video" onClick={() => setMode('replace')}>
           <PencilIcon size={13} /> Replace
         </button>
         <button className="small ghost danger" onClick={remove}>Remove</button>
       </div>
+      {mode === 'rename' && (
+        <div className="cv-add-row">
+          <input
+            type="text"
+            autoFocus
+            maxLength={80}
+            placeholder="A name for this video — the course it’s from, what it covers"
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setMode(null); }}
+          />
+          <button className="small primary" onClick={saveName}>Save name</button>
+          <button className="small ghost" onClick={() => setMode(null)}>Cancel</button>
+        </div>
+      )}
       {mode === 'replace' && (
         <div className="cv-add-row">
           <input

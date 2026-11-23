@@ -34,6 +34,7 @@ import { watchAuth } from '../lib/cloud/auth';
 import { loadProfile } from '../lib/cloud/profile';
 import { fmtTime } from '../lib/videoLinks';
 import { spotOf, resumeAt } from '../lib/videoSpots';
+import { hasVideo, videosOf } from '../lib/chapterVideos';
 
 function openingTotals(opening) {
   return opening.chapters.reduce(
@@ -177,21 +178,27 @@ function tallyChapters(chapters) {
 // Not shown while chapter videos are turned off in Settings.
 const VIDEO_FROM = { youtube: 'a YouTube video', vimeo: 'a Vimeo video', file: 'an uploaded video', 'file-url': 'a video link' };
 // Partway through one, it says where you left off (lib/videoSpots.js); a
-// folder, how many of its videos you're partway through.
+// folder — or a chapter with several videos (lib/chapterVideos.js) — how many
+// there are and how many you're partway through.
 function VideoMark({ chapters }) {
   const { state } = useStore();
   if (state.settings.showChapterVideos === false) return null;
-  const withVideo = chapters.filter((c) => c.video);
+  const withVideo = chapters.filter(hasVideo);
   if (!withVideo.length) return null;
-  const one = chapters.length === 1;
-  const spots = withVideo.map((c) => resumeAt(spotOf(c.video.id, state.settings.videoSpots)));
+  const all = withVideo.flatMap((c) => videosOf(c));
+  const spots = all.map((v) => resumeAt(spotOf(v.id, state.settings.videoSpots)));
   const started = spots.filter((at) => at != null).length;
-  const label = one
+  const partway = started ? ` — ${started} you’re partway through` : '';
+  // One chapter with its one video: where you left off in it.
+  const single = chapters.length === 1 && all.length === 1;
+  const label = single
     ? `Video${spots[0] != null ? ` · ${fmtTime(spots[0])}` : ''}`
-    : `${withVideo.length} video${withVideo.length === 1 ? '' : 's'}${started ? ` · ${started} started` : ''}`;
-  const title = one
-    ? `This chapter has ${VIDEO_FROM[withVideo[0].video.kind] ?? 'a video'}${spots[0] != null ? ` — you left off at ${fmtTime(spots[0])}` : ''}`
-    : `${withVideo.length} of the ${chapters.length} chapters here have a video${started ? ` — ${started} you’re partway through` : ''}`;
+    : `${all.length} video${all.length === 1 ? '' : 's'}${started ? ` · ${started} started` : ''}`;
+  let title;
+  if (single) title = `This chapter has ${VIDEO_FROM[all[0].kind] ?? 'a video'}${spots[0] != null ? ` — you left off at ${fmtTime(spots[0])}` : ''}`;
+  else if (chapters.length === 1) title = `This chapter has ${all.length} videos${partway}`;
+  else if (all.length === withVideo.length) title = `${withVideo.length} of the ${chapters.length} chapters here have a video${partway}`;
+  else title = `${all.length} videos, in ${withVideo.length} of the ${chapters.length} chapters here${partway}`;
   return (
     <span className={`chapter-video-mark${started ? ' started' : ''}`} title={title} aria-label={title}>
       <VideoIcon size={15} /> {label}
@@ -516,8 +523,9 @@ function GuidePlanModal({ plan, studentName, canSend, onBackup, onApply, onSend,
                   </div>
                   {p.videos.length > 0 && (
                     <div className="muted-note guide-plan-video">
-                      {p.videos[0]}’s video stays with the guide
-                      {p.videos.length > 1 && `; ${p.videos.slice(1).join(', ')}’s ${p.videos.length > 2 ? 'videos don’t' : 'video doesn’t'} carry over (a chapter has one video)`}.
+                      {p.videos.length === 1
+                        ? `${p.videos[0]}’s video stays with the guide`
+                        : `The videos of ${p.videos.slice(0, -1).join(', ')} and ${p.videos[p.videos.length - 1]} all go with the guide — each line still linked to its moment in its own`}.
                     </div>
                   )}
                 </div>

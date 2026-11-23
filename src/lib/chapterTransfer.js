@@ -25,8 +25,8 @@ export function planSend(openings, { from, to, ids }) {
 
 // The openings afterwards. A copy is a new line (`newId` gives its id), to be
 // learned there afresh, with the same moves, notes, arrows, glyphs and
-// themes; a moved line takes its progress with it. Either way a link to the
-// old chapter's video stays behind — the video is that chapter's.
+// themes; a moved line takes its progress with it. Either way a link to one
+// of the old chapter's videos stays behind — the videos are that chapter's.
 export function sendToChapter(openings, {
   from, to, ids, mode,
 }, newId) {
@@ -35,7 +35,7 @@ export function sendToChapter(openings, {
   if (!lines.length) return openings;
   const going = new Set(lines.map((v) => v.id));
   const arriving = lines.map((v) => {
-    const { videoTimestamp, ...rest } = v; // eslint-disable-line no-unused-vars
+    const { videoTimestamp, videoId, ...rest } = v; // eslint-disable-line no-unused-vars
     return mode === 'copy' ? { ...rest, id: newId(), learned: false, srs: null } : rest;
   });
   return openings.map((o) => {

@@ -14,6 +14,7 @@
 //     holding every line its chapters and courses held, with all their
 //     progress. guidePlan says beforehand exactly what will change.
 import { fen4 } from './startPos';
+import { gatherVideos, hasVideo } from './chapterVideos';
 
 export const GUIDE_NAME = 'Quickstarter Guide';
 
@@ -143,7 +144,8 @@ const isCurated = (o) => !(o.courses ?? []).length && (o.chapters ?? []).length 
 // What the reorganisation will do, opening by opening, before it's done:
 // [{ openingId, opening, ownerId, student, courses: [names], guide,
 //    chapters: [{ name, course, lines, video }], lines, videos: [chapter names] }]
-// Of `videos`, the first stays with the guide; any others don't carry over.
+// `videos`: the chapters that have any. Every one of them goes to the guide
+// (a chapter holds as many as it needs: lib/chapterVideos.js).
 export function guidePlan(openings, players = []) {
   const name = (id) => players.find((p) => p.id === id)?.name ?? 'Student';
   const out = [];
@@ -151,7 +153,7 @@ export function guidePlan(openings, players = []) {
     if (isCoachOwn(o) || isCurated(o)) continue;
     const courseName = (id) => (o.courses ?? []).find((c) => c.id === id)?.name ?? null;
     const chapters = (o.chapters ?? []).map((c) => ({
-      name: c.name, course: courseName(c.courseId), lines: c.variations.length, video: Boolean(c.video),
+      name: c.name, course: courseName(c.courseId), lines: c.variations.length, video: hasVideo(c),
     }));
     out.push({
       openingId: o.id,
@@ -172,31 +174,30 @@ export function guidePlan(openings, players = []) {
 
 // One student opening as a single curated chapter. Lines keep their ids and
 // progress; what they took from their chapter — its themes, its star — goes
-// onto them, so Collections still finds them. A chapter has one video, so the
-// first chapter's video stays; lines from other chapters with a video lose
-// their moment in it rather than point into the wrong one.
+// onto them, so Collections still finds them. Every chapter's videos come
+// along too (the guide's own first, then the rest in order), and each line
+// stays linked to its moment in its own one (lib/chapterVideos.js).
 function intoGuide(o, chapterId, guideName, started = null) {
   const seen = new Set();
   const lines = [];
   // The started guide's own lines first, then everything else in order.
   const order = started ? [started, ...o.chapters.filter((c) => c !== started)] : (o.chapters ?? []);
-  const kept = started?.video ? started : (o.chapters ?? []).find((c) => c.video);
-  const video = kept?.video;
+  const films = gatherVideos(order);
   for (const c of order) {
     for (const v of c.variations ?? []) {
       if (seen.has(v.id)) continue;
       seen.add(v.id);
       const tags = [...new Set([...(c.tags ?? []), ...(v.tags ?? [])])];
-      const line = { ...v, ...(tags.length ? { tags } : {}), ...(c.starred && !v.starred ? { starred: true } : {}) };
-      if (c !== kept && 'videoTimestamp' in line) delete line.videoTimestamp;
-      lines.push(line);
+      lines.push(films.line(
+        { ...v, ...(tags.length ? { tags } : {}), ...(c.starred && !v.starred ? { starred: true } : {}) },
+        c,
+      ));
     }
   }
-  const guide = {
+  const guide = films.onto({
     ...(started ? { ...started } : {}),
     id: chapterId, name: guideName, curated: true, courseId: null, section: null, subsection: null, variations: lines,
-    ...(video ? { video } : {}),
-  };
+  });
   const next = { ...o, courses: [], chapters: [guide] };
   delete next.freeChapterOrder;
   return next;

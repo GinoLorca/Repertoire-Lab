@@ -73,20 +73,27 @@ test('the plan says what will change; the change keeps every line and its progre
   assert.equal(moved.get('sch1|s1'), 'guide1');
   assert.equal(openings[0], coach);
 
-  // two chapters with videos: the first video stays, and lines from the other
-  // lose their moment in a video that's no longer theirs
+  // two chapters with videos: both go with the guide (a chapter holds several:
+  // lib/chapterVideos.js), the first chapter's first, and every line stays
+  // linked to its moment in its own
   const two = {
     ...studentOpening,
     chapters: [
       { ...studentOpening.chapters[0], variations: [{ ...studentOpening.chapters[0].variations[0], videoTimestamp: 30 }] },
       { id: 'sch3', name: 'Other', video: { id: 'vid2' }, variations: [line('s3', 'X', ['e4'], { videoTimestamp: 12 })] },
+      { id: 'sch4', name: 'No film', variations: [line('s4', 'Y', ['c4'], { videoTimestamp: 7 })] },
     ],
   };
   assert.deepEqual(guidePlan([two])[0].videos, ['Mainline 3.e6', 'Other']);
   const g2 = reorganise([two], {}, () => 'g2').openings[0].chapters[0];
   assert.deepEqual(g2.video, { id: 'vid1' });
-  assert.equal(g2.variations[0].videoTimestamp, 30);
-  assert.equal('videoTimestamp' in g2.variations[1], false);
+  assert.deepEqual(g2.moreVideos, [{ id: 'vid2' }], 'the other chapter’s video comes too');
+  assert.deepEqual([g2.variations[0].videoTimestamp, g2.variations[0].videoId], [30, 'vid1']);
+  assert.deepEqual([g2.variations[1].videoTimestamp, g2.variations[1].videoId], [12, 'vid2'], 'still in its own video');
+  assert.equal('videoTimestamp' in g2.variations[2], false, 'a moment with no video to be in is dropped');
+  // one video among them all: stored as a chapter's one video always was
+  assert.equal('moreVideos' in g, false);
+  assert.equal('videoId' in g.variations[0], false);
 
   // done once: an opening already curated isn't planned or changed again
   assert.equal(guidePlan(openings).length, 0);

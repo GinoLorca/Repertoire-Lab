@@ -109,6 +109,8 @@ export function readYouTube(data) {
   if (info.playerState === 0) out.ended = true;
   if (info.playerState === 2) out.paused = true;
   if (info.playerState === 1) out.playing = true;
+  // The speed it's playing at (lib/videoSpeed.js), when it says.
+  if (Number.isFinite(info.playbackRate) && info.playbackRate > 0) out.rate = info.playbackRate;
   return Object.keys(out).length ? out : null;
 }
 
@@ -116,8 +118,23 @@ export function readYouTube(data) {
 // then "timeupdate" / "pause" / "ended" with { seconds, duration }.
 export function readVimeo(data) {
   const m = asObj(data);
-  if (!m || typeof m.event !== 'string') return null;
+  if (!m) return null;
+  // Its answer to being told a speed (lib/videoSpeed.js): the speed it took…
+  if (m.method === 'setPlaybackRate' && m.event === undefined) {
+    return Number.isFinite(m.value) && m.value > 0 ? { rate: m.value } : null;
+  }
+  if (typeof m.event !== 'string') return null;
   if (m.event === 'ready') return { ready: true };
+  // …or that it won't: the video's owner hasn't allowed speed changes, or
+  // it's a speed this player doesn't do ("RangeError").
+  if (m.event === 'error') {
+    return m.data?.method === 'setPlaybackRate' ? { rateRefused: String(m.data.name || 'Error') } : null;
+  }
+  // Its speed changed (from its own menu, or as asked).
+  if (m.event === 'playbackratechange') {
+    const rate = m.data?.playbackRate;
+    return Number.isFinite(rate) && rate > 0 ? { rate } : null;
+  }
   if (!['timeupdate', 'pause', 'ended', 'play', 'seeked'].includes(m.event)) return null;
   const d = m.data ?? {};
   const out = {};
@@ -131,5 +148,5 @@ export function readVimeo(data) {
 
 // What to send a player so it starts reporting.
 export const YOUTUBE_LISTEN = JSON.stringify({ event: 'listening', id: 'rl-video', channel: 'widget' });
-export const VIMEO_LISTEN = ['timeupdate', 'pause', 'ended', 'play', 'seeked']
+export const VIMEO_LISTEN = ['timeupdate', 'pause', 'ended', 'play', 'seeked', 'playbackratechange']
   .map((value) => JSON.stringify({ method: 'addEventListener', value }));
