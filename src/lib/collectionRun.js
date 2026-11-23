@@ -2,25 +2,29 @@
 //
 // A collection — Favorites, or a theme like "bishop trapping plan" — gathers
 // like-minded lines from all over the repertoire. Learn or Practice on one of
-// its lines runs the collection: every line it covers, beginning with the one
-// pressed and going round to the ones before it. (It used to run that line
-// and then carry on through the line's chapter — whose other lines have
-// nothing to do with the collection.)
+// its rows runs the collection: every line it covers, beginning with the row
+// pressed and going round to the ones before it. (A line used to run and then
+// carry on through its chapter — whose other lines have nothing to do with
+// the collection; a chapter or an opening in a collection ran alone.)
+//
+// A row is a single line, or a whole chapter or opening the collection
+// covers: pressed, the run begins with that chapter's (opening's) lines.
 //
 // The order is the order the collection lists things in: what whole openings
-// cover, then whole chapters, then the single lines — so the line after the
-// one you pressed is the next row down the page. A line covered twice (its
+// cover, then whole chapters, then the single lines — so what follows the row
+// you pressed is the next row down the page. A line covered twice (its
 // chapter is in the collection and so is it) comes once.
 //
 // The scope that asks for this (what Collections hands to startPractice):
 //   { tag } or { starred: true }   which collection
 //   ownerId                        whose — null yours, else a student's
-//   startAt                        the line pressed (a variation id)
+//   startAt                        the row pressed: a line's id, or
+//                                  { chapterId } / { openingId }
 //   mode                           'learn' or 'practice', for every line
 //
 // Pure functions; tests/collectionRun.test.mjs.
 
-// Whether a scope is a collection played from one of its lines.
+// Whether a scope is a collection played from one of its rows.
 export const isCollectionRun = (scope) => Boolean(scope?.startAt && (scope.tag || scope.starred));
 
 // What the collection is called on screen.
@@ -54,12 +58,21 @@ export function collectionLines(openings, { tag = null, starred = false } = {}) 
   return out;
 }
 
-// The session: the lines from the one pressed, round to the ones before it,
-// each of the kind asked for. A line that has left the collection since (or
-// none named) starts it from the top.
+// Whether a line is (in) the row a run starts at.
+const startsAt = (startAt) => {
+  if (typeof startAt === 'string') return (it) => it.variation.id === startAt;
+  if (startAt?.chapterId) return (it) => it.chapter.id === startAt.chapterId;
+  if (startAt?.openingId) return (it) => it.opening.id === startAt.openingId;
+  return () => false;
+};
+
+// The session: the lines from the row pressed — a chapter's or an opening's
+// come together, so that's all of them — round to the ones before it, each of
+// the kind asked for. A row that has left the collection since (or none
+// named) starts it from the top.
 export function collectionRun(lines, startAt, kind = 'practice') {
   const list = lines ?? [];
-  const at = list.findIndex((it) => it.variation.id === startAt);
+  const at = list.findIndex(startsAt(startAt));
   const ordered = at > 0 ? [...list.slice(at), ...list.slice(0, at)] : list;
   return ordered.map((it) => ({ ...it, kind }));
 }

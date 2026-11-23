@@ -78,6 +78,33 @@ test('Learn or Practice on a line: that line first, then the rest of the collect
   assert.equal(lines[0].kind, undefined, 'the lines themselves aren’t touched');
 });
 
+test('a whole chapter or opening as the row pressed: its lines first — all of them, together — then the rest, round', () => {
+  // Favorites lists the starred chapter (b1, b2), then the single stars (a1, k1).
+  const fav = collectionLines(mine, { starred: true });
+  assert.deepEqual(ids(collectionRun(fav, { chapterId: 'bf5' }, 'learn')), ['b1', 'b2', 'a1', 'k1']);
+  assert.ok(collectionRun(fav, { chapterId: 'bf5' }, 'learn').every((it) => it.kind === 'learn'), 'every line the way you asked');
+  // A theme on a whole opening, a chapter of another, and a line (as above).
+  const themed = [
+    { ...mine[0], chapters: [{ ...mine[0].chapters[0], variations: [line('a1', { tags: ['Plans'] }), line('a2')] }, { ...mine[0].chapters[1], tags: ['Plans'] }] },
+    { ...mine[1], tags: ['Plans'] },
+  ];
+  const plans = collectionLines(themed, { tag: 'Plans' });
+  assert.deepEqual(ids(plans), ['k1', 'k2', 'b1', 'b2', 'a1']);
+  assert.deepEqual(ids(collectionRun(plans, { chapterId: 'bf5' }, 'practice')), ['b1', 'b2', 'a1', 'k1', 'k2'], 'from the chapter: its two lines, the line after, then round to the opening’s');
+  assert.deepEqual(ids(collectionRun(plans, { openingId: 'caro' }, 'practice')), ['k1', 'k2', 'b1', 'b2', 'a1'], 'from the opening: its lines, then the rest');
+  assert.deepEqual(ids(collectionRun(plans, { openingId: 'jobava' }, 'practice')), ['b1', 'b2', 'a1', 'k1', 'k2'], 'an opening only partly in it: from its first line that is');
+  // A chapter that's in the collection twice over (its opening is too) still starts at its own lines.
+  const both = [{ ...mine[1], tags: ['Plans'], chapters: [{ id: 'x', name: 'X', variations: [line('x1')] }, { ...mine[1].chapters[0], tags: ['Plans'] }] }];
+  assert.deepEqual(ids(collectionRun(collectionLines(both, { tag: 'Plans' }), { chapterId: 'adv' }, 'learn')), ['k1', 'k2', 'x1']);
+  // A chapter with no lines, or one that has left the collection: from the top.
+  assert.deepEqual(ids(collectionRun(plans, { chapterId: 'empty-or-gone' }, 'learn')), ['k1', 'k2', 'b1', 'b2', 'a1']);
+  assert.deepEqual(ids(collectionRun(plans, {}, 'learn')), ['k1', 'k2', 'b1', 'b2', 'a1']);
+  // Through the whole thing, with whose it is.
+  assert.equal(isCollectionRun({ starred: true, startAt: { chapterId: 'bf5' }, mode: 'learn' }), true);
+  assert.deepEqual(ids(collectionQueue(library, { starred: true, ownerId: null, startAt: { chapterId: 'bf5' }, mode: 'practice' })), ['b1', 'b2', 'a1', 'k1']);
+  assert.deepEqual(ids(collectionQueue(library, { tag: 'Traps', ownerId: 'myla', startAt: { chapterId: 'sc' }, mode: 'learn' })), ['m1'], 'a student’s chapter in a student’s collection');
+});
+
 test('the session never leaves the collection for the line’s chapter', () => {
   const run = collectionQueue(library, { tag: 'Traps', ownerId: null, startAt: 'a1', mode: 'learn' });
   assert.deepEqual(ids(run), ['a1', 'a3', 'b2', 'k2']);

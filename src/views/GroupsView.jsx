@@ -50,6 +50,7 @@ function LearnPractice({ learn, practice }) {
       <button
         className={`learn-btn${practice.primary ? ' primary' : ''}`}
         title={practice.title}
+        disabled={practice.disabled}
         onClick={practice.onClick}
       >
         Practice
@@ -59,10 +60,14 @@ function LearnPractice({ learn, practice }) {
   );
 }
 
-// `onChapter`: a line's own way to its chapter, said outright — its Learn
+// `onChapter`: a row's own way to its chapter, said outright — its Learn
 // and Practice play the collection instead (lib/collectionRun.js).
+// `openHint`: what pressing the row's name does, where that isn't opening it
+// in the library.
 function Row({
-  kind, title, crumbs, moves, startFen, note, onOpen, onChapter, learn, practice, onUntag, untagTitle, fading,
+  kind, title, crumbs, moves, startFen, note, onOpen, openHint = 'Open this in the library',
+  onChapter, chapterHint = 'Go to this line’s chapter in the library',
+  learn, practice, onUntag, untagTitle, fading,
 }) {
   return (
     <div className={`group-row group-row-${kind}${fading ? ' fading' : ''}`}>
@@ -75,7 +80,7 @@ function Row({
           <TagIcon size={16} />
         </button>
       )}
-      <button className="group-row-main" title="Open this in the library" onClick={onOpen}>
+      <button className="group-row-main" title={openHint} onClick={onOpen}>
         <span className="group-row-name">
           <span className={`row-kind ${kind}`}>{kind}</span>
           {title}
@@ -88,7 +93,7 @@ function Row({
         {onChapter && (
           <button
             className="small ghost row-chapter"
-            title="Go to this line’s chapter in the library"
+            title={chapterHint}
             onClick={onChapter}
           >
             <FolderIcon size={14} /> Chapter
@@ -139,8 +144,43 @@ function VariationRow({
   );
 }
 
-function ChapterRow({ opening, chapter, onOpenChapter, onPractice, onUntag, untagTitle, fading }) {
-  const fresh = unlearnedCount(chapter);
+// What Learn and Practice on a whole chapter or opening in a collection say
+// and do: the collection again, beginning with this row's lines (`startAt`)
+// — the way a line's do, so every row on the page plays the same way. Learn
+// is there whenever the row has lines (it shows each one first, learned or
+// not, as a line's Learn does); its badge stays what's left to learn here.
+function containerPlay({
+  what, lines, fresh, due, collection, collectionName, startAt, onPractice,
+}) {
+  const play = (mode) => () => onPractice({ ...collection, startAt, mode });
+  const then = `then carry on through the other lines in “${collectionName}”`;
+  const count = `${lines} line${lines === 1 ? '' : 's'}`;
+  return {
+    learn: {
+      primary: fresh > 0,
+      badge: fresh || null,
+      disabled: lines === 0,
+      title: lines
+        ? `Learn this ${what}’s ${count} — each is shown first, then you replay it from memory — ${then}`
+        : 'No lines here yet',
+      onClick: play('learn'),
+    },
+    practice: {
+      primary: lines > 0 && fresh === 0,
+      due,
+      disabled: lines === 0,
+      title: lines ? `Practice this ${what}’s ${count} from memory, ${then}` : 'No lines here yet',
+      onClick: play('practice'),
+    },
+  };
+}
+
+// A whole chapter in a collection: its lines, then the collection's others.
+// The chapter itself is a button away.
+function ChapterRow({
+  opening, chapter, collection, collectionName, onOpenChapter, onPractice, onUntag, untagTitle, fading,
+}) {
+  const lines = chapter.variations.length;
   return (
     <Row
       kind="chapter"
@@ -149,29 +189,30 @@ function ChapterRow({ opening, chapter, onOpenChapter, onPractice, onUntag, unta
       fading={fading}
       title={chapter.name}
       crumbs={[opening.name, chapter.section, chapter.subsection].filter(Boolean).join(' ▸ ')}
-      note={<span className="muted-note">{chapter.variations.length} line{chapter.variations.length === 1 ? '' : 's'}</span>}
+      note={<span className="muted-note">{lines} line{lines === 1 ? '' : 's'}</span>}
       onOpen={() => onOpenChapter(opening.id, chapter.id)}
-      learn={{
-        primary: fresh > 0,
-        badge: fresh || null,
-        disabled: fresh === 0,
-        title: fresh ? `Learn the ${fresh} line${fresh === 1 ? '' : 's'} here you haven't learned yet` : 'Every line here is learned',
-        onClick: () => onPractice({ openingId: opening.id, chapterId: chapter.id, mode: 'learn' }),
-      }}
-      practice={{
-        primary: fresh === 0,
+      onChapter={() => onOpenChapter(opening.id, chapter.id)}
+      chapterHint="Go to this chapter in the library"
+      {...containerPlay({
+        what: 'chapter',
+        lines,
+        fresh: unlearnedCount(chapter),
         due: dueCount(chapter) > 0,
-        title: 'Practice this whole chapter',
-        onClick: () => onPractice({ openingId: opening.id, chapterId: chapter.id, mode: 'practice' }),
-      }}
+        collection,
+        collectionName,
+        startAt: { chapterId: chapter.id },
+        onPractice,
+      })}
     />
   );
 }
 
-function OpeningRow({ opening, onPractice, onUntag, untagTitle, fading }) {
+// A whole opening in a collection: likewise. (Its name is still the way to
+// practice it on its own — an opening has no page to go to.)
+function OpeningRow({
+  opening, collection, collectionName, onPractice, onUntag, untagTitle, fading,
+}) {
   const lines = opening.chapters.reduce((a, c) => a + c.variations.length, 0);
-  const fresh = opening.chapters.reduce((a, c) => a + unlearnedCount(c), 0);
-  const due = opening.chapters.some((c) => dueCount(c) > 0);
   return (
     <Row
       kind="opening"
@@ -182,19 +223,17 @@ function OpeningRow({ opening, onPractice, onUntag, untagTitle, fading }) {
       crumbs={`${opening.chapters.length} chapters · you play ${opening.color}`}
       note={<span className="muted-note">{lines} line{lines === 1 ? '' : 's'}</span>}
       onOpen={() => onPractice({ openingId: opening.id, mode: 'practice' })}
-      learn={{
-        primary: fresh > 0,
-        badge: fresh || null,
-        disabled: fresh === 0,
-        title: fresh ? `Learn the ${fresh} line${fresh === 1 ? '' : 's'} here you haven't learned yet` : 'Every line here is learned',
-        onClick: () => onPractice({ openingId: opening.id, mode: 'learn' }),
-      }}
-      practice={{
-        primary: fresh === 0,
-        due,
-        title: 'Practice this whole opening',
-        onClick: () => onPractice({ openingId: opening.id, mode: 'practice' }),
-      }}
+      openHint="Practice this opening on its own"
+      {...containerPlay({
+        what: 'opening',
+        lines,
+        fresh: opening.chapters.reduce((a, c) => a + unlearnedCount(c), 0),
+        due: opening.chapters.some((c) => dueCount(c) > 0),
+        collection,
+        collectionName,
+        startAt: { openingId: opening.id },
+        onPractice,
+      })}
     />
   );
 }
@@ -418,7 +457,13 @@ export default function GroupsView({
           <>
             <SubList label="Openings" count={favorites.openings.length}>
               {favorites.openings.map((opening) => (
-                <OpeningRow key={opening.id} opening={opening} onPractice={onPractice} />
+                <OpeningRow
+                  key={opening.id}
+                  opening={opening}
+                  collection={{ starred: true, ownerId }}
+                  collectionName="Favorites"
+                  onPractice={onPractice}
+                />
               ))}
             </SubList>
             <SubList label="Chapters" count={favorites.chapters.length}>
@@ -427,6 +472,8 @@ export default function GroupsView({
                   key={chapter.id}
                   opening={opening}
                   chapter={chapter}
+                  collection={{ starred: true, ownerId }}
+                  collectionName="Favorites"
                   onOpenChapter={onOpenChapter}
                   onPractice={onPractice}
                 />
@@ -510,6 +557,8 @@ export default function GroupsView({
               <OpeningRow
                 key={`${tag}-${opening.id}`}
                 opening={opening}
+                collection={{ tag, ownerId }}
+                collectionName={tag}
                 onPractice={onPractice}
                 fading={!!fading[`${tag}:${opening.id}`]}
                 untagTitle={`Remove “${opening.name}” from ${tag}`}
@@ -525,6 +574,8 @@ export default function GroupsView({
                 key={`${tag}-${chapter.id}`}
                 opening={opening}
                 chapter={chapter}
+                collection={{ tag, ownerId }}
+                collectionName={tag}
                 onOpenChapter={onOpenChapter}
                 onPractice={onPractice}
                 fading={!!fading[`${tag}:${chapter.id}`]}
