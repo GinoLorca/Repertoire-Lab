@@ -154,6 +154,14 @@ function AppInner() {
   const [libraryScope, setLibraryScope] = useState(() => boot?.libraryScope ?? null);
   // Same idea, for Collections — see openCollectionsFor below.
   const [collectionsScope, setCollectionsScope] = useState(() => boot?.collectionsScope ?? null);
+  // The Collections page as it's being left — which collections are open,
+  // whose they are — kept with the back stack, so Back from a session or a
+  // chapter opened there returns to the collection you were working down,
+  // still open. (The page itself starts with every collection closed.)
+  // `collectionsUiNow` is the page reporting as it changes; `collectionsUi`
+  // is what a Back hands it on its way back in, and a fresh visit clears.
+  const collectionsUiNow = useRef(null);
+  const [collectionsUi, setCollectionsUi] = useState(null);
   // Whose saved positions the Board Editor has open: a student's card id
   // (their lessons — see openLessonsFor below) or null for your own. Kept up
   // here because the editor itself is rebuilt each time Analysis switches
@@ -443,6 +451,8 @@ function AppInner() {
     studioLab,
     reviewOn,
     editorScope,
+    // (Collections, as it stands: see collectionsUi above.)
+    collectionsUi: view === 'groups' ? collectionsUiNow.current : null,
     scrollY: window.scrollY,
     chapterId: view === 'chapter' ? chapterNav?.chapterId : null,
   });
@@ -482,6 +492,7 @@ function AppInner() {
     setStudioLab(prev.studioLab ?? null);
     setEditorScope(prev.editorScope ?? null);
     setReviewOn(prev.reviewOn ?? null);
+    setCollectionsUi(prev.view === 'groups' ? prev.collectionsUi ?? null : null);
     setView(prev.view);
     pendingScroll.current = prev.scrollY;
     // Coming back to the library, make sure the chapter you were in is visible
@@ -741,7 +752,7 @@ function AppInner() {
 
   const openCollectionsFor = (studentId) => {
     setCollectionsScope(studentId);
-    go(() => setView('groups'));
+    go(() => { setCollectionsUi(null); setView('groups'); });
   };
 
   // "Lessons" on a student's page: the Board Editor, on their lessons.
@@ -793,6 +804,7 @@ function AppInner() {
     if (v === view && (!subTab || subTab === sub) && !(v === 'analysis' && sub === 'studio')) return;
     go(() => {
       if (v === 'practice') setPracticeScope(undefined);
+      if (v === 'groups') setCollectionsUi(null); // the tab opens Collections fresh: all closed
       setSub(subTab);
       setPositionNav(null); // the tab opens the section fresh, not the last saved position
       setSetupNav(null);
@@ -954,6 +966,8 @@ function AppInner() {
             onPractice={startPractice}
             onOpenLab={openLab}
             initialScope={collectionsScope}
+            initialUi={collectionsUi}
+            onUiChange={(ui) => { collectionsUiNow.current = ui; }}
           />
         )}
         {view === 'chapter' && chapterNav && (

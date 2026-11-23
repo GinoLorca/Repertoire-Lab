@@ -39,8 +39,12 @@ function StatusDot({ variation, done }) {
 //
 // Memoised: this is the widest part of the practice screen to re-render, and it
 // only changes when the session moves on, not on every keystroke of state.
+// `title`: what the list is, where it isn't one chapter's lines (a
+// collection being played: lib/collectionRun.js); `showChapters`: each line
+// then says which chapter it's from.
 function VariationList({
   items, currentId, doneIds, onPick, open, onToggle, heading, subheading, artwork,
+  title = null, showChapters = false,
 }) {
   const listRef = useRef(null);
   const activeRef = useRef(null);
@@ -80,7 +84,7 @@ function VariationList({
       </div>
 
       <div className="vl-chapter">
-        <span className="vl-chapter-name">{items[0]?.chapter?.name ?? 'Session'}</span>
+        <span className="vl-chapter-name">{title ?? items[0]?.chapter?.name ?? 'Session'}</span>
         <ProgressRing done={done} total={total} />
       </div>
 
@@ -92,10 +96,13 @@ function VariationList({
               key={it.variation.id}
               ref={active ? activeRef : null}
               className={`vl-item${active ? ' active' : ''}`}
-              title={it.variation.name}
+              title={showChapters ? `${it.variation.name} — ${it.opening?.name ?? ''} ▸ ${it.chapter?.name ?? ''}` : it.variation.name}
               onClick={() => onPick(it)}
             >
-              <span className="vl-name">{it.variation.name}</span>
+              <span className="vl-name">
+                {it.variation.name}
+                {showChapters && it.chapter?.name && <span className="vl-from">{it.chapter.name}</span>}
+              </span>
               <StatusDot variation={it.variation} done={doneIds.has(it.variation.id)} />
             </button>
           );

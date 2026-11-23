@@ -1088,6 +1088,18 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .breadcrumb { display: flex; align-items: center; gap: 8px; color: var(--muted); margin-bottom: 18px; font-size: 14px; }
 .breadcrumb a { color: var(--accent); cursor: pointer; text-decoration: none; }
 .breadcrumb a:hover { text-decoration: underline; }
+/* The collection a practice session is playing through, and how far along. */
+.crumb-collection {
+  display: inline-flex; align-items: center; gap: 5px; flex: 0 1 auto; min-width: 0;
+  color: var(--text); font-weight: 600; white-space: nowrap;
+}
+.crumb-collection svg { color: var(--amber); flex: none; }
+.crumb-collection-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.crumb-collection .muted-note { font-weight: 400; flex: none; }
+@media (max-width: 600px) {
+  /* A phone's bar has room for the collection or the chapter, not both. */
+  .crumb-collection ~ .crumb-current, .crumb-collection + span { display: none; }
+}
 
 .variation-row {
   background: var(--card);
@@ -1306,6 +1318,13 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .vl-item.active { background: var(--accent); color: #fff; }
 .vl-item.active .vl-dot { border-color: rgba(255, 255, 255, 0.8); color: #fff; }
 .vl-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A collection being played (lib/collectionRun.js): its lines come from all
+   over, so each says which chapter it's from, under its name. */
+.vl-from {
+  display: block; margin-top: 1px; font-size: 11.5px; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.vl-item.active .vl-from { color: rgba(255, 255, 255, 0.82); }
 .vl-dot {
   flex: 0 0 auto; width: 17px; height: 17px; border-radius: 50%;
   border: 1.5px solid var(--border); color: var(--muted);
@@ -2016,6 +2035,9 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 }
 .group-row-tail { display: flex; align-items: center; gap: 8px; padding-right: 6px; }
 .group-row-tail button { min-width: 42px; min-height: 38px; }
+/* A line's way to its own chapter, beside Learn and Practice — which play the
+   collection (lib/collectionRun.js), not the chapter. */
+.group-row-tail .row-chapter { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 /* Learn and Practice, the chapter cards' buttons, a size down to sit in a row. */
 .group-row-tail .learn-btn { padding: 6px 14px; }
 .group-row-tail .learn-btn + .learn-btn { margin-left: 2px; }

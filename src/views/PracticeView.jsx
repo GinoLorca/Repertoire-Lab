@@ -35,6 +35,7 @@ import {
 import PlaylistPicker from '../components/PlaylistPicker';
 import GiveToStudent, { GiveToStudentButton } from '../components/GiveToStudent';
 import { loadSession, saveSessionPart, takeBootResume } from '../lib/session';
+import { isCollectionRun, collectionQueue, collectionName } from '../lib/collectionRun';
 
 // A session as it's kept on this device (lib/session.js): each queued item by
 // its ids, so it can be rebuilt from the repertoire as it stands.
@@ -113,6 +114,11 @@ function collectItems(state, scope) {
     // learned is taught first, same as it would be anywhere else.
     return ordered.map((it) => ({ ...it, kind: it.variation.learned ? 'practice' : 'learn' }));
   }
+
+  // A line pressed inside a collection (Collections: Favorites, a theme): the
+  // collection is the playlist — its lines from that one on and round, not
+  // the line's chapter (lib/collectionRun.js).
+  if (isCollectionRun(scope)) return collectionQueue(state.openings, scope);
 
   const items = [];
   // A scope naming a specific opening/chapter/variation is unambiguous
@@ -1206,7 +1212,8 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
           )}
           <div style={{ marginTop: 14 }}>
             <button className="primary" onClick={leaveSession}>
-              {cameFromList ? 'Back to the chapter list' : 'Back to library'}
+              {/* (A collection's lines, played from Collections: back there.) */}
+              {cameFromList ? 'Back to the chapter list' : (isCollectionRun(scope) ? 'Back to Collections' : 'Back to library')}
             </button>
           </div>
         </div>
@@ -1462,6 +1469,10 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
   const doneIds = new Set(results.map((r) => r.variationId).filter(Boolean));
   const courseName = (current.opening.courses ?? [])
     .find((c) => c.id === current.chapter.courseId)?.name ?? null;
+  // A collection being played (lib/collectionRun.js): the session is its
+  // lines, from several chapters and openings — so it goes by the
+  // collection's name, not by whichever chapter the line of the moment is in.
+  const playing = isCollectionRun(scope) ? collectionName(scope) : null;
   // A shuffled playlist is meant to be a surprise, one line at a time — the
   // list would spoil what's coming up next, so it doesn't get a place here
   // at all (not even collapsed), regardless of the viewport-width case below.
@@ -1526,6 +1537,16 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
       <div className="breadcrumb">
         <a onClick={leaveSession}>{cameFromList ? 'Chapters' : 'Exit practice'}</a>
         <span>▸</span>
+        {playing && (
+          <>
+            <span className="crumb-collection" title={`Playing the lines of “${playing}”, one after another`}>
+              {scope.starred ? <StarIcon size={13} filled /> : <TagIcon size={13} />}
+              <span className="crumb-collection-name">{playing}</span>
+              <span className="muted-note">· {listItems.findIndex((it) => it.variation.id === current.variation.id) + 1} of {listItems.length}</span>
+            </span>
+            <span>▸</span>
+          </>
+        )}
         <span className="crumb-current">{current.opening.name} · {current.chapter.name}</span>
         <span style={{ flex: 1 }} />
         {onAnalyze && (
@@ -1568,9 +1589,12 @@ export default function PracticeView({ scope, onScopeChange, onExit, onAnalyze }
             doneIds={doneIds}
             open={listOpen}
             onToggle={() => dispatch({ type: 'setSettings', settings: { practiceList: !listOpen } })}
-            heading={current.opening.name}
-            subheading={courseName}
-            artwork={current.opening.artwork?.small}
+            heading={playing ?? current.opening.name}
+            subheading={playing ? 'Collection' : courseName}
+            artwork={playing ? null : current.opening.artwork?.small}
+            title={playing ? `${listItems.length} line${listItems.length === 1 ? '' : 's'}, one after another` : null}
+            // (From all over: each says which chapter it's from.)
+            showChapters={Boolean(playing)}
             onPick={(item) => {
               const i = queue.findIndex((q) => q.variation.id === item.variation.id);
               // In Study, a line picked from the list is read there; the

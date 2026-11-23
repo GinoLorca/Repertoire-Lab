@@ -5,7 +5,7 @@ import ThemeLines from '../components/ThemeLines';
 import CopyCollection from '../components/CopyCollection';
 import { isDue, dueCount, unlearnedCount } from '../lib/srs';
 import {
-  StarIcon, TagIcon, ClockIcon, PencilIcon, PlayIcon, CapIcon, FlaskIcon, SendIcon,
+  StarIcon, TagIcon, ClockIcon, PencilIcon, PlayIcon, CapIcon, FlaskIcon, SendIcon, FolderIcon,
 } from '../components/Icons';
 
 // Every variation, with the tags and stars it inherits from its chapter and
@@ -59,8 +59,10 @@ function LearnPractice({ learn, practice }) {
   );
 }
 
+// `onChapter`: a line's own way to its chapter, said outright — its Learn
+// and Practice play the collection instead (lib/collectionRun.js).
 function Row({
-  kind, title, crumbs, moves, startFen, note, onOpen, learn, practice, onUntag, untagTitle, fading,
+  kind, title, crumbs, moves, startFen, note, onOpen, onChapter, learn, practice, onUntag, untagTitle, fading,
 }) {
   return (
     <div className={`group-row group-row-${kind}${fading ? ' fading' : ''}`}>
@@ -83,14 +85,31 @@ function Row({
       </button>
       <span className="group-row-tail">
         {note}
+        {onChapter && (
+          <button
+            className="small ghost row-chapter"
+            title="Go to this line’s chapter in the library"
+            onClick={onChapter}
+          >
+            <FolderIcon size={14} /> Chapter
+          </button>
+        )}
         <LearnPractice learn={learn} practice={practice} />
       </span>
     </div>
   );
 }
 
-function VariationRow({ row, onOpenChapter, onPractice, onUntag, untagTitle, fading }) {
+// A line in a collection. Its Learn and Practice play the collection — this
+// line, then the collection's other lines, one after another
+// (lib/collectionRun.js) — not the line's chapter, whose other lines have
+// nothing to do with it. `collection`: which one ({ tag } or { starred },
+// with whose it is) and what it's called. The chapter is a button away.
+function VariationRow({
+  row, collection, collectionName, onOpenChapter, onPractice, onUntag, untagTitle, fading,
+}) {
   const { opening, chapter, variation } = row;
+  const play = (mode) => () => onPractice({ ...collection, startAt: variation.id, mode });
   return (
     <Row
       kind="line"
@@ -102,22 +121,19 @@ function VariationRow({ row, onOpenChapter, onPractice, onUntag, untagTitle, fad
       moves={variation.moves.slice(0, 10)}
       startFen={variation.startFen}
       onOpen={() => onOpenChapter(opening.id, chapter.id)}
+      onChapter={() => onOpenChapter(opening.id, chapter.id)}
       learn={{
         primary: !variation.learned,
         // The line's length, until it's learned.
         badge: variation.learned ? null : variation.moves.length,
-        title: 'Learn this line — the moves are shown first, then you replay it from memory — then carry on through its chapter',
-        onClick: () => onPractice({
-          openingId: opening.id, chapterId: chapter.id, variationId: variation.id, mode: 'learn',
-        }),
+        title: `Learn this line — the moves are shown first, then you replay it from memory — then carry on through the other lines in “${collectionName}”`,
+        onClick: play('learn'),
       }}
       practice={{
         primary: variation.learned,
         due: isDue(variation),
-        title: 'Practice this line from memory, then carry on through its chapter',
-        onClick: () => onPractice({
-          openingId: opening.id, chapterId: chapter.id, variationId: variation.id, mode: 'practice',
-        }),
+        title: `Practice this line from memory, then carry on through the other lines in “${collectionName}”`,
+        onClick: play('practice'),
       }}
     />
   );
@@ -217,12 +233,18 @@ function SubList({ label, children, count }) {
   );
 }
 
-export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initialScope }) {
+// `initialUi` / `onUiChange`: the page as it was left — which collections
+// were open, and whose they were — so that coming Back from a session or a
+// chapter opened here returns to the collection you were working down, still
+// open (App keeps it with the rest of the back stack). A fresh visit has none.
+export default function GroupsView({
+  onOpenChapter, onPractice, onOpenLab, initialScope, initialUi = null, onUiChange = null,
+}) {
   const { state, dispatch } = useStore();
   // Which collections are open. All closed to begin with — Favorites too, so
   // the page opens as a list of collections to pick from, not Favorites'
   // dozens of lines with the rest below them.
-  const [openKeys, setOpenKeys] = useState({});
+  const [openKeys, setOpenKeys] = useState(() => initialUi?.openKeys ?? {});
   const [filter, setFilter] = useState('');
   const [fading, setFading] = useState({});
   // The collection picker: { tag } to add to one, {} for a new one.
@@ -233,14 +255,17 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
 
   // 'me' or a student's player id — same split as the Library, so a
   // student's favorites/themes stay theirs, not mixed into yours.
-  const [scope, setScope] = useState('me');
-  useEffect(() => { if (initialScope) setScope(initialScope); }, [initialScope]);
+  const [scope, setScope] = useState(() => initialUi?.scope ?? 'me');
+  useEffect(() => { if (initialScope && !initialUi) setScope(initialScope); }, [initialScope]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { onUiChange?.({ openKeys, scope }); }, [openKeys, scope]); // eslint-disable-line react-hooks/exhaustive-deps
   const students = state.players.filter((p) => p.kind === 'student');
   const openings = useMemo(
     () => state.openings.filter((o) => (o.ownerId ?? null) === (scope === 'me' ? null : scope)),
     [state.openings, scope],
   );
   const scopedStudent = scope !== 'me' ? students.find((p) => p.id === scope) : null;
+  // Whose collections these are, as a practice scope names it.
+  const ownerId = scope === 'me' ? null : scope;
 
   const rows = useMemo(() => flatten(openings), [openings]);
 
@@ -412,6 +437,8 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
                 <VariationRow
                   key={row.variation.id}
                   row={row}
+                  collection={{ starred: true, ownerId }}
+                  collectionName="Favorites"
                   onOpenChapter={onOpenChapter}
                   onPractice={onPractice}
                 />
@@ -513,6 +540,8 @@ export default function GroupsView({ onOpenChapter, onPractice, onOpenLab, initi
               <VariationRow
                 key={`${tag}-${row.variation.id}`}
                 row={row}
+                collection={{ tag, ownerId }}
+                collectionName={tag}
                 onOpenChapter={onOpenChapter}
                 onPractice={onPractice}
                 fading={!!fading[`${tag}:${row.variation.id}`]}
