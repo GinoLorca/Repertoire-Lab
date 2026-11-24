@@ -6503,6 +6503,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   #hv-controls .btn{ background:var(--surface); }
   #hv-controls .btn:disabled{ opacity:.55; cursor:default; }
   h1.title.hv-title{ font-size:clamp(20px, 2vw, 26px); line-height:1.02; overflow-wrap:anywhere; margin-top:2px; }
+  /* the game's golden rules, after its title's last word: how many, a tap goes to the next (hvGoldStep) */
+  .hv-gold{ position:relative; display:inline-block; vertical-align:middle; min-width:24px; height:22px; margin:0; padding:0 8px; border:0; border-radius:999px; background:var(--gr-plate); box-shadow:inset 0 0 0 1px var(--gr-lo), 0 1px 3px rgba(0,0,0,.25); color:var(--gr-ink); font:800 12px/1 "JetBrains Mono",monospace; letter-spacing:0; text-shadow:none; cursor:pointer; }
+  .hv-gold::after{ content:''; position:absolute; inset:-4px -6px; }
+  .hv-gold:hover{ filter:brightness(1.06); }
+  .hv-gold:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  @media (pointer:coarse){ .hv-gold{ min-width:34px; height:28px; font-size:13px; } .hv-gold::after{ inset:-8px -8px; } }
   .hv-result{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:13px; font-weight:600; color:var(--ink); margin-top:4px; }
   .hv-meta{ font-size:12.5px; max-width:none; }
   .hv-opening{ font-size:12.5px; color:var(--ink); overflow-wrap:anywhere; }
@@ -6620,6 +6626,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     20.8%{ filter:brightness(1.4); } 22.5%{ filter:brightness(1.08); } 24%{ filter:brightness(1.5); } 25.6%{ filter:brightness(1.08); } 26.6%{ filter:brightness(1.35); } 100%{ transform:scale(1); filter:brightness(.97); } }
   @media (prefers-reduced-motion:reduce){ .hv-cc-logo .g, .hv-cc-logo .m, .hv-cc-logo .r b, .hv-cc-logo .l, .hv-cc-logo.is-hit .g, .hv-cc-logo.is-hit .m{ animation:none; }
     .hv-cc-logo .g{ opacity:.85; } .hv-cc-logo .r b{ transform:none; opacity:.45; } .hv-cc-logo .l{ opacity:.9; } }
+  /* a golden rule (2026-11-24): the card's edge in metal, the logo and the light along the edges in gold, its name over the
+     words. The same animations as any comment's. */
+  #hv-com-card.is-golden{ --glass-a:#ffd65a; --glass-b:#e39a14; padding-left:15px;
+    background:color-mix(in srgb, var(--gr-2) 11%, var(--surface)); border:1px solid color-mix(in srgb, var(--gr-2) 78%, var(--line)); }
+  #hv-com-card.is-golden::before{ content:''; position:absolute; z-index:1; left:-1px; top:-1px; bottom:-1px; width:6px; border-radius:inherit; border-top-right-radius:0; border-bottom-right-radius:0; pointer-events:none;
+    background:linear-gradient(90deg, rgba(255,246,214,.9) 1px, transparent 1.6px, transparent calc(100% - 1px), rgba(109,71,3,.8)), linear-gradient(180deg, var(--gr-hi), var(--gr-2) 20%, var(--gr-1) 38%, var(--gr-3) 62%, var(--gr-1) 80%, var(--gr-3)); }
+  :root[data-skin="bauhaus"] #hv-com-card.is-golden{ border-left-width:1px; }
+  .hv-cc-gold{ display:table; margin:1px 0 6px; padding:3px 8px 2px; border-radius:3px; background:var(--gr-plate); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--gr-lo) 70%, transparent); color:var(--gr-ink); font:800 10px/1.2 "JetBrains Mono",monospace; letter-spacing:.14em; text-transform:uppercase; }
   .hv-cc-head .hv-badge{ flex:0 0 auto; margin-left:0; }
   .hv-cc-head .hv-clamp-m{ flex:0 0 auto; margin-left:0; }
   /* (no overscroll-behavior: at its end a swipe or the wheel goes on to the page, which scrolls on a
@@ -6913,6 +6927,26 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   /* white (2026-11-11): on a pale page white ink alone barely shows, so its stroke keeps a faint edge in the page's own ink (on a dark
      page that ink is light and the edge melts into the white) */
   .hv-hl-st.hv-hl-w{ box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--ink) 55%, transparent); }
+  /* Golden rule (2026-11-24, the user: "a gold highlight... not to confuse it with the yellow, but gold... a very important
+     message, even if it's a blunder or if it's a good move"). The same pen stroke in metal: a deeper gold than the yellow,
+     a fine light edge along its top and a dark one along its foot, one streak of light across it (--gx, per stroke). The same
+     bright gold on a dark page, its words dark there too. */
+  :root{ --gr-hi:#fff1bf; --gr-1:#efc95c; --gr-2:#d29b1f; --gr-3:#a56f0c; --gr-lo:#6d4703; --gr-ink:#2b1c00; --gr-plate:linear-gradient(178deg, #fff1bf, #efc95c 22%, #d9a832 52%, #c08c1d 80%, #dcb047); }
+  .hv-hl-d{ --hl:#d29b1f; }
+  .hv-movelist{ --gr-veil:transparent; --gr-sun:rgba(255,244,200,.6); }
+  @supports (color:hsl(from red 0 0 0 / clamp(0, (l - 50)*.014, .5))){ .hv-movelist{ --gr-veil:hsl(from var(--ink) 43 82 62 / clamp(0, (l - 50)*.014, .5)); } }      /* a dark page: its own gold under the see-through one, so it is as bright as by day */
+  .hv-movelist .hv-hl-d, .hv-movelist .hv-gold-ink{ --hl-tx:#1c1300; }      /* dark words on it, day and night */
+  .hv-movelist :is(.hv-hl-d, .hv-gold-ink) .hv-com-mv{ text-underline-offset:1px; text-decoration-thickness:1px; }      /* a move's underline stays on the gold */
+  .hv-hl-st.hv-hl-d{ opacity:1; filter:blur(.3px);
+    background:
+      linear-gradient(180deg, rgba(140,92,8,.4) .7px, color-mix(in srgb, var(--gr-hi) 92%, transparent) 1px, color-mix(in srgb, var(--gr-hi) 70%, transparent) 1.8px, transparent 2.6px, transparent calc(100% - 1.4px), rgba(125,80,5,.5) calc(100% - .8px)),
+      linear-gradient(106deg, transparent calc(var(--gx, 30%) - 17px), var(--gr-sun) var(--gx, 30%), transparent calc(var(--gx, 30%) + 13px)),
+      linear-gradient(var(--gr-veil), var(--gr-veil)),
+      linear-gradient(180deg, rgba(224,160,24,.8), rgba(245,198,66,.78) 45%, rgba(202,138,16,.8)); }
+  /* a comment that is a golden rule: its own words on the gold */
+  .hv-movelist .hv-com-text.is-gold{ position:relative; z-index:0; }
+  .hv-movelist .hv-gold-ink{ padding:2px 5px; color:var(--hl-tx); -webkit-box-decoration-break:clone; box-decoration-break:clone; }
+  .hv-movelist .hv-gold-ink .hv-com-mv{ color:var(--hl-tx); text-decoration-color:currentColor; }
   .hv-movelist .hv-hl :is(.mv-san, .hv-var-num, .hv-com-inline, .hv-com-mv){ color:var(--hl-tx); }
   .hv-movelist .hv-hl .hv-com-mv{ text-decoration-color:currentColor; }
   .hv-movelist .hv-hl .mv-san:not(:empty):hover{ background:rgba(20,21,23,.16); }
@@ -7121,8 +7155,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       --sq:clamp(30px, min(calc((100vw - 72px - var(--hv-frame-extra)) / 8), calc((100vh - 230px - var(--hv-frame-extra)) / 8)), 85px);
       --sq:clamp(30px, min(calc((100vw - 72px - var(--hv-frame-extra)) / 8), calc((100dvh - 230px - var(--hv-frame-extra)) / 8)), 85px);
     }
-    /* one column: board first, then the Play it out card (as before), the first tabbed card, the comment
-       card and the second (2026-11-02; the header and the engine card are in their tabs) */
+    /* one column: board first, then the Play it out card (as before), the comment card (right under the buttons, above
+       the tabs, so it is seen while stepping: 2026-11-24, the user's iPhone; it was under the first tabbed card), the
+       first tabbed card and the second (2026-11-02; the header and the engine card are in their tabs) */
     .hv-boardcol, .hv-side{ display:contents; }
     .wrap.play-mode .hv-boardcol > .back-link{ order:1; align-self:center; margin:8px auto 2px; min-height:32px; box-sizing:border-box; max-width:calc(100% - 112px); }
     #hv-row-top{ order:2; }
@@ -7132,7 +7167,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     #hv-anno-hint, #hv-cd{ order:5; }
     #hv-px{ order:6; }
     #hv-tabs{ order:7; overflow:visible; }
-    #hv-com-card, #hv-engine{ order:8; }
+    #hv-com-card{ order:6; }
+    #hv-engine{ order:8; }
     #hv-card2{ order:9; }
     #hv-head{ order:11; }
     /* the page ends clear of the Friends pill in the bottom corner */
@@ -7339,6 +7375,24 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .hv-bdg-grid.hv-hl-grid{ grid-template-columns:repeat(6, 36px); }
   .hv-hl-sw{ display:block; width:26px; height:26px; border-radius:50%; background:color-mix(in srgb, var(--hl) 35%, transparent); box-shadow:inset 0 0 0 1px rgba(20,21,23,.4); }
   .hv-hl-pick.is-on .hv-hl-sw{ box-shadow:0 0 0 2px var(--surface), 0 0 0 3.5px var(--ink); }
+  /* Golden rule (2026-11-24): the highlight's own bar under the six, and beside the menu's comment; the same plate on the
+     comment card and the game's mark */
+  .hv-bdg-grid .hv-hl-pick.is-gold{ grid-column:1 / -1; width:auto; height:30px; margin:4px 2px 2px; gap:9px; border-radius:999px; background:none; box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--gr-2) 80%, var(--ink)); color:var(--ink); font-family:inherit; font-size:12.5px; font-weight:700; line-height:1; }
+  .hv-hl-pick.is-gold .hv-hl-sw{ width:30px; height:12px; border-radius:1px; background:var(--gr-plate); box-shadow:none; clip-path:polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%); }
+  .hv-bdg-grid .hv-hl-pick.is-gold:hover{ background:var(--surface-2); }
+  .hv-bdg-grid .hv-hl-pick.is-gold.is-on{ background:var(--gr-plate); box-shadow:inset 0 0 0 1px var(--gr-lo); color:var(--gr-ink); }
+  .hv-hl-pick.is-gold.is-on .hv-hl-sw{ display:none; }
+  .hv-pop-comrow{ display:flex; align-items:stretch; gap:6px; }
+  .hv-pop-comrow .hv-pop-com{ flex:1 1 auto; white-space:nowrap; }
+  .hv-pop-gold{ position:relative; flex:0 0 auto; align-self:center; margin:0 4px 0 0; padding:5px 11px; border:0; border-radius:999px; background:none; box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--gr-2) 80%, var(--ink)); color:var(--ink); font:inherit; font-size:12px; font-weight:700; line-height:1.2; white-space:nowrap; cursor:pointer; }
+  .hv-pop-gold:hover, .hv-pop-gold:focus-visible{ background:var(--surface-2); }
+  .hv-pop-gold:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+  .hv-pop-gold[aria-checked="true"]{ background:var(--gr-plate); box-shadow:inset 0 0 0 1px var(--gr-lo); color:var(--gr-ink); }
+  .hv-com-pop-top{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:2px 10px; }
+  #view-play-history .hv-com-gold{ margin:-4px 0; padding:4px 2px; min-height:32px; color:var(--ink); font-size:12.5px; }
+  .hv-switch.hv-com-gold[aria-checked="true"] .hv-switch-track{ background:var(--gr-plate); box-shadow:inset 0 0 0 1.5px var(--gr-lo); }
+  .hv-switch.hv-com-gold[aria-checked="true"] .hv-switch-knob{ background:var(--gr-ink); }
+  @media (pointer:coarse){ #gh-gold{ min-height:44px; } .hv-bdg-grid .hv-hl-pick.is-gold{ height:44px; } .hv-pop-gold{ min-height:32px; } .hv-pop-gold::after{ content:''; position:absolute; inset:-6px 0; } #view-play-history .hv-com-gold{ min-height:44px; padding:4px 6px; } }
   .hv-bdg-pick .hv-badge{ width:28px; height:28px; margin:0; font-size:13px; vertical-align:0; }
   .hv-bdg-pick.is-on .hv-badge{ box-shadow:0 0 0 2px var(--surface), 0 0 0 3.5px var(--ink); }
   /* under the ten (2026-11-24): "No badge" (the review's is taken off this move) and "Use the review's" */
@@ -10523,6 +10577,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
             <select class="select-input" id="gh-variant" aria-label="Variant" hidden>
               <option value="">All variants</option>
             </select>
+            <button type="button" class="toggle gh-chip" id="gh-gold" aria-pressed="false" title="Games with a golden rule in their analysis">Golden rules</button>
           </div>
         </div>
       </div>
@@ -30518,15 +30573,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
 
   /* ---- Filters: state, validation, storage, the #history link ---- */
-  const GH_F_DEFAULT = { speed:'', result:'', opening:'', oq:'', color:'', tc:'', rated:'', opp:'', gap:'', end:'', eg:'', oj:'', len:'', date:'', variant:'', notes:false, rep:'', ck:'', ga:'' };
+  const GH_F_DEFAULT = { speed:'', result:'', opening:'', oq:'', color:'', tc:'', rated:'', opp:'', gap:'', end:'', eg:'', oj:'', len:'', date:'', variant:'', notes:false, rep:'', ck:'', ga:'', gold:false };
   const GH_F_SETS = { speed:['ultraBullet','bullet','blitz','rapid','classical','correspondence'], result:['win','loss','draw'],
     color:['white','black'], rated:['rated','casual'], gap:['higher','even','lower'], end:['mate','resign','time','draw','other'],
     len:['short','medium','long'], date:['3','7','15','30','90','year'], oj:['done','not','lost','away','open','below'], eg:['yes','no','pawn','rook','queen','bishopOpp','bishopSame','knight','bishopKnight','minor','rookMinor','queenMix','uneven'] };
-  const GH_PARAM_KEYS = ['speed','result','opening','oq','color','tc','rated','opp','gap','end','eg','oj','len','date','variant','notes','rep','ck','ga'];
+  const GH_PARAM_KEYS = ['speed','result','opening','oq','color','tc','rated','opp','gap','end','eg','oj','len','date','variant','notes','rep','ck','ga','gold'];
   var EG = new Map(), EG_JOB = null, EG_SIG = '', EG_DONE = false;       // each game's endgame (where it begins, the kinds it went through): egEnsure
   // the repertoire filter (gho*, SPEC B.7): opening / trunk / course / chapter / line, outside, or a spot
   const GH_REP_RE = /^(?:w\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}\.(?:[0-9a-f]{32}|n)\.[0-9a-z]{1,12}|[ot]\.[A-Za-z0-9_-]{1,64}|[kc]\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}|l(?:\.[A-Za-z0-9_-]{1,64}){3}|x\.[wb](?:\.(?:none|[a-z0-9]+(?:-[a-z0-9]+)*))?|s\.[0-9a-f]{8}(?:\.(?:t\.[A-Za-z0-9_-]{1,64}|c\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}|x\.[wb]))?)$/;
-  const GH_SECONDARY = ['rated','gap','end','eg','oj','len','date','opp','variant'];
+  const GH_SECONDARY = ['rated','gap','end','eg','oj','len','date','opp','variant','gold'];
   let GH_FILTERS = Object.assign({}, GH_F_DEFAULT);
   const GH_UI = { more:false, open:false, view:'games', osort:'games', site:'all', osub:'overview', vrank:'played', vlvl:'c', gaf:{}, gzk:'all', psub:'structures', pcard:'', pm:0, pc:'' };   // site: the All | Lichess | Chess.com tab (chesscom SPEC B.1); psub: Positions' sub-tab; pcard, pm: the pawn structure whose page is open (links only)
   // Typed text: what a link can carry safely (the hash is decoded twice).
@@ -30541,6 +30596,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     o.oq = o.opening ? '' : ghCleanText(f.oq).trim();
     o.opp = ghCleanText(f.opp).trim();
     o.notes = f.notes===true || f.notes==='1' || f.notes===1;
+    o.gold = f.gold===true || f.gold==='1' || f.gold===1;      // Golden rules (2026-11-24): games whose analysis has one
     if(typeof f.rep==='string' && f.rep.length<=200 && GH_REP_RE.test(f.rep)) o.rep = f.rep;
     if(/^(?:[CLAMP]|none)$/.test(String(f.ck))) o.ck = String(f.ck);      // CLAMP: games with that letter, or with no marks (ct*)
     // Analytics' drill-down key (ga*): links only, never saved. The app decodes the hash before URLSearchParams reads it, so a
@@ -30575,7 +30631,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function ghSecondaryCount(){ return GH_SECONDARY.filter(ghIsOn).length; }
   function ghFilterParams(){
     const p = new URLSearchParams();
-    GH_PARAM_KEYS.forEach(k=>{ if(!ghIsOn(k)) return; p.set(k, k==='notes' ? '1' : GH_FILTERS[k]); });
+    GH_PARAM_KEYS.forEach(k=>{ if(!ghIsOn(k)) return; p.set(k, k==='notes' || k==='gold' ? '1' : GH_FILTERS[k]); });
     return p;
   }
   // A link with any filter in it replaces the whole set (and is remembered);
@@ -30688,6 +30744,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     if(f.variant && (g.variant || 'standard')!==f.variant) return false;
     if(f.notes && !gnHasNote(g.id) && !gnHasAnn(g.id)) return false;      // a note, or your analysis on the board
+    if(f.gold && !gnHasGold(g.id)) return false;                          // a golden rule in your analysis (its synced record)
     if(f.rep && rpReady() && !rpRepMatch(g, f.rep)) return false;     // kept but ignored until your repertoire is here
     if(f.ck){ const k = gnClampOf(String(g.id)); if(f.ck==='none' ? k.length > 0 || !ctHasMine(g, u) : !k.some(x=> x[1]===f.ck)) return false; }     // your CLAMP marks (none: a game with a move of yours to mark)
     if(f.ga && !gaMatch(g, u, f.ga)) return false;                    // a number from Analytics (its base rules, then the atom)
@@ -30731,12 +30788,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     GH_STATE.humans = out.length;
     const cc = ghCcBase();
     if(site==='chesscom') return cc;
-    if(typeof GN==='object' && GN && (GH_FILTERS.notes || GH_STATE.offline)){
+    if(typeof GN==='object' && GN && (GH_FILTERS.notes || GH_FILTERS.gold || GH_STATE.offline)){
       let added = false;
       Object.values(GN.notes).forEach(n=>{
         if(!(n.text || n.conflict) || !n.g || ccIsId(n.id) || gnIsMeta(n.id) || gnIsLr(n.id) || GH_STATE.ids.has(n.id)) return;
         // your analysis on a game not loaded (CLAMP marks too: its row's letters show them): that game (once, if it has a note too)
-        if(gnIsAn(n.id)){ const gid = n.id.slice(3); if((!n.conflict && !gnHasAnn(gid) && !gnClampOf(gid).length) || ccIsId(gid) || GH_STATE.ids.has(gid) || GN.notes[gid] || out.some(x=> x.id===gid)) return; n = Object.assign({}, n, { id:gid }); }
+        if(gnIsAn(n.id)){ const gid = n.id.slice(3); if(ccIsId(gid) || GH_STATE.ids.has(gid) || gnListed(gid) || (!n.conflict && !gnHasAnn(gid) && !gnClampOf(gid).length) || out.some(x=> x.id===gid)) return; n = Object.assign({}, n, { id:gid }); }
         else if(out.some(x=> x.id===n.id)) return;
         const g = GH_STATE.extras.get(n.id) || ghGameFromSummary(n);
         if(ghVsComputer(g)) return;
@@ -31623,6 +31680,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const nb = document.getElementById('gh-notes');
     nb.classList.toggle('active', !!f.notes);
     nb.setAttribute('aria-pressed', f.notes ? 'true' : 'false');
+    const gb = document.getElementById('gh-gold');
+    gb.classList.toggle('active', !!f.gold);
+    gb.setAttribute('aria-pressed', f.gold ? 'true' : 'false');
     ghSyncCombo('gh-opening', f.opening ? ghOpeningLabel(f.opening) : f.oq, !!f.opening);
     ghSyncCombo('gh-opp', f.opp, false);
     const n = ghActiveCount();
@@ -32192,6 +32252,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     document.getElementById(id).addEventListener('click', e=>{ const b = e.target.closest('.toggle'); if(b) ghSetFilters({ [k]:b.dataset.val }); });
   });
   document.getElementById('gh-notes').addEventListener('click', ()=> ghSetFilters({ notes:!GH_FILTERS.notes }));
+  document.getElementById('gh-gold').addEventListener('click', ()=> ghSetFilters({ gold:!GH_FILTERS.gold }));
   document.getElementById('gh-clear').addEventListener('click', ghClearFilters);
   document.getElementById('gh-filter-toggle').addEventListener('click', ()=>{ GH_UI.open = !GH_UI.open; ghSyncFilterUI(); });
   document.getElementById('gh-more-toggle').addEventListener('click', ()=>{ GH_UI.more = !GH_UI.more; ghSaveFilters(); ghSyncFilterUI(); });
@@ -44665,7 +44726,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   var GZ_KW = { job:'Finish the job', mate:'Missed mate', win:'Win it again' };
   var GZ_WRW = { n:'Not won', q:'Stopped' };          // a Win it again record's words (10.4); w and h have their own
   var GZ_RW = { s:'Solved', h:'Solved with help', x:'Missed', v:'Solution shown' };
-  var GZ_FONLY = ['opening', 'oq', 'tc', 'rated', 'gap', 'end', 'eg', 'oj', 'len', 'notes', 'rep'];     // Filters stored facts can't answer
+  var GZ_FONLY = ['opening', 'oq', 'tc', 'rated', 'gap', 'end', 'eg', 'oj', 'len', 'notes', 'gold', 'rep'];     // Filters stored facts can't answer
   var GZ_LDF = null;
   // a local day as a number (the ladder's "today" is ghoBriefNow's: the kits' fake clock), and back to a time at its noon
   function gzDay(ts){ const d = new Date(Number(ts) || 0); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5); }
@@ -48034,10 +48095,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     GH_STATE.ccHumans = out.length;
     const st = ccState();
     const off = !ccUser() || st==='offline' || st==='blocked' || (st==='error' && !out.length);
-    if(typeof GN==='object' && GN && GN.notes && (GH_FILTERS.notes || off)){
+    if(typeof GN==='object' && GN && GN.notes && (GH_FILTERS.notes || GH_FILTERS.gold || off)){
       let added = false;
       Object.values(GN.notes).forEach(n=>{
-        if(!n || !(n.text || n.conflict) || !n.g || !ccIsId(n.id) || ccHas(n.id)) return;
+        if(!n || !(n.text || n.conflict) || !n.g) return;
+        if(gnIsAn(n.id)){ const gid = n.id.slice(3); if(!ccIsId(gid) || ccHas(gid) || gnListed(gid) || (!n.conflict && !gnHasAnn(gid) && !gnClampOf(gid).length)) return; n = Object.assign({}, n, { id:gid }); }      // your analysis on a game not loaded, as on Lichess (2026-11-24)
+        if(!ccIsId(n.id) || ccHas(n.id)) return;
         let g = null;
         try{ g = ghGameFromSummary(n); }catch(e){ g = null; }
         if(!g || ghVsComputer(g)) return;
@@ -49206,7 +49269,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       host.appendChild(m);
       if(node.comment){
         host.appendChild(document.createTextNode(' '));
-        const c = hvEl('span', 'hv-com-inline');
+        const c = hvEl('span', 'hv-com-inline'+(hvGoldCom(node) ? ' is-gold hv-gold-ink' : ''));
         c.dataset.node = node.id;
         hvComText(c, node.comment);
         host.appendChild(c);
@@ -49267,6 +49330,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     el.appendChild(frag);
     hvHlDraw();
     hvComCard();          // before the scroll: the card's coming or going changes the pane's height
+    hvGoldMark();
     hvTacCard();
     hvKeepInView();
     if(document.querySelector('#hv-note a.nb-wl')) hvMvSoon();       // a side line came or went: the word links to it (hvWlDraw)
@@ -49323,7 +49387,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     let own = null, eng = null;
     try{ own = hvOwnBadge(n); eng = hvBadgeFor(n); }catch(e){ own = eng = null; }
     const lab = hvNodeLabel(n), at = String(S.game.id || '')+' '+JSON.stringify(hvNodeRef(n));
-    const k = [lab, own ? own.id : n.noBadge ? '-' : '', eng ? eng.id : '', n.clamp ? JSON.stringify(n.clamp) : '', hvTacAt(n) ? JSON.stringify(gnTacRow(n.tac))+(S.me || '') : '', text].join('\n');
+    const k = [lab, own ? own.id : n.noBadge ? '-' : '', eng ? eng.id : '', n.clamp ? JSON.stringify(n.clamp) : '', hvTacAt(n) ? JSON.stringify(gnTacRow(n.tac))+(S.me || '') : '', n.gold ? 'g' : '', text].join('\n');
     if(!el.hidden && el._n===n && el._k===k) return;       // nothing new
     const again = el._at!==at, hit = again || el.hidden;
     el._n = n; el._k = k; el._at = at;
@@ -49338,14 +49402,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hvAddBadge(head, n);          // yours over the engine's, as in the move list
     hvAddClamp(head, n);
     hvAddTac(head, n);
-    const body = hvEl('div', 'hv-cc-body'), p = hvEl('p', 'hv-cc-text');
+    const body = hvEl('div', 'hv-cc-body'), p = hvEl('p', 'hv-cc-text'), gold = hvGoldCom(n);
+    el.classList.toggle('is-golden', gold);
+    if(gold) body.appendChild(hvEl('span', 'hv-cc-gold', 'Golden rule'));
     hvComText(p, text);
     body.appendChild(p);
     el.appendChild(edge);
     el.appendChild(head);
     el.appendChild(body);
     el.dataset.node = n.id;
-    el.setAttribute('aria-label', 'Comment on '+lab);
+    el.setAttribute('aria-label', (gold ? 'Golden rule: comment on ' : 'Comment on ')+lab);
     el.hidden = false;
     // a card already showing starts its arrival again (one shown after being hidden starts it by itself)
     if(again){ el.classList.add('is-again'); void el.offsetWidth; el.classList.remove('is-again'); }
@@ -49397,6 +49463,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!node.main) add('Go to this line', ()=>{ hvGoNode(node); hvRevealBoard(); }, 'hv-pop-go');
     if(com && kept){
       add(node.comment ? 'Edit comment' : 'Add a comment', ()=> hvComEdit(node), 'hv-pop-com');
+      // beside it: the comment a golden rule (a move without one: the box opens, its switch on)
+      const row = hvEl('div', 'hv-pop-comrow'), gb = hvEl('button', 'hv-pop-gold', 'Golden rule');
+      gb.type = 'button';
+      gb.setAttribute('role', 'menuitemcheckbox');
+      gb.setAttribute('aria-checked', hvGoldCom(node) ? 'true' : 'false');
+      gb.setAttribute('aria-label', node.comment ? 'The comment is a golden rule' : 'Write a golden rule');
+      gb.title = node.comment ? (hvGoldCom(node) ? 'This comment is a golden rule: tap to make it an ordinary one' : 'Make this comment a golden rule')+' (H)' : 'Write a golden rule on this move (H)';
+      gb.addEventListener('click', (e)=>{ e.stopPropagation(); hvMenuClose(); if(node.comment) hvGoldSet(node, !hvGoldCom(node), opener); else hvComEdit(node, true); });
+      row.appendChild(el.lastChild);
+      row.appendChild(gb);
+      el.appendChild(row);
       if(node.comment) add('Delete comment', ()=> hvComSet(node, ''), 'hv-pop-com-del');
     }
     // your games that reach this very position (Game History's Positions, Find a position), or its pawns wherever
@@ -49451,7 +49528,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     setTimeout(()=>{ if(hvMenu && hvMenu.el===el) document.addEventListener('pointerdown', outside, true); }, 0);
     el.addEventListener('keydown', (e)=>{
       const items = [...el.querySelectorAll('.hv-pop-item, .hv-clamp-whob, .hv-clamp-outb')].filter(x=> x.getClientRects().length), picks = [...el.querySelectorAll('.hv-bdg-pick, .hv-bdg-word, .hv-clamp-pick, .hv-hl-pick')];
-      const a = document.activeElement, i = items.indexOf(a), p = picks.indexOf(a);
+      const a = document.activeElement, gold = !!a && a.classList.contains('hv-pop-gold'), i = items.indexOf(gold ? a.previousSibling : a), p = picks.indexOf(a);
       // the badge grid (HV_BDG_COLS a row) and the CLAMP row come before the items: Left/Right along its own
       // grid, Up/Down a row at a time and on into the items (in the same column coming back: the checked
       // badge's, else the first)
@@ -49459,6 +49536,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         e.preventDefault(); e.stopPropagation();
         const own = [...a.parentNode.children], q = own.indexOf(a);
         own[(q + (e.key==='ArrowRight' ? 1 : -1) + own.length) % own.length].focus();
+      } else if((e.key==='ArrowLeft' || e.key==='ArrowRight') && a && a.parentNode && a.parentNode.className==='hv-pop-comrow'){          // the comment and its Golden rule are one row
+        e.preventDefault(); e.stopPropagation();
+        a.parentNode.querySelector(gold ? '.hv-pop-com' : '.hv-pop-gold').focus();
       } else if(e.key==='ArrowDown' || e.key==='ArrowUp'){
         e.preventDefault(); e.stopPropagation();
         // the pick rows as they show, each grid by its own columns (the highlights are six a row since 2026-11-12)
@@ -49469,7 +49549,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         });
         const rows = R.length, n = rows + items.length, pr = R.findIndex(r=> r.indexOf(a) >= 0);
         const on = picks.find(b=> b.getAttribute('aria-checked')==='true' && !b.matches('.hv-bdg-word')), onR = on ? R.find(r=> r.indexOf(on) >= 0) : null;
-        const col = pr >= 0 ? R[pr].indexOf(a) : onR ? onR.indexOf(on) : 0;
+        const col = pr >= 0 && R[pr].length > 1 ? R[pr].indexOf(a) : onR ? onR.indexOf(on) : 0;      // (the Golden rule bar is a row of its own: no column)
         const at = pr >= 0 ? pr : (i >= 0 ? rows + i : (e.key==='ArrowDown' ? n - 1 : rows));
         const to = (at + (e.key==='ArrowDown' ? 1 : -1) + n) % n;
         (to < rows ? R[to][Math.min(col, R[to].length - 1)] : items[to - rows]).focus();
@@ -49479,6 +49559,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       else if((e.key==='t' || e.key==='T') && !e.ctrlKey && !e.metaKey && !e.altKey){          // the Tactic row's key: this menu's move
         const add = el.querySelector('.tx-add');
         if(add){ e.preventDefault(); e.stopPropagation(); add.click(); }
+      }
+      else if((e.key==='h' || e.key==='H') && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !/^(?:INPUT|TEXTAREA)$/.test(e.target.tagName)){          // Golden rule: this menu's move
+        const gb = el.querySelector('.hv-pop-gold');
+        if(gb){ e.preventDefault(); e.stopPropagation(); gb.click(); }
       }
     });
     const first = el.querySelector('.hv-pop-item:not(.hv-clamp-sq):not(.tx-has):not(.tx-add):not(.tx-none)') || el.querySelector('.hv-pop-item') || el.querySelector('.hv-bdg-pick');
@@ -49584,8 +49668,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // A side line's highlight (2026-11-04, the user: alternate moves "stand out a little more along with" their comments; "the
   // main moves have a floating panel, the alternates have highlights"): the move menu's row on any move of the line, kept on
   // the line's first move as h:[[ref, code]] in the game's record.
-  const HV_HL = [{ c:'y', name:'Yellow' }, { c:'g', name:'Neon green' }, { c:'b', name:'Blue' }, { c:'p', name:'Purple' }, { c:'w', name:'White' }, { c:'r', name:'Red' }];      // purple (2026-11-10): lines you worried about; white 2026-11-11; red 2026-11-12 (a blunder that should have cost you)
-  function hvHlClass(n){ return n && HV_HL.some(h=> h.c===n.hl) ? ' hv-hl hv-hl-'+n.hl : ''; }
+  const HV_HL = [{ c:'y', name:'Yellow' }, { c:'g', name:'Neon green' }, { c:'b', name:'Blue' }, { c:'p', name:'Purple' }, { c:'w', name:'White' }, { c:'r', name:'Red' }, { c:'d', name:'Golden rule' }];      // purple (2026-11-10): lines you worried about; white 2026-11-11; red 2026-11-12 (a blunder that should have cost you)
+  const HV_GOLD = 'd';          // Golden rule (2026-11-24): in the record's own g, never in h (gnGoldList)
+  function hvHlOf(n){ return !n || n.main ? '' : n.goldLine ? HV_GOLD : hvHlInk(n); }          // a golden line keeps the color it had under the gold (the user's colors mean something): gold off, it shows again
+  function hvHlInk(n){ return n.hl && n.hl!==HV_GOLD && HV_HL.some(h=> h.c===n.hl) ? n.hl : ''; }
+  function hvHlClass(n){ const c = hvHlOf(n); return c ? ' hv-hl hv-hl-'+c : ''; }
   // The pen (the user, 2026-11-04): people go straight to the side, and going fast they drift low, then correct high. So one
   // straight stroke per line of text: a little high or low by turns, a little off level, ending a little early or late, never
   // past the pane's edge. Seeded by the line's own text, so its strokes are the same every time the list is drawn.
@@ -49593,8 +49680,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const list = document.getElementById('hv-movelist');
     if(!list) return;
     list.querySelectorAll('.hv-hl-st').forEach(s=> s.remove());
-    list.querySelectorAll('.hv-hl-ink, .hv-nest.hv-hl').forEach(el=>{
-      const host = el.closest('.hv-var-line'), box = host.getBoundingClientRect(), code = /\bhv-hl-([a-z])\b/.exec(el.closest('.hv-hl').className);
+    list.querySelectorAll('.hv-hl-ink, .hv-nest.hv-hl, .hv-gold-ink').forEach(el=>{
+      const own = el.classList.contains('hv-gold-ink'), line = el.closest('.hv-hl');
+      if(own && line && line.classList.contains('hv-hl-'+HV_GOLD)) return;          // a golden comment in a golden line: the line's strokes are its own
+      const host = el.closest('.hv-var-line, .hv-com-text'), box = host.getBoundingClientRect(), code = own ? ['', HV_GOLD] : /\bhv-hl-([a-z])\b/.exec(line.className);
       if(!code || !HV_HL.some(x=> x.c===code[1])) return;      // any color HV_HL lists (purple's strokes were once missing from a list kept here)
       let h = 7;
       for(let i = 0; i < el.textContent.length; i++) h = (h*31 + el.textContent.charCodeAt(i)) >>> 0;
@@ -49605,10 +49694,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         const high = (i % 2 ? -first : first)*(.6 + rnd()*1.4), rise = (rnd() - .5)*3, ht = r.height - 1 + rnd()*1.5;
         const x0 = Math.max(-3, r.left - box.left + rnd()*6 - 4), x1 = Math.min(box.width, r.right - box.left + rnd()*6 + 1), wd = x1 - x0;
         // the chisel tip: both ends slanted the same way, a little differently each time; the top and bottom edges not quite level
-        const a = 2 + rnd()*4, c = 2 + rnd()*4, t1 = rnd()*1.4, t2 = rnd()*1.4;
+        let a = 2 + rnd()*4, c = 2 + rnd()*4;
+        const t1 = rnd()*1.4, t2 = rnd()*1.4;
+        if(code[1]===HV_GOLD){ const pad = own ? 5 : 6; a = Math.max(0, Math.min(a, r.left - box.left + pad - x0 - 1.5)); c = Math.max(0, Math.min(c, x1 - (r.right - box.left - pad) - 1.5)); }          // the slanted ends clear of the words
         const s = hvEl('span', 'hv-hl-st hv-hl-'+code[1]);
         s.style.cssText = 'left:'+x0.toFixed(1)+'px;top:'+(r.top - box.top + high + (r.height - ht)/2).toFixed(1)+'px;width:'+wd.toFixed(1)+'px;height:'+ht.toFixed(1)+'px;transform:rotate('+Math.atan2(rise, wd).toFixed(4)+'rad)'
           +';clip-path:polygon('+a.toFixed(1)+'px 0, 100% '+t1.toFixed(1)+'px, calc(100% - '+c.toFixed(1)+'px) 100%, 0 calc(100% - '+t2.toFixed(1)+'px))';
+        if(code[1]===HV_GOLD) s.style.setProperty('--gx', Math.round(wd*(.18 + rnd()*.6))+'px');          // where its streak of light falls
         host.appendChild(s);
       });
     });
@@ -49622,20 +49714,21 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     wrap.setAttribute('role', 'group');
     wrap.setAttribute('aria-label', 'Highlight this line');
     head.appendChild(hvEl('span', 'hv-pop-head', 'Highlight'));
-    const cur = HV_HL.find(h=> h.c===root.hl), rest = cur ? cur.name : '';
+    const cur = HV_HL.find(h=> h.c===hvHlOf(root)), rest = cur ? cur.name : '';
     name.setAttribute('aria-hidden', 'true');
     name.textContent = rest;
     head.appendChild(name);
     wrap.appendChild(head);
     HV_HL.forEach(h=>{
-      const on = !!cur && cur.c===h.c, btn = hvEl('button', 'hv-hl-pick'+(on ? ' is-on' : ''));
+      const on = !!cur && cur.c===h.c, gold = h.c===HV_GOLD, btn = hvEl('button', 'hv-hl-pick'+(gold ? ' is-gold' : '')+(on ? ' is-on' : ''));
       btn.type = 'button';
       btn.dataset.hl = h.c;
       btn.setAttribute('role', 'menuitemradio');
       btn.setAttribute('aria-checked', on ? 'true' : 'false');
-      btn.setAttribute('aria-label', h.name);
+      btn.setAttribute('aria-label', gold ? h.name+': this line' : h.name);
       btn.title = on ? h.name+': tap to take it off' : h.name;
       btn.appendChild(hvEl('span', 'hv-hl-sw hv-hl-'+h.c));
+      if(gold) btn.appendChild(hvEl('span', '', h.name+': this line'));
       const say = ()=>{ name.textContent = h.name; };
       btn.addEventListener('pointerenter', say);
       btn.addEventListener('focus', say);
@@ -49655,15 +49748,127 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function hvHlSet(root, code, opener){
     const S = HV_STATE;
     if(!S || !root || root.main || !S.nodes.has(root.id) || !hvAnnId()) return;
-    const h = HV_HL.find(x=> x.c===code);
-    if(h) root.hl = h.c; else delete root.hl;
+    const h = HV_HL.find(x=> x.c===code), gold = code===HV_GOLD, off = !h && !!root.goldLine, before = hvAnnText(false).length;
+    if(gold) root.goldLine = true; else delete root.goldLine;
+    if(!gold && !off){ if(h) root.hl = h.c; else delete root.hl; }          // gold on or off: the color under it stays as it is
+    if(gold && !hvAnnFits(before)){ delete root.goldLine; hvSay(GH_CLAMP_FULL); return; }
     hvRenderMoveList();
     if(opener && opener.classList && opener.classList.contains('hv-var-menu')){
       const nb = document.querySelector('#hv-movelist .hv-var-menu[data-node="'+opener.dataset.node+'"]');
       if(nb) try{ nb.focus({ preventScroll:true }); }catch(e){}
     }
-    hvSay(h ? hvNodeLabel(root)+': line highlighted '+h.name.toLowerCase() : hvNodeLabel(root)+': highlight taken off');
+    const left = off ? HV_HL.find(x=> x.c===hvHlInk(root)) : null;
+    hvSay(hvNodeLabel(root)+(gold ? ': the line is a golden rule' : off ? ': the line is not a golden rule anymore'+(left ? ', '+left.name.toLowerCase()+' again' : '') : h ? ': line highlighted '+h.name.toLowerCase() : ': highlight taken off'));
     hvAnnSave();                 // kept at once, like a badge
+  }
+  // ---- Golden rules (2026-11-24) ----
+  // "the only time that that'll be like a global thing where it's a very important message, even if it's a blunder or if it's a
+  // good move or whatever. It's a golden rule": a comment (of any move) or a whole side line. A comment: n.gold, the menu's button
+  // beside Edit comment, the comment box's switch, H for the move on the board (a move with no comment: the box, its switch on).
+  // A side line: n.goldLine, the Highlight row's bar. The game's mark beside its title (hvGoldMark) counts them and steps along them; Shift+H
+  // too. In the record: g (gnGoldList).
+  function hvGoldCom(n){ return !!(n && n.gold && typeof n.comment==='string' && n.comment.trim()); }
+  function hvIsGold(n){ return hvGoldCom(n) || (!!n && !n.main && !!n.goldLine); }
+  // A golden line inside another line that isn't a line of its own any more (the one beside it deleted, or itself promoted):
+  // the mark goes to the line it is now part of, its color too where that has none. Left where it was nothing would draw it,
+  // and no menu could take it off.
+  function hvGoldUp(S){
+    S.nodes.forEach(n=>{
+      if(!n.goldLine || n.main) return;
+      const r = hvLineRoot(n);
+      if(r===n || r.main) return;
+      delete n.goldLine;
+      r.goldLine = true;
+      if(!hvHlInk(r) && hvHlInk(n)){ r.hl = n.hl; delete n.hl; }
+    });
+  }
+  // in the move list's order: the two game moves of a row, then the lines in their place
+  function hvGoldOrder(S){
+    const out = [], pad = (S.root.off || 0) % 2;
+    let at = 0;
+    (function walk(n){
+      if(n.parent){ const p = n.main ? n.ply : (hvBranchBase(n) || S.root).ply + 1; out.push({ n, k:[Math.floor((p - 1 + pad)/2), n.main ? 0 : 1, p, ++at] }); }
+      n.children.forEach(c=>{ if(!c.calc) walk(c); });
+    })(S.root);
+    return out.sort((a, b)=> a.k[0] - b.k[0] || a.k[1] - b.k[1] || a.k[2] - b.k[2] || a.k[3] - b.k[3]).map(x=> x.n);
+  }
+  const hvGoldB = hvEl('button', 'hv-gold');          // (in the title only while the game has one)
+  hvGoldB.type = 'button';
+  hvGoldB.id = 'hv-gold';
+  hvGoldB.setAttribute('aria-keyshortcuts', 'Shift+H');
+  hvGoldB.addEventListener('click', ()=>{ hvGoldStep(); if(!hvMqPhone.matches) hvRevealBoard(); });
+  function hvGoldMark(){
+    const S = HV_STATE, h = document.getElementById('hv-title');
+    let n = 0;
+    if(S && hvAnnId()) S.nodes.forEach(x=>{ if(x.parent && !x.calc && hvIsGold(x)) n++; });
+    if(!n){
+      const sp = hvGoldB.previousSibling;
+      hvGoldB.remove();
+      if(sp && sp.nodeValue===' ') sp.remove();
+      return;
+    }
+    if(hvGoldB.parentNode!==h) h.append(' ', hvGoldB);
+    if(hvGoldB.textContent===String(n)) return;
+    hvGoldB.textContent = String(n);
+    hvGoldB.title = (n===1 ? 'One golden rule in this game' : n+' golden rules in this game')+': go to '+(n===1 ? 'it' : 'the next')+' (Shift+H)';
+    hvGoldB.setAttribute('aria-label', hvGoldB.title);
+  }
+  function hvGoldStep(){
+    const S = HV_STATE;
+    if(!S || !hvAnnId()) return;
+    const all = hvGoldOrder(S), L = all.filter(hvIsGold);
+    if(!L.length){ hvSay('No golden rules in this game yet'); return; }
+    const at = all.indexOf(S.cur), n = all.slice(at + 1).find(hvIsGold) || L[0];
+    hvGoNode(n, { sound:true });
+    // its words on screen: a comment's on its card (the mark stays to be tapped again); a line's, or a comment's with the card
+    // off in Settings, in Moves
+    const card = document.getElementById('hv-com-card');
+    if(!(hvGoldCom(n) && !card.hidden && card.getClientRects().length) && !hvPaneShown('moves') && (hvTabbed() ? hvTabOn('moves') : hvPrefs.cards.tabs)) hvSetTab('moves');
+    if(hvMqPhone.matches) hvGoldReveal(n, card);
+    clearTimeout(hvLiveT);          // in place of the plain move's
+    hvSay('Golden rule '+(L.indexOf(n) + 1)+' of '+L.length+': '+hvNodeLabel(n));
+  }
+  // one column (phone, iPad upright): the words where they are nearest (in Moves while it shows, else the card), with the board
+  // where both fit, else the words alone
+  function hvGoldReveal(n, card){
+    const cell = hvPaneShown('moves') && document.querySelector('#hv-movelist '+(hvGoldCom(n) ? ':is(.hv-com, .hv-com-inline)' : '.mv-san')+'[data-node="'+n.id+'"]');
+    const el = !cell ? card : hvGoldCom(n) ? cell : cell.closest('.hv-nest, .hv-var') || cell, r = el.getBoundingClientRect();
+    if(!r.height || !hvViewActive()) return;
+    const vh = window.innerHeight || document.documentElement.clientHeight, fab = document.getElementById('home-fab'), fr = fab ? fab.getBoundingClientRect() : null;
+    const clear = fr && fr.height ? fr.bottom + 6 : 8;          // under the corner buttons
+    const board = window.scrollY + document.getElementById('hv-row-top').getBoundingClientRect().top - clear, top = window.scrollY + r.top, bottom = top + r.height;
+    const both = bottom - board <= vh - 8, b = hvBoardEl.getBoundingClientRect();
+    // the card is above the tabs there (2026-11-24): the coin under it stays to be tapped again, where the card still fits over it
+    const coin = el===card ? document.getElementById('hv-gold') : null, cr = coin ? coin.getBoundingClientRect() : null, coinY = cr && cr.height ? window.scrollY + cr.bottom + 14 - vh : 0;
+    const keep = coinY > 0 && top - coinY >= clear, coinOff = keep && coinY > window.scrollY;
+    if(!coinOff && r.top >= clear && r.bottom <= vh - 8 && (!both || Math.min(b.bottom, vh) - Math.max(b.top, 0) >= b.height*.98)) return;
+    const y = Math.max(0, keep ? coinY : 0, both ? board : r.height > vh - clear - 16 ? top - clear : bottom - vh + 16);
+    try{ window.scrollTo({ top:y, behavior: reducedMotion() ? 'auto' : 'smooth' }); }catch(e){ window.scrollTo(0, y); }
+  }
+  // a comment made a golden rule, or an ordinary one again
+  function hvGoldSet(node, on, opener){
+    const S = HV_STATE;
+    if(!S || !node || !node.parent || !S.nodes.has(node.id) || !hvAnnId() || !!node.gold===!!on || (on && !node.comment)) return;
+    const before = hvAnnText(false).length;
+    if(on) node.gold = true; else delete node.gold;
+    if(on && !hvAnnFits(before)){ delete node.gold; hvSay(GH_CLAMP_FULL); return; }
+    hvRenderMoveList();
+    if(opener && opener.classList && opener.classList.contains('hv-var-menu')){
+      const nb = document.querySelector('#hv-movelist .hv-var-menu[data-node="'+opener.dataset.node+'"]');
+      if(nb) try{ nb.focus({ preventScroll:true }); }catch(e){}
+    }
+    hvSay(hvNodeLabel(node)+': '+(on ? 'the comment is a golden rule' : 'not a golden rule anymore'));
+    hvAnnSave();
+  }
+  function hvGoldKey(){
+    const S = HV_STATE, n = S && S.cur;
+    if(!S || pxPlaying() || !hvAnnId()) return;
+    if(!n || !n.parent){ hvSay('Step to a move first.'); return; }
+    if(n.calc) return;
+    if(n.comment){ hvGoldSet(n, !n.gold); return; }
+    if(!hvPaneShown('moves') && (hvTabbed() ? hvTabOn('moves') : hvPrefs.cards.tabs)) hvSetTab('moves');
+    if(!hvPaneShown('moves')){ hvSay('Moves isn\u2019t shown here'); return; }
+    hvComEdit(n, true);
   }
   // ---- CLAMP on a move (2026-11-02; any move of the game since 2026-11-04, the user: 21. e7 made a passed pawn only once it
   // was played): the move menu's CLAMP row, under the badges, on a main-line move of your own game, either side's
@@ -50415,6 +50620,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(i<=0) return;
     p.children.splice(i, 1);
     p.children.unshift(node);
+    hvGoldUp(HV_STATE);
     hvRenderMoveList();
     hvAnnSoon();
   }
@@ -50425,6 +50631,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     let inside = false;
     (function drop(n){ if(n===S.cur) inside = true; S.nodes.delete(n.id); n.children.forEach(drop); })(node);
     p.children.splice(p.children.indexOf(node), 1);
+    hvGoldUp(S);
     hvCalcAfterDelete(S);
     if(inside) hvGoNode(p); else { hvRenderMoveList(); if(CALC){ hvRenderControls(); hvCalcRender(); } }
     hvAnnSoon();
@@ -52965,7 +53172,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(e.ctrlKey || e.metaKey || e.altKey) return;
     if(a && a.closest && a.closest('.hv-pop')) return;
     const k = e.key;
-    if(pxPlaying() && (k==='l' || k==='L' || k==='e' || k==='E' || k==='b' || k==='B' || k==='t' || k==='T' || k==='m' || k==='M' || hvArrowKeyOf(e))){
+    if(pxPlaying() && (k==='l' || k==='L' || k==='e' || k==='E' || k==='b' || k==='B' || k==='t' || k==='T' || k==='m' || k==='M' || k==='h' || k==='H' || hvArrowKeyOf(e))){
       e.preventDefault(); return;
     }
     if(k==='ArrowLeft'){ e.preventDefault(); hvStep(-1); }
@@ -52985,6 +53192,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     else if(k==='t' || k==='T'){ e.preventDefault(); if(!e.repeat) hvTacKey(); }
     // M: the menu of the move on the board (its badges, letters, comment), as a right-click or a press and hold on it (2026-11-24)
     else if(k==='m' || k==='M'){ e.preventDefault(); if(!e.repeat) hvMenuKey(); }
+    // H: the move on the board's comment is a golden rule, or not anymore; Shift+H: on to the game's next one (2026-11-24)
+    else if(k==='h' || k==='H'){ e.preventDefault(); if(!e.repeat){ if(e.shiftKey) hvGoldStep(); else hvGoldKey(); } }
     else if(k==='Escape' && hvCalcOn()){ e.preventDefault(); hvCalcToggle(); }      // Esc ends the Capture Calculator first
     else if(k==='Escape'){ e.preventDefault(); if(HV_STATE.game._practice) pxBack(); else if(HV_STATE.game._puzzle) pzaReturn(); else showView('history'); }
   });
@@ -58726,6 +58935,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // Larry's review of a game (2026-11-08, hvLr*): its own record, a game's but never listed as one. An older build
   // reads its chapter as not its own and leaves it alone (gnParseChapter: gnIdOk).
   function gnIsLr(id){ return /^lr-(?:\w{8}|cc-d?\d{1,15})$/.test(String(id || '')); }
+  function gnListed(gid){ const n = GN.notes[gid]; return !!(n && (n.text || n.conflict) && n.g); }      // a note that lists its game by itself (an emptied one stays, with no text)
   function gnHasAnn(gid){ return !!gnAnnSummary(gid); }      // (a record with only b:[] in it is none; nor one with only CLAMP marks: the row's letters show those)
   // "2 comments \u00b7 1 badge \u00b7 1 side line \u00b7 arrows" for a game's saved analysis ('' when none)
   function gnAnnSummary(gid){
@@ -58747,9 +58957,41 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // field a newer build added (gnAnExtra), kept as it came: this build never drops what it doesn't know. t (the
   // tactics, 2026-11-03) is last, so builds v106-v113 (which keep it as a field they don't know, after theirs) write
   // the same text as this one and the sync sees no difference.
-  const GN_AN_KNOWN = ['v', 'l', 'c', 'm', 'b', 'k', 'q', 't', 'h', 'o', 'z', 'n'];        // o: their CLAMP slips (2026-11-12), last like t; z: Larry's suggestions added or skipped (2026-11-19), after o (builds v130-v137 keep it there as a field they don't know); n: the moves you took the review's badge off (2026-11-24, gnNoBadges), last the same way
+  const GN_AN_KNOWN = ['v', 'l', 'c', 'm', 'b', 'k', 'q', 't', 'h', 'o', 'z', 'n', 'g'];        // o: their CLAMP slips (2026-11-12), last like t; z: Larry's suggestions added or skipped (2026-11-19), after o (builds v130-v137 keep it there as a field they don't know); n: the moves you took the review's badge off (2026-11-24, gnNoBadges), last the same way; g: your golden rules (2026-11-24, gnGoldList), last the same way
   // n: [ply, ...], the game's own moves that show no badge though the review gives one. Your badge on the same move (b) wins.
   function gnNoBadges(A){ return [...new Set((A && Array.isArray(A.n) ? A.n : []).filter(p=> Number.isInteger(p) && p >= 1 && p <= 3000))].sort((a, b)=> a - b); }
+  // g: your golden rules, [[ref, 'c'], [ref, 'l']]: a move's comment, or a side line by its first move (where h's refs are too).
+  // A field of their own, never a color of h: a build that doesn't know a color of h drops it as it saves the game, while every
+  // build from v106 (2026-11-02) on keeps a field it doesn't know as it came. A ref whose comment or line an older build has
+  // deleted since means nothing (gnGoldLive, hvAnnMerge: it never brings the line back).
+  function gnGoldRef(r){
+    return Number.isInteger(r) ? r >= 1 && r <= 3000
+      : Array.isArray(r) && r.length >= 2 && r.length <= 61 && Number.isInteger(r[0]) && r[0] >= 0 && r[0] <= 3000 && r.every((u, i)=> !i || (typeof u==='string' && /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(u)));
+  }
+  function gnGoldList(A){
+    const out = [], seen = new Set();
+    (A && Array.isArray(A.g) ? A.g : []).forEach(x=>{
+      if(!Array.isArray(x) || (x[1]!=='c' && x[1]!=='l') || !gnGoldRef(x[0]) || (x[1]==='l' && !Array.isArray(x[0]))) return;
+      const k = x[1]+JSON.stringify(x[0]);
+      if(seen.has(k)) return;
+      seen.add(k);
+      out.push([x[0], x[1]]);
+    });
+    return out;
+  }
+  function gnGoldLive(A){
+    const c = Array.isArray(A && A.c) ? A.c : [], l = Array.isArray(A && A.l) ? A.l : [];
+    return gnGoldList(A).filter(x=>{
+      const k = JSON.stringify(x[0]);
+      if(x[1]==='c') return c.some(y=> Array.isArray(y) && typeof y[1]==='string' && !!y[1].trim() && JSON.stringify(y[0])===k);
+      return l.some(L=> Array.isArray(L) && L.length >= x[0].length && x[0].every((u, i)=> L[i]===u)) || c.some(y=> Array.isArray(y) && Array.isArray(y[0]) && x[0].every((u, i)=> y[0][i]===u));
+    });
+  }
+  function gnHasGold(gid){
+    const t = gnNoteText('an-'+gid);
+    if(!t || t.indexOf('"g":[[') < 0) return false;
+    try{ return gnGoldLive(JSON.parse(t)).length > 0; }catch(e){ return false; }
+  }
   function gnAnExtra(A){
     const x = {};
     if(A && typeof A==='object' && !Array.isArray(A)) Object.keys(A).forEach(f=>{ if(GN_AN_KNOWN.indexOf(f) < 0 && f!=='__proto__') x[f] = A[f]; });
@@ -58997,7 +59239,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     try{ M = JSON.parse(mine); I = inc ? JSON.parse(inc) : { v:1, l:[], c:[], m:[] }; }catch(e){ return ''; }
     if(!M || typeof M!=='object' || !I || typeof I!=='object' || Array.isArray(I)) return '';
     let kept = false;
-    ['b', 'k', 'q', 't', 'h', 'o', 'z', 'n'].forEach(f=>{ if(Array.isArray(M[f]) && M[f].length && !(f in I)){ I[f] = M[f]; kept = true; } });      // t: the tactics (2026-11-03), h: side lines' highlights (2026-11-04), the same rule
+    ['b', 'k', 'q', 't', 'h', 'o', 'z', 'n', 'g'].forEach(f=>{ if(Array.isArray(M[f]) && M[f].length && !(f in I)){ I[f] = M[f]; kept = true; } });      // t: the tactics (2026-11-03), h: side lines' highlights (2026-11-04), the same rule
     if(!kept) return '';
     const t = JSON.stringify(gnAnCanon(I));
     return t.length <= GN_MAX ? t : '';
@@ -62833,6 +63075,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     return S && !S.game._puzzle && /^(?:\w{8}|cc-d?\d{1,15})$/.test(id) ? 'an-'+id : '';
   }
   function hvAnnRef(n){ return n.main ? n.ply : hvNodeRef(n).line; }
+  function hvNodeFind(r){      // a record's ref on the tree, only a move that is there (hvNodeFromRef plays a line that isn't)
+    const S = HV_STATE;
+    if(typeof r==='number') return S.main[r-1] || null;
+    let n = r[0]===0 ? S.root : S.main[r[0]-1] || null;
+    for(let i = 1; n && i < r.length; i++) n = n.children.find(c=> c.uci===r[i]) || null;
+    return n;
+  }
   function hvAnnNode(r){ return typeof r==='number' ? hvNodeFromRef({ ply:r }) : (Array.isArray(r) ? hvNodeFromRef({ line:r }) : null); }
   // the record: { v:1, l:[side lines' ends, as refs], c:[[ref, comment]], m:[[ref, 'Ge2e4 ...', 'Re4 ...']],
   // b:[[ref, 'x']] } ('' when there's nothing); arrows as shown (the profile's colors) in the diagram codes;
@@ -62841,12 +63090,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // a newer copy without b over badges is an older build's (gnAnKeepB), not your edit. k, your CLAMP
   // marks (2026-11-02): [[ply, letter, note?]] on main-line moves of yours, kept the same way (k:[] once
   // they're all off), and q their squares, [[ply, letter, square]] (q:[] the same). A field this build
-  // doesn't know (a newer build's) is kept from the record as it came.
+  // doesn't know (a newer build's) is kept from the record as it came. g, your golden rules: [[ref, 'c'|'l']] (gnGoldList).
   function hvAnnText(noMarks){
-    const S = HV_STATE, lines = [], com = [], mk = [], bd = [], hl = [], kd = hvClampListOf(S), qd = hvClampSqOf(S), td = gnTacRows(hvTacListOf(S), !!hvTacRoot(S).tacNone), od = hvClampOListOf(S).map(gnClampORow), zd = lzDecRows(S), nd = S.main.filter(n=> n.noBadge && !hvOwnBadge(n)).map(n=> n.ply).concat((S.tree || S).noBadgePast || []);
+    const S = HV_STATE, lines = [], com = [], mk = [], bd = [], hl = [], kd = hvClampListOf(S), qd = hvClampSqOf(S), td = gnTacRows(hvTacListOf(S), !!hvTacRoot(S).tacNone), od = hvClampOListOf(S).map(gnClampORow), zd = lzDecRows(S), gd = [], nd = S.main.filter(n=> n.noBadge && !hvOwnBadge(n)).map(n=> n.ply).concat((S.tree || S).noBadgePast || []);
     let P = null;
     try{ P = S.annText ? JSON.parse(S.annText) : null; }catch(e){ P = null; }
-    const hadB = !!P && Array.isArray(P.b), hadK = !!P && Array.isArray(P.k), hadQ = !!P && Array.isArray(P.q), hadT = !!P && Array.isArray(P.t), hadH = !!P && Array.isArray(P.h), hadO = !!P && Array.isArray(P.o), hadZ = !!P && Array.isArray(P.z), hadN = !!P && Array.isArray(P.n), extra = gnAnExtra(P);
+    const hadB = !!P && Array.isArray(P.b), hadK = !!P && Array.isArray(P.k), hadQ = !!P && Array.isArray(P.q), hadT = !!P && Array.isArray(P.t), hadH = !!P && Array.isArray(P.h), hadO = !!P && Array.isArray(P.o), hadZ = !!P && Array.isArray(P.z), hadN = !!P && Array.isArray(P.n), hadG = !!P && Array.isArray(P.g), extra = gnAnExtra(P);
     const prof = annoProfile();
     const marks = (n)=>{
       if(noMarks) return;
@@ -62856,12 +63105,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     (function walk(n){
       if(n.comment) com.push([hvAnnRef(n), n.comment]);
       if(n.parent && hvOwnBadge(n)) bd.push([hvAnnRef(n), hvOwnBadge(n).code]);
-      if(n.parent && !n.main && hvHlClass(n)) hl.push([hvAnnRef(n), n.hl]);
+      if(n.parent && !n.main && hvHlInk(n)) hl.push([hvAnnRef(n), n.hl]);
+      if(n.parent && hvGoldCom(n)) gd.push([hvAnnRef(n), 'c']);
+      if(n.parent && !n.main && n.goldLine) gd.push([hvAnnRef(n), 'l']);
       marks(n);
       // (the Capture Calculator's scratch moves never: a line it went on from still ends where it did)
       n.children.forEach(c=>{ if(c.calc) return; if(!c.main && !c.children.some(x=> !x.calc)) lines.push(hvNodeRef(c).line); walk(c); });
     })(S.root);
-    if(!lines.length && !com.length && !mk.length && !bd.length && !hadB && !kd.length && !hadK && !qd.length && !hadQ && !td.length && !hadT && !hl.length && !hadH && !od.length && !hadO && !zd.length && !hadZ && !nd.length && !hadN && !Object.keys(extra).length) return '';
+    ((S.tree || S).goldPast || []).forEach(x=> gd.push(x));
+    if(!lines.length && !com.length && !mk.length && !bd.length && !hadB && !kd.length && !hadK && !qd.length && !hadQ && !td.length && !hadT && !hl.length && !hadH && !od.length && !hadO && !zd.length && !hadZ && !nd.length && !hadN && !gd.length && !hadG && !Object.keys(extra).length) return '';
     const A = { v:1, l:lines, c:com, m:mk };
     if(bd.length || hadB) A.b = bd;
     if(kd.length || hadK) A.k = kd;
@@ -62871,6 +63123,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(od.length || hadO) A.o = od;          // their CLAMP slips (2026-11-12), o:[] once they're all off
     if(zd.length || hadZ) A.z = zd;          // Larry's suggestions added or skipped (2026-11-19), z:[] once all are undone
     if(nd.length || hadN) A.n = nd;          // the moves with no badge (2026-11-24), n:[] once they all show one again
+    if(gd.length || hadG) A.g = gd;          // your golden rules (2026-11-24), g:[] once they're all off
     return JSON.stringify(Object.assign(A, extra));
   }
   // a move's arrows and squares as the record keeps them: [ref, arrows, squares], null for none (the Capture Calculator's
@@ -62921,8 +63174,20 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       });
       (Array.isArray(A.h) ? A.h : []).forEach(x=>{
         const n = Array.isArray(x) ? hvAnnNode(x[0]) : null;
-        if(n && n.parent && !n.main && HV_HL.some(h=> h.c===x[1]) && (lost || !(mine && n.hl))) n.hl = x[1];
+        if(n && n.parent && !n.main && x[1]!==HV_GOLD && HV_HL.some(h=> h.c===x[1]) && (lost || !(mine && n.hl))) n.hl = x[1];
       });
+      // golden rules join (2026-11-24): either side's stays one. A line or comment that isn't there any more (an older build
+      // deleted it) never comes back with it
+      const gPast = (HV_STATE.tree || HV_STATE).goldPast || ((HV_STATE.tree || HV_STATE).goldPast = []);
+      gnGoldList(A).forEach(x=>{
+        const base = Array.isArray(x[0]) ? x[0][0] : x[0];
+        if(base > HV_STATE.main.length){ if(!gPast.some(y=> JSON.stringify(y)===JSON.stringify(x))) gPast.push(x); return; }      // past where the replay ends: kept as it came
+        const n = hvNodeFind(x[0]);
+        if(!n || !n.parent) return;
+        if(x[1]==='c'){ if(typeof n.comment==='string' && n.comment.trim()) n.gold = true; }
+        else if(!n.main) n.goldLine = true;
+      });
+      hvGoldUp(HV_STATE);
       const S = HV_STATE, past = (S.tree || S).clampPast || ((S.tree || S).clampPast = []);
       gnClampList(A).forEach(x=>{
         const n = hvAnnNode(x[0]), t = x[2] || '';
@@ -62989,6 +63254,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     let A = null;
     if(S.annText) try{ A = JSON.parse(S.annText); }catch(e){ A = null; }
     if(id){ S.nodes.forEach(n=>{ delete n.badge; delete n.noBadge; }); (S.tree || S).noBadgePast = []; }      // the badges too: one taken off elsewhere never comes back from a kept tree
+    if(id){ S.nodes.forEach(n=>{ delete n.gold; delete n.goldLine; }); (S.tree || S).goldPast = []; }      // the golden rules the same
     if(id){ hvClampOnto(S, gnClampList(A), gnClampSqList(A), gnClampOList(A)); hvTacOnto(S, gnTacList(A)); (S.tree || S).lzDec = lzDecObj(lzDecList(A)); }      // the record's tactics and Larry choices, exactly
     if(A) hvAnnMerge(A, false);
   }
@@ -63051,7 +63317,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     if(!n || !n.conflict) return null;
     const row = hvEl('div', 'hv-ann-conflict');
-    row.appendChild(hvEl('span', '', 'Another device saved different comments, badges, CLAMP marks, tactics or lines for this game '+relTime(n.conflict.at)+'.'));
+    row.appendChild(hvEl('span', '', 'Another device saved different comments, badges, CLAMP marks, tactics, golden rules or lines for this game '+relTime(n.conflict.at)+'.'));
     const b1 = hvEl('button', 'btn-link', 'Add them to these'); b1.type = 'button'; b1.dataset.ann = 'merge';
     const b2 = hvEl('button', 'btn-link', 'Keep only these'); b2.type = 'button'; b2.dataset.ann = 'keep';
     row.appendChild(b1); row.appendChild(b2);
@@ -64598,8 +64864,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     go.dataset.node = n.id;
     go.title = 'Go to '+hvNodeLabel(n);
     row.appendChild(go);
-    const t = hvEl('span', 'hv-com-text');
-    hvComText(t, n.comment);
+    const gold = hvGoldCom(n), t = hvEl('span', 'hv-com-text'+(gold ? ' is-gold' : ''));
+    hvComText(gold ? t.appendChild(hvEl('span', 'hv-gold-ink')) : t, n.comment);      // (its ink an inline span, so each line of text gets its own stroke)
     row.appendChild(t);
     return row;
   }
@@ -64622,16 +64888,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     });
     if(at < text.length) host.appendChild(document.createTextNode(text.slice(at)));
   }
-  function hvComSet(node, text){
-    const t = String(text || '').replace(/\r\n?/g, '\n').trim().slice(0, HV_COM_MAX);
-    if((node.comment || '')===t) return;
+  function hvComSet(node, text, gold){
+    const t = String(text || '').replace(/\r\n?/g, '\n').trim().slice(0, HV_COM_MAX), g = !!t && (gold===undefined ? !!node.gold : !!gold);
+    if((node.comment || '')===t && !!node.gold===g) return;
     if(t) node.comment = t; else delete node.comment;
+    if(g) node.gold = true; else delete node.gold;
     hvRenderMoveList();
     hvAnnSave();                 // a comment is kept at once
   }
   // The comment box, under the move: Save (or Cmd/Ctrl+Enter, or clicking elsewhere) keeps
   // what's written; Cancel or Escape leaves the comment as it was.
-  function hvComEdit(node){
+  function hvComEdit(node, gold){          // gold: the box opens with Golden rule on (a move with no comment yet)
     hvMenuClose();
     const S = HV_STATE;
     if(!S || !node || !hvAnnId()) return;
@@ -64644,7 +64911,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     el.id = 'hv-com-pop';
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-label', 'Comment on '+lab);
-    el.appendChild(hvEl('div', 'hv-com-pop-title', 'Comment on '+lab));
+    const top = el.appendChild(hvEl('div', 'hv-com-pop-top'));
+    top.appendChild(hvEl('div', 'hv-com-pop-title', 'Comment on '+lab));
     const ta = document.createElement('textarea');
     ta.className = 'text-input hv-com-ta';
     ta.rows = 3;
@@ -64656,6 +64924,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const acts = hvEl('div', 'hv-com-pop-acts');
     const save = hvEl('button', 'btn', 'Save'); save.type = 'button';
     const cancel = hvEl('button', 'btn btn-ghost', 'Cancel'); cancel.type = 'button';
+    const gsw = hvEl('button', 'hv-switch hv-com-gold');
+    gsw.type = 'button';
+    gsw.setAttribute('role', 'switch');
+    gsw.setAttribute('aria-checked', gold || hvGoldCom(node) ? 'true' : 'false');
+    const trk = hvEl('span', 'hv-switch-track');
+    trk.setAttribute('aria-hidden', 'true');
+    trk.appendChild(hvEl('span', 'hv-switch-knob'));
+    gsw.appendChild(trk);
+    gsw.appendChild(hvEl('span', 'hv-switch-text', 'Golden rule'));
+    gsw.addEventListener('click', ()=> gsw.setAttribute('aria-checked', gsw.getAttribute('aria-checked')==='true' ? 'false' : 'true'));
+    top.appendChild(gsw);
     acts.appendChild(save); acts.appendChild(cancel);
     el.appendChild(acts);
     pane.appendChild(el);
@@ -64665,9 +64944,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     el.style.top = (cr.bottom - pr.top + pane.scrollTop + 4)+'px';
     const done = (keep)=>{
       if(!hvMenu || hvMenu.el!==el) return;
-      const v = ta.value;
+      const v = ta.value, on = gsw.getAttribute('aria-checked')==='true';
       hvMenuClose(true);
-      if(keep) hvComSet(node, v);
+      if(keep) hvComSet(node, v, on);
     };
     const outside = (e)=>{ if(!el.contains(e.target)) done(true); };
     hvMenu = { el, node, opener:cell, outside, kind:'com' };
