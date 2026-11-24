@@ -9,7 +9,15 @@
 // only when nothing was drawn while it was held. Hold B and drag: a blue
 // arrow, and the eval bar stays as it was. Tap B: the eval bar.
 
+// A Mac and an iPad never report the release of a letter pressed with Command:
+// after Cmd+R the R stayed "held", and every mark came out red whatever letter
+// was down (2026-11-24). So a letter with Command isn't held, Command lets every
+// letter go, and a new letter takes the older one's place: one whose release
+// was missed can't outlive the next. Releases go by the physical key (with
+// Option down, a letter's release has another name).
+
 const held = new Set();
+const byCode = new Map(); // physical key -> the name it went down with
 const used = new Set();
 const waiting = new Map(); // key -> what its release does, unless it drew
 let watching = false;
@@ -20,6 +28,8 @@ const typing = (e) => {
 };
 // An autofill's keydown can come with no key at all.
 const nameOf = (e) => String(e.key ?? '').toLowerCase();
+const isLetter = (k) => /^[a-z0-9]$/.test(k);
+const dropLetters = () => { for (const k of [...held]) if (isLetter(k)) held.delete(k); };
 
 export function watchHeldKeys() {
   if (watching || typeof window === 'undefined') return;
@@ -27,18 +37,27 @@ export function watchHeldKeys() {
   window.addEventListener('keydown', (e) => {
     if (typing(e)) return;
     const k = nameOf(e);
-    if (!held.has(k)) used.delete(k);
+    if (k === 'meta') { dropLetters(); waiting.clear(); }
+    if (e.metaKey && k.length === 1) return;
+    if (!held.has(k)) {
+      used.delete(k);
+      if (isLetter(k)) dropLetters();
+    }
     held.add(k);
+    if (e.code) byCode.set(e.code, k);
   });
   window.addEventListener('keyup', (e) => {
-    const k = nameOf(e);
+    const k = byCode.get(e.code) ?? nameOf(e);
+    byCode.delete(e.code);
+    if (k === 'meta') dropLetters();
     held.delete(k);
+    held.delete(nameOf(e));
     const fn = waiting.get(k);
     waiting.delete(k);
     if (fn && !used.has(k)) fn();
   });
   // A key let go in another app would otherwise stay "held".
-  window.addEventListener('blur', () => { held.clear(); waiting.clear(); });
+  window.addEventListener('blur', () => { held.clear(); byCode.clear(); waiting.clear(); });
 }
 
 // The letters held now (lowercased).
@@ -58,5 +77,5 @@ export function onRelease(key, fn) {
 
 // For the tests: as if the page had just loaded.
 export function resetHeldKeys() {
-  held.clear(); used.clear(); waiting.clear();
+  held.clear(); byCode.clear(); used.clear(); waiting.clear();
 }
