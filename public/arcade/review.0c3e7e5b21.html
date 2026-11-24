@@ -6472,6 +6472,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     #hv-row-bottom, #hv-sq-ask{ grid-row:4; }
     #hv-controls{ grid-row:5; }
     #hv-anno-hint{ grid-row:6; }
+    #hv-cd{ grid-row:7; }
     /* the padding already clears the corner buttons */
     .wrap.play-mode .hv-boardcol > .back-link{ margin-left:0; }
     #hv-row-top{ padding-left:12px; }
@@ -6548,7 +6549,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     .wrap.play-mode .hv-frame.board-frame{ order:3; padding:4px; }
     #hv-row-bottom, #hv-sq-ask{ order:4; }
     #hv-controls{ order:5; }
-    #hv-anno-hint{ order:5; }
+    #hv-anno-hint, #hv-cd{ order:5; }
     #hv-px{ order:6; }
     #hv-tabs{ order:7; overflow:visible; }
     #hv-com-card, #hv-engine{ order:8; }
@@ -6833,6 +6834,21 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .hv-sq-ask-in[aria-invalid="true"]{ border-color:var(--bad); }
   .hv-sq-ask-x{ flex:0 0 auto; padding:6px 8px; }
   @media (pointer:coarse){ .hv-sq-ask-in{ display:none; } .hv-sq-ask-x{ min-height:44px; } }
+  /* Settings > Click to draw: the strip under the review board, and the first square of an arrow being clicked */
+  .hv-cd{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 12px; box-sizing:border-box; min-height:40px; padding:4px 10px;
+    border-radius:8px; background:var(--surface-2); color:var(--ink); font-size:13px; line-height:1.3; }
+  .hv-cd[hidden]{ display:none; }
+  .hv-cd-seg, .hv-cd-cs{ display:flex; gap:4px; }
+  .hv-cd-b{ appearance:none; -webkit-appearance:none; min-height:30px; padding:4px 12px; border:1px solid var(--line); border-radius:6px;
+    background:var(--surface); color:var(--ink); font:inherit; font-weight:600; cursor:pointer; }
+  .hv-cd-b[aria-pressed="true"]{ background:var(--ink); border-color:var(--ink); color:var(--surface); }
+  .hv-cd-c{ appearance:none; -webkit-appearance:none; width:30px; height:30px; padding:0; border:2px solid var(--surface-2); border-radius:50%;
+    background:var(--c); cursor:pointer; box-shadow:0 0 0 1px var(--line); }
+  .hv-cd-c[aria-pressed="true"]{ box-shadow:0 0 0 2px var(--ink); }
+  .hv-cd-b:focus-visible, .hv-cd-c:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  .hv-cd-t{ flex:1 1 12em; min-width:0; color:var(--ink-soft); }
+  #hv-board .sq.cd-from{ outline:4px dashed #fff; outline-offset:-4px; background-image:linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)); }
+  @media (pointer:coarse){ .hv-cd-b{ min-height:44px; } .hv-cd-c{ width:44px; height:44px; } }
   .hr-vh{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; }
 
   .hr-wrap{ display:flex; flex-direction:column; gap:12px; }
@@ -8529,7 +8545,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .tx-box.is-phone .tx-bh{ padding:8px 10px 4px; }
   .tx-box.is-phone .tx-acts{ padding:6px 10px 8px; }
   body.tx-marking-phone #home-fab, body.tx-marking-phone #settings-fab{ display:none !important; }
-  .hv-boardcol.is-tx > #hv-row-top, .hv-boardcol.is-tx > #hv-row-bottom, .hv-boardcol.is-tx > #hv-controls, .hv-boardcol.is-tx > #hv-anno-hint, .hv-boardcol.is-tx > #hv-sq-ask{ display:none !important; }
+  .hv-boardcol.is-tx > #hv-row-top, .hv-boardcol.is-tx > #hv-row-bottom, .hv-boardcol.is-tx > #hv-controls, .hv-boardcol.is-tx > #hv-anno-hint, .hv-boardcol.is-tx > #hv-cd, .hv-boardcol.is-tx > #hv-sq-ask{ display:none !important; }
   @media (max-width:899.98px){ #hv-tac-card{ order:5; } #tx-box{ order:3; } }
   @media (pointer:coarse){
     .tx-in{ min-height:44px; } .tx-chip, .tx-chip.is-ico, .tx-two button, .tx-btn{ min-height:44px; }
@@ -9323,6 +9339,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <button class="toggle" data-val="off">Off</button>
       </div>
       <div class="field-hint">Touch screens, in Game Review: a finger rested on a piece draws an arrow from it. Off, a piece you can move is always picked up, however long the finger rests, and you hold an empty square to draw. Wherever pieces are played (puzzles, drills, games) a piece is always picked up.</div>
+    </div>
+
+    <div class="field" id="clickdraw-field">
+      <div class="field-label">Click to draw</div>
+      <div class="toggle-row" id="clickdraw-row">
+        <button class="toggle" data-val="on">On</button>
+        <button class="toggle active" data-val="off">Off</button>
+      </div>
+      <div class="field-hint">For drawing without a right mouse button, in Game Review: click a square and then another for an arrow, or switch to Square and click one to highlight it. On, clicks on that board draw and don&rsquo;t move pieces. Off, the board works as it always has.</div>
     </div>
 
     <div class="field">
@@ -10194,6 +10219,20 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <button class="btn btn-ghost hv-share" id="hv-share" type="button" aria-haspopup="menu" aria-expanded="false" title="Share the game at this move, or this position">Share</button>
         <button class="btn btn-ghost hv-copy-pgn" id="hv-copy-pgn" type="button" title="Copy the game&rsquo;s PGN as text">Copy PGN</button>
         <button class="btn btn-ghost hv-calc-btn" id="hv-calc-btn" type="button" aria-pressed="false" aria-keyshortcuts="V" aria-label="Capture Calculator (V)" title="Capture Calculator (V)"><span class="hv-calc-btn-w">Capture </span>Calculator</button>
+      </div>
+      <!-- Settings > Click to draw (hvCd): there only while it is on -->
+      <div class="hv-cd" id="hv-cd" role="group" aria-label="Click to draw" hidden>
+        <div class="hv-cd-seg">
+          <button class="hv-cd-b" type="button" data-m="arrow" aria-pressed="true">Arrow</button>
+          <button class="hv-cd-b" type="button" data-m="square" aria-pressed="false">Square</button>
+        </div>
+        <div class="hv-cd-cs" id="hv-cd-cs">
+          <button class="hv-cd-c" type="button" data-c="#2ecc71" aria-pressed="true" aria-label="Green" title="Green" style="--c:#2ecc71"></button>
+          <button class="hv-cd-c" type="button" data-c="#e5534b" aria-pressed="false" aria-label="Red" title="Red" style="--c:#e5534b"></button>
+          <button class="hv-cd-c" type="button" data-c="#e8b339" aria-pressed="false" aria-label="Yellow" title="Yellow" style="--c:#e8b339"></button>
+          <button class="hv-cd-c" type="button" data-c="#3b9cff" aria-pressed="false" aria-label="Blue" title="Blue" style="--c:#3b9cff"></button>
+        </div>
+        <span class="hv-cd-t" id="hv-cd-t" role="status"></span>
       </div>
       <!-- Only shown while an arrow color profile is on, so the profile label
            has a home under this board too; in Default the view is unchanged. -->
@@ -13640,8 +13679,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     for(const p of penKeysNow()){ if(heldPenKeys.has(p.key)) return p.color; }
     return DEFAULT_PEN_COLOR;
   }
-  // The held pen key ({key, color}), or null when no pen key is held.
+  // The held pen key ({key, color}), or null when no pen key is held. While Click to draw makes a mark, its picked color.
+  let annoClickPen = null;
   function heldPenKey(){
+    if(annoClickPen) return annoClickPen;
     for(const p of penKeysNow()){ if(heldPenKeys.has(p.key)) return p; }
     return null;
   }
@@ -14390,6 +14431,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         if(!(moveFirst && moveFirst())) e.stopImmediatePropagation();
       }
     }, true);
+    return { apply:(from, to)=>{ applyMark(getMarks(), from, to); onChange(); } };      // Click to draw (hvCd)
   }
 
   /* ---------------- UI wiring ---------------- */
@@ -16379,6 +16421,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const glassRow = document.getElementById('glass-row');
     const introRow = document.getElementById('intro-row');
     const holdDrawRow = document.getElementById('holddraw-row');
+    const clickDrawRow = document.getElementById('clickdraw-row');
     const uxLinesRow = document.getElementById('uxlines-row');
     const uxLinesField = document.getElementById('uxlines-field');
     const glassAlpha = document.getElementById('glass-alpha');
@@ -16419,6 +16462,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       });
       holdDrawRow.querySelectorAll('.toggle').forEach(b=>{
         b.classList.toggle('active', b.dataset.val===(lookPrefs.holdDrawPieces==='off' ? 'off' : 'on'));
+      });
+      clickDrawRow.querySelectorAll('.toggle').forEach(b=>{
+        b.classList.toggle('active', b.dataset.val===(lookPrefs.clickDraw==='on' ? 'on' : 'off'));
       });
       introRow.querySelectorAll('.toggle').forEach(b=>{
         b.classList.toggle('active', b.dataset.val===(lookPrefs.intro==='off' ? 'off' : 'on'));
@@ -16565,6 +16611,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       btn.addEventListener('click', ()=>{
         lookPrefs.holdDrawPieces = btn.dataset.val;
         saveLookPrefs(); syncButtons();
+      });
+    });
+    clickDrawRow.querySelectorAll('.toggle').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        lookPrefs.clickDraw = btn.dataset.val==='on' ? 'on' : 'off';
+        saveLookPrefs(); syncButtons(); hvCdPaint();
       });
     });
     uxLinesRow.querySelectorAll('.toggle').forEach(btn=>{
@@ -45084,6 +45136,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     return s;
   }
 
+  // Click to draw's own state (hvCd*, below): the mode, the color, the arrow's first square
+  var HV_CD = { mode:'arrow', color:'#2ecc71', from:null, shown:false };
   // ---- the board ----
   function hvCanMove(){ return !!(HV_STATE && HV_STATE.std && !hvPromoOpen && !pxWaits()); }
   function hvRenderBoard(){
@@ -45129,6 +45183,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(n.clamp) hvClampSqDraw();          // the move's CLAMP letters on their squares
     hvTacDraw();                          // a tactic on the move (or the one being marked): arrows, rings, icon, pill
     lzBoardDraw();                        // Larry's suggestion in focus: his better move, the square it's about
+    hvCdMark();                           // Click to draw: the arrow's first square
   }
   function hvBuildLabels(){
     const flipped = !!(HV_STATE && HV_STATE.flipped);
@@ -45159,7 +45214,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // a board for going over a game: a finger rested on a piece draws from it, unless switched off (Settings)
     holdDraws: ()=> lookPrefs.holdDrawPieces!=='off'
   });
-  wireAnnotations(
+  const hvAnnoPen = wireAnnotations(
     hvBoardEl,
     ()=> marksHv,
     ()=> renderMarks(hvBoardEl, arrowSvgHv, marksHv, HV_STATE ? HV_STATE.cur.state.board : []),
@@ -59038,6 +59093,107 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hvBoardEl.addEventListener('pointerup', soon);
     hvBoardEl.addEventListener('contextmenu', soon);
     hvBoardEl.addEventListener('click', soon);
+  })();
+  // ---- Click to draw (Settings, off by default; 2026-11-23): arrows and highlights with left clicks alone, for a
+  // pointer with no right button (an assistant's browser). Two clicks an arrow (or one left-drag), one click a highlight,
+  // the same mark again removes it: the marks, the colors and the saving are the right button's own (wireAnnotations).
+  // While it is on, the board's clicks draw: no piece is picked up, and a click doesn't clear the drawings. ----
+  function hvCdSet(){ return lookPrefs.clickDraw==='on'; }
+  function hvCdOn(){      // in charge of the board right now? (never in a game being played out, the calculator, or another box's board)
+    const S = HV_STATE;
+    if(!hvCdSet() || currentView!=='play-history' || !S || hvPromoOpen || pxPlaying() || hvCalcOn() || HV_TAC_BOX || hvSqAsk) return false;
+    return !(S.lz && S.lz.edit && S.lz.edit.arm);
+  }
+  function hvCdAlg(i){ return 'abcdefgh'[i % 8] + (Math.floor(i / 8) + 1); }
+  function hvCdMark(){
+    if(HV_CD.from==null && !HV_CD.shown) return;      // (every redraw of the board comes by here)
+    hvBoardEl.querySelectorAll('.sq.cd-from').forEach(q=> q.classList.remove('cd-from'));
+    HV_CD.shown = HV_CD.from!=null;
+    if(!HV_CD.shown) return;
+    const q = hvBoardEl.querySelector('[data-idx="'+HV_CD.from+'"]');
+    if(q) q.classList.add('cd-from');
+  }
+  function hvCdPaint(){
+    const el = document.getElementById('hv-cd');
+    if(!el) return;
+    const on = hvCdSet();
+    if(!on) HV_CD.from = null;
+    el.hidden = !on;
+    el.querySelectorAll('.hv-cd-b').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.m===HV_CD.mode)));
+    el.querySelectorAll('.hv-cd-c').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.c===HV_CD.color)));
+    const t = document.getElementById('hv-cd-t');
+    const say = !on ? '' : HV_CD.mode==='square' ? 'Click a square to highlight it.'
+      : HV_CD.from==null ? 'Click the arrow\u2019s first square.' : 'From '+hvCdAlg(HV_CD.from)+': click where it goes, or '+hvCdAlg(HV_CD.from)+' again to cancel.';
+    if(t && t.textContent!==say) t.textContent = say;
+    hvCdMark();
+  }
+  function hvCdDraw(from, to){
+    annoClickPen = { key:'', color:HV_CD.color };
+    try{ hvAnnoPen.apply(from, to); } finally { annoClickPen = null; }
+    if(hvAnnId()) hvAnnSoon();
+  }
+  function hvCdTap(i){
+    if(HV_CD.mode==='square') hvCdDraw(i, i);
+    else if(HV_CD.from==null) HV_CD.from = i;
+    else if(HV_CD.from===i) HV_CD.from = null;
+    else { const f = HV_CD.from; HV_CD.from = null; hvCdDraw(f, i); }
+    hvCdPaint();
+  }
+  (function(){
+    const strip = document.getElementById('hv-cd');
+    strip.addEventListener('click', (e)=>{
+      const b = e.target.closest ? e.target.closest('button') : null;
+      if(!b) return;
+      if(b.dataset.m){ HV_CD.mode = b.dataset.m==='square' ? 'square' : 'arrow'; HV_CD.from = null; }
+      else if(b.dataset.c) HV_CD.color = b.dataset.c;
+      hvCdPaint();
+    });
+    const sqAt = (x, y)=>{
+      const u = document.elementFromPoint(x, y), q = u && u.closest ? u.closest('.sq') : null;
+      return q && hvBoardEl.contains(q) ? Number(q.dataset.idx) : null;
+    };
+    const sqOf = (t)=>{ const q = t && t.closest ? t.closest('.sq') : null; return q && hvBoardEl.contains(q) ? Number(q.dataset.idx) : null; };
+    let press = null, doneAt = -Infinity;
+    // on the window, first: the board's own listeners (a piece picked up, a held finger's drawing, the clearing click) never hear of it
+    window.addEventListener('pointerdown', (e)=>{
+      press = null;
+      if(e.button!==0 || !hvCdOn()) return;
+      const i = sqOf(e.target);
+      if(i==null) return;
+      e.preventDefault(); e.stopPropagation();
+      const menu = !!hvMenu;
+      if(menu) hvMenuClose();                  // an open menu: this press only puts it away
+      if(e.isPrimary) press = { id:e.pointerId, i:menu ? null : i };
+    }, true);
+    window.addEventListener('pointerup', (e)=>{
+      const P = press;
+      if(!P || e.pointerId!==P.id) return;
+      press = null;
+      doneAt = performance.now();
+      e.preventDefault(); e.stopPropagation();
+      if(P.i==null || !hvCdOn()) return;
+      const i = sqAt(e.clientX, e.clientY);
+      if(i==null) return;
+      if(i===P.i) hvCdTap(i);
+      else if(HV_CD.mode==='arrow'){ HV_CD.from = null; hvCdDraw(P.i, i); hvCdPaint(); }      // a left-drag is the arrow at once
+    }, true);
+    window.addEventListener('pointercancel', (e)=>{ if(press && e.pointerId===press.id) press = null; }, true);
+    window.addEventListener('click', (e)=>{
+      if(e.button!==0 || !hvCdOn() || !e.target || !hvBoardEl.contains(e.target)) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if(e.isTrusted && performance.now() - doneAt < 700) return;      // the press above already drew
+      const i = sqOf(e.target);                        // a click with no press before it (element.click())
+      if(i!=null) hvCdTap(i);
+    }, true);
+    window.addEventListener('keydown', (e)=>{
+      if(e.key!=='Escape' || HV_CD.from==null || !hvCdOn()) return;
+      e.preventDefault(); e.stopPropagation();
+      HV_CD.from = null; hvCdPaint();
+    }, true);
+    hvOnNode(()=>{ if(HV_CD.from!=null){ HV_CD.from = null; hvCdPaint(); } });
+    hvOnGame(()=>{ HV_CD.from = null; hvCdPaint(); });
+    onLeavePlay(()=>{ if(HV_CD.from!=null){ HV_CD.from = null; hvCdPaint(); } });
+    hvCdPaint();
   })();
   // Whatever is being typed is saved before the page goes away.
   function gnFlushAll(){ try{ if(gnEd) gnFieldSave(gnEd.F); if(hvNote) gnFieldSave(hvNote); hvOpxFields().forEach(gnFieldSave); hvAnnSave(); if(ghgF) gnFieldSave(ghgF); if(GH_LC && GH_LC.F) gnFieldSave(GH_LC.F); if(gnOtherTabValue!=null || gnUnsaved) gnPersist(); }catch(e){} }
