@@ -391,11 +391,12 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
       </Section>
 
       <Section id="appearance" tab={tab} title="Appearance" hint="Theme and background">
-        <div className="theme-choices">
+        <div className="theme-choices palette-choices">
           {[
             ['dark', 'Dark', 'Always the dark palette'],
             ['light', 'Light', 'Always the light palette'],
             ['auto', 'Auto', 'Follows the time of day'],
+            ['system', 'System', 'Follows this device'],
           ].map(([value, label, hint]) => (
             <button
               key={value}
@@ -425,7 +426,11 @@ export default function SettingsView({ tab: routeTab, onTabChange }) {
           </div>
         ) : (
           <p className="hint">
-            Showing the <strong>{active}</strong> palette. Choose Auto to let it follow the clock.
+            {s.theme === 'system' ? (
+              <>This device is set to <strong>{active}</strong> now. When that changes, the app changes with it.</>
+            ) : (
+              <>Showing the <strong>{active}</strong> palette. Choose Auto to let it follow the clock, or System to let it follow this device.</>
+            )}
           </p>
         )}
 

@@ -48,7 +48,7 @@ export const DEFAULT_SETTINGS = {
   // Which repertoire the analysis board checks: on a student's game 'both'
   // (theirs + your whole library), 'mine', 'student' or 'none'.
   analysisRepertoire: 'both',
-  theme: 'dark', // 'dark' | 'light' | 'auto' (auto follows the time of day)
+  theme: 'dark', // 'dark' | 'light' | 'auto' (auto follows the time of day) | 'system' (the device's own light or dark)
   // Which palette the whole app wears — one of the themes, or 'custom' for
   // this app's own colours plus whatever's set below. Tournament Felt is what
   // a new account opens on: it's the one that looks like the game.

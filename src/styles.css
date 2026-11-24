@@ -4001,6 +4001,8 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .theme-swatch.dark { background: linear-gradient(135deg, #14171d 50%, #232833 50%); }
 .theme-swatch.light { background: linear-gradient(135deg, #f4f6fa 50%, #ffffff 50%); }
 .theme-swatch.auto { background: linear-gradient(135deg, #f4f6fa 50%, #14171d 50%); }
+/* System: half and half, straight down — the device decides which. */
+.theme-swatch.system { background: linear-gradient(90deg, #f4f6fa 50%, #14171d 50%); }
 .auto-hours { align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 
 .setting-toggle {
@@ -5174,11 +5176,13 @@ input[type="date"] {
   .import-tabs button { min-width: 0; padding: 9px 8px; font-size: 14px; }
   .vision-setup { padding: 12px; }
 
-  /* Settings: the three theme choices side by side as small tiles rather
-     than three full-width cards stacked inside another card. */
+  /* Settings: the theme choices side by side as small tiles rather than
+     full-width cards stacked inside another card. */
   .settings-section { padding: 14px; border-radius: 12px; }
   .theme-choices { flex-wrap: nowrap; gap: 8px; }
   .theme-card { flex: 1 1 0; min-width: 0; padding: 8px; gap: 2px; }
+  /* Dark, Light, Auto and System: four, so two and two. */
+  .palette-choices { display: grid; grid-template-columns: 1fr 1fr; }
   .theme-card .muted-note { font-size: 11.5px; line-height: 1.3; }
   .theme-swatch { height: 24px; }
 

@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useEffect, useReducer, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { get, set } from 'idb-keyval';
 import { movetextToLines, validateLine } from './lib/pgn';
 import { setCustomSounds, setVolume, setSoundSkin, primeSounds } from './lib/sound';
 import { defaultMonsterId } from './lib/monsters';
 import { DEFAULT_SETTINGS } from './lib/settingsDefaults';
+import { watchSystemTheme } from './lib/theme';
 import { mergeLinkedGames, undoCoachChanges } from './lib/cloud/gameLink';
 import { foldInFlight } from './lib/cloud/merge3';
 import { stampChanges } from './lib/settingStamps';
@@ -1788,12 +1789,20 @@ export function StoreProvider({ children }) {
     };
   }, [loaded]);
 
+  // The theme 'system': the settings stay the same when the device turns light
+  // or dark, but what they mean doesn't, so everything drawn from them (boards,
+  // mini boards, Settings) is drawn again then, as if a setting had changed.
+  const [turns, turned] = useReducer((n) => n + 1, 0);
+  const followsDevice = state?.settings?.theme === 'system';
+  useEffect(() => (followsDevice ? watchSystemTheme(turned) : undefined), [followsDevice]);
+  const settings = useMemo(() => (turns ? { ...state?.settings } : state?.settings), [state?.settings, turns]);
+
   if (!loaded || !state) {
     return <div className="loading-screen">Loading…</div>;
   }
   return (
     <StoreContext.Provider value={{ state, dispatch, saveNow }}>
-      <SettingsContext.Provider value={state.settings}>
+      <SettingsContext.Provider value={settings}>
         {children}
       </SettingsContext.Provider>
     </StoreContext.Provider>

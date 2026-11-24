@@ -6,7 +6,7 @@ import { CloudProvider, useCloud } from './lib/cloud/useCloud';
 import { GameLinkProvider } from './components/GameLinkProvider';
 import { unseenStudentGames, gameSummary } from './lib/cloud/gameLink';
 import { openPlayerCard } from './lib/openPlayer';
-import { resolveTheme, applyTheme, applyBackground, applySkin } from './lib/theme';
+import { resolveTheme, applyTheme, applyBackground, applySkin, watchSystemTheme } from './lib/theme';
 import { runTopGuard } from './lib/backGuard';
 import { parsePath, pathFor, lineLinkFrom, SECTION_LABEL } from './lib/routes';
 import { LinkIcon } from './components/Icons';
@@ -295,14 +295,16 @@ function AppInner() {
   useEffect(() => {
     // The skin rides along with the palette: each one has a light and a dark
     // face, so whatever flips light/dark has to repaint it too — including the
-    // once-a-minute tick that drives Auto. The piece set and its colors ride
-    // along (data-pset, --pw-*: a pick per theme, Custom's piece inks).
+    // once-a-minute tick that drives Auto and the device's own turn that drives
+    // System. The piece set and its colors ride along (data-pset, --pw-*: a pick
+    // per theme, Custom's piece inks).
     const paint = () => {
       const mode = resolveTheme(themeSettings);
       applyTheme(mode);
       applySkin(themeSettings, mode);
     };
     paint();
+    if (themeSettings?.theme === 'system') return watchSystemTheme(paint);
     if (themeSettings?.theme !== 'auto') return undefined;
     const t = setInterval(paint, 60000);
     return () => clearInterval(t);

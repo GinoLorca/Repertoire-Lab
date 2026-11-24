@@ -13,8 +13,28 @@ export function themeForHour(hour, lightFrom = 7, darkFrom = 19) {
   return hour >= lightFrom || hour < darkFrom ? 'light' : 'dark';
 }
 
+// Which palette 'system' should be showing: the device's own light or dark
+// setting. Dark, the app's own default, where the browser can't say.
+const deviceLight = () => {
+  try { return globalThis.matchMedia?.('(prefers-color-scheme: light)') ?? null; } catch { return null; }
+};
+export const systemTheme = () => (deviceLight()?.matches ? 'light' : 'dark');
+
+// Calls back whenever the device turns light or dark; returns the way to stop.
+export function watchSystemTheme(turned) {
+  const mq = deviceLight();
+  if (!mq) return () => {};
+  if (!mq.addEventListener) { // Safari before 14
+    mq.addListener?.(turned);
+    return () => mq.removeListener?.(turned);
+  }
+  mq.addEventListener('change', turned);
+  return () => mq.removeEventListener('change', turned);
+}
+
 export function resolveTheme(settings, now = new Date()) {
   const mode = settings?.theme ?? 'dark';
+  if (mode === 'system') return systemTheme();
   if (mode !== 'auto') return mode;
   return themeForHour(now.getHours(), settings?.lightFrom ?? 7, settings?.darkFrom ?? 19);
 }
