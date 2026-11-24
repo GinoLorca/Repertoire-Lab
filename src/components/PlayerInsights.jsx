@@ -97,7 +97,7 @@ export default function PlayerInsights({
     try { frameRef.current?.contentWindow?.scrollTo(0, 0); } catch { /* frame gone */ }
   }, [fill, ready, view]);
 
-  const shown = openings ? data.games.length : data.games.filter((g) => (view === 'tactics' ? g.tactics : g.clamp)).length;
+  const shown = openings ? data.games.length : data.games.filter((g) => (view === 'tactics' ? g.tactics : g.clamp || g.blunder)).length;
   const sum = openings ? basisSummary(state.openings, basis.ids, state.players) : null;
   return (
     <div className={`pi-wrap${fill ? ' fill' : ''}`}>
@@ -120,7 +120,7 @@ export default function PlayerInsights({
         <p className="muted-note pi-empty">
           {openings && `No games with moves on ${player.name}’s card yet. Add or import their games and they’re sorted here.`}
           {view === 'tactics' && `No tactics marked on ${player.name}’s games yet.`}
-          {view === 'clamp' && `No CLAMP letters on ${player.name}’s games yet.`}
+          {view === 'clamp' && `No CLAMP letters or ?? badges on ${player.name}’s games yet.`}
           {!openings && ' Open a game with “Send to Game Review” and mark its moves there — they’re counted here.'}
         </p>
       )}

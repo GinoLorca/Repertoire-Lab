@@ -250,17 +250,25 @@ export function insightSummary(game, player) {
   };
 }
 
-// Whether a game's analysis record has CLAMP letters or tactics on it.
+// Whether a game's analysis record has CLAMP letters or tactics on it, a badge
+// on one of the game's own moves (a whole number; a side line's has a longer
+// ref), and a ?? among them: the CLAMP tab counts blunders beside the letters,
+// out of the games that have a badge or a review.
+const NO_MARKS = { clamp: false, tactics: false, badge: false, blunder: false };
 export function marksIn(an) {
-  if (typeof an !== 'string' || !an.trim()) return { clamp: false, tactics: false };
+  if (typeof an !== 'string' || !an.trim()) return NO_MARKS;
   try {
     const A = JSON.parse(an);
+    const badges = (Array.isArray(A?.b) ? A.b : []).filter((x) => (
+      Array.isArray(x) && Number.isInteger(x[0]) && x[0] > 0 && typeof x[1] === 'string' && x[1].length === 1));
     return {
       clamp: Array.isArray(A?.k) && A.k.length > 0,
       tactics: Array.isArray(A?.t) && A.t.length > 0,
+      badge: badges.length > 0,
+      blunder: badges.some((x) => x[1] === 'x'),
     };
   } catch {
-    return { clamp: false, tactics: false };
+    return NO_MARKS;
   }
 }
 
@@ -273,7 +281,7 @@ export function insightGames(player) {
     if (!(game.moves?.length > 0)) continue;
     const rec = recordsFor(game, player);
     const marks = marksIn(rec?.an);
-    if (!marks.clamp && !marks.tactics) continue;
+    if (!marks.clamp && !marks.tactics && !marks.badge) continue;
     const id = arcadeId(game.id);
     byArcadeId.set(id, game.id);
     games.push({ id, an: rec.an, summary: insightSummary(game, player), ...marks });

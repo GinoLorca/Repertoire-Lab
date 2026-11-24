@@ -231,8 +231,14 @@ test('only games with CLAMP letters or tactics on them go to the two tabs', () =
   const marked = JSON.stringify({ v: 1, l: [], c: [], m: [], k: [[9, 'L']] });
   const tac = JSON.stringify({ v: 1, l: [], c: [], m: [], t: [[6, 'fork', 'w', 'p', 'f1b5', '']] });
   const plain = JSON.stringify({ v: 1, l: [], c: [[2, 'note']], m: [] });
-  assert.deepEqual(marksIn(marked), { clamp: true, tactics: false });
-  assert.deepEqual(marksIn('nope'), { clamp: false, tactics: false });
+  const none = { clamp: false, tactics: false, badge: false, blunder: false };
+  assert.deepEqual(marksIn(marked), { ...none, clamp: true });
+  assert.deepEqual(marksIn('nope'), none);
+  // badges on the game's own moves count for the blunders beside CLAMP; a side line's don't
+  const badge = JSON.stringify({ v: 1, l: [], c: [], m: [], b: [[12, 'x'], [14, '!']] });
+  assert.deepEqual(marksIn(badge), { ...none, badge: true, blunder: true });
+  assert.deepEqual(marksIn(JSON.stringify({ b: [[14, '!']] })), { ...none, badge: true });
+  assert.deepEqual(marksIn(JSON.stringify({ b: [[[12, 'e2e4'], 'x'], [0, 'x'], 'x'] })), none);
   const player = {
     name: 'Myla', kind: 'self',
     games: [
@@ -240,10 +246,11 @@ test('only games with CLAMP letters or tactics on them go to the two tabs', () =
       { id: 'g2aaaaaa', moves: ['d4'], meta: {}, gameReview: { note: '', an: tac } },
       { id: 'g3aaaaaa', moves: ['c4'], meta: {}, gameReview: { note: 'n', an: plain } },
       { id: 'g4aaaaaa', moves: [], meta: {}, gameReview: { note: '', an: marked } },
+      { id: 'g5aaaaaa', moves: ['e4'], meta: {}, gameReview: { note: '', an: badge } },
     ],
   };
   const { games, byArcadeId } = insightGames(player);
-  assert.deepEqual(games.map((g) => byArcadeId.get(g.id)), ['g1aaaaaa', 'g2aaaaaa']);
+  assert.deepEqual(games.map((g) => byArcadeId.get(g.id)), ['g1aaaaaa', 'g2aaaaaa', 'g5aaaaaa']);
   assert.equal(games[1].tactics, true);
   assert.equal(games[0].an, marked);
 });
