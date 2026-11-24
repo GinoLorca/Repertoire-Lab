@@ -4637,6 +4637,22 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .gcp-note:hover{ background:var(--surface-2); color:var(--ink); }
   .gcp-noteed{ min-width:0; font-family:inherit; font-weight:400; font-size:12.5px; padding:5px 7px; }
   .gh-clamp-pop .btn{ font-size:12.5px; padding:6px 14px; }
+  /* Blunders beside the letters (2026-11-23): the review's ?? badge at the letters' size, past a small gap; its box's rows */
+  .hv-badge.bl-d{ flex:0 0 auto; width:18px; height:18px; margin:0; font-size:11px; vertical-align:0; }
+  .gh-bl{ position:relative; flex:0 0 auto; min-width:24px; height:24px; margin-left:6px; padding:0 3px; border:0; border-radius:12px; background:none; cursor:pointer; display:inline-flex; align-items:center; gap:5px; color:var(--ink); }
+  .gh-bl-n{ font:700 11px/1 "JetBrains Mono",monospace; font-variant-numeric:tabular-nums; }
+  .gh-bl:hover .bl-d{ box-shadow:0 0 0 1.5px var(--ink-soft); }
+  .gh-bl:focus{ outline:none; }
+  .gh-bl:focus-visible{ outline:2px solid var(--focus); outline-offset:0; }
+  .gh-bl.is-open .bl-d{ box-shadow:0 0 0 2px var(--surface), 0 0 0 3.5px var(--ink); }
+  @media (pointer:coarse){ .gh-bl{ min-width:44px; height:32px; margin-left:0; padding:0 7px; border-radius:16px; } .gh-bl::after{ content:''; position:absolute; inset:-6px 0; } }      /* 44 x 44 to a finger: past the line above and below, never over P */
+  @media (max-width:359px), (pointer:coarse) and (min-width:641px) and (max-width:820px){ .gh-clamp{ flex-wrap:wrap; row-gap:6px; max-width:calc(100% + 14px); } }      /* 320, and the narrow Opening column of an iPad's portrait or split view: no room beside the letters, so under them */
+  .gcp-head .hv-badge.bl-d{ width:22px; height:22px; font-size:13px; }
+  .gcp-row.gcp-blr{ grid-template-columns:minmax(74px, auto) minmax(0,1fr) auto; }
+  .gcp-blm{ min-width:0; display:grid; gap:2px; }
+  .gcp-bl1{ display:flex; flex-wrap:wrap; align-items:center; gap:3px 4px; font-size:12px; line-height:1.25; }
+  .gcp-bl1 .clamp-d{ width:16px; height:16px; font-size:8px; }
+  .gcp-bl2{ font-size:11.5px; line-height:1.25; color:var(--ink-soft); }
   .gh-clamp-pop .btn.gcp-go{ font-size:12px; padding:5px 10px; white-space:nowrap; }
   :root[data-skin="uptown"] .gh-clamp-pop .btn-primary{ padding-top:8px; padding-bottom:5px; background-position:0 2px; }
   .gh-clamp-pop .btn:disabled{ opacity:.45; cursor:not-allowed; }
@@ -4815,6 +4831,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .ct-bar b{ text-align:right; font:700 12.5px/1 "JetBrains Mono",monospace; }
   .ct-todo{ display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; padding-top:10px; border-top:1px solid var(--line); font-size:12.5px; line-height:1.4; }
   .ct-todo b{ font-weight:700; }
+  /* blunders in the cards (2026-11-23) */
+  .ct-bar.ct-blbar{ grid-template-columns:18px 92px minmax(0,1fr) auto; }
+  .ct-bar.ct-blbar b{ white-space:nowrap; }
+  .ct-blbar .ct-tr{ min-width:0; }
+  .ct-blnote{ font-size:11.5px; }
+  .ct-blstrip .ct-todo-t .ct-l{ position:relative; display:inline-block; min-height:0; }
+  @media (pointer:coarse){ .ct-blstrip .ct-todo-t .ct-l::after{ content:''; position:absolute; inset:-14px -4px; } }      /* 44px to a finger, the sentence's lines as they are */
+  .ct-blsrc{ flex:1 1 100%; font-size:12px; color:var(--ink-soft); }
+  .ct-fig.is-bl{ background:#d4504a; color:#000; font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; letter-spacing:-.04em; }
+  .ct-gl:disabled{ cursor:default; }
   /* your last 24 marked games: a column per game (one button), the letters' totals at the right */
   .ct-scroll{ min-width:0; overflow-x:auto; }
   .ct-g{ --ct-lw:112px; --ct-cw:18px; position:relative; display:grid; column-gap:2px; align-items:start; margin-top:4px; }
@@ -4981,6 +5007,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       .history-list.gh-list{ display:grid; grid-template-columns:auto minmax(0,1fr) minmax(110px,180px) auto auto auto; column-gap:14px; }   /* over .panel's flex */
       .gh-list > .history-row{ grid-column:1 / -1; grid-template-columns:subgrid; }
     }
+    @media (pointer:coarse) and (min-width:821px){ .history-list.gh-list{ grid-template-columns:auto minmax(0,1fr) minmax(110px,196px) auto auto auto; } }      /* the letters and the ?? badge at a finger's size (2026-11-23) */
   }
   @media (min-width:641px) and (max-width:820px){
     .history-row, .history-list.gh-list{ grid-template-columns:auto minmax(0,1fr) minmax(96px,150px) auto auto; }
@@ -5089,6 +5116,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .gho-fact-tag{ flex:0 0 auto; font-family:"JetBrains Mono",monospace; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:6px; background:var(--surface-2); color:var(--ink); }
   .gho-fact-tag.is-bad{ background:var(--bad-soft); color:color-mix(in srgb, var(--bad) 55%, var(--ink)); }
   .gho-fact-tag.is-you{ background:var(--partial-soft); color:color-mix(in srgb, var(--partial) 45%, var(--ink)); }
+  .gho-fact-tag.is-bl{ color:#000; }               /* on the ?? badge's red (inline), as the badge */
   .gho-fact-tag.is-clamp{ color:#fff; }            /* on its letter's color (inline): 4.5:1 or more on each */
   .gho-fact-t{ flex:1 1 280px; min-width:0; font-size:13px; line-height:1.4; overflow-wrap:anywhere; }
   .gho-fact-t b{ font-family:"JetBrains Mono",monospace; font-weight:700; }
@@ -30033,6 +30061,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   ];
   const CLAMP_BY = {};
   CLAMP_K.forEach(K=>{ CLAMP_BY[K.ch] = K; });
+  // Blunders beside CLAMP (2026-11-23, the user: "I do want to have blunders in here ... what parts of the games I'm
+  // blundering, where, why, how ... we can just use the regular symbol, the badge that is for blundering"). Not a letter
+  // of the word: a move whose badge shows as ?? (blOf), drawn with that same badge (blDisc). 'x': its code in HR_BADGES
+  const BL_CH = 'x', BL_K = { ch:BL_CH, name:'Blunders', short:'Blunders', what:'a blunder', one:'Blunder', color:'#d4504a' };
+  function ctK(ch){ return ch===BL_CH ? BL_K : CLAMP_BY[ch]; }
+  function blDisc(){
+    const d = ghEl('span', 'hv-badge hv-badge-blunder bl-d', '??');
+    d.style.background = BL_K.color;
+    d.setAttribute('aria-hidden', 'true');
+    return d;
+  }
   const CLAMP_NOTE_MAX = 140, CLAMP_SQ_MAX = 4;       // a note's length; the squares a letter can have on one move (q)
   var ghClampBox = null;          // the open letter box: { gid, ch, g, el, btn, ... }
   function ghThumb(g){
@@ -30219,26 +30258,42 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       b.appendChild(d);
       line.appendChild(b);
     });
+    // after them, past a small gap: the ?? badge, when the game has a blunder of yours (how many, from 2). It opens the same
+    // kind of box (2026-11-23)
+    const nb = blOf(g).mine.length;
+    if(nb){
+      const b = ghEl('button', 'gh-bl');
+      b.type = 'button';
+      b.tabIndex = -1;
+      b.dataset.gid = gid;
+      b.setAttribute('aria-haspopup', 'dialog');
+      b.title = nb===1 ? '1 blunder of yours' : nb+' blunders of yours';
+      b.setAttribute('aria-label', b.title);
+      b.appendChild(blDisc());
+      if(nb > 1){ const c = ghEl('span', 'gh-bl-n', String(nb)); c.setAttribute('aria-hidden', 'true'); b.appendChild(c); }
+      line.setAttribute('aria-label', 'CLAMP and blunders');
+      line.appendChild(b);
+    }
     ghClampShow(line, gnClampOf(gid));
     line.addEventListener('click', e=>{
-      const b = e.target.closest('.gh-clamp-l');
+      const b = e.target.closest('.gh-clamp-l, .gh-bl');
       if(!b) return;              // beside the letters: the row's click (the game opens)
       e.stopPropagation();
-      ghClampOpen(b, g, b.dataset.ck);
+      ghClampOpen(b, g, b.dataset.ck || BL_CH);
     });
     line.addEventListener('keydown', e=>{
-      const b = e.target.closest('.gh-clamp-l');
+      const b = e.target.closest('.gh-clamp-l, .gh-bl');
       if(!b) return;
       e.stopPropagation();        // Enter on a letter isn't the row's Enter
-      const all = [...line.querySelectorAll('.gh-clamp-l')], i = all.indexOf(b), n = all.length;
+      const all = [...line.querySelectorAll('.gh-clamp-l, .gh-bl')], i = all.indexOf(b), n = all.length;
       const j = e.key==='ArrowRight' ? (i + 1) % n : e.key==='ArrowLeft' ? (i + n - 1) % n : e.key==='Home' ? 0 : e.key==='End' ? n - 1 : -1;
       if(j < 0 || e.metaKey || e.ctrlKey || e.altKey) return;
       e.preventDefault();
       all[j].focus();
     });
     line.addEventListener('focusin', e=>{
-      const b = e.target.closest('.gh-clamp-l');
-      if(b) line.querySelectorAll('.gh-clamp-l').forEach(x=>{ x.tabIndex = x===b ? 0 : -1; });
+      const b = e.target.closest('.gh-clamp-l, .gh-bl');
+      if(b) line.querySelectorAll('.gh-clamp-l, .gh-bl').forEach(x=>{ x.tabIndex = x===b ? 0 : -1; });
     });
     return line;
   }
@@ -30259,6 +30314,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       d.style.background = n ? K.color : '';
       if(nw) d.style.setProperty('--cw', K.color); else d.style.removeProperty('--cw');
     });
+    const bb = line.querySelector('.gh-bl');
+    if(bb){ const open = !!B && B.gid===bb.dataset.gid && B.ch===BL_CH; bb.classList.toggle('is-open', open); bb.setAttribute('aria-expanded', open ? 'true' : 'false'); }
   }
   // every row of this game on the page shows its marks again, in place (the next redraw builds those rows again)
   function ghClampSync(gid){
@@ -30272,7 +30329,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // the letter a box hangs from (a redraw of its list may have built that row again since)
   function ghClampLetter(B){
     if(B.btn && B.btn.isConnected) return B.btn;
-    const all = [...document.querySelectorAll('.gh-clamp-l[data-ck="'+B.ch+'"][data-gid="'+CSS.escape(B.gid)+'"]')];
+    const all = [...document.querySelectorAll((B.ch===BL_CH ? '.gh-bl' : '.gh-clamp-l[data-ck="'+B.ch+'"]')+'[data-gid="'+CSS.escape(B.gid)+'"]')];
     const b = all.find(x=> x.getClientRects().length) || all[0] || null;
     if(b) B.btn = b;
     return b;
@@ -30280,7 +30337,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // the button of a row that had the keyboard, found again after a rebuild ('' for the row itself)
   function ghRowFocusSel(fa){
     if(fa.classList.contains('gh-clamp-l')) return '.gh-clamp-l[data-ck="'+fa.dataset.ck+'"]';
-    return ['.gh-note-btn', '.gh-grp-btn', '.gh-note-line', '.ghg-out'].find(q=> fa.matches(q)) || '';
+    return ['.gh-bl', '.gh-note-btn', '.gh-grp-btn', '.gh-note-line', '.ghg-out'].find(q=> fa.matches(q)) || '';
   }
   // a move as you'd write it ("12. Rf1", "12...Rf1"); off 1 in a game from a set position where Black moved first
   function ghClampLabel(p, san, off){ const a = p + (off || 0), n = Math.ceil(a/2); return n+(a % 2 ? '. ' : '...')+(san || '\u2026'); }
@@ -30346,7 +30403,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // Go to move, an x), and Mark a move (a move of the game, checked against it as you type, and a note). One
   // box at a time (it is the page's hvMenu); Escape, the x, Cancel or a click outside closes it.
   function ghClampOpen(btn, g, ch){
-    const K = CLAMP_BY[ch];
+    const K = ctK(ch), bl = ch===BL_CH;          // bl: the ?? badge's box: your blunders in the game, nothing to mark in it
     if(!K) return;
     const gid = String(g.id);
     if(hvMenu && hvMenu.kind==='clamp' && ghClampBox && ghClampBox.gid===gid && ghClampBox.ch===ch){ ghClampClose(true); return; }    // its letter again: closed
@@ -30366,7 +30423,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const st = hvStartState(g), can = toks.length && !noStart ? hvBuildPlyStates(toks, st).moves.length : 0;
     const B = { gid, ch, g, el, btn, toks, me:ghMyColor(g, ghMe()), off:st.turn==='b' ? 1 : 0, can, noStart, parsed:null, up:false, aTop:0, t:'', wt:'' };
     ghClampBox = B;
-    const head = ghEl('div', 'gcp-head'), d = ghEl('span', 'clamp-d is-on', K.ch), title = ghEl('div', 'gcp-title', K.name), x = ghEl('button', 'gcp-x', '\u00d7');
+    const head = ghEl('div', 'gcp-head'), d = bl ? blDisc() : ghEl('span', 'clamp-d is-on', K.ch), title = ghEl('div', 'gcp-title', K.name), x = ghEl('button', 'gcp-x', '\u00d7');
     d.setAttribute('aria-hidden', 'true');
     d.style.background = K.color;
     title.id = 'gh-clamp-title';
@@ -30380,7 +30437,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     B.list = ghEl('div', 'gcp-list');
     B.msg = ghEl('div', 'gcp-msg');
     B.msg.setAttribute('role', 'status');
-    el.append(head, B.sub, B.wait, B.list, ghClampForm(B), B.msg);
+    el.append(head, B.sub, B.wait, B.list);
+    if(!bl) el.appendChild(ghClampForm(B));
+    el.appendChild(B.msg);
     ghClampList(B);
     document.body.appendChild(el);
     ghClampPlace(B);
@@ -30445,7 +30504,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     B.at = [Math.round(r.left + scrollX), Math.round(B.aTop), vw];
     const room = B.up ? above : below;
     if(h > room){ el.style.maxHeight = Math.max(160, Math.floor(room))+'px'; el.style.overflowY = 'auto'; }
-    el.style.left = (Math.max(16, Math.min(r.left + r.width/2 - 25, vw - 16 - w)) + scrollX)+'px';
+    const x = Math.max(16, Math.min(r.left + r.width/2 - 25, vw - 16 - w)), sx = scrollX;
+    el.style.left = (x + sx)+'px';
+    if(sx && scrollX!==sx) el.style.left = (x + scrollX)+'px';          // a screen just turned can be a few px sideways until the box is back inside it
     el.style.top = (B.up ? B.aTop - 6 - el.offsetHeight : r.bottom + 6 + scrollY)+'px';
   }
   // the box by its letter again when the letter has moved on the page (or the screen's width changed); closed when
@@ -30453,7 +30514,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function ghClampFollow(B){
     if(ghClampBox!==B || !hvMenu || hvMenu.el!==B.el) return;
     const a = ghClampLetter(B);
-    if(!a || !a.getClientRects().length){ ghClampClose(false); return; }
+    if(!a || !a.getClientRects().length){
+      const had = B.ch===BL_CH && B.el.contains(document.activeElement);
+      ghClampClose(false);
+      // the ?? gone from its row (its last blunder taken off on another device): the keyboard on the row's letters, not lost
+      const l = had ? [...document.querySelectorAll('.gh-clamp-l[data-ck="P"][data-gid="'+CSS.escape(B.gid)+'"]')].find(x=> x.getClientRects().length) : null;
+      if(l) try{ l.focus({ preventScroll:true }); }catch(e){}
+      return;
+    }
     const r = a.getBoundingClientRect(), vw = document.documentElement.clientWidth || innerWidth;
     if(B.at && Math.round(r.left + scrollX)===B.at[0] && Math.round(r.top + scrollY)===B.at[1] && vw===B.at[2]) return;
     if(B.down){ B.pend = true; return; }
@@ -30473,6 +30541,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // the box's moves for its letter (drawn again after each change; what's typed below stays)
   function ghClampList(B){
+    if(B.ch===BL_CH){ blList(B); return; }
     const k = gnClampOf(B.gid).filter(x=> x[1]===B.ch), n = k.length, an = typeof GN==='object' && GN ? GN.notes['an-'+B.gid] : null, q = gnClampSqOf(B.gid);
     B.t = gnNoteText('an-'+B.gid);
     B.wt = an && an.conflict ? an.conflict.text : '';
@@ -30516,6 +30585,32 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const mv = ghEl('span', 'gcp-mv', label), sqt = gnClampSqText(q, p, B.ch);
       if(sqt) mv.appendChild(ghEl('span', 'gcp-sq', sqt));
       row.append(mv, ghClampNoteBtn(B, p, x[2] || '', label), go, rm);
+      B.list.appendChild(row);
+    });
+  }
+  // the ?? badge's box: your blunders in the game, in game order: the move, its CLAMP letters, the phase (the position before
+  // it, as the review's phase card divides the game), whose badge, Go to move (as a letter's)
+  function blList(B){
+    const L = blOf(B.g).mine, k = gnClampOf(B.gid), an = typeof GN==='object' && GN ? GN.notes['an-'+B.gid] : null;
+    B.t = gnNoteText('an-'+B.gid);
+    B.wt = an && an.conflict ? an.conflict.text : '';
+    B.sub.textContent = L.length===1 ? '1 move of yours in this game' : L.length+' moves of yours in this game';
+    B.wait.hidden = true;
+    B.list.textContent = '';
+    const r = L.length ? ctReplay(B.g, blPlies(B.g), BL_RP) : null;
+    L.forEach(x=>{
+      const p = x[0], label = ghClampLabel(p, B.toks[p-1], B.off), ph = r.std && r.d && p <= r.can ? CT_PHASES[hpfPhaseOf(r.d, p - 1)] : '';
+      const row = ghEl('div', 'gcp-row gcp-blr'), go = ghEl('button', 'btn btn-ghost gcp-go', 'Go to move'), m = ghEl('div', 'gcp-blm'), l1 = ghEl('div', 'gcp-bl1');
+      row.dataset.ply = String(p);
+      go.type = 'button';
+      const chs = CLAMP_K.filter(K=> k.some(y=> y[0]===p && y[1]===K.ch));
+      chs.forEach(K=>{ const d = ctDisc(K); d.title = K.name; l1.appendChild(d); });
+      l1.appendChild(ghEl('span', 'gcp-bltx', chs.length ? chs.map(K=> K.short).join(', ') : 'No letter yet'));
+      m.append(l1, ghEl('div', 'gcp-bl2', [ph, x[1]==='own' ? 'your badge' : 'game review'].filter(Boolean).join(' \u00b7 ')));
+      go.setAttribute('aria-label', 'Go to move '+label);
+      go.addEventListener('click', ()=>{ ghClampClose(false); ghOpenGame(B.g, { at:{ ply:p-1 }, clamp:{ ply:p, ch:BL_CH } }); });
+      if(!B.noStart && B.toks.length && p > B.can){ go.disabled = true; go.title = 'The review can\u2019t show this move'; }
+      row.append(ghEl('span', 'gcp-mv', label), m, go);
       B.list.appendChild(row);
     });
   }
@@ -32985,7 +33080,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     note.hidden = !nt;
     const open = all.find(r=> r.n.key===GHV_OPEN);
     const GS = open ? ghGroupsNow() : [];
-    const gsig = open ? open.n.list.map(e=> e.g.id+':'+gnFirstLine(gnNoteText(e.g.id))+':'+(gnWaiting(e.g.id) ? 1 : 0)+':'+gnAnnSummary(e.g.id)+':'+gnClampSig(e.g.id)+':'+GS.filter(G=> gpIn(G, e.g)).map(G=> G.name).join(';')).join(',') : '';
+    const gsig = open ? open.n.list.map(e=> e.g.id+':'+gnFirstLine(gnNoteText(e.g.id))+':'+(gnWaiting(e.g.id) ? 1 : 0)+':'+gnAnnSummary(e.g.id)+':'+gnClampSig(e.g.id)+blSig(e.g)+':'+GS.filter(G=> gpIn(G, e.g)).map(G=> G.name).join(';')).join(',') : '';
     const rs = (r)=>{ const m = r.n.m; return r.n.key+':'+r.n.name+':'+r.ctx+':'+m.n+':'+m.W+':'+m.D+':'+m.jn+':'+m.jd+':'+(m.last ? ghoAgo(m.last) : ''); };
     const sig = [k, lvl, model.rep ? 1 : 0, GH_MARKS ? 1 : 0, GHV_OPEN, GHV_ALL===GHV_OPEN ? 1 : 0, R.ranked.map(rs).join(','), R.small.map(rs).join(','), gsig].join('|');
     if(list.dataset.sig===sig && GHV_PS===PIECE_SVG){ ghThumbsFill(list); return; }
@@ -33235,7 +33330,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       : 'No games in this group yet. Open a game (a row in Games), then its Groups button adds it here.';
     // rebuilt when the games or what a row shows (its note, your analysis) change
     const list = document.getElementById('ghg-list');
-    const lsig = have.map(g=> g.id+':'+gnFirstLine(gnNoteText(g.id))+':'+(gnWaiting(g.id) ? 1 : 0)+':'+gnAnnSummary(g.id)+':'+gnClampSig(g.id)).concat(miss).join('\u0001');
+    const lsig = have.map(g=> g.id+':'+gnFirstLine(gnNoteText(g.id))+':'+(gnWaiting(g.id) ? 1 : 0)+':'+gnAnnSummary(g.id)+':'+gnClampSig(g.id)+blSig(g)).concat(miss).join('\u0001');
     if(list.dataset.sig===lsig && list.dataset.group===G.id){ ghThumbsFill(list); return; }
     list.dataset.sig = lsig; list.dataset.group = G.id;
     // the keyboard stays on the same row or button through a rebuild, as in the Games list
@@ -33770,7 +33865,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // rebuilt when the games or what a row shows (its note, your analysis) change
     const shown = R.list.slice(0, 200);
     const list = document.getElementById('ghp-list');
-    const sig = R.q.fen+'|'+R.q.mode+'|'+R.q.color+'|'+R.list.length+'|'+shown.map(({ g, m })=> g.id+':'+m.ply+':'+m.d+':'+gnFirstLine(gnNoteText(g.id))+':'+(gnWaiting(g.id) ? 1 : 0)+':'+gnAnnSummary(g.id)+':'+gnClampSig(g.id)).join('\u0001');
+    const sig = R.q.fen+'|'+R.q.mode+'|'+R.q.color+'|'+R.list.length+'|'+shown.map(({ g, m })=> g.id+':'+m.ply+':'+m.d+':'+gnFirstLine(gnNoteText(g.id))+':'+(gnWaiting(g.id) ? 1 : 0)+':'+gnAnnSummary(g.id)+':'+gnClampSig(g.id)+blSig(g)).join('\u0001');
     if(list.dataset.sig===sig){ ghThumbsFill(list); return; }      // the same rows: boards that came on screen meanwhile get filled
     list.dataset.sig = sig;
     // the keyboard stays on the same row or button through a rebuild, as in the Games list
@@ -34959,7 +35054,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if((!on || still) && B.timer){ clearInterval(B.timer); B.timer = 0; }
   }
   // the facts under the cards: each { tag, cls, text (parts: strings or [move] in bold), acts: [{ t, go | href }] }
-  function ghoBriefFacts(W, rep, week){
+  function ghoBriefFacts(W, rep, week, all){
     const F = [], when = (n)=> (n===1 ? 'once' : n===2 ? 'twice' : n+' times')+(week ? ' this week' : ' in these games');
     const games = (rep)=> ()=> ghoApply(week ? { rep, date:'7' } : { rep });
     const GT = week ? 'Games' : 'All games';                        // the last 10 games aren't a date range: the link opens every game there
@@ -34977,6 +35072,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     const cf = ctBriefFact(W, week);            // a CLAMP letter again (2026-11-02)
     if(cf) F.push(cf);
+    const bf = blBriefFact(all || W);           // your blunders (2026-11-23): right after it
+    if(bf) F.push(bf);
     const lf = lzBriefFact();                   // Larry's one line (2026-11-19): right after the CLAMP fact, so in the first four
     if(lf) F.push(lf);
     const tf = ttBriefFact();                   // the one Tactics line (2026-11-03): after the CLAMP fact, else after the first fact
@@ -35208,7 +35305,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const B = GHO_BRIEF, ul = document.getElementById('gho-facts'), M = B.model;
     const fa = document.activeElement, ff = fa && ul.contains(fa) && fa.dataset ? fa.dataset.fid || '' : '';     // kept across an async redraw
     if(!M){ ul.hidden = true; return; }
-    B.facts = ghoBriefFacts(M.W, M.rep, M.week);
+    B.facts = ghoBriefFacts(M.W, M.rep, M.week, M.all);
     ul.textContent = '';
     ul.hidden = !B.facts.length;
     const shown = B.allFacts ? B.facts : B.facts.slice(0, GHO_FACTS_N);
@@ -35249,7 +35346,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const key = model.rep+'|'+W.map(e=> e.g.id).join(',');
     const prev = B.stats[B.i] ? B.stats[B.i].k : '';
     B.stats = ghoBriefStats(W, all, model.rep, Wn.week);
-    B.model = { W, rep:model.rep, week:Wn.week };
+    B.model = { W, rep:model.rep, week:Wn.week, all };
     if(B.key!==key){
       // a new set of games: start on the number furthest from your usual, cycling again
       B.key = key; B.user = false;
@@ -35619,7 +35716,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function ojMine(g){ const u = ghMe(), c = g._me || (u ? ghMyColor(g, u) : null); return c==='white' ? 'w' : c==='black' ? 'b' : null; }
   // the reviews on this device, read again at most every 5 s
   function ojRevs(){
-    if(!OJ_RS || Date.now() - OJ_RS.at > 5000){ let g = {}; try{ g = hrReadStore().g || {}; }catch(e){ g = {}; } OJ_RS = { at:Date.now(), g }; }
+    if(!OJ_RS || Date.now() - OJ_RS.at > 5000){
+      let raw = null, g = {};
+      try{ raw = localStorage.getItem('wavyChessPrepGameReviews'); }catch(e){ raw = null; }
+      if(OJ_RS && OJ_RS.raw===raw) OJ_RS.at = Date.now();          // as they were (the game rows ask too, 2026-11-23)
+      else { try{ g = hrReadStore().g || {}; }catch(e){ g = {}; } OJ_RS = { at:Date.now(), g, raw }; }
+    }
     return OJ_RS.g;
   }
   // the score (White's side) at position p of game g: { s, src } or null (never a made-up 0)
@@ -36596,6 +36698,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   var CT_DRILL = null;          // filters a CLAMP drill-down set (a letter, losses, a date): put back on return, unless changed since
   var CT_RP = new Map();        // game id -> the review's replay of a marked game (ctReplay)
   var CT_LRP = new Map();       // the same for the games Larry flagged, up to his flags (Larry's dashboard)
+  var BL_RP = new Map();        // the same for the games with blunders, up to the last of them (either side's: blPlies)
   var CT_IO = null, CT_MS = 0, CT_DFMT = null;
   function ctOn(){ return GH_UI.view==='clamp'; }
   // Mine | Theirs (2026-11-12): the tab reads your marks (k) or the slips of theirs you marked (o), remembered on this device
@@ -36667,11 +36770,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // marked move with the move (at). Replayed only up to its last marked move: where the middlegame and the endgame begin
   // up to there doesn't depend on the moves after it (the endgame's rule implies the middlegame's), so a marked move's
   // phase is the same as over the whole game, at a fraction of the work
-  // xp: the moves to replay up to instead of the record's marks (Larry's flags: their own cache)
-  function ctReplay(g, xp){
+  // xp: the moves to replay up to instead of the record's marks (Larry's flags, the blunders: their own caches)
+  function ctReplay(g, xp, cache){
     const id = String(g.id), mv = String(g.moves || '').trim(), K = xp ? xp.map(p=> [p]) : gnClampOf(id).concat(gnClampOOf(id)), upTo = K.reduce((t, x)=> Math.max(t, x[0]), 0);
     const key = mv+'|'+(g.variant || '')+'|'+(g.initialFen || '')+'|'+(g._summary ? 1 : 0)+'|'+upTo+'|'+K.map(x=> x[0]).join(',');
-    const C = xp ? CT_LRP : CT_RP;
+    const C = cache || (xp ? CT_LRP : CT_RP);
     let r = C.get(id);
     if(r && r.key===key) return r;
     const toks = mv ? mv.split(/\s+/) : [];
@@ -36695,6 +36798,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(k==='phase') return m.ph==null ? null : String(m.ph);
     if(k==='color') return m.e.color;
     if(k==='speed') return m.e.g.speed || '';
+    if(k==='none') return m.nl ? '1' : null;              // a blunder with no CLAMP letter yet
     return m.clk && m.clk.low ? 'low' : null;
   }
   function ctSpeedName(s){ const x = GHO_SPEEDS.find(y=> y[0]===s); return x ? x[1] : (s ? s.charAt(0).toUpperCase()+s.slice(1) : 'Other'); }
@@ -36702,6 +36806,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(k==='phase') return CT_PHASES[Number(v)] || '';
     if(k==='color') return v==='white' ? 'White' : 'Black';
     if(k==='speed') return ctSpeedName(v);
+    if(k==='none') return 'no letter yet';
     return 'Low on time';
   }
   // the game has a move of yours (one you could mark): White's is the first ply, Black's the second (the first in a set-up
@@ -36710,13 +36815,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // your marked games that aren't loaded yet (older than the games loaded so far): from their analysis records' summaries,
   // as the Games view's "Has notes" adds them (ghBaseList), so a mark on an old game never drops out of the tab on a reload.
   // Lichess games only (the Chess.com tab holds all its games); never one against the computer
-  function ctExtras(base){
+  // bl: those with a badge of yours on a move instead (their blunders count, 2026-11-23)
+  function ctExtras(base, bl){
     if(typeof GN!=='object' || !GN || GH_UI.site==='chesscom') return [];
     const have = new Set(base.map(g=> String(g.id))), out = [];
     Object.keys(GN.notes).forEach(id=>{
       if(!gnIsAn(id)) return;
       const n = GN.notes[id], gid = id.slice(3);
-      if(!n || !n.g || ccIsId(gid) || have.has(gid) || GH_STATE.ids.has(gid) || !ctMarks(gid).length) return;
+      if(!n || !n.g || ccIsId(gid) || have.has(gid) || GH_STATE.ids.has(gid) || !(bl ? gnBadgesOf(gid) : ctMarks(gid).length)) return;
       const g = GH_STATE.extras.get(gid) || ghGameFromSummary(Object.assign({}, n, { id:gid }));
       if(!ghVsComputer(g)) out.push(g);
     });
@@ -36747,9 +36853,25 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     let any = G.length > 0, other = false;
     if(!any) any = all.some(g=> ctMarks(String(g.id)).length > 0);
     if(!any && GH_UI.site!=='all') other = ghBaseList('all').some(g=> ctMarks(String(g.id)).length > 0);
-    return Object.assign({ T, scope, G, any, other, loading:!base.length && ghTabBusy(), M:null, loss, lossDate,
+    // blunders: the same games, those that have a review or a badge of yours (the rest say nothing either way), and the
+    // badged ones not loaded yet; this side's ?? in each
+    const BG = [];
+    scope.concat(ctExtras(all, true).filter(g=> ghMatch(g, u, f))).forEach(g=>{
+      const v = blOf(g);
+      if(v.has) BG.push({ g, bl:T ? v.theirs : v.mine, sig:v.sig, q:[], o:T ? {} : null, at:Number(g.createdAt) || 0, res:ghGameResult(g, u), color:ghMyColor(g, u)==='white' ? 'white' : 'black' });
+    });
+    BG.sort((a, b)=> b.at - a.at);
+    return Object.assign({ T, scope, G, BG, BW:blWin(BG, from), any, other, loading:!base.length && ghTabBusy(), M:null, loss, lossDate,
       lossWhen: lossFrom===from ? 'in the last '+CT_DAYS+' days' : /^\d+$/.test(f.date) ? 'in the last '+f.date+' days' : 'this year' }, ctWin(G, from));
   }
+  // the blunders' window, by the pattern's rule: the last 30 days with 5+ games that have a review or a badge, else the last 12
+  function blWin(BG, from){
+    const in30 = BG.filter(e=> e.at >= from), days = in30.length >= CT_MIN, W = days ? in30 : BG.slice(0, CT_LAST);
+    const L = W.filter(e=> e.bl.length);
+    return { days, W, n:L.length, moves:L.reduce((t, e)=> t + e.bl.length, 0), score:ctPts(L) };
+  }
+  // a game's blunder moves, both sides' (one replay serves Mine and Theirs)
+  function blPlies(g){ const v = blOf(g); return v.mine.concat(v.theirs).map(x=> x[0]).sort((a, b)=> a - b); }
   // the windows over marked games G (newest first): the pattern's, the grid's and its halves (Mine, Theirs and Larry's)
   function ctWin(G, from){
     const byId = new Map(G.map(e=> [String(e.g.id), e]));
@@ -36788,7 +36910,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     let any = G.length > 0, other = false;
     if(!any && H.length) any = base.some(g=> marks(g).length > 0);
     if(!any && H.length && GH_UI.site!=='all') other = ghBaseList('all').some(g=> marks(g).length > 0);
-    return Object.assign({ T:false, L:true, scope, G, any, other, loading:!base.length && ghTabBusy(), M:null, loss:0, lossDate:String(CT_DAYS), lossWhen:'' }, ctWin(G, from));
+    return Object.assign({ T:false, L:true, scope, G, BG:[], BW:blWin([], from), any, other, loading:!base.length && ghTabBusy(), M:null, loss:0, lossDate:String(CT_DAYS), lossWhen:'' }, ctWin(G, from));
   }
   // every marked move: its phase and clock only where the review replays it (standard games, as far as their moves go).
   // The slow part (a replay per marked game, kept in CT_RP): only when the signature changed
@@ -36804,9 +36926,24 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       });
     });
     M.sort((a, b)=> b.e.at - a.e.at || b.p - a.p || 'CLAMP'.indexOf(a.ch) - 'CLAMP'.indexOf(b.ch));
-    const sp = GHO_SPEEDS.map(x=> x[0]).filter(s=> M.some(m=> m.e.g.speed===s));
-    M.forEach(m=>{ const s = m.e.g.speed || ''; if(sp.indexOf(s) < 0) sp.push(s); });
-    Object.assign(md, { M, sp, clkN:M.filter(m=> m.clk).length, phN:M.filter(m=> m.ph!=null).length });
+    // the blunders, the same way: their letters of this side's (nl: none yet), whose badge it is
+    const BM = [];
+    md.BG.forEach(e=>{
+      if(!e.bl.length) return;
+      const r = e.r = ctReplay(e.g, blPlies(e.g), BL_RP), mine = e.color==='white' ? 'w' : 'b', clock = md.T ? (mine==='w' ? 'b' : 'w') : mine, id = String(e.g.id);
+      const k = md.T ? gnClampOOf(id) : gnClampOf(id);
+      e.bl.forEach(x=>{
+        const p = x[0], ok = r.std && p <= r.can, chs = CLAMP_K.filter(K=> k.some(y=> y[0]===p && y[1]===K.ch)).map(K=> K.ch);
+        let ck = null;
+        if(ok){ try{ ck = ghbClocks(e.g, p - 1, clock); }catch(err){ ck = null; } }
+        BM.push({ e, p, ch:BL_CH, own:x[1]==='own', chs, nl:!chs.length, note:'', ph: ok && r.d ? hpfPhaseOf(r.d, p - 1) : null, clk: ck ? { low:!!ck.trouble } : null, out:'', lz:null });
+      });
+    });
+    BM.sort((a, b)=> b.e.at - a.e.at || b.p - a.p);
+    const all = M.concat(BM), sp = GHO_SPEEDS.map(x=> x[0]).filter(s=> all.some(m=> m.e.g.speed===s));
+    all.forEach(m=>{ const s = m.e.g.speed || ''; if(sp.indexOf(s) < 0) sp.push(s); });
+    Object.assign(md, { M, BM, blById:new Map(md.BG.map(e=> [String(e.g.id), e])), sp, clkN:M.filter(m=> m.clk).length, phN:M.filter(m=> m.ph!=null).length, bClkN:BM.filter(m=> m.clk).length });
+    if(BL_RP.size > Math.max(400, 2*md.BG.length)) BL_RP.forEach((r, id)=>{ if(!md.blById.has(id)) BL_RP.delete(id); });
     // the replays kept: every marked game here, and others while there's room (going back to a filter costs nothing)
     const C = md.L ? CT_LRP : CT_RP;
     if(C.size > Math.max(400, 2*md.G.length)) C.forEach((r, id)=>{ if(!md.byId.has(id)) C.delete(id); });
@@ -36815,7 +36952,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // what the cards are drawn from: the same games (loaded or not), marks (notes too), Filters, tab and hour draw nothing again
   function ctSig(md){
     return [GH_UI.site, CT.side, md.L && typeof LZ==='object' && LZ ? LZ.ver : '', JSON.stringify(Object.assign({}, GH_FILTERS, { ck:'', ga:'' })), Math.floor(ghoBriefNow()/36e5), md.scope.length, md.loss, md.any ? 1 : 0, md.other ? 1 : 0,
-      md.loading ? 1 : 0, md.G.map(e=> e.g.id+'@'+e.at+e.res+(e.g._summary ? 's' : '')+JSON.stringify(e.k)+(e.q.length ? JSON.stringify(e.q) : '')+(e.o ? JSON.stringify(e.o) : '')).join(';')].join('|');
+      md.loading ? 1 : 0, md.G.map(e=> e.g.id+'@'+e.at+e.res+(e.g._summary ? 's' : '')+JSON.stringify(e.k)+(e.q.length ? JSON.stringify(e.q) : '')+(e.o ? JSON.stringify(e.o) : '')).join(';'),
+      md.BG.map(e=> e.g.id+'@'+e.at+e.res+(e.g._summary ? 's' : '')+e.sig+(e.bl.length ? JSON.stringify(md.T ? gnClampOOf(String(e.g.id)) : gnClampOf(String(e.g.id))) : '')).join(';')].join('|');
   }
   function ctRender(base){
     const sec = document.getElementById('ct'), t0 = performance.now();
@@ -36840,13 +36978,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   function ctDrawAll(md){
     const ids = ['ct-pat', 'ct-grid', 'ct-where'], empty = document.getElementById('ct-empty');
-    const show = md.G.length > 0;
-    ids.forEach(id=>{ document.getElementById(id).hidden = !show; });
+    const show = md.G.length > 0 || md.BM.length > 0;             // (letters, or blunders alone: no grid then, its columns are marked games)
+    ids.forEach(id=>{ document.getElementById(id).hidden = !show || (id==='ct-grid' && !md.G.length); });
     const src = document.getElementById('ct-src');
     src.hidden = !show;
     src.textContent = md.L ? 'From Larry\u2019s CLAMP sheet: the moves he flagged since November 18 that you haven\u2019t skipped. The Filters above apply.'
         +(typeof LZ==='object' && LZ && LZ.herr ? ' Larry\u2019s history couldn\u2019t be read from Lichess just now, so this shows the last copy of it. Chess Arcade will try again.' : '')
-      : md.T ? 'From the slips of theirs you marked by hand, punished or missed as you said it (filled in from your reply\u2019s badge when that was plain). The Filters above apply.'
+      : md.T ? 'From the slips of theirs you marked by hand, punished or missed as you said it (filled in from your reply\u2019s badge when that was plain).'+(md.BG.length ? ' Blunders: your ?? badges on their moves, and the ?? of your game reviews on this device where you have no badge.' : '')+' The Filters above apply.'
+      : md.BG.length ? 'Letters: the ones you put on your games by hand, never guessed by the engine. Blunders: your ?? badges, and the ?? of your game reviews on this device where you have no badge. The Filters above apply.'
       : 'From the CLAMP letters you put on your games by hand. Nothing here is guessed by the engine. The Filters above apply.';
     empty.textContent = '';
     empty.hidden = show || md.loading;      // games still loading: the footer says so
@@ -36874,9 +37013,63 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       empty.appendChild(b);
       return;
     }
-    if(md.T) ctDrawPatO(md); else ctDrawPat(md);
-    ctDrawGrid(md);
+    if(!md.G.length) blDrawPat(md); else if(md.T) ctDrawPatO(md); else ctDrawPat(md);
+    if(md.G.length) ctDrawGrid(md);
     ctDrawWhere(md);
+  }
+  // Blunders in the pattern card (2026-11-23). Under P in By letter: in how many games of the same kind of window (30 days,
+  // else the last 12), counting only games with a review or a badge; it opens the moments
+  function blBar(md){
+    const X = md.BW, b = ghEl(X.n ? 'button' : 'div', 'ct-bar ct-blbar'), tr = ghEl('span', 'ct-tr'), i = ghEl('i');
+    i.style.width = (X.W.length ? 100*X.n/X.W.length : 0).toFixed(1)+'%';
+    i.style.background = BL_K.color;
+    tr.appendChild(i);
+    b.append(blDisc(), ghEl('span', 'ct-bar-n', BL_K.short), tr, ghEl('b', '', X.n+' of '+(md.T ? ghoN(X.W.length, 'game') : X.W.length)));          // (Theirs: the letters' numbers are slips, punished of all)
+    if(X.n){
+      b.type = 'button'; b.dataset.act = 'mom'; b.dataset.ch = BL_CH; b.dataset.fid = 'bar|'+BL_CH;
+      b.setAttribute('aria-label', (md.T ? 'Their blunders' : 'Blunders')+': in '+X.n+' of '+ghoN(X.W.length, 'game')+' with a review or a badge, '+blWhen(X)+'. Show the moments');
+    }
+    return b;
+  }
+  function blWhen(X){ return X.days ? 'last '+CT_DAYS+' days' : X.W.length===1 ? 'the last one' : 'the last '+X.W.length; }
+  function blBarNote(md){ return ghEl('p', 'ct-sub ct-blnote', 'Blunders: games with one, of those with a review or a badge ('+blWhen(md.BW)+').'); }
+  // the why, over every blunder here: how many also carry a letter and which, those with none yet (a press opens them, to be
+  // marked), and where the numbers come from
+  function blStrip(md){
+    const L = md.BM, n = L.length, T = md.T, N = md.BG.length, W = L.filter(x=> !x.nl), none = n - W.length;
+    const box = ghEl('div', 'ct-todo ct-blstrip'), t = ghEl('span', 'ct-todo-t'), whose = T ? 'their' : 'your';
+    box.appendChild(ghEl('span', 'ct-k', T ? 'Their blunders' : 'Blunders'));
+    const link = (text, lab)=>{ const o = ghEl('button', 'ct-l', text); o.type = 'button'; o.dataset.act = 'nolet'; o.dataset.fid = 'nolet'; o.setAttribute('aria-label', lab); return o; };
+    const each = CLAMP_K.map(K=> [K, W.filter(x=> x.chs.indexOf(K.ch) >= 0).length]).filter(x=> x[1]).sort((a, b)=> b[1] - a[1]).map(x=> x[0].short+(n > 1 ? ' '+x[1] : '')).join(', ');
+    // (every game the Filters keep, not the pattern's window: so it says since when)
+    const base = ghoN(N, 'game')+' with a review or a badge ('+(N===1 ? '' : 'since ')+ctDay(md.BG[N - 1].at)+')';
+    if(!n) t.textContent = 'None in '+base+'.';
+    else if(!W.length){
+      t.append(n===1 ? (T ? 'Their' : 'Your')+' 1 blunder has no letter yet. ' : 'None of '+whose+' '+n+' blunders has a letter yet. ', link(n===1 ? 'Open it' : 'Open them', 'Open '+whose+' '+ghoN(n, 'blunder')+' with no CLAMP letter yet'));
+    }
+    else if(!none) t.textContent = n===1 ? (T ? 'Their' : 'Your')+' 1 blunder also has a letter: '+each+'.' : 'All '+n+' of '+whose+' blunders also have a letter: '+each+'.';
+    else t.append(W.length+' of '+whose+' '+n+' blunders also '+(W.length===1 ? 'has' : 'have')+' a letter: '+each+'; ', link(none===1 ? '1 has none yet' : none+' have none yet', 'Open '+whose+' '+ghoN(none, 'blunder')+' with no CLAMP letter yet'), '.');
+    box.appendChild(t);
+    const own = L.filter(x=> x.own).length, rv = n - own, src = [];
+    if(own) src.push(own+' from your badges');
+    if(rv) src.push(rv+' from game reviews on this device');
+    box.appendChild(ghEl('span', 'ct-blsrc', (n ? ghoN(n, 'blunder')+' in '+base+': '+src.join(', ')+'. ' : '')+'Games with no review and no badge aren\u2019t counted.'));
+    return box;
+  }
+  // no letters here, only blunders: the card is theirs
+  function blDrawPat(md){
+    const box = document.getElementById('ct-pat'), X = md.BW, T = md.T, n = md.BM.length;
+    box.textContent = '';
+    const head = ghEl('div', 'ct-head'), h = ghEl('h3', 'ct-k', (T ? 'Their blunders' : 'Your blunders')+' \u00b7 '+(X.days ? 'last '+CT_DAYS+' days' : 'your last '+ghoN(X.W.length, 'game')+' with a review or a badge'));
+    h.id = 'ct-pat-k';
+    head.append(h, ghEl('span', 'ct-n', X.days ? ghoN(X.W.length, 'game')+' with a review or a badge' : ''));
+    const hero = ghEl('div', 'ct-hero'), fig = ghEl('div', 'ct-fig is-bl', '??'), acts = ghEl('div', 'ct-acts'), a = ghEl('button', 'ct-l', n===1 ? 'See the moment' : 'See the '+n+' moments');
+    fig.setAttribute('aria-hidden', 'true');
+    a.type = 'button'; a.dataset.act = 'mom'; a.dataset.ch = BL_CH; a.dataset.fid = 'pat|mom';
+    acts.appendChild(a);
+    hero.append(fig, ghEl('div', 'ct-big', X.n+' of '+X.W.length), ghEl('div', 'ct-what', (X.W.length===1 ? 'game had ' : 'games had ')+(T ? 'a blunder of theirs' : 'a blunder of yours')),
+      ghEl('div', 'ct-vs', ghoN(X.moves, 'blunder')+' in them.'+(X.n ? ' You scored '+ghoPct(X.score)+' in the games with one.' : '')+' Mark a blunder with its CLAMP letter and your pattern shows here.'), acts);
+    box.append(head, hero, blStrip(md));
   }
   // Theirs (2026-11-12, the user: the eval swung because "my opponent had the loose piece" and the better move wasn't played):
   // how often you punished the slips of theirs you marked, over the pattern's window. A slip: one move of theirs you marked,
@@ -36930,6 +37123,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     key.setAttribute('aria-hidden', 'true');
     [['p', 'punished'], ['m', 'missed']].concat(nn ? [['n', 'not said']] : []).forEach(([c, t])=>{ const k = ghEl('span', ''); k.append(ghEl('i', 'is-'+c), document.createTextNode(t)); key.appendChild(k); });
     bars.appendChild(key);
+    if(md.BG.length) bars.append(blBar(md), blBarNote(md));          // (after the key: it is about the letters' bars)
     two.appendChild(bars);
     box.appendChild(two);
     // both sides: your own marked moves over the same days (the same games when the window is your last ones with theirs)
@@ -36943,6 +37137,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const both = ghEl('div', 'ct-todo ct-both');
     both.append(ghEl('span', 'ct-k', 'Both sides'), ghEl('span', 'ct-todo-t', bt));
     box.appendChild(both);
+    if(md.BG.length) box.appendChild(blStrip(md));
   }
   function ctDrawPat(md){
     const box = document.getElementById('ct-pat'), P = md.P, K = CLAMP_BY[P.ch];
@@ -36998,8 +37193,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       }
       bars.appendChild(b);
     });
+    if(md.BG.length) bars.append(blBar(md), blBarNote(md));
     two.appendChild(bars);
     box.appendChild(two);
+    if(md.BG.length) box.appendChild(blStrip(md));
     if(md.loss){
       const todo = ghEl('div', 'ct-todo'), t = ghEl('span', 'ct-todo-t'), o = ghEl('button', 'ct-l', 'Open them');
       todo.appendChild(ghEl('span', 'ct-k', 'Not marked yet'));
@@ -37031,6 +37228,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       b.append(ctD(md, K), ghEl('span', 'ct-gl-n', K.short));
       lab.appendChild(b);
     });
+    // blunders under P (2026-11-23), when any of these games has a review or a badge; a game without one has an empty cell
+    const bv = md.L ? null : new Map(GG.map(e=>{ const v = blOf(e.g); return [e, v.has ? (T ? v.theirs : v.mine).length : -1]; })), hasB = !!bv && GG.some(e=> bv.get(e) >= 0);
+    if(hasB){ const b = ghEl('button', 'ct-gl'); b.type = 'button'; b.dataset.act = 'mom'; b.dataset.ch = BL_CH; b.dataset.fid = 'gl|'+BL_CH; b.setAttribute('aria-label', 'Blunders: show the moments'); b.append(blDisc(), ghEl('span', 'ct-gl-n', BL_K.short)); if(!md.BM.length) b.disabled = true; lab.appendChild(b); }
     lab.appendChild(ghEl('span', 'ct-gr ct-grl', 'Result'));
     g.appendChild(lab);
     // a column per game: one button (the review at its first marked move the review can show; none: it opens nothing)
@@ -37045,10 +37245,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         c.appendChild(!ctHas(e, K.ch) ? ghEl('span', 'ct-ring') : Lz ? ctDL(K, x) : ctDisc(K, T));
         b.appendChild(c);
       });
+      if(hasB){ const c = ghEl('span', 'ct-gx'), nb = bv.get(e); if(nb >= 0) c.appendChild(nb ? blDisc() : ghEl('span', 'ct-ring')); b.appendChild(c); }
       const r = ghEl('span', 'ct-gr'), ri = ghEl('i', 'is-'+e.res);
       r.appendChild(ri);
       b.appendChild(r);
-      const names = CLAMP_K.filter(K=> ctHas(e, K.ch)).map(K=> K.name).join(', ');
+      const names = CLAMP_K.filter(K=> ctHas(e, K.ch)).map(K=> K.name).join(', ')+(hasB && bv.get(e) > 0 ? '; '+(T ? 'their ' : '')+(bv.get(e)===1 ? '1 blunder' : bv.get(e)+' blunders') : '');
       let t = ctDay(e.at)+': '+ctRes(e.res).toLowerCase()+' against '+opp+'. '+names+'. ';
       if(go){ b.dataset.ply = String(go[0]); b.dataset.ck = go[1]; if(Lz) b.dataset.k = go[4]; t += 'Open the review at '+ghClampLabel(go[0], e.r.toks[go[0]-1], e.r.off); }
       else{ b.setAttribute('aria-disabled', 'true'); b.classList.add('is-off'); t += 'The review can\u2019t show its marked moves'; }
@@ -37070,14 +37271,23 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       c.appendChild(ghEl('span', 'ct-gr'));
       return c;
     };
-    g.appendChild(col('Games', md.rows.map(x=> [String(x.n), x.K.name+': in '+x.n+' of '+n+' games'])));
-    if(H) g.appendChild(col('Last '+H.n, md.rows.map(x=>{
+    // the blunders' totals count only the games with a review or a badge; the halves are compared when both have as many of them
+    const bs = (L)=> L.filter(e=> bv.get(e) >= 0), bn = (L)=> L.filter(e=> bv.get(e) > 0);
+    g.appendChild(col('Games', md.rows.map(x=> [String(x.n), x.K.name+': in '+x.n+' of '+n+' games']).concat(hasB ? [[String(bn(GG).length), 'Blunders: in '+bn(GG).length+' of '+bs(GG).length+' of these games with a review or a badge']] : [])));
+    if(H) g.appendChild(col('Last '+H.n, md.rows.concat(hasB ? [{ bl:true }] : []).map(x=>{
+      if(x.bl){
+        const A = [bn(H.a).length, bs(H.a).length], B = [bn(H.b).length, bs(H.b).length], same = A[1]===B[1] && A[1] > 0, kb = A[0]===B[0] ? 'flat' : A[0] > B[0] ? 'up' : 'down';
+        const tb = 'Blunders: in '+A[0]+' of your newest '+H.n+' marked games ('+A[1]+' with a review or a badge), '+B[0]+' of the '+H.n+' before them ('+B[1]+')';
+        const sb = ghEl('span', 'ct-trend is-'+(same ? kb : 'flat'), same ? (kb==='up' ? '\u2191 ' : kb==='down' ? '\u2193 ' : '')+A[0]+' vs '+B[0] : '\u2014');
+        sb.title = tb;
+        return [sb, tb];
+      }
       const k = x.a===x.b ? 'flat' : x.a > x.b ? 'up' : 'down', t = x.K.name+': '+x.a+(Lz ? ' of the newest '+H.n+' games Larry flagged, ' : ' of your newest '+H.n+' marked games, ')+x.b+' of the '+H.n+' before them';
       const s = ghEl('span', 'ct-trend is-'+k, (k==='up' ? '\u2191 ' : k==='down' ? '\u2193 ' : '')+x.a+' vs '+x.b);
       s.title = t;
       return [s, t];
     }), 'ct-gt'));
-    g.appendChild(col('Scored', md.rows.map(x=> x.n ? [ghoPct(x.score), x.K.name+': you scored '+ghoPct(x.score)+' in its games'] : ['\u2014', x.K.name+': in none of them'])));
+    g.appendChild(col('Scored', md.rows.map(x=> x.n ? [ghoPct(x.score), x.K.name+': you scored '+ghoPct(x.score)+' in its games'] : ['\u2014', x.K.name+': in none of them']).concat(hasB ? [bn(GG).length ? [ghoPct(ctPts(bn(GG))), 'Blunders: you scored '+ghoPct(ctPts(bn(GG)))+' in the games with one'] : ['\u2014', 'Blunders: in none of them']] : [])));
     // the dates under the columns, every sixth
     const dt = (t, c)=>{ const d = ghEl('span', 'ct-gd'+(c ? ' '+c : ''), t); d.setAttribute('aria-hidden', 'true'); g.appendChild(d); };
     dt('', 'ct-gd0');
@@ -37085,7 +37295,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     dt(''); if(H) dt(''); dt('');
     sc.appendChild(g);
     box.appendChild(sc);
-    box.appendChild(ghEl('p', 'ct-sub ct-foot', (H ? 'Last '+H.n+(Lz ? ': the newest '+H.n+' games Larry flagged against the ' : ': your newest '+H.n+' marked games against the ')+H.n+' before them. ' : '')+'Scored: your points in the games with that letter. '
+    box.appendChild(ghEl('p', 'ct-sub ct-foot', (H ? 'Last '+H.n+(Lz ? ': the newest '+H.n+' games Larry flagged against the ' : ': your newest '+H.n+' marked games against the ')+H.n+' before them. ' : '')+'Scored: your points in the games with that letter'+(hasB ? ', or with a blunder' : '')+'. '
+      +(hasB ? 'Blunders: in '+bn(GG).length+' of the '+(bs(GG).length===1 ? '1 game here that has' : bs(GG).length+' games here that have')+' a review or a badge; an empty cell has neither'+(H && bs(H.a).length!==bs(H.b).length ? ' (a dash: the two halves don\u2019t have as many of those games)' : '')+'. ' : '')
       +'Result: a solid bar won, a thin line drew, an outline lost.'));
     // a narrow screen: opened at the newest games and the totals (the letters stay at the left); drawn again, where you had it
     sc.addEventListener('scroll', ()=>{ CT.gx = { x:sc.scrollLeft, end:sc.scrollLeft >= sc.scrollWidth - sc.clientWidth - 1 }; ctGridDates(sc); }, { passive:true });
@@ -37109,12 +37320,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     box.textContent = '';
     const h = ghEl('h3', 'ct-h', 'Where they happen');
     h.id = 'ct-where-h';
-    const off = M.length - md.phN;
-    box.append(h, ghEl('p', 'ct-sub', (md.L ? 'The moves Larry flagged, counted.' : md.T ? 'Their slips you marked, counted.' : 'Your marked moves, counted.')+' An outlined count is where a letter shows up most in its group. Phase: as the review\u2019s phase card divides the game.'
-      +(md.clkN ? ' Low on time: under 10% of '+(md.T ? 'their' : 'your')+' starting time left before the move ('+md.clkN+' of '+ghoN(M.length, 'move')+' had clocks).' : '')
-      +(off ? ' '+(off===1 ? '1 move' : off+' moves')+' from Chess960, other variants or set-up games '+(off===1 ? 'isn\u2019t' : 'aren\u2019t')+' in Phase'+(md.clkN ? ' or Clock' : '')+'.' : '')));
+    const off = M.length - md.phN, BN = md.BM.length, boff = BN - md.BM.filter(m=> m.ph!=null).length;
+    const nclk = [md.clkN ? md.clkN+' of '+ghoN(M.length, 'move') : '', md.bClkN && !M.length ? md.bClkN+' of '+ghoN(BN, 'blunder') : ''].filter(Boolean).join('');
+    box.append(h, ghEl('p', 'ct-sub', (!M.length ? (md.T ? 'Their' : 'Your')+' blunders, counted.' : md.L ? 'The moves Larry flagged, counted.' : md.T ? 'Their slips you marked, counted.' : 'Your marked moves, counted.')+(M.length ? ' An outlined count is where a letter shows up most in its group.' : ' An outlined count is the most in its group.')+' Phase: as the review\u2019s phase card divides the game.'
+      +(md.clkN || md.bClkN ? ' Low on time: under 10% of '+(md.T ? 'their' : 'your')+' starting time left before the move'+(nclk ? ' ('+nclk+' had clocks)' : '')+'.' : '')
+      +(off ? ' '+(off===1 ? '1 move' : off+' moves')+' from Chess960, other variants or set-up games '+(off===1 ? 'isn\u2019t' : 'aren\u2019t')+' in Phase'+(md.clkN ? ' or Clock' : '')+'.' : '')
+      +(M.length && BN ? ' Blunders: every ?? of '+(md.T ? 'theirs' : 'yours')+', with a letter or not'+(md.bClkN ? ' ('+md.bClkN+' of '+BN+' had clocks)' : '')+'.' : '')
+      +(boff ? ' '+(boff===1 ? '1 blunder' : boff+' blunders')+' from Chess960, other variants or set-up games '+(boff===1 ? 'isn\u2019t' : 'aren\u2019t')+' in Phase'+(md.bClkN ? ' or Clock' : '')+'.' : '')));
     const groups = [['phase', 'Phase', ['0', '1', '2']], ['color', 'Color', ['white', 'black']], ['speed', 'Speed', md.sp]];
-    if(md.clkN) groups.push(['clock', 'Clock', ['low']]);
+    if(md.clkN || md.bClkN) groups.push(['clock', 'Clock', ['low']]);
     const T = ghEl('table', 'ct-w'), hd = ghEl('thead'), r1 = ghEl('tr'), r2 = ghEl('tr'), bd = ghEl('tbody');
     const c1 = ghEl('th', 'ct-wr'), c2 = ghEl('th', 'ct-wr');
     c1.appendChild(ghEl('span', 'ph-sr', 'Letter'));
@@ -37126,14 +37340,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       vals.forEach((v, i)=>{ const x = ghEl('th', (i ? '' : 'gs')+(k==='clock' ? ' ct-wclk' : ''), ctBucketName(k, v)); x.scope = 'col'; r2.appendChild(x); });
     });
     hd.append(r1, r2);
-    CLAMP_K.forEach(K=>{
-      const tr = ghEl('tr'), th = ghEl('th', 'ct-wr'), sp = ghEl('span', 'ct-wrn');
+    CLAMP_K.concat(md.BM.length ? [BL_K] : []).forEach(K=>{
+      const tr = ghEl('tr'), th = ghEl('th', 'ct-wr'), sp = ghEl('span', 'ct-wrn'), bl = K.ch===BL_CH;
       tr.style.setProperty('--c', K.color);
       th.scope = 'row';
-      sp.append(ctD(md, K), document.createTextNode(K.short));
+      sp.append(bl ? blDisc() : ctD(md, K), document.createTextNode(K.short));
       th.appendChild(sp);
       tr.appendChild(th);
-      const mine = M.filter(m=> m.ch===K.ch);
+      const mine = bl ? md.BM : M.filter(m=> m.ch===K.ch);
       groups.forEach(([k, name, vals])=>{
         const n = vals.map(v=> mine.filter(m=> ctBucket(m, k)===v).length), mx = Math.max(0, ...n);
         const one = mx > 0 && vals.length > 1 && n.filter(x=> x===mx).length===1;
@@ -37159,13 +37373,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // Moments: the marked moves the chips keep, newest first (16, then 16 more a tap); drawn again only when they change
   function ctDrawMoments(){
     const box = document.getElementById('ct-mom'), md = CT.model;
-    if(!md || !md.G.length){ box.hidden = true; box.textContent = ''; CT.msig = ''; return; }
+    if(!md || !(md.G.length || md.BM.length)){ box.hidden = true; box.textContent = ''; CT.msig = ''; return; }
     if(CT.ps!==PIECE_SVG){ CT.ps = PIECE_SVG; CT.psN++; }          // a new piece set: the boards drawn again
     // a letter (or one of Where's groups) with no moves left here (the Filters changed, its last mark went): back to All
-    if(CT.m.ch && !md.M.some(x=> x.ch===CT.m.ch)){ CT.m = { ch:'', b:null, out:'' }; CT.shown = CT_MOM_N; }
-    else if(CT.m.b && !md.M.some(x=> x.ch===CT.m.ch && ctBucket(x, CT.m.b.g)===CT.m.b.v)){ CT.m = { ch:CT.m.ch, b:null, out:CT.m.out }; CT.shown = CT_MOM_N; }
-    if(CT.m.out && (!md.T || !md.M.some(x=> x.out===CT.m.out))){ CT.m = Object.assign({}, CT.m, { out:'' }); CT.shown = CT_MOM_N; }
-    const m = CT.m, bk = m.b, L = md.M.filter(x=> (!m.ch || x.ch===m.ch) && (!bk || ctBucket(x, bk.g)===bk.v) && (!m.out || x.out===m.out));
+    // (All: the letters' moves. The blunders are the ?? chip's: many carry a letter too. With no letters here, they're all there is)
+    const pool = ()=> CT.m.ch===BL_CH ? md.BM : md.M;
+    if(CT.m.ch && !pool().some(x=> x.ch===CT.m.ch)){ CT.m = { ch:'', b:null, out:'' }; CT.shown = CT_MOM_N; }
+    if(!CT.m.ch && !md.M.length) CT.m = { ch:BL_CH, b:null, out:'' };
+    if(CT.m.b && !pool().some(x=> x.ch===CT.m.ch && ctBucket(x, CT.m.b.g)===CT.m.b.v)){ CT.m = { ch:CT.m.ch, b:null, out:CT.m.out }; CT.shown = CT_MOM_N; }
+    if(CT.m.out && (!md.T || CT.m.ch===BL_CH || !md.M.some(x=> x.out===CT.m.out))){ CT.m = Object.assign({}, CT.m, { out:'' }); CT.shown = CT_MOM_N; }
+    const m = CT.m, bk = m.b, L = pool().filter(x=> (!m.ch || x.ch===m.ch) && (!bk || ctBucket(x, bk.g)===bk.v) && (!m.out || x.out===m.out));
     const shown = L.slice(0, Math.max(CT_MOM_N, CT.shown));
     const msig = CT.sig+'|'+m.ch+'|'+(bk ? bk.g+':'+bk.v : '')+'|'+m.out+'|'+shown.length+'|'+CT.psN;
     if(msig===CT.msig && box.firstChild){ box.hidden = false; return; }
@@ -37175,7 +37392,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     box.textContent = '';
     const head = ghEl('div', 'ct-mom-h'), ht = ghEl('div', ''), h = ghEl('h3', 'ct-h', 'Moments');
     h.id = 'ct-mom-h';
-    ht.append(h, ghEl('p', 'ct-sub', md.L ? 'Every move Larry flagged that you haven\u2019t skipped, newest first: the position before it, your move drawn in its letter\u2019s color. A dashed letter is still waiting for you. A card opens the review on that move.'
+    ht.append(h, ghEl('p', 'ct-sub', m.ch===BL_CH ? (md.T ? 'Every blunder of theirs' : 'Every blunder of yours')+' (your ?? badge, or the game review\u2019s where you have none), newest first: the position before it, the move drawn in the badge\u2019s color, its letters beside it. A card opens the review at that move.'
+      : md.L ? 'Every move Larry flagged that you haven\u2019t skipped, newest first: the position before it, your move drawn in its letter\u2019s color. A dashed letter is still waiting for you. A card opens the review on that move.'
       : md.T ? 'Every slip of theirs you marked, newest first: the position before their move, the move drawn in its letter\u2019s color, punished or missed as you said it. A card opens the review at that move.'
       : 'Every move you marked, newest first: the position before it, the move drawn in its letter\u2019s color. A card opens the review at that move.'));
     head.appendChild(ht);
@@ -37183,15 +37401,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     chips.setAttribute('role', 'group');
     chips.setAttribute('aria-label', 'Show');
     const chip = (ch, n)=>{
-      const K = CLAMP_BY[ch], b = ghEl('button', 'ct-chip'+(K ? '' : ' is-all'));
+      const K = ctK(ch), b = ghEl('button', 'ct-chip'+(K ? '' : ' is-all')), bl = ch===BL_CH;
       b.type = 'button'; b.dataset.act = 'chip'; b.dataset.ch = ch; b.dataset.fid = 'chip|'+(ch || 'all');
-      if(K) b.append(ctD(md, K), document.createTextNode(String(n))); else b.textContent = 'All '+n;
+      if(K) b.append(bl ? blDisc() : ctD(md, K), document.createTextNode(String(n))); else b.textContent = (md.BM.length ? 'All letters ' : 'All ')+n;
       b.setAttribute('aria-pressed', (ch ? m.ch===ch : !m.ch && !bk && !m.out) ? 'true' : 'false');
-      b.setAttribute('aria-label', K ? K.name+': '+(n===1 ? '1 move' : n+' moves') : 'All: '+(n===1 ? '1 move' : n+' moves'));
+      b.setAttribute('aria-label', K ? K.name+': '+(n===1 ? '1 move' : n+' moves') : (md.BM.length ? 'All letters: ' : 'All: ')+(n===1 ? '1 move' : n+' moves'));
       chips.appendChild(b);
     };
-    chip('', md.M.length);
+    if(md.M.length) chip('', md.M.length);
     CLAMP_K.forEach(K=>{ const n = md.M.filter(x=> x.ch===K.ch).length; if(n) chip(K.ch, n); });
+    if(md.BM.length) chip(BL_CH, md.BM.length);
     // theirs: punished / missed, on top of a letter (a second click takes it off)
     if(md.T) [['p', 'Punished'], ['m', 'Missed']].forEach(([v, t])=>{
       const n = md.M.filter(x=> x.out===v).length;
@@ -37202,8 +37421,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       b.setAttribute('aria-label', t+': '+(n===1 ? '1 move' : n+' moves'));
       chips.appendChild(b);
     });
-    if(bk && CLAMP_BY[m.ch]){
-      const t = CLAMP_BY[m.ch].short+' \u00b7 '+ctBucketName(bk.g, bk.v), b = ghEl('button', 'ct-chip is-b');
+    if(bk && ctK(m.ch)){
+      const t = ctK(m.ch).short+' \u00b7 '+ctBucketName(bk.g, bk.v), b = ghEl('button', 'ct-chip is-b');
       b.type = 'button'; b.dataset.act = 'unb'; b.dataset.fid = 'chip|b';
       b.appendChild(ghEl('span', '', t+' ('+L.length+')'));
       const x = ghEl('span', 'gh-rep-x', '\u00d7');
@@ -37230,7 +37449,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
   }
   function ctMomCard(x){
-    const e = x.e, g = e.g, K = CLAMP_BY[x.ch], r = e.r, lab = ghClampLabel(x.p, r.toks[x.p-1], r.off), opp = ghOppName(ghPlayers(g, ghMe()).opp);
+    const e = x.e, g = e.g, K = ctK(x.ch), bl = x.ch===BL_CH, r = e.r, lab = ghClampLabel(x.p, r.toks[x.p-1], r.off), opp = ghOppName(ghPlayers(g, ghMe()).opp);
     const can = x.p <= r.can, b = ghEl(can ? 'button' : 'div', 'ct-m'+(can ? '' : ' is-off'));
     if(can) b.type = 'button';
     b.style.setProperty('--c', K.color);
@@ -37242,8 +37461,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // one calm tag only where he and you found the same thing
     const zs = Z ? (Z[5] ? 'You marked it too' : Z[3]==='w' ? 'Waiting' : Z[3]==='o' ? 'Added as theirs' : 'Added') : '';
     if(Z) b.dataset.k = Z[4];
-    mv.append(Z ? ctDL(K, Z) : ctDisc(K, T), ghEl('span', 'ct-mlab', lab));
-    if(T) mv.appendChild(ghEl('span', 'ct-mout is-'+(x.out || 'n'), x.out==='p' ? 'Punished' : x.out==='m' ? 'Missed' : 'Not said'));
+    mv.append(bl ? blDisc() : Z ? ctDL(K, Z) : ctDisc(K, T));
+    if(bl) x.chs.forEach(ch=> mv.appendChild(ctDisc(CLAMP_BY[ch], T)));          // a blunder's letters, beside its badge
+    mv.appendChild(ghEl('span', 'ct-mlab', lab));
+    if(T && !bl) mv.appendChild(ghEl('span', 'ct-mout is-'+(x.out || 'n'), x.out==='p' ? 'Punished' : x.out==='m' ? 'Missed' : 'Not said'));
     if(x.ph!=null) mv.appendChild(ghEl('span', 'ct-mph', CT_PHASES[x.ph]));
     b.appendChild(mv);
     if(Z){
@@ -37257,10 +37478,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     else if(x.note) b.appendChild(ghEl('span', 'ct-mnt', '\u201c'+x.note+'\u201d'));
     const ft = ghEl('span', 'ct-mft');
-    ft.append(ghEl('b', '', ctRes(e.res)), document.createTextNode(' vs '+opp+' \u00b7 '+ctDay(e.at)));
+    ft.append(ghEl('b', '', ctRes(e.res)), document.createTextNode(' vs '+opp+' \u00b7 '+ctDay(e.at)+(bl ? ' \u00b7 '+(x.own ? 'your badge' : 'game review') : '')));
     b.appendChild(ft);
     const sqs = (e.q || []).filter(y=> y[0]===x.p && y[1]===x.ch).map(y=> y[2]);          // its squares: outlined on the board (ctMomFill)
-    if(can) b.setAttribute('aria-label', (T ? 'Their slip, ' : Z ? 'Larry\u2019s flag, ' : '')+K.name+': '+lab+(sqs.length ? ' on '+sqs.join(', ') : '')+(x.ph!=null ? ', '+CT_PHASES[x.ph].toLowerCase() : '')+'. '
+    if(can && bl) b.setAttribute('aria-label', (T ? 'Their blunder: ' : 'Blunder: ')+lab+(x.ph!=null ? ', '+CT_PHASES[x.ph].toLowerCase() : '')+'. '+(x.chs.length ? x.chs.map(ch=> CLAMP_BY[ch].name).join(', ') : 'No letter yet')+'. '
+      +(x.own ? 'Your badge. ' : 'The game review\u2019s. ')+ctRes(e.res)+' against '+opp+', '+ctDay(e.at)+'. Open the review at this move');
+    else if(can) b.setAttribute('aria-label', (T ? 'Their slip, ' : Z ? 'Larry\u2019s flag, ' : '')+K.name+': '+lab+(sqs.length ? ' on '+sqs.join(', ') : '')+(x.ph!=null ? ', '+CT_PHASES[x.ph].toLowerCase() : '')+'. '
       +(T ? (x.out==='p' ? 'You punished it. ' : x.out==='m' ? 'You missed it. ' : '') : '')+(Z ? zs+'. '+(x.note ? 'Larry: '+x.note+'. ' : '') : x.note ? 'Your note: '+x.note+'. ' : '')
       +ctRes(e.res)+' against '+opp+', '+ctDay(e.at)+'. Open the review at this move');
     return b;
@@ -37271,7 +37494,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const sq = (i)=> 'abcdefgh'[i % 8] + (Math.floor(i / 8) + 1);
     const fill = (bd)=>{
       if(bd.firstChild || !bd.isConnected) return;
-      const c = bd.closest('.ct-m'), e = c && CT.model ? CT.model.byId.get(c.dataset.gid) : null, K = c ? CLAMP_BY[c.dataset.ck] : null;
+      const c = bd.closest('.ct-m'), K = c ? ctK(c.dataset.ck) : null, e = c && CT.model ? (c.dataset.ck===BL_CH ? CT.model.blById : CT.model.byId).get(c.dataset.gid) : null;
       if(!e || !K) return;
       const p = Number(c.dataset.ply), x = (e.r || ctReplay(e.g)).at[p], st = x && x[0], mv = x && x[1];
       if(!st || !mv) return;
@@ -37288,7 +37511,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // Moments for a letter (and one of the table's groups), drawn from the first again; go: scrolled to, the keyboard on its chip
   function ctSetMoments(ch, b, go, out){
-    CT.m = { ch:CLAMP_BY[ch] ? ch : '', b:b && CLAMP_BY[ch] ? { g:String(b.g), v:String(b.v) } : null, out:out==='p' || out==='m' ? out : '' };
+    CT.m = { ch:ctK(ch) ? ch : '', b:b && ctK(ch) ? { g:String(b.g), v:String(b.v) } : null, out:out==='p' || out==='m' ? out : '' };
     CT.shown = CT_MOM_N;
     ctDrawMoments();
     if(!go) return;
@@ -37299,7 +37522,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(el) try{ el.focus({ preventScroll:true }); }catch(e){}
   }
   // from the brief's CLAMP fact: the tab, its Moments for that letter
-  function ctFromBrief(ch){ ghoSetView('clamp'); ctSetMoments(ch, null, true); }
+  function ctFromBrief(ch){
+    if(ch===BL_CH && (ctT() || ctL())) ctSide('mine');            // the brief counts your own blunders
+    ghoSetView('clamp');
+    ctSetMoments(ch, null, true);
+  }
   // the review at a marked move (Go to move: the position before it, then the move played, hvClampGo); back here
   // where you were, the keyboard on what opened it
   // k: one of Larry's flags (his dashboard): a game his suggestions study still has opens on Larry's suggestions with it in
@@ -37392,7 +37619,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const md = CT.model, a = t.dataset.act;
       if(!md) return;
       if(t.classList.contains('ct-gcol') || t.classList.contains('ct-m')){
-        const x = md.byId.get(t.dataset.gid);
+        const x = (t.dataset.ck===BL_CH ? md.blById : md.byId).get(t.dataset.gid);
         if(!x || !t.dataset.ply || t.getAttribute('aria-disabled')==='true') return;      // a game the review can't show at its marks
         ctOpen(x, Number(t.dataset.ply), t.dataset.ck, t.dataset.fid, t.dataset.k);
         return;
@@ -37401,8 +37628,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       else if(a==='games') ctGames(t.dataset.ch, !!t.dataset.win);
       else if(a==='todo') ctApply({ result:'loss', date:md.lossDate, ck:'none' });
       else if(a==='bucket') ctSetMoments(t.dataset.ch, { g:t.dataset.g, v:t.dataset.v }, true);
-      else if(a==='chip') ctSetMoments(t.dataset.ch || '', null, false, t.dataset.ch ? CT.m.out : '');
-      else if(a==='out') ctSetMoments(CT.m.ch, null, false, CT.m.out===t.dataset.out ? '' : t.dataset.out);
+      else if(a==='nolet') ctSetMoments(BL_CH, { g:'none', v:'1' }, true);
+      else if(a==='chip') ctSetMoments(t.dataset.ch || '', null, false, t.dataset.ch && t.dataset.ch!==BL_CH ? CT.m.out : '');
+      else if(a==='out') ctSetMoments(CT.m.ch===BL_CH ? '' : CT.m.ch, null, false, CT.m.out===t.dataset.out ? '' : t.dataset.out);
       else if(a==='momo') ctSetMoments('', null, true, t.dataset.out);
       else if(a==='unb'){ ctSetMoments(CT.m.ch, null, false, CT.m.out); ctFocus(document.querySelector('#ct-mom .ct-chip[aria-pressed="true"]')); }
       else if(a==='more'){
@@ -37428,6 +37656,30 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!MW.length) return null;
     const n = ctCount(MW);
     return { MW, n, ch:ctTop(MW, n), MA:all ? mk(all) : null };
+  }
+  // The brief's one line on blunders (2026-11-23): yours in your last 12 games with a review or a badge (all: the games the
+  // Openings tab counts), the phase most of them are in, and the letter most of those with one carry (no tie claimed)
+  function blBriefFact(all){
+    const L = all.map(e=> ({ e, v:blOf(e.g) })).filter(x=> x.v.has).sort((a, b)=> b.e.at - a.e.at).slice(0, CT_LAST);
+    const X = [];
+    L.forEach(x=>{
+      if(!x.v.mine.length) return;
+      const r = ctReplay(x.e.g, blPlies(x.e.g), BL_RP), k = gnClampOf(String(x.e.g.id));
+      x.v.mine.forEach(y=>{ const ok = r.std && r.d && y[0] <= r.can; X.push({ g:x.e.g, p:y[0], can:y[0] <= r.can, ph:ok ? hpfPhaseOf(r.d, y[0] - 1) : -1, chs:CLAMP_K.filter(K=> k.some(z=> z[0]===y[0] && z[1]===K.ch)).map(K=> K.ch) }); });
+    });
+    const n = X.length;
+    if(!n) return null;
+    const top = (vals, f)=>{ const c = vals.map(v=> [v, X.filter(x=> f(x, v)).length]).sort((a, b)=> b[1] - a[1]); return c[0][1] && c[0][1]!==c[1][1] ? c[0] : null; };
+    const P = top([0, 1, 2], (x, v)=> x.ph===v), C = top(CLAMP_K.map(K=> K.ch), (x, v)=> x.chs.indexOf(v) >= 0), w = X.filter(x=> x.chs.length).length;
+    // the letters: how many of the blunders have one is said with them (most often, only from 2 on and with no tie)
+    const lt = !w ? (n===1 ? ', with no letter yet' : ', none with a letter yet') : n===1 ? ', '+X[0].chs.map(ch=> CLAMP_BY[ch].short).join(', ')
+      : C && C[1] > 1 ? ', most often '+CLAMP_BY[C[0]].short+' ('+C[1]+' of the '+w+' with a letter)' : ', '+w+' with a letter';
+    const text = [ghoN(n, 'blunder')+' in your last '+ghoN(L.length, 'game')+' with a review or a badge (since '+ctDay(L[L.length - 1].e.at)+')'
+      +(P ? ', '+(n===1 ? '' : P[1]===n ? 'all ' : P[1]+' ')+'in the '+CT_PHASES[P[0]].toLowerCase() : '')+lt+'.'];
+    const go = X.find(x=> x.can), acts = [{ t:'See them in CLAMP', go:()=>{ ctFromBrief(BL_CH); } }];
+    // Go to move: the newest one (the newest game's last)
+    if(go){ const G = X.filter(x=> x.g===go.g && x.can), y = G[G.length - 1]; acts.unshift({ t:'Go to move', go:()=>{ ghOpenGame(y.g, { at:{ ply:y.p - 1 }, clamp:{ ply:y.p, ch:BL_CH } }); } }); }
+    return { tag:'Blunders', cls:'is-bl', bg:BL_K.color, text, acts };
   }
   // "Loose pieces again: 3 of your 5 marked games this week. Your note on 9. Bg6: ..." when the letter is in 2+ of them
   function ctBriefFact(W, week){
@@ -46481,9 +46733,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   let hvClampGoT = 0;
   function hvClampGo(at){
     clearTimeout(hvClampGoT);
-    const S = HV_STATE, K = at && CLAMP_BY[at.ch], n = S && K ? S.main[at.ply-1] : null;
+    const S = HV_STATE, K = at && ctK(at.ch), n = S && K ? S.main[at.ply-1] : null;          // (a blunder's as a letter's)
     if(!n || !n.move) return;
-    const say = ()=>{ clearTimeout(hvLiveT); hvSay(hvNodeLabel(n)+' ('+K.name+')'); };     // in place of the plain move's words
+    const say = ()=>{ clearTimeout(hvLiveT); hvSay(hvNodeLabel(n)+' ('+(K.one || K.name)+')'); };     // in place of the plain move's words
     if(reducedMotion()){ if(S.cur!==n) hvGoNode(n); say(); return; }
     if(S.cur!==n.parent) hvGoNode(n.parent);
     clearTimeout(hvLiveT);          // the move before isn't read out: the marked one is, as it lands
@@ -53429,6 +53681,60 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const have = new Set(cur.map(x=> x[0]+x[1]));
     return w.filter(x=> !have.has(x[0]+x[1]));
   }
+  // ---- a game's blunders (2026-11-23): the moves whose badge is ??, as the review's move list shows it: your own badge on
+  // the move (the record's b) over the game review's mark kept on this device (hrLoad's rules: the same moves, or it isn't
+  // this game's). No engine, no replay: read once per game, kept while its record, its review and its moves are the same.
+  // a record's badges on the game's own moves: { ply: badge id } (a side line's aren't the game's), null with none
+  var GN_BDG_MEMO = new Map();
+  function gnBadgesOf(gid){
+    const t = gnNoteText('an-'+gid);
+    if(!t || t.indexOf('"b"') < 0) return null;
+    const was = GN_BDG_MEMO.get(gid);
+    if(was && was.t===t) return was.v;
+    let A = null, v = null;
+    try{ A = JSON.parse(t); }catch(e){ A = null; }
+    (A && Array.isArray(A.b) ? A.b : []).forEach(x=>{
+      if(!Array.isArray(x) || !Number.isInteger(x[0]) || x[0] < 1 || x[0] > 3000 || typeof x[1]!=='string' || x[1].length!==1 || !HR_BY_CODE[x[1]]) return;
+      if(!v) v = {};
+      v[x[0]] = HR_BY_CODE[x[1]].id;
+    });
+    if(GN_BDG_MEMO.size > 3000) GN_BDG_MEMO.clear();
+    GN_BDG_MEMO.set(gid, { t, v });
+    return v;
+  }
+  // { has: the game has a review or a badge of yours on a move (a game without isn't counted), rv: a review, mine, theirs:
+  // [[ply, 'own' | 'rv']] in game order (whose badge the ?? is), sig }
+  const BL_NONE = { has:false, rv:false, mine:[], theirs:[], sig:'' };
+  var BL_C = new Map();
+  function blOf(g){
+    const id = String(g.id), b = gnBadgesOf(id);
+    let mem = null, st = null;
+    try{ mem = HR_MEM.get(id) || null; st = ojRevs()[id] || null; }catch(e){ mem = st = null; }
+    if(!b && !mem && !st) return BL_NONE;
+    const mv = String(g.moves || '').trim(), me = ghMyColor(g, ghMe()), bf = !ghIsStd(g) && (/ b /.test(String(g.initialFen || '')) || !!g._bf);
+    const rk = (mem ? mem.sig+mem.review.at : '')+'|'+(st ? st.h+st.at+st.b : '')+'|'+me+(bf ? 'b' : '');
+    const was = BL_C.get(id);
+    if(was && was.b===b && was.rk===rk && was.mv===mv) return was.v;
+    const toks = mv ? mv.split(/\s+/) : [], n = toks.length, mine = [], theirs = [];
+    let ids = null, own = 0;
+    if(n && (mem || st)){
+      const h = gnFnv(toks.join(' '));
+      if(mem && mem.n===n && mem.sig===h) ids = mem.review.b;
+      else if(st && st.n===n && st.h===h) ids = st.b.split('').map(c=> HR_BY_CODE[c] ? HR_BY_CODE[c].id : null);
+    }
+    for(let p = 1; p <= n; p++){
+      const o = b && b[p];
+      if(o) own++;
+      if((o || (ids && ids[p-1]))!=='blunder') continue;
+      ((((p + (bf ? 1 : 0)) % 2===1)===(me==='white')) ? mine : theirs).push([p, o ? 'own' : 'rv']);
+    }
+    const v = !ids && !own ? BL_NONE : { has:true, rv:!!ids, mine, theirs, sig:(ids ? 'r' : 'b')+JSON.stringify(mine)+JSON.stringify(theirs) };
+    if(BL_C.size > 3000) BL_C.clear();
+    BL_C.set(id, { b, rk, mv, v });
+    return v;
+  }
+  // what a row's ?? shows: part of the game lists' redraw signatures
+  function blSig(g){ const n = blOf(g).mine.length; return n ? 'x'+n : ''; }
   // what a row's letters show ('C1L2', '~L' for a waiting version's L): part of the game lists' redraw signatures
   function gnClampSig(gid){
     const n = {}, w = gnClampWait(gid);
