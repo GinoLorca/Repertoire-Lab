@@ -13730,26 +13730,31 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function penKeysNow(){ return annoProfile()==='gamereview' ? ANNO_REVIEW_KEYS.concat(PEN_KEYS.filter(p=> p.key!=='r')) : PEN_KEYS; }
   // Every letter held right now, and the ones a mark was drawn with since they went down (a key that is also a
   // shortcut, the review's B, does its other job on release only when nothing was drawn with it).
-  const heldPenKeys = new Set(), penKeysUsed = new Set();
+  // By physical key (with Option down a letter's release has another name). A Mac and an iPad never report the release
+  // of a letter pressed with Command: after Cmd+R the R stayed down here and every mark was red, whatever letter was held
+  // (2026-11-24). So a letter with Command is no pen, Command lets every letter go, and the last pen letter pressed wins:
+  // one whose release was missed can't outlive the next.
+  const heldPenKeys = new Map(), penKeysUsed = new Set();
+  function penKeyId(e){ return e.code || String(e.key || '').toLowerCase(); }
   document.addEventListener('keydown', (e)=>{
-    const k = String(e.key || '').toLowerCase();
-    if(k.length!==1 || k<'a' || k>'z') return;
-    if(!heldPenKeys.has(k)) penKeysUsed.delete(k);
-    heldPenKeys.add(k);
+    if(e.key==='Meta'){ heldPenKeys.clear(); return; }
+    const k = String(e.key || '').toLowerCase(), id = penKeyId(e);
+    if(e.metaKey || k.length!==1 || k<'a' || k>'z') return;
+    if(heldPenKeys.has(id) && e.repeat) return;
+    penKeysUsed.delete(k);
+    if(penKeysNow().some(p=> p.key===k)) heldPenKeys.clear();
+    heldPenKeys.set(id, k);
   });
-  document.addEventListener('keyup', (e)=>{ heldPenKeys.delete(String(e.key || '').toLowerCase()); });
+  document.addEventListener('keyup', (e)=>{ if(e.key==='Meta') heldPenKeys.clear(); else heldPenKeys.delete(penKeyId(e)); });
   window.addEventListener('blur', ()=> heldPenKeys.clear());
   function penKeyWasUsed(k){ return penKeysUsed.has(k); }
-  function currentPenColor(){
-    for(const p of penKeysNow()){ if(heldPenKeys.has(p.key)) return p.color; }
-    return DEFAULT_PEN_COLOR;
-  }
+  function currentPenColor(){ return heldPenColor() || DEFAULT_PEN_COLOR; }
   // The held pen key ({key, color}), or null when no pen key is held. While Click to draw makes a mark, its picked color.
   let annoClickPen = null;
   function heldPenKey(){
     if(annoClickPen) return annoClickPen;
-    for(const p of penKeysNow()){ if(heldPenKeys.has(p.key)) return p; }
-    return null;
+    const held = Array.from(heldPenKeys.values());
+    return penKeysNow().find(p=> held.indexOf(p.key)>=0) || null;
   }
   function heldPenColor(){ const p = heldPenKey(); return p ? p.color : null; }
 
@@ -59222,7 +59227,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hvCdMark();
   }
   function hvCdDraw(from, to){
-    annoClickPen = { key:'', color:HV_CD.color };
+    annoClickPen = heldPenKey() || { key:'', color:HV_CD.color };      // (a letter held while clicking is that color, as with the right button)
     try{ hvAnnoPen.apply(from, to); } finally { annoClickPen = null; }
     if(hvAnnId()) hvAnnSoon();
   }
