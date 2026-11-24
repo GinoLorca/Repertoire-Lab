@@ -87,6 +87,13 @@ const USES = [
   'hrSave', 'hrLoad', 'hrSig', 'hrEncScore', 'hrDecScore', 'hrValidEntry', 'hrReadStore', 'hrJob',
   'hrRenderAll', 'hvRedraw', 'HR_BY_ID', 'HR_BY_CODE', 'GH_FILTERS', 'PIECE_SETS',
 ];
+// …and the ones only a player's Positions uses (the bridge's POSITIONS part). Chess Arcade has had Positions as a tab of
+// its own, with pawn structures, since 2026-11; a copy from before it is never asked for these, nor for Positions
+// (ARCADE_POSITIONS, below). A copy that has it is asked about each, as about USES.
+const USES_POSITIONS = [
+  'GHP', 'GHP_IX', 'PSN', 'PS_GEN', 'ghpFrom', 'ghpLoadFen', 'ghpPlacement', 'ghpReveal', 'ghpSearch', 'gnOpenEditor',
+  'psOpen', 'pxAfter', 'pxBackText',
+];
 // …and the parts of its page it reaches for (or hides: a renamed one would show again).
 const USES_IDS = ['home-fab', 'view-history', 'gh-oj', 'piece-style-row', 'custom-piece-stroke-field'];
 
@@ -108,11 +115,18 @@ const BRIDGE = String.raw`
     // the board's cards, sounds and the tactic sound; the theme and the pieces are always
     // Repertoire Lab's own (look).
     const HIDE = ['#friends-tab', '#lichess-activity-widget',
-      // a player's CLAMP and Tactics: Chess Arcade's page header, its way home, Game History's own header (its title,
-      // the Lichess line, its tabs), its sites and the chess.com offer
+      // a player's CLAMP, Tactics, Openings and Positions: Chess Arcade's page header, its way home, Game History's own
+      // header (its title, the Lichess line, its tabs), its Games view's All games | Groups, its sites and the chess.com
+      // offer. The way back from a board (Play it out) stays there: "← Positions"
       'html.rl-history #page-header', 'html.rl-history #home-fab', 'html.rl-history #settings-fab',
       'html.rl-history #view-history > .back-link', 'html.rl-history #view-history .history-head',
-      'html.rl-history #gh-view', 'html.rl-history #gh-site', 'html.rl-history #cc-offer', 'html.rl-history #cc-progress-sr', 'html.rl-embed:not(.rl-chrome) #view-play-history .back-link', '#hv-groups',
+      'html.rl-history #gh-view', 'html.rl-history #gh-sub', 'html.rl-history #gh-site', 'html.rl-history #cc-offer', 'html.rl-history #cc-progress-sr', 'html.rl-embed:not(.rl-chrome):not(.rl-history) #view-play-history .back-link', '#hv-groups',
+      // a game's row there: Add note (the note is the game's in Game Review; typed here it was lost) and Add to group
+      // (Chess Arcade's own groups)
+      'html.rl-history .gh-note-btn', 'html.rl-history .gh-grp-btn',
+      // the review's "Find games with this position / this pawn structure": where there's a player whose games to search
+      // (finds, below)
+      'html.rl-embed:not(.rl-finds) .hv-pop-findpos', 'html.rl-embed:not(.rl-finds) .hv-pop-findpawns',
       // Chess Arcade's home button and the Game Review button: only while the review has the whole
       // window (Repertoire Lab's own bars are hidden then; see "corners" below)
       'html.rl-embed:not(.rl-chrome) #home-fab', 'html.rl-embed:not(.rl-chrome) #rl-menu',
@@ -148,6 +162,9 @@ const BRIDGE = String.raw`
       + ' transparent 80%, color-mix(in srgb, var(--hl) 18%, transparent) 94%, transparent 100%) !important;'
       + ' border-radius: .9em .35em 1.05em .3em / .5em .95em .4em 1.1em !important; padding: 2px 8px !important;'
       + ' -webkit-box-decoration-break: clone; box-decoration-break: clone; }'
+      // what Positions brings to the top of the screen (Find games by pawns and its answer, the library, your games in a
+      // structure): below Repertoire Lab's own bar, which stays there
+      + ' html.rl-history :is(#ghp-setup, #ghp-results, #ps-lib, #ps-mine) { scroll-margin-top:84px; }'
       // with the whole window, the way back to Game History keeps its place, unseen: the layout is Chess Arcade's to the pixel
       + ' html.rl-embed.rl-chrome #view-play-history .back-link { visibility:hidden !important; pointer-events:none !important; }'
       // The wheel (or a swipe) over this frame goes on to Repertoire Lab's page. Chess Arcade forbids that for its own
@@ -304,8 +321,8 @@ const BRIDGE = String.raw`
       tell('openChapter', { openingId: decodeURIComponent(m[1]), chapterId: decodeURIComponent(m[2]), line: q.get('line') || null, go: q.get('go') || null });
     }, true);
 
-    // ---- a player's CLAMP and Tactics (Repertoire Lab's player page): Chess Arcade's own two Game History tabs,
-    // over that player's games only — their analysis records, with the summary each tab reads (who had which side,
+    // ---- a player's CLAMP, Tactics, Openings and Positions (Repertoire Lab's player page): Chess Arcade's own Game History
+    // tabs, over that player's games only — their analysis records, with the summary each tab reads (who had which side,
     // the result, the speed, the moves). Game History's way around Chess Arcade (its sites, its other tabs, the
     // chess.com offer, the page's own header) is hidden; opening a game, or a moment, goes to Repertoire Lab's Game
     // Review; Practice opens that tactic's puzzles on Lichess. The frame is as tall as the page (height).
@@ -314,17 +331,18 @@ const BRIDGE = String.raw`
     ghOpenGame = function(g, opts){
       if(historyOn() && g && g.id){
         const o = opts || {};
-        tell('openGame', { gid: String(g.id), opts: { at: o.at || null, clamp: o.clamp || null, tac: o.tac || null } });
+        tell('openGame', { gid: String(g.id), opts: { at: o.at || null, clamp: o.clamp || null, tac: o.tac || null },
+          place: POSITIONS && GH_UI.view==='positions' ? placeNow() : null });
         return Promise.resolve();
       }
       return openGameWas.apply(this, arguments);
     };
-    // The Openings tab: Game History's list is every game of the player's that Repertoire Lab hands over (history),
-    // not only the ones with a note — CLAMP and Tactics keep reading the games with marks, as before.
+    // The Openings and Positions tabs: Game History's list is every game of the player's that Repertoire Lab hands over
+    // (history), not only the ones with a note — CLAMP and Tactics keep reading the games with marks, as before.
     let rlBase = null;
     const baseWas = ghBaseList;
     ghBaseList = function(){
-      if(historyOn() && rlBase && GH_UI.view==='openings') return rlBase.slice();
+      if(historyOn() && rlBase && (GH_UI.view==='openings' || GH_UI.view==='positions')) return rlBase.slice();
       return baseWas.apply(this, arguments);
     };
     const practiceWas = ttPractice;
@@ -334,12 +352,101 @@ const BRIDGE = String.raw`
     };
     let heightWas = 0, lookSig = '';
     const sayHeight = ()=>{
-      if(!historyOn()) return;
+      if(!historyOn() || currentView!=='history') return;
       const v = document.getElementById('view-history');
       const h = v ? Math.ceil(v.getBoundingClientRect().bottom + window.scrollY + 24) : 0;
       if(h && Math.abs(h - heightWas) > 2){ heightWas = h; tell('height', { h }); }
     };
     try{ new ResizeObserver(sayHeight).observe(document.getElementById('view-history')); }catch(e){}
+    // A board in a player's tab (Play it out): Repertoire Lab gives the frame the whole window while it's up (board), so
+    // it's the size it is in Chess Arcade. Its own way back (the link above it, Esc) puts the tab back as it was.
+    const practiceOn = ()=> currentView==='play-history' && !!(HV_STATE && HV_STATE.game && HV_STATE.game._practice);
+    let boardWas = false;
+    const showWas = showView;
+    showView = function(){
+      const r = showWas.apply(this, arguments);
+      const on = historyOn() && currentView==='play-history';
+      if(on!==boardWas){ boardWas = on; tell('board', { on }); }
+      return r;
+    };
+    let tabWas = '', gamesWas = '';
+    // ---- Positions (Pawn structures | Find a position): only a copy that has it (USES_POSITIONS)
+    const POSITIONS = !!document.getElementById('ghp-sub');
+    // Repertoire Lab hands over a game's moves, not its last position: a row's little board gets it when it's drawn
+    const lastOf = (g)=>{
+      if(!g || g.lastFen) return;
+      let fen = null;
+      try{
+        Object.defineProperty(g, 'lastFen', { configurable:true, enumerable:false, get(){
+          if(fen===null){ try{ const t = String(g.moves || '').trim().split(/\s+/); fen = pxAfter(t, t.length, null) || ''; }catch(e){ fen = ''; } }
+          return fen;
+        } });
+      }catch(e){}
+    };
+    let findWas = null, openWas = null;
+    // where you are in it, to come back to after a game (place): the sub-tab, a structure's page, what's open on it, a
+    // search, how far down
+    const placeNow = ()=>{
+      const P = PSN.pg || {};
+      return { sub:GH_UI.psub==='find' ? 'find' : 'structures', card:String(GH_UI.pcard || ''), m:GH_UI.pm ? 1 : 0, color:String(GH_UI.pc || ''),
+        open:String(PSN.open || ''), n:Number(PSN.n) || 0, rows:Number(PSN.rows) || 0, more:String(PSN.more || ''),
+        pg:P.id ? { id:String(P.id), f:String(P.f || ''), n:Number(P.n) || 0, more:!!P.more } : null,
+        find:GHP.q ? { fen:ghpPlacement(), flip:!!GHP.flip, color:String(GHP.color || ''), pmode:GHP.pmode==='similar' ? 'similar' : 'structure' } : null,
+        y:window.scrollY };
+    };
+    const placeSet = (o)=>{
+      const str = (v)=> typeof v==='string' ? v.slice(0, 200) : '', num = (v)=> Math.max(0, Math.min(5000, Math.floor(Number(v) || 0)));
+      GH_UI.psub = o.sub==='find' ? 'find' : 'structures';
+      PSN.open = str(o.open); PSN.n = num(o.n); PSN.rows = num(o.rows); PSN.more = str(o.more);
+      const p = o.pg && str(o.pg.id) ? o.pg : null;
+      if(p) PSN.pg = { id:str(p.id), f:str(p.f), n:num(p.n), more:!!p.more };
+      if(o.find && ghpLoadFen(str(o.find.fen))){
+        GHP.flip = !!o.find.flip;
+        GHP.color = o.find.color==='white' || o.find.color==='black' ? o.find.color : '';
+        GHP.pmode = o.find.pmode==='similar' ? 'similar' : 'structure';
+        ghpSearch();
+      }
+      if(o.card) openWas(str(o.card), o.m ? 1 : 0, { color:str(o.color) });
+      else ghRender();
+      // (in full screen the frame scrolls itself: down to where you were, once there's that much to scroll)
+      const y = num(o.y);
+      let tries = y ? 12 : 0;
+      const down = ()=>{
+        if(!tries-- || currentView!=='history' || GH_UI.view!=='positions') return;
+        if(document.documentElement.scrollHeight - window.innerHeight >= y){ window.scrollTo(0, y); return; }
+        setTimeout(down, 150);
+      };
+      down();
+    };
+    if(POSITIONS){
+      // "Find games with this position / pawn structure" in a review: Repertoire Lab shows the player's Positions. On a
+      // board in Positions itself (Play it out), that's here.
+      findWas = ghpFrom;
+      ghpFrom = function(fen, flip, sub){
+        if(historyOn() && practiceOn() && GH_UI.view==='positions') return findWas.apply(this, arguments);
+        tell('findPosition', { fen:String(fen || ''), flip:!!flip, sub:sub==='structures' ? 'structures' : 'find' });
+      };
+      // a structure's page opens at its top, and Back goes back to where you were: the frame is as tall as what it
+      // shows, so Repertoire Lab's page is what scrolls
+      openWas = psOpen;
+      psOpen = function(id, m, o){
+        const was = String(GH_UI.pcard || ''), r = openWas.apply(this, arguments), now = String(GH_UI.pcard || '');
+        if(historyOn() && now!==was && !(o && o.stay)) tell('page', { to:!now ? 'back' : 'top', from:was });
+        return r;
+      };
+      // the way back from a board says the tab
+      const backWas = pxBackText;
+      pxBackText = function(P){
+        const name = { openings:'Openings', positions:'Positions', clamp:'CLAMP', tactics:'Tactics' }[GH_UI.view];
+        return historyOn() && name && !(P && P.back && P.back.game) ? name : backWas.apply(this, arguments);
+      };
+      // a note's line on a row opens the game in Game Review, where the note is (an editor here would lose what's typed)
+      const noteWas = gnOpenEditor;
+      gnOpenEditor = function(g){
+        if(historyOn() && g){ ghOpenGame(g, {}); return; }
+        return noteWas.apply(this, arguments);
+      };
+    }
     window.__rlReview = {
       v: 1,
       // Everything Chess Arcade keeps for the game, as Repertoire Lab keeps it on the game: the note,
@@ -395,9 +502,10 @@ const BRIDGE = String.raw`
       },
       current(){ return HV_STATE && HV_STATE.game ? String(HV_STATE.game.id) : null; },
       line(){ return playedLine(); },
-      // games: [{ id, an, summary }] — that player's, and only theirs; view: 'clamp' | 'tactics' | 'openings'
-      // (Openings: every game with moves, marked or not)
-      history(games, view){
+      // games: [{ id, an, summary }] — that player's, and only theirs; view: 'clamp' | 'tactics' | 'openings' | 'positions'
+      // (Openings and Positions: every game with moves, marked or not). place: Positions as it was when a game was opened
+      // from it (openGame's place).
+      history(games, view, place){
         const want = new Set((games || []).map((g)=> 'an-'+String(g.id)));
         quiet++;
         try{
@@ -411,24 +519,56 @@ const BRIDGE = String.raw`
           gnPersist();
         } finally { quiet--; }
         try{ GN_TAC_MEMO.clear(); }catch(e){}
-        const tab = view === 'tactics' ? 'tactics' : view === 'openings' ? 'openings' : 'clamp';
-        rlBase = tab === 'openings'
+        const tab = view === 'tactics' ? 'tactics' : view === 'openings' ? 'openings' : view === 'positions' && POSITIONS ? 'positions' : 'clamp';
+        rlBase = tab === 'openings' || tab === 'positions'
           ? (games || []).filter((g)=> g && g.summary).map((g)=> ghGameFromSummary({ id: String(g.id), g: gnCleanG(g.summary) })).filter((g)=> g.moves)
           : null;
-        // Game History counts itself loaded once its own list has games (it's Lichess's, here none): the Openings tab's
-        // are those; CLAMP and Tactics go back to reading the games with marks.
+        if(POSITIONS && rlBase) rlBase.forEach(lastOf);
+        // Game History counts itself loaded once its own list has games (it's Lichess's, here none): the Openings and
+        // Positions tabs' are those; CLAMP and Tactics go back to reading the games with marks.
         GH_STATE.games = rlBase ? rlBase.slice() : [];
         GH_STATE.ids = new Set(GH_STATE.games.map((g)=> g.id));
         GH_STATE.exhausted = true;
+        // Positions keeps what it has read of a game by its id: games changed since (a move corrected, a result) are read again
+        if(tab==='positions'){
+          const sig = JSON.stringify(rlBase.map((g)=> [g.id, g.moves, g.winner || '', g._me || '', g.speed || '']));
+          if(gamesWas && gamesWas!==sig){ GHP_IX.clear(); GHP.res = null; PS_GEN++; }
+          gamesWas = sig;
+        }
+        const here = historyOn() && tabWas===tab;
+        tabWas = tab;
         document.documentElement.classList.add('rl-history');
         document.documentElement.classList.remove('rl-chrome');
+        if(POSITIONS) document.documentElement.classList.add('rl-finds');
+        // (a board of this tab's is up, Play it out: it stays, and the tab draws the games on the way back)
+        if(here && practiceOn()) return;
         if(currentView!=='history') showView('history');
         if(GH_UI.view!==tab) ghoSetView(tab);
         else ghRender();
         if(rlBase && RP){ try{ rpQueue(); }catch(e){} }
-        window.scrollTo(0, 0);
+        if(!here) window.scrollTo(0, 0);
         heightWas = 0;
         setTimeout(sayHeight, 60);
+        if(tab==='positions' && place && typeof place==='object'){ try{ placeSet(place); }catch(e){} }
+      },
+      // This copy has Positions, and what it shows of the player's games that reach a position (sub 'find') or its pawns
+      // ('structures'): the board set up, searched.
+      positions: POSITIONS,
+      find(fen, flip, sub){
+        if(!POSITIONS || !historyOn() || GH_UI.view!=='positions') return false;
+        findWas(String(fen || ''), !!flip, sub==='structures' ? 'structures' : 'find');
+        // Pawn structures' search is its third panel: to it again once its answer (and the panels over it) are drawn
+        if(GH_UI.psub==='structures') [350, 1100].forEach((t)=> setTimeout(()=>{ if(GH_UI.view==='positions' && GHP.q && !GH_UI.pcard) ghpReveal(false); }, t));
+        return true;
+      },
+      // Whether the review's "Find games with…" have somewhere to look: the game on the board is a player's.
+      finds(on){ document.documentElement.classList.toggle('rl-finds', POSITIONS && !!on); },
+      // Back from a board in a player's tab, as its own way back does it. Whether there was one.
+      back(){
+        if(!historyOn() || currentView!=='play-history') return false;
+        const b = document.querySelector('#view-play-history .back-link');
+        if(b) b.click();
+        return currentView!=='play-history';
       },
       // The repertoire the Openings tab sorts games by: the openings Repertoire Lab picked, in Chess Arcade's own
       // compact form ({ o:[{ i, n, c:'w'|'b', k:[[courseId, name]], ch:[{ i, n, k, s, ss, l:[[id, name, moves[], fen|null]] }] }] }),
@@ -516,6 +656,9 @@ const BRIDGE = String.raw`
       missing(){
         const gone = [];
         ${USES.map((n) => `try{ void ${n}; }catch(e){ gone.push('${n}'); }`).join('\n        ')}
+        if(POSITIONS){
+        ${USES_POSITIONS.map((n) => `try{ void ${n}; }catch(e){ gone.push('${n}'); }`).join('\n        ')}
+        }
         return gone.concat(${JSON.stringify(USES_IDS)}.filter((id)=> !document.getElementById(id)).map((id)=> '#'+id));
       },
     };
@@ -575,5 +718,7 @@ writeFileSync(join(root, 'src', 'lib', 'arcadeBuild.js'), `// Written by scripts
 // Chess Arcade's Game Review, as Repertoire Lab's Game Review tab loads it.
 export const ARCADE_REVIEW_URL = '/arcade/${name}';
 export const ARCADE_FROM = ${JSON.stringify(commit || 'chess-arcade')};
+// Whether that copy has Positions (pawn structures): the player page's Positions tab, and Game Review's "Find games with…".
+export const ARCADE_POSITIONS = ${original.includes('id="ghp-sub"')};
 `);
 console.log(`sync-arcade: ${from}${commit ? ` (${commit})` : ''} → public/arcade/${name} (${(html.length / 1048576).toFixed(1)} MB)`);

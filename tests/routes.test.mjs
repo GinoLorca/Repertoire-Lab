@@ -21,6 +21,11 @@ test('one person\'s page has an address: /coaches/<card>, /games/<card>, /…/ga
   assert.equal(pathFor({ view: 'coaches', player: { id: 'k3j9x2m1', tab: null } }), '/coaches/k3j9x2m1');
   assert.equal(pathFor({ view: 'coaches', player: { id: 'k3j9x2m1', tab: 'games' } }), '/coaches/k3j9x2m1/games');
   assert.equal(pathFor({ view: 'games', player: { id: 'me01', tab: 'dashboard' } }), '/games/me01');
+  // Chess Arcade's tabs: CLAMP, Tactics, Openings, Positions.
+  for (const tab of ['clamp', 'tactics', 'openings', 'positions']) {
+    assert.deepEqual(parsePath(`/games/me01/${tab}`), { view: 'games', sub: null, player: { id: 'me01', tab } });
+    assert.equal(pathFor({ view: 'coaches', player: { id: 'k3j9x2m1', tab } }), `/coaches/k3j9x2m1/${tab}`);
+  }
   // Anything that isn't a card id is ignored, and other sections don't take one.
   assert.deepEqual(parsePath('/coaches/%3Cscript%3E'), { view: 'coaches', sub: null });
   assert.equal(pathFor({ view: 'library', player: { id: 'k3j9x2m1' } }), '/library');

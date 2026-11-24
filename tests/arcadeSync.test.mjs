@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { ARCADE_REVIEW_URL } from '../src/lib/arcadeBuild.js';
+import { ARCADE_REVIEW_URL, ARCADE_POSITIONS } from '../src/lib/arcadeBuild.js';
 
 const script = readFileSync(new URL('../scripts/sync-arcade.mjs', import.meta.url), 'utf8');
 const list = (name) => {
@@ -17,6 +17,8 @@ const list = (name) => {
 };
 const USES = list('USES');
 const USES_IDS = list('USES_IDS');
+// What only a player's Positions uses: asked of a copy that has it (ARCADE_POSITIONS).
+const USES_POSITIONS = list('USES_POSITIONS');
 const bridge = (() => {
   const a = script.indexOf('const BRIDGE = String.raw`');
   const b = script.indexOf('\n`;\n', a);
@@ -42,7 +44,7 @@ test('every name of Chess Arcade’s the bridge uses is on the list the copy is 
   // what's in quotes is text (CSS selectors, ids), not a name in the code
   const code = bridge.replace(/'[^'\n]*'/g, "''");
   const used = [...new Set(code.match(/\b[A-Za-z_$][\w$]*\b/g))].filter((n) => declared.has(n) && !locals.has(n));
-  const left = used.filter((n) => !USES.includes(n));
+  const left = used.filter((n) => !USES.includes(n) && !USES_POSITIONS.includes(n));
   assert.deepEqual(left, [], `add to USES in scripts/sync-arcade.mjs: ${left.join(', ')}`);
 });
 
@@ -50,6 +52,14 @@ test('every name on the list is one Chess Arcade has, and every id is on its pag
   const stale = USES.filter((n) => !declared.has(n));
   assert.deepEqual(stale, [], `not in Chess Arcade any more (or not at the top of its code): ${stale.join(', ')}`);
   for (const id of USES_IDS) assert.ok(arcade.includes(`id="${id}"`), `#${id} isn't on Chess Arcade's page`);
+});
+
+test('ARCADE_POSITIONS says whether the committed copy has Positions (pawn structures), and one that has it has every name of its', () => {
+  assert.equal(ARCADE_POSITIONS, arcade.includes('id="ghp-sub"'));
+  if (!ARCADE_POSITIONS) return;
+  const stale = USES_POSITIONS.filter((n) => !declared.has(n));
+  assert.deepEqual(stale, [], `not in Chess Arcade any more (or not at the top of its code): ${stale.join(', ')}`);
+  for (const n of USES_POSITIONS) assert.ok(copy.includes(`try{ void ${n}; }catch(e){ gone.push('${n}'); }`), n);
 });
 
 test('the copy is asked about every one of them', () => {

@@ -30,6 +30,8 @@ import { RESULTS } from '../lib/games';
 import { sideFromNames } from '../lib/pov';
 import { UploadIcon, DownloadIcon, FolderIcon } from '../components/Icons';
 import { formatGameDate } from '../lib/gameDate';
+import { openPlayerCard } from '../lib/openPlayer';
+import { ARCADE_TABS, askFind } from '../lib/positionsTab';
 
 // The analysis screen's tabs, as AnalysisView draws them (Game Review last).
 const TABS = [
@@ -207,6 +209,12 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
       if (d.type === 'tap') setMenuOpen(false);
       if (d.type === 'node') setPlies(Number(d.plies) || 0);
       if (d.type === 'save') saveRef.current();
+      // "Find games with this position / this pawn structure": the player's
+      // own Positions, searched.
+      if (d.type === 'findPosition') {
+        const who = live.current.saved?.player;
+        if (who && askFind(who.id, d)) openPlayerCard(who, { tab: 'positions' });
+      }
       // An arrow colour profile picked in the review: Repertoire Lab's setting too.
       onArcadeArrows(d, dispatch, settingsRef.current);
       // Learn or Practice on a repertoire line (the review prep, Similar
@@ -285,6 +293,13 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
     if (ready) api()?.chrome?.(fullOn);
     if (!fullOn) setMenuOpen(false);
   }, [ready, fullOn]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // "Find games with…" is offered where there's a player whose games to look
+  // through: a saved game's (and a copy of Chess Arcade that has Positions).
+  const canFind = Boolean(saved) && ARCADE_TABS.includes('positions');
+  useEffect(() => {
+    if (ready) api()?.finds?.(canFind);
+  }, [ready, canFind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------- Save ----------
   // A saved game keeps what's written on it as you go; Save does it now, and

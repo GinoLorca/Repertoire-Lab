@@ -5605,7 +5605,7 @@ button.arrow-profile:hover { color: var(--text); }
 .player-tabs-row .player-full-back { white-space: nowrap; font-weight: 700; }
 /* The player page over the whole window: its tabs and what they show, with
    nothing of Repertoire Lab's around them — as Game Review's full screen
-   (.gr-full), so a player's CLAMP, Tactics and Openings get the whole width
+   (.gr-full), so a player's CLAMP, Tactics, Openings and Positions get the whole width
    and the boards in them grow with it. Everything on the page above the tabs
    (the way back, the name, the cards about the account) is left out; the
    tabs' row stays at the top as the page scrolls under it. */
@@ -5623,7 +5623,7 @@ button.arrow-profile:hover { color: var(--text); }
 @media (max-width: 700px) {
   .player-tabs-row .player-full-back span { display: none; }
 }
-/* …and with a tab from Chess Arcade on it (CLAMP, Tactics, Openings): the
+/* …and with a tab from Chess Arcade on it (CLAMP, Tactics, Openings, Positions): the
    page itself doesn't scroll. The frame takes all the room under the tabs
    and scrolls what it shows, with its own scrollbar — as Game Review's full
    screen. (It used to stand as tall as its page inside this one, and the
@@ -6389,8 +6389,12 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 /* ---------- A player's CLAMP and Tactics (components/PlayerInsights) ---------- */
 .pi-wrap { margin-top: 12px; }
 .pi-empty { margin: 8px 0; max-width: 680px; }
-.pi-frame-box { position: relative; }
+/* (brought to the top of the screen — a structure's page: below the app's own bar) */
+.pi-frame-box { position: relative; scroll-margin-top: calc(62px + var(--safe-top) + var(--status-gap)); }
 .pi-frame { display: block; width: 100%; border: 0; border-radius: 12px; background: #1a3423; }
+/* A board in the tab (Play it out): the frame over the whole window while it's up, as Game Review's full screen. The
+   box keeps the frame's height in the page, so the page stays where it was scrolled. */
+.pi-frame-box.board .pi-frame { position: fixed; inset: 0; z-index: 150; height: 100% !important; border-radius: 0; }
 /* The five CLAMP colours, as Chess Arcade draws its letters. */
 .pt-clamp { display: inline-flex; gap: 2px; margin-right: 2px; vertical-align: middle; }
 .pt-clamp i { width: 7px; height: 7px; border-radius: 50%; display: block; }

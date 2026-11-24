@@ -39,6 +39,7 @@ import { reviewsOf, reviewHash } from '../lib/cloud/reviews';
 import { openGameReview } from '../lib/openGameReview';
 import PlayerInsights from './PlayerInsights';
 import { PLAYER_TABS } from '../lib/routes';
+import { ARCADE_TABS } from '../lib/positionsTab';
 import { lineFor as lineToOpen } from '../lib/curate';
 import { parseDoc, docFromGame, docIsEmpty } from '../lib/analysisDoc';
 import { seedFor } from '../lib/studioSeed';
@@ -467,7 +468,7 @@ const PLAYER_FULL_KEY = 'rl.player.full';
 
 function PlayerPage({
   player, rosterTitle, onBack, onAnalyze, onGameStudio, onGameReview, onScan, onEditProfile, onOpenLibrary, onOpenCollections,
-  onOpenLessons, initialTab = null, onTabChange,
+  onOpenLessons, initialTab = null, onTabChange, backToList = true,
 }) {
   const { state, dispatch } = useStore();
   const [viewingGameId, setViewingGameId] = useState(null);
@@ -475,13 +476,23 @@ function PlayerPage({
   // Opens on the dashboard when there's a US Chess ID — unless the student
   // has sent games not yet seen, which are what the bell brought you for.
   const [tab, setTab] = useState(() => {
-    if (['games', 'dashboard', 'clamp', 'tactics', 'openings'].includes(initialTab)) return initialTab; // from a link
+    if (['games', 'dashboard', ...ARCADE_TABS].includes(initialTab)) return initialTab; // from a link
     // …or their ChessKid practice from ICN.
     const stats = String(player.profile?.uscf ?? '').replace(/\D/g, '') || player.profile?.icn?.school;
     return stats && !player.games.some((g) => g.link?.unseen) ? 'dashboard' : 'games';
   });
   // The tab is part of the page's address (/coaches/<card>/games).
   useEffect(() => { onTabChange?.(tab); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
+  // On a phone the tabs scroll sideways: the one on show is brought into view.
+  const tabsRef = useRef(null);
+  useEffect(() => {
+    const row = tabsRef.current;
+    const on = row?.querySelector('[aria-selected="true"]');
+    if (!on || row.scrollWidth <= row.clientWidth) return;
+    const a = row.getBoundingClientRect();
+    const b = on.getBoundingClientRect();
+    row.scrollLeft += b.left - a.left - (a.width - b.width) / 2;
+  }, [tab]);
   // Full screen: the tabs and what they show over the whole window, without
   // Repertoire Lab's bars — as Game Review's full screen, so going from a
   // player's CLAMP or Tactics to a game and back stays one big screen. Kept
@@ -503,7 +514,7 @@ function PlayerPage({
     // something on the page already took the key.
     const onKey = (e) => {
       if (e.key !== 'Escape' || e.defaultPrevented || busyRef.current) return;
-      if (document.querySelector('.modal-overlay, .review-overlay, .search-overlay')) return;
+      if (document.querySelector('.modal-overlay, .review-overlay, .search-overlay, .pi-frame-box.board')) return;
       keepFull(false);
     };
     window.addEventListener('keydown', onKey);
@@ -512,7 +523,8 @@ function PlayerPage({
 
   // Back from a player's page returns to the section list rather than the app's
   // home screen. (The editor registers its own guard, which wins while open.)
-  useBackGuard(true, onBack);
+  // Not when Game Review sent you here (Find games with…): Back is the game.
+  useBackGuard(backToList, onBack);
   // The same "line" shape onAnalyze and onGameStudio both expect — gameId/
   // playerId are what let the analysis board (Studio especially) edit this
   // exact game's badges and notes in place, not just display a snapshot.
@@ -711,13 +723,13 @@ function PlayerPage({
 
   const record = playerRecord(filtered.map((r) => r.game));
 
-  // In full screen a tab from Chess Arcade (CLAMP, Tactics, Openings) fills
-  // the window under the tabs and scrolls by itself, as Game Review's full
+  // In full screen a tab from Chess Arcade (CLAMP, Tactics, Openings,
+  // Positions) fills the window under the tabs and scrolls by itself, as Game Review's full
   // screen does — one thing to scroll, with the frame's own scrollbar, rather
   // than a tall frame inside a page that scrolls (where the wheel over the
   // frame scrolled nothing). Dashboard and Games are this app's own pages,
   // and scroll as the page.
-  const framed = full && (tab === 'clamp' || tab === 'tactics' || tab === 'openings');
+  const framed = full && ARCADE_TABS.includes(tab);
   return (
     <div className={`page${full ? ' player-full' : ''}${framed ? ' player-full-frame' : ''}`}>
       <div className="breadcrumb">
@@ -805,14 +817,14 @@ function PlayerPage({
           ← <span>{player.name}</span>
         </button>
       )}
-      <div className="player-tabs" role="tablist" aria-label="Player page">
+      <div className="player-tabs" role="tablist" aria-label="Player page" ref={tabsRef}>
         <button role="tab" aria-selected={tab === 'dashboard'} className={tab === 'dashboard' ? 'on' : ''} onClick={() => setTab('dashboard')}>
           <TargetIcon size={15} /> Dashboard
         </button>
         <button role="tab" aria-selected={tab === 'games'} className={tab === 'games' ? 'on' : ''} onClick={() => setTab('games')}>
           Games <span className="muted-note">{player.games.length}</span>
         </button>
-        {/* Chess Arcade's CLAMP, Tactics and Openings, over this player's games. */}
+        {/* Chess Arcade's CLAMP, Tactics, Openings and Positions, over this player's games. */}
         <button
           role="tab"
           aria-selected={tab === 'clamp'}
@@ -840,6 +852,17 @@ function PlayerPage({
         >
           Openings
         </button>
+        {ARCADE_TABS.includes('positions') && (
+          <button
+            role="tab"
+            aria-selected={tab === 'positions'}
+            className={tab === 'positions' ? 'on' : ''}
+            title="The pawn structures these games reach and how they go, each structure’s plans and breaks, and the games that reach a position you set up"
+            onClick={() => setTab('positions')}
+          >
+            Positions
+          </button>
+        )}
       </div>
       <button
         type="button"
@@ -853,7 +876,7 @@ function PlayerPage({
       </button>
       </div>
 
-      {(tab === 'clamp' || tab === 'tactics' || tab === 'openings') && (
+      {ARCADE_TABS.includes(tab) && (
         <PlayerInsights
           player={player}
           view={tab}
@@ -862,6 +885,7 @@ function PlayerPage({
             const game = player.games.find((g) => g.id === gameId);
             if (game && onGameReview) onGameReview({ ...lineFor(game), reviewOpts: opts ?? undefined });
           }}
+          onFindGames={() => setTab('positions')}
         />
       )}
 
@@ -1253,7 +1277,7 @@ function takePendingOpen(kind) {
   const want = window.__repertoireOpenPlayer;
   if (!want || want.kind !== kind) return null;
   window.__repertoireOpenPlayer = null;
-  return want.id;
+  return want;
 }
 
 export default function PlayerRoster({
@@ -1263,12 +1287,15 @@ export default function PlayerRoster({
   const { state, dispatch } = useStore();
   // Opened straight from the bell ("Parker added a game → Open"), or from a
   // link to the person's page (/coaches/<card>).
-  const [pendingId] = useState(() => takePendingOpen(kind));
-  const [openPlayerId, setOpenPlayerId] = useState(pendingId ?? routePlayer?.id ?? null);
-  // The page's tab, for its address. From the bell it's the games just added.
-  const [tab, setTab] = useState(pendingId ? 'games' : (routePlayer?.tab ?? null));
+  const [pending] = useState(() => takePendingOpen(kind));
+  const [openPlayerId, setOpenPlayerId] = useState(pending?.id ?? routePlayer?.id ?? null);
+  // The page's tab, for its address. From the bell it's the games just added;
+  // from Game Review's "Find games with…", Positions.
+  const [tab, setTab] = useState(pending ? (pending.tab ?? 'games') : (routePlayer?.tab ?? null));
+  // Sent here by Game Review, to this card: Back goes back to the game.
+  const [fromReview, setFromReview] = useState(pending?.tab === 'positions' ? pending.id : null);
   useEffect(() => {
-    const on = () => { const id = takePendingOpen(kind); if (id) { setOpenPlayerId(id); setTab('games'); } };
+    const on = () => { const want = takePendingOpen(kind); if (want) { setOpenPlayerId(want.id); setTab(want.tab ?? 'games'); } };
     window.addEventListener('repertoire-open-player', on);
     return () => window.removeEventListener('repertoire-open-player', on);
   }, [kind]);
@@ -1357,7 +1384,8 @@ export default function PlayerRoster({
           rosterTitle={title}
           initialTab={tab}
           onTabChange={setTab}
-          onBack={() => { setOpenPlayerId(null); setTab(null); }}
+          backToList={openPlayer.id !== fromReview}
+          onBack={() => { setOpenPlayerId(null); setTab(null); setFromReview(null); }}
           onAnalyze={onAnalyze}
           onGameStudio={onGameStudio}
           onGameReview={onGameReview}

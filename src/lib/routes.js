@@ -47,8 +47,9 @@ export const SUB_VIEWS = {
 // to a student's dashboard; on another account it simply finds no one.
 const PLAYER_VIEWS = new Set(['games', 'coaches']);
 // A person's page's tabs that have an address of their own (the dashboard is
-// the page itself): /coaches/<card>/games, /clamp, /tactics.
-export const PLAYER_TABS = ['games', 'clamp', 'tactics', 'openings'];
+// the page itself): /coaches/<card>/games, /clamp, /tactics, /openings,
+// /positions.
+export const PLAYER_TABS = ['games', 'clamp', 'tactics', 'openings', 'positions'];
 export const validCardId = (id) => /^[A-Za-z0-9_-]{3,64}$/.test(String(id ?? ''));
 
 // A chapter is addressed by the two ids it actually needs. They're stable for

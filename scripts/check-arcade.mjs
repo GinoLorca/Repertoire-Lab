@@ -23,6 +23,11 @@
 //   · a repertoire goes in, and CLAMP, Tactics and Openings each open; the Puzzles tab
 //     (its Settings field and its panel) and the review's "your usual in this line" stay
 //     out of the copy
+//   · Positions, with a copy that has it: it opens over the player's games, finds the ones
+//     that reach a position and its pawns, names a game's pawn structure, and tells which
+//     game to open and where; a structure's page opens; Add note and Add to group are out;
+//     a board in it (Play it out) says so and comes back; and the review's "Find games
+//     with…" tell Repertoire Lab, where there's a player to search
 //   · with it, the review shows its book moves above the engine's, and its
 //     Similar openings tab finds the line the game is in, named whose it is
 //   · the corner buttons and flush() take what they're given
@@ -36,7 +41,7 @@ import { readFileSync, existsSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ARCADE_REVIEW_URL, ARCADE_FROM } from '../src/lib/arcadeBuild.js';
+import { ARCADE_REVIEW_URL, ARCADE_FROM, ARCADE_POSITIONS } from '../src/lib/arcadeBuild.js';
 import { arcadeGame, arcadeId, cleanRecords } from '../src/lib/gameReviewBridge.js';
 import { arcadeRepertoire, openingsGames } from '../src/lib/openingsBasis.js';
 
@@ -296,10 +301,104 @@ try {
     return out;
   });
   ok(ouOut === true || /^not in this copy/.test(String(ouOut)), `Chess Arcade’s “your usual in this line” and “Below your usual” stay out${ouOut === true ? '' : ` — ${ouOut}`}`);
+  ok(await page.evaluate(() => window.__msgs.some((m) => m.type === 'height')), 'it tells Repertoire Lab its height');
+
+  // ---- a player's Positions (a copy that has it: pawn structures, and games by a position) ----
+  const hasPos = await frame.evaluate(() => window.__rlReview.positions === true);
+  ok(hasPos === ARCADE_POSITIONS && hasPos === await frame.evaluate(() => !!document.getElementById('ghp-sub')),
+    `whether it has Positions is what Repertoire Lab is told (${ARCADE_POSITIONS})`);
+  const heard = (type) => page.evaluate((t) => window.__msgs.filter((m) => m.type === t), type);
+  const forget = () => page.evaluate(() => { window.__msgs.length = 0; });
+  // (a press as a click on the element, hidden or not under a panel: what's asked is what it does)
+  const press = (sel) => frame.evaluate((s) => { const e = document.querySelector(s); if (e) e.click(); return !!e; }, sel);
+  if (hasPos) {
+    const carlsbad = {
+      id: 'check-game-2',
+      name: 'Cy vs Ann',
+      moves: ('d4 Nf6 c4 e6 Nc3 d5 cxd5 exd5 Bg5 Be7 e3 O-O Bd3 Nbd7 Nf3 Re8 O-O Nf8 Rb1 a5 a3 c6 Qc2 g6 b4 axb4 axb4 Ne6 Bh4 Ng7').split(' '),
+      date: Date.UTC(2026, 10, 2),
+      meta: { white: 'Cy', black: 'Ann', result: '1/2-1/2', color: 'black', timeControl: '600+5' },
+    };
+    const pg = openingsGames({ ...player, games: [...player.games, carlsbad] });
+    const ask = (place) => frame.evaluate(({ games: g, place: p }) => {
+      try { window.__rlReview.history(g, 'positions', p); return true; } catch (e) { return String(e?.message ?? e); }
+    }, { games: pg.games, place });
+    await forget();
+    const asked = await ask(null);
+    const list = await frame.waitForFunction(() => {
+      const e = document.getElementById('ps-list');
+      return e && e.offsetParent && /Carlsbad/.test(e.textContent) ? e.textContent.replace(/\s+/g, ' ') : null;
+    }, null, { timeout: 15000 }).then((x) => x.jsonValue(), () => '');
+    ok(asked === true && list, `Positions opens, with the structures of these games (${asked === true ? list.slice(0, 60) : asked})`);
+    ok(await frame.evaluate(() => !!document.getElementById('ghp-sub')?.offsetParent && !document.getElementById('gh-sub')?.offsetParent
+      && !document.querySelector('.history-head')?.offsetParent), 'its Pawn structures | Find a position are there, Chess Arcade’s own ways around are not');
+    const fenAfter = 'r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3';
+    for (const [sub, at] of [['find', 5], ['structures', 4]]) {
+      await frame.evaluate(({ fen, sub: s }) => window.__rlReview.find(fen, false, s), { fen: fenAfter, sub });
+      const said = await frame.waitForFunction(() => {
+        const s = document.getElementById('ghp-summary');
+        return s && s.offsetParent && /of your 2 games/.test(s.textContent) && document.querySelector('#ghp-list .history-row') ? s.textContent : null;
+      }, null, { timeout: 15000 }).then((x) => x.jsonValue(), () => '');
+      ok(/^1 of your 2 games reach/.test(said), `Find games (${sub === 'find' ? 'this position' : 'this pawn structure'}): ${said || 'nothing'}`);
+      await forget();
+      await press('#ghp-list .history-row');
+      const got = (await heard('openGame'))[0];
+      ok(got?.gid === gid && got?.opts?.at?.ply >= (sub === 'find' ? at : 2) && got?.opts?.at?.ply <= at && got?.place?.find?.fen,
+        `a row tells Repertoire Lab the game and the move (ply ${got?.opts?.at?.ply})`);
+    }
+    const rows = await frame.evaluate(() => {
+      const r = document.querySelector('#ghp-list .history-row');
+      const out = (s) => { const e = r && r.querySelector(s); return !e || getComputedStyle(e).display === 'none'; };
+      return out('.gh-note-btn') && out('.gh-grp-btn');
+    });
+    ok(rows, 'Add note and Add to group are not on its rows');
+    // a structure's page, as it was left: its games, and Play it out
+    await forget();
+    await ask({ sub: 'structures', card: 'carlsbad', m: 0, color: 'black' });
+    const onPage = await frame.waitForFunction(() => {
+      const p = document.getElementById('ps-page');
+      return p && p.offsetParent && /Carlsbad/.test(p.textContent) && p.querySelector('.history-row .gh-ps') ? true : null;
+    }, null, { timeout: 15000 }).then(() => true, () => false);
+    ok(onPage && (await heard('page')).length === 0, 'a structure’s page opens at the place it was left, with the games in it');
+    await press('#ps-page .history-row .gh-ps');
+    const named = (await heard('openGame'))[0];
+    ok(named?.gid === arcadeId('check-game-2') && named?.opts?.at?.ply > 0 && named?.place?.card === 'carlsbad',
+      `a game’s structure opens it at the move it first stands (ply ${named?.opts?.at?.ply})`);
+    await forget();
+    const played = await frame.evaluate(() => { const b = document.querySelector('#ps-page [data-px]'); if (b) b.click(); return b ? b.getAttribute('aria-label') || 'a button' : ''; });
+    await page.waitForTimeout(400);
+    const up = await heard('board');
+    const link = await frame.evaluate(() => { const b = document.querySelector('#view-play-history .back-link'); return b && b.offsetParent ? b.textContent.trim() : ''; });
+    ok(played && up.at(-1)?.on === true && /Positions$/.test(link), `Play it out there tells Repertoire Lab a board is up, with a way back (${played || 'no button'}; ${link || 'none'})`);
+    await ask(null); // (games synced meanwhile: the board stays)
+    ok(await frame.evaluate(() => !!document.getElementById('view-play-history')?.offsetParent), 'and games arriving meanwhile leave it up');
+    ok(await frame.evaluate(() => window.__rlReview.back() === true && !!document.getElementById('ps-page')?.offsetParent)
+      && (await heard('board')).at(-1)?.on === false, 'back() is the same way back: to the structure’s page');
+    await press('#ps-back');
+    await page.waitForTimeout(150);
+    ok((await heard('page')).some((m) => m.to === 'back'), 'Back from a structure’s page tells Repertoire Lab');
+  }
   // back to a game, as the tab does
   await frame.evaluate((g) => window.__rlReview.open(g, {}), game);
   await frame.waitForFunction((gid) => window.__rlReview.current() === gid, gid, { timeout: 20000 }).catch(() => {});
-  ok(await page.evaluate(() => window.__msgs.some((m) => m.type === 'height')), 'it tells Repertoire Lab its height');
+  if (hasPos) {
+    const menu = async (on) => {
+      await frame.evaluate((o) => window.__rlReview.finds(o), on);
+      await frame.evaluate(() => { document.getElementById('hv-start')?.click(); for (let i = 0; i < 5; i += 1) document.getElementById('hv-next')?.click(); });
+      await frame.evaluate(() => [...document.querySelectorAll('#hv-movelist .mv-san[data-node]')].find((c) => /Bb5/.test(c.textContent))
+        ?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 200, clientY: 200 })));
+      await page.waitForTimeout(200);
+      return frame.evaluate(() => ['.hv-pop-findpos', '.hv-pop-findpawns'].map((s) => { const e = document.querySelector(s); return !e ? 'none' : e.offsetParent ? 'shown' : 'hidden'; }).join(','));
+    };
+    const off = await menu(false);
+    const on = await menu(true);
+    await forget();
+    await press('.hv-pop-findpawns');
+    const want = (await heard('findPosition'))[0];
+    ok(off === 'hidden,hidden' && on === 'shown,shown', `the review’s “Find games with…” are offered where there’s a player to search (${off} / ${on})`);
+    ok(want?.sub === 'structures' && /^r1bqkbnr\/pppp1ppp/.test(want?.fen ?? '') && await frame.evaluate((g) => window.__rlReview.current() === g, gid),
+      `and tell Repertoire Lab the position, the game still open (${want?.fen ?? 'nothing'})`);
+  }
 
   // ---- the repertoire in the review: book moves, and Similar openings ----
   // (stepping with the review's own Start and Next buttons, #hv-start and #hv-next)
