@@ -26,7 +26,7 @@ export { PIECE_STYLE_LABELS, PIECE_STYLE_HINTS };
 
 // The sets Repertoire Lab offers: one appears here only once its look is
 // ported and has been seen in screenshots.
-export const RL_PIECE_STYLES = ['default', 'wavyCoach', 'rimLight', 'royalMinimal', 'courtCards', 'cardCrown', 'minimalOne', 'minimalTwo'];
+export const RL_PIECE_STYLES = ['default', 'wavyCoach', 'rimLight', 'royalMinimal', 'courtCards', 'cardCrown', 'minimalOne', 'minimalTwo', 'bauhausOriginal'];
 // …in Chess Arcade's order, as its Settings row offers them.
 export const PIECE_STYLE_ORDER = CA_ORDER.filter((k) => RL_PIECE_STYLES.includes(k));
 // The three piece colors a theme can give every set (Chess Arcade's names).
@@ -228,6 +228,9 @@ export const PIECE_FIT = {
   cardCrown: { scale: 0.88, base: 92.35 },
   minimalOne: { scale: 0.88, base: 92 },
   minimalTwo: { scale: 0.88, base: 92 },
+  // Bauhaus Original (2026-11-23): Black's thin edge reaches 92; its king and queen are the set's tallest (3 clear
+  // at the top of its 100 box), so at RL's scale they stand a little under 11% from the top of the square.
+  bauhausOriginal: { scale: 0.88, base: 92 },
 };
 const CA_SCALE = 0.8;
 const round2 = (v) => Math.round(v * 100) / 100;

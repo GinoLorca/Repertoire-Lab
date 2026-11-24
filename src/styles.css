@@ -2967,6 +2967,18 @@ textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regu
 .board-preview [data-pc][data-ps="courtCards"]::before,
 .board-preview [data-pc][data-ps="courtCards"]::after { content: none; }
 
+/* --- Bauhaus Original (2026-11-23): Black's details and its thin edge read
+   --pw-detail (then the theme's White, then the set's own cream). Uptown gives
+   each of Black's officers its line color there, as Chess Arcade's Uptown does
+   (its pawns keep the theme's White): on the board, in the promotion picker
+   and on a carried piece, and on Uptown's own theme card whatever theme the
+   page is in. --- */
+:root[data-skin="uptown"] :not(.bpv-sq) > [data-pc="bK"][data-ps="bauhausOriginal"], .board-preview[data-pv="uptown"] [data-pc="bK"][data-ps="bauhausOriginal"] { --pw-detail: #ff6b5e; }
+:root[data-skin="uptown"] :not(.bpv-sq) > [data-pc="bQ"][data-ps="bauhausOriginal"], .board-preview[data-pv="uptown"] [data-pc="bQ"][data-ps="bauhausOriginal"] { --pw-detail: #e58bdd; }
+:root[data-skin="uptown"] :not(.bpv-sq) > [data-pc="bR"][data-ps="bauhausOriginal"], .board-preview[data-pv="uptown"] [data-pc="bR"][data-ps="bauhausOriginal"] { --pw-detail: #7fa6ff; }
+:root[data-skin="uptown"] :not(.bpv-sq) > [data-pc="bB"][data-ps="bauhausOriginal"], .board-preview[data-pv="uptown"] [data-pc="bB"][data-ps="bauhausOriginal"] { --pw-detail: #fccc0a; }
+:root[data-skin="uptown"] :not(.bpv-sq) > [data-pc="bN"][data-ps="bauhausOriginal"], .board-preview[data-pv="uptown"] [data-pc="bN"][data-ps="bauhausOriginal"] { --pw-detail: #8fd16a; }
+
 /* Settings' theme cards: each card's own theme's drawing filter (Game Boy's
    duotone, Hustler's monochrome without the Default set's rims, Outer Space's
    with its glow), whatever theme the page is in. No shadows here, as before. */
@@ -4642,12 +4654,12 @@ input[type="date"] {
 /* The heading no longer opens or closes anything, so it shouldn't invite a click. */
 .settings-head.static { cursor: default; padding-top: 0; }
 .speed-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
-/* Themes → Piece style: Chess Arcade's eight sets, narrower than the other
-   choices: four across on an iPad or a Mac (two even rows, never seven and
-   one left over), three in a narrow window, two on a phone; a long name wraps
+/* Themes → Piece style: Chess Arcade's nine sets, narrower than the other
+   choices: three across on an iPad, a Mac or a narrow window (three even
+   rows, never eight and one left over), two on a phone; a long name wraps
    inside its card. Never under 44px, a fingertip's worth, and a clear ring
    when a keyboard's Tab lands on one. */
-.piece-style-choices { grid-template-columns: repeat(auto-fit, minmax(max(120px, calc(25% - 8px)), 1fr)); }
+.piece-style-choices { grid-template-columns: repeat(auto-fit, minmax(max(120px, calc(33.333% - 8px)), 1fr)); }
 .piece-style-choices .theme-card { min-width: 0; min-height: 44px; justify-content: center; }
 .piece-style-choices .theme-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 

@@ -14,7 +14,7 @@ import { cssRules, declarations } from '../scripts/lib/arcadePieces.mjs';
 import { SKIN_ORDER } from '../src/lib/skins.js';
 
 const OWN = {
-  felt: 'default', hustler: 'wavyCoach', bauhaus: 'default', gameboy: 'minimalOne', outerspace: 'default',
+  felt: 'default', hustler: 'wavyCoach', bauhaus: 'bauhausOriginal', gameboy: 'minimalOne', outerspace: 'default',
   drivethru: 'rimLight', rose: 'royalMinimal', chessbook: 'default', uptown: 'default', cards: 'courtCards', custom: 'default',
 };
 
@@ -33,11 +33,11 @@ test('each theme’s own set, as Chess Arcade’s (Game Boy: Minimal Chess ONE)'
   assert.equal(themePieceStyle('toString', {}), 'default');
 });
 
-test('the sets offered: Chess Arcade’s eight, its names and descriptions, in its order', () => {
-  assert.deepEqual(PIECE_STYLE_ORDER, ['default', 'wavyCoach', 'rimLight', 'royalMinimal', 'courtCards', 'cardCrown', 'minimalOne', 'minimalTwo']);
+test('the sets offered: Chess Arcade’s nine, its names and descriptions, in its order', () => {
+  assert.deepEqual(PIECE_STYLE_ORDER, ['default', 'wavyCoach', 'rimLight', 'royalMinimal', 'courtCards', 'cardCrown', 'minimalOne', 'minimalTwo', 'bauhausOriginal']);
   assert.deepEqual(PIECE_STYLE_ORDER.map((k) => PIECE_STYLE_LABELS[k]), [
     'Default Chess Set', 'Wavy Coach Chess Set', 'Rim Light Chess Set', 'Royal Minimal Chess Set', 'Court Cards Chess Set',
-    'Card Crown Chess Set', 'Minimal Chess ONE', 'Minimal Chess TWO',
+    'Card Crown Chess Set', 'Minimal Chess ONE', 'Minimal Chess TWO', 'Bauhaus Original',
   ]);
   for (const k of PIECE_STYLE_ORDER) assert.ok(typeof PIECE_STYLE_HINTS[k] === 'string' && PIECE_STYLE_HINTS[k].length > 10, k);
   assert.deepEqual([...RL_PIECE_STYLES].sort(), [...PIECE_STYLE_ORDER].sort());
@@ -136,6 +136,10 @@ test('a drawing’s colors made literal, for a picture CSS can’t reach', () =>
   assert.equal(literalColor('#123456', rose), '#123456');
   assert.equal(literalColor('none', rose), 'none');
   assert.equal(literalColor('var(--pw-white-fill,#fff)', { '--pw-white-fill': null }), '#fff');
+  // Bauhaus Original's Black: its details and thin edge take a theme's detail color where a page gives one
+  // (--pw-detail: Uptown's line colors, in CSS), else the theme's White, else the set's own cream
+  assert.equal(literalColor('var(--pw-detail,var(--pw-white-fill,#fff4df))', rose), '#fff8f3');
+  assert.equal(literalColor('var(--pw-detail,var(--pw-white-fill,#fff4df))', {}), '#fff4df');
   // every color in every drawing comes out literal
   const tokens = pieceTokens({}, 'drivethru', 'dark');
   for (const [set, codes] of Object.entries(PIECE_ART)) {
@@ -167,6 +171,7 @@ test('sizes: an art set fits RL’s square at its scale with its base on RL’s 
     assert.equal(fitViewBox(set, 'ca'), '-12.5 -12.5 125 125');
   }
   assert.equal(fitViewBox('minimalOne', 'rl'), '-6.82 -9.14 113.64 113.64', 'base 92 (measured) at .89 of a box 100 / .88 wide');
+  assert.equal(fitViewBox('bauhausOriginal', 'rl'), '-6.82 -9.14 113.64 113.64', 'Bauhaus Original: the same fit (Black\'s edge on 92)');
   assert.equal(fitViewBox('wavyCoach', 'rl'), '-8.82 -4.66 117.65 117.65', 'Wavy Coach a little smaller: its king inside the square');
 });
 

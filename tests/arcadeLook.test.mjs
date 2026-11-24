@@ -44,7 +44,7 @@ test('Custom: its outline is Black’s ink for a set drawn in two inks, and the 
     assert.equal(l.colors.pieceStroke, '#2b1d12', set);
     assert.equal(l.colors.pieceBlack, '#2b1d12', set);
   }
-  for (const set of ['wavyCoach', 'rimLight', 'royalMinimal', 'cardCrown', 'minimalOne', 'minimalTwo']) {
+  for (const set of ['wavyCoach', 'rimLight', 'royalMinimal', 'cardCrown', 'minimalOne', 'minimalTwo', 'bauhausOriginal']) {
     page({ theme: 'dark', pset: set });
     const l = currentLook(CUSTOM);
     assert.equal(l.pieces, set);

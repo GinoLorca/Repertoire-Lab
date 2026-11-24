@@ -121,6 +121,29 @@ test('Rim Light\'s cream is Chess Arcade\'s (the numbers pieceArt.gen.js carries
     `rgb(from var(--pw-white-fill,${RIM_CREAM.base}) calc(r * ${RIM_CREAM.r}) calc(g * ${RIM_CREAM.g}) calc(b * ${RIM_CREAM.b}))`);
 });
 
+test('Bauhaus Original on Uptown: Black\'s officers take their line color (--pw-detail), as Chess Arcade\'s Uptown gives it; pawns and White none', () => {
+  const want = { bK: '#ff6b5e', bQ: '#e58bdd', bR: '#7fa6ff', bB: '#fccc0a', bN: '#8fd16a' };
+  const rules = PIECES.filter((x) => decl(x, '--pw-detail').length);
+  assert.equal(rules.length, 5);
+  for (const r of rules) {
+    const [board, card] = parts(r.selector);
+    const code = board.match(/\[data-pc="(\w\w)"\]/)?.[1];
+    assert.ok(Object.hasOwn(want, code), r.selector);
+    assert.equal(board, `:root[data-skin="uptown"] :not(.bpv-sq)>[data-pc="${code}"][data-ps="bauhausOriginal"]`, 'the board, the picker and a carried piece; never a theme card of another theme');
+    assert.equal(card, `.board-preview[data-pv="uptown"] [data-pc="${code}"][data-ps="bauhausOriginal"]`, 'Uptown\'s own theme card');
+    assert.equal(decl(r, '--pw-detail')[0], want[code], code);
+    assert.deepEqual(declarations(r.body).map(([n]) => n), ['--pw-detail'], 'nothing else');
+    delete want[code];
+  }
+  assert.deepEqual(want, {}, 'all five officers');
+  // the line colors are the ones Uptown gives its own Default pieces
+  for (const [code, color] of [['bK', '#ff6b5e'], ['bQ', '#e58bdd'], ['bR', '#7fa6ff'], ['bB', '#fccc0a'], ['bN', '#8fd16a']]) {
+    const own = OUTSIDE.filter((x) => x.selector === `:root[data-skin="uptown"] [data-piece="${code}"]` && decl(x, '--ux-pl').length);
+    assert.equal(own.length, 1, code);
+    assert.equal(decl(own[0], '--ux-pl')[0], color, code);
+  }
+});
+
 test('the piece CSS recorded as ported (check:pieces --record-css): a sha256 per group of Chess Arcade\'s piece CSS', () => {
   const rec = JSON.parse(readFileSync(new URL('../src/lib/pieceCss.ported.json', import.meta.url), 'utf8'));
   assert.equal(typeof rec.from, 'string');
@@ -132,10 +155,10 @@ test('the piece CSS recorded as ported (check:pieces --record-css): a sha256 per
 });
 
 // R6 and R8: Settings' Piece style row and the game cards' thumbnails.
-test('the Piece style row: four across (two even rows) or two on a phone, 44px buttons, a ring for the keyboard', () => {
+test('the Piece style row: three across (nine sets: three even rows) or two on a phone, 44px buttons, a ring for the keyboard', () => {
   const sel = (s) => ALL.filter((r) => parts(r.selector).includes(s));
   const grid = sel('.piece-style-choices').flatMap((r) => decl(r, 'grid-template-columns'));
-  assert.deepEqual(grid, ['repeat(auto-fit,minmax(max(120px,calc(25% - 8px)),1fr))']);
+  assert.deepEqual(grid, ['repeat(auto-fit,minmax(max(120px,calc(33.333% - 8px)),1fr))']);
   const card = sel('.piece-style-choices .theme-card');
   assert.deepEqual(card.flatMap((r) => decl(r, 'min-height')), ['44px']);
   assert.deepEqual(card.flatMap((r) => decl(r, 'min-width')), ['0'], 'no 150px floor: the grid decides the width');

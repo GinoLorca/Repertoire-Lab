@@ -188,7 +188,8 @@ test('boardPieces: the set, its inks and the theme’s piece colors, for every b
   assert.ok(['rl', 'ca'].includes(DEFAULT_SET_INKS), DEFAULT_SET_INKS);
   assert.deepEqual(boardPieces({ skin: 'bauhaus' }, 'light'), boardPieces({ skin: 'bauhaus' }, 'light', DEFAULT_SET_INKS), 'the switch’s answer by default');
   const ca = (s, theme) => { const l = boardPieces(s, theme, 'ca'); return [l.set, l.light, l.dark]; };
-  assert.deepEqual(ca({ skin: 'bauhaus' }, 'light'), ['default', '#f4ecd6', '#20180c'], 'a theme with no piece colors: CA Default’s own');
+  assert.deepEqual(ca({ skin: 'bauhaus' }, 'light'), ['bauhausOriginal', null, null], 'Bauhaus wears its own set');
+  assert.deepEqual(ca({ skin: 'bauhaus', pieceStyleBySkin: { bauhaus: 'default' } }, 'light'), ['default', '#f4ecd6', '#20180c'], 'a theme with no piece colors: CA Default’s own');
   assert.deepEqual(ca({ skin: 'drivethru', pieceStyleBySkin: { drivethru: 'default' } }, 'dark'), ['default', '#ffc72c', '#5b2c8e']);
   assert.deepEqual(ca({ skin: 'custom', pieceLight: '#e8d9b0', pieceDark: '#3a2a1a' }, 'dark'), ['default', '#e8d9b0', '#3a2a1a'], 'Custom keeps its own');
   assert.deepEqual(ca({ skin: 'felt', pieceStyleBySkin: { felt: 'courtCards' } }, 'light'), ['courtCards', SKINS.cards.light.pieceLight, SKINS.cards.light.pieceDark]);
