@@ -4,11 +4,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   arcadeId, tempArcadeId, isArcadeId, arcadeGame, cleanRecords, sameRecords, hasGameReview, fromArchive, MAX_TEXT,
-  recordsFor, writesReviewLayer, withGameReview,
+  recordsFor, writesReviewLayer, reviewDelivered, withGameReview,
 } from '../src/lib/gameReviewBridge.js';
 import { parseDoc, serializeDoc, docFromGame, docIsEmpty } from '../src/lib/analysisDoc.js';
+import { movesSig } from '../src/lib/reviewOnBoard.js';
 import {
-  buildPatch, parsePatch, sharedCopy, needsSend, mergeLinkedGames, hashesOf,
+  buildPatch, parsePatch, sharedCopy, needsSend, mergeLinkedGames, hashesOf, applyCoachGames,
 } from '../src/lib/cloud/gameLink.js';
 
 // Chess Arcade's own checks on an id (hvAnnId, gnIdOk) and on a Lichess one (Share).
@@ -146,6 +147,48 @@ test('whose copy opens: the one written last, from wherever it is', () => {
   assert.equal(recordsFor(mine, { kind: 'self' }).note, 'coach');
   assert.equal(recordsFor({ ...mine, reviews: { c1: { body: coachBody, removed: true } } }, { kind: 'self' }).note, 'student');
   assert.equal(recordsFor({ moves: MOVES }, { kind: 'self' }), null);
+
+  // Clear analysis (Chess Arcade) is for a player's own copy only.
+  assert.ok(reviewDelivered(theirs, studentOwn));
+  assert.ok(reviewDelivered(mine, { kind: 'self' }));
+  assert.ok(!reviewDelivered({ ...mine, reviews: { c1: { body: coachBody, removed: true } } }, { kind: 'self' }));
+  assert.ok(!reviewDelivered({ ...mine, reviews: { c1: { body: withGameReview(null, { moves: MOVES }, null) } } }, { kind: 'self' }));
+  assert.ok(!reviewDelivered(own.game, own.player));
+  assert.ok(!reviewDelivered(typed, studentOwn));
+});
+
+// an engine review of these moves, as Chess Arcade keeps it
+const rvOf = (moves, at = 1000, b = 'x') => JSON.stringify({
+  at, n: moves.length, h: movesSig(moves), d: 15, e: Array(moves.length + 1).fill('20').join(','), b: b.repeat(moves.length), a: [80, 81],
+});
+
+test('a game the coach typed in: their engine review is theirs to clear, and a clear reaches the student', () => {
+  const rv = rvOf(MOVES);
+  const coachGame = {
+    id: 'g1abcdef', name: 'Riley vs Parker', moves: MOVES, meta: {}, comments: {}, badges: {},
+    gameReview: { note: '', an: AN, rv, at: 30 },
+    link: { uid: 'stu', base: {}, seen: true, sent: null },
+  };
+  assert.ok(!reviewDelivered(coachGame, { kind: 'student' }), 'the coach: their own copy');
+  const send = (g, rev) => ({
+    id: `d${rev}`, fromUid: 'coach', fromName: 'Coach', gameId: g.id, rev, patch: JSON.stringify(buildPatch(g).patch),
+  });
+  const self = { id: 'me', kind: 'self', name: 'Riley', games: [] };
+  const one = applyCoachGames({ players: [self] }, [send(coachGame, 5)], { studentUid: 'stu', ledger: null, now: 9 }).state;
+  const theirs = one.players[0].games[0];
+  assert.equal(recordsFor(theirs, self).rv, rv);
+  assert.ok(reviewDelivered(theirs, self), 'the student: the coach\u2019s');
+  assert.ok(!reviewDelivered({ ...theirs, gameReview: { ...theirs.gameReview, rv: rvOf(MOVES, 2000) } }, self), 'run again by the student: theirs');
+  // Cleared by the coach (Chess Arcade: the review off, its date in the analysis record).
+  const cleared = {
+    ...coachGame,
+    gameReview: { note: '', an: JSON.stringify({ ...JSON.parse(AN), rc: 1500 }), at: 40 },
+    link: { ...coachGame.link, base: hashesOf(coachGame) },
+  };
+  const two = applyCoachGames(one, [send(cleared, 6)], { studentUid: 'stu', ledger: null, now: 10 }).state.players[0].games[0];
+  assert.equal(recordsFor(two, self).rv, undefined);
+  assert.equal(JSON.parse(two.gameReview.an).rc, 1500);
+  assert.ok(!reviewDelivered(two, self));
 });
 
 test('a game the coach typed in: its Game Review goes to the student field by field', () => {
@@ -247,10 +290,24 @@ test('only games with CLAMP letters or tactics on them go to the two tabs', () =
       { id: 'g3aaaaaa', moves: ['c4'], meta: {}, gameReview: { note: 'n', an: plain } },
       { id: 'g4aaaaaa', moves: [], meta: {}, gameReview: { note: '', an: marked } },
       { id: 'g5aaaaaa', moves: ['e4'], meta: {}, gameReview: { note: '', an: badge } },
+      { id: 'g6aaaaaa', moves: ['e4'], meta: {}, gameReview: { note: '', an: '', rv: rvOf(['e4']) } },
+      // not a review of these moves; one cleared since (an older copy that came back); one run again after a clear
+      { id: 'g7aaaaaa', moves: ['e4'], meta: {}, gameReview: { note: '', an: '', rv: rvOf(['d4']) } },
+      { id: 'g8aaaaaa', moves: ['e4'], meta: {}, gameReview: { note: '', an: '{"v":1,"rc":1000}', rv: rvOf(['e4']) } },
+      { id: 'g9aaaaaa', moves: ['e4'], meta: {}, gameReview: { note: '', an: '{"v":1,"rc":999}', rv: rvOf(['e4']) } },
+      { id: 'gaaaaaaa', moves: ['e4'], meta: {}, gameReview: { note: '', an: badge, rv: '{"at":5}' } },
     ],
   };
   const { games, byArcadeId } = insightGames(player);
-  assert.deepEqual(games.map((g) => byArcadeId.get(g.id)), ['g1aaaaaa', 'g2aaaaaa', 'g5aaaaaa']);
+  assert.deepEqual(games.map((g) => byArcadeId.get(g.id)), ['g1aaaaaa', 'g2aaaaaa', 'g5aaaaaa', 'g6aaaaaa', 'g9aaaaaa', 'gaaaaaaa']);
+  assert.deepEqual(games.map((g) => 'rv' in g), [false, false, false, true, true, false]);
+  assert.equal(games[3].rv, rvOf(['e4']));
+  // a review's ?? is a blunder here too, unless it's under a badge of yours or taken off ("No badge")
+  assert.deepEqual(games.map((g) => g.blunder), [false, false, true, true, true, true]);
+  const blunder = (an, b) => insightGames({
+    name: 'Myla', kind: 'self', games: [{ id: 'gbbbbbbb', moves: ['e4'], meta: {}, gameReview: { note: '', an, rv: rvOf(['e4'], 1000, b) } }],
+  }).games[0].blunder;
+  assert.deepEqual([blunder('', 'x'), blunder('', 'g'), blunder('{"n":[1]}', 'x'), blunder('{"b":[[1,"s"]]}', 'x'), blunder('{"b":[[1,"x"]]}', 'g')], [true, false, false, false, true]);
   assert.equal(games[1].tactics, true);
   assert.equal(games[0].an, marked);
 });

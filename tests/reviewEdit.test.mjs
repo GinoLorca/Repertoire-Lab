@@ -43,6 +43,15 @@ test('marks: all taken off, the move has none; colours drawn here go as Chess Ar
   assert.deepEqual(odd.m.find((x) => x[0] === 3), [3, 'Gg1f3', ''], 'any other colour: the nearest pen');
 });
 
+test('a badge put on a move marked "No badge" takes that mark off; the rest of them, and a clear\'s date, stay', () => {
+  const an = JSON.stringify({ v: 1, l: [], c: [], m: [], k: [[5, 'A']], n: [5, 7], rc: 1700 });
+  assert.deepEqual(JSON.parse(setBadgeAt(an, 5, 'mistake')), { v: 1, l: [], c: [], m: [], b: [[5, 'm']], k: [[5, 'A']], n: [7], rc: 1700 });
+  const back = JSON.parse(setBadgeAt(setBadgeAt(an, 5, 'mistake'), 5, null));
+  assert.deepEqual([back.b, back.n, back.rc], [[], [7], 1700]);
+  assert.deepEqual(JSON.parse(setCommentAt(an, 3, 'x')).n, [5, 7]);
+  assert.deepEqual(JSON.parse(setBadgeAt(setCommentAt(JSON.stringify({ v: 1, rc: 5 }), 3, ''), 3, null)).rc, 5, 'a date alone is kept');
+});
+
 test('comments and badges, on a move and on a side line — the line kept in the record', () => {
   let an = setCommentAt(AN, 5, 'Ruy Lopez, edited');
   an = setCommentAt(an, [2, 'b1c3'], 'Or the Vienna');

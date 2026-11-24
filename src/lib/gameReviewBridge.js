@@ -22,6 +22,8 @@ import {
   cleanGameReview, sameGameReview, parseDoc, docFromGame, serializeDoc,
 } from './analysisDoc';
 import { localMoment } from './gameDate';
+import { ph } from './cloud/gameLink';
+import { parseAn, parseEngineReview, reviewCleared } from './reviewOnBoard';
 
 // Chess Arcade's own limit on one note (GN_MAX): a longer text it would cut.
 export const MAX_TEXT = 10000;
@@ -166,6 +168,20 @@ export function recordsFor(game, player) {
   return best;
 }
 
+// The engine's review the coach put on a game they typed in, on the student's
+// side: what's there now is still what the coach sent (game.coach, gameLink).
+const coachsEngineReview = (game) => Boolean(game?.gameReview?.rv)
+  && Object.values(game.coach ?? {}).some((c) => c?.h?.['gameReview:rv'] === ph(game.gameReview.rv));
+
+// A coach's review of a student's game: the coach's layer on their side; a
+// delivered one, or the coach's on a game they typed in, on the student's.
+// Chess Arcade's Clear analysis has no button on such a game (_noClear):
+// clearing is for a player's own copy.
+export function reviewDelivered(game, player) {
+  if (writesReviewLayer(game, player) || coachsEngineReview(game)) return true;
+  return Object.values(game?.reviews ?? {}).some((r) => Boolean(r && !r.removed && layerOf(r.body)));
+}
+
 // The coach's review document with this Game Review in it (or taken out): the
 // review written in Studio, if there is one, kept as it is around it.
 export function withGameReview(body, game, records) {
@@ -221,10 +237,13 @@ export function speedOf(timeControl) {
 
 const ratingOrNull = (v) => (/^\d{2,4}$/.test(String(v ?? '').trim()) ? Number(v) : null);
 
+// A game's moves, as the two sides count them.
+export const playedMoves = (game) => (game?.moves ?? []).filter((s) => typeof s === 'string' && s.trim());
+
 export function insightSummary(game, player) {
   const me = sideFor(game, player);
   const m = game?.meta ?? {};
-  const moves = (game?.moves ?? []).filter((s) => typeof s === 'string' && s.trim());
+  const moves = playedMoves(game);
   const opp = me === 'white' ? m.black : m.white;
   const { speed, tc } = speedOf(m.timeControl);
   const at = typeof game?.date === 'number' ? localMoment(game.date) : localMoment(m.date);
@@ -272,6 +291,23 @@ export function marksIn(an) {
   }
 }
 
+// The game review (Chess Arcade's) kept with a game, when it's one of these moves and
+// wasn't cleared since ('' otherwise): its blunders count beside the CLAMP letters, and a
+// reviewed game without one counts in the base.
+export function reviewIn(rec, moves) {
+  const r = parseEngineReview(rec?.rv, moves);
+  return r && !reviewCleared(parseAn(rec.an), r.at) ? rec.rv : '';
+}
+
+// Whether the review calls a move of the game a blunder (either side's) that still shows as
+// one: not under a badge set by hand, nor taken off ("No badge", n).
+export function reviewBlunders(rv, an, moves) {
+  const A = parseAn(an) ?? {};
+  const list = (k) => (Array.isArray(A[k]) ? A[k] : []);
+  const off = new Set([...list('n'), ...list('b').map((x) => (Array.isArray(x) ? x[0] : null))]);
+  return Boolean(parseEngineReview(rv, moves)?.badges.some((b, i) => b === 'blunder' && !off.has(i + 1)));
+}
+
 // The player's marked games, as Chess Arcade's two tabs take them. Their ids
 // are Chess Arcade's (arcadeId), so `byArcadeId` leads back to the game.
 export function insightGames(player) {
@@ -281,10 +317,19 @@ export function insightGames(player) {
     if (!(game.moves?.length > 0)) continue;
     const rec = recordsFor(game, player);
     const marks = marksIn(rec?.an);
-    if (!marks.clamp && !marks.tactics && !marks.badge) continue;
+    const moves = playedMoves(game);
+    const rv = reviewIn(rec, moves);
+    if (!marks.clamp && !marks.tactics && !marks.badge && !rv) continue;
     const id = arcadeId(game.id);
     byArcadeId.set(id, game.id);
-    games.push({ id, an: rec.an, summary: insightSummary(game, player), ...marks });
+    games.push({
+      id,
+      an: rec.an ?? '',
+      ...(rv ? { rv } : {}),
+      summary: insightSummary(game, player),
+      ...marks,
+      blunder: marks.blunder || reviewBlunders(rv, rec.an, moves),
+    });
   }
   return { games, byArcadeId };
 }

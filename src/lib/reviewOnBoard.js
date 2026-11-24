@@ -9,7 +9,8 @@
 //   · side lines, added to the tree (a move already there is followed)
 //   · comments under their moves
 //   · arrows and square highlights at each move
-//   · badges: the ones set by hand, and the engine's on the game's moves
+//   · badges: the ones set by hand, and the engine's on the game's moves (not on
+//     one marked "No badge"; none of them once the review was cleared)
 //   · side lines' highlight colours
 //   · CLAMP letters, yours and their slips (punished, missed), with their
 //     notes and squares (drawn by the board on those squares)
@@ -22,8 +23,9 @@
 // tests/reviewOnBoard.test.mjs. The record's shape is Chess Arcade's
 // (hvAnnText): { v:1, l:[side lines' ends], c:[[ref, text]], m:[[ref, arrows,
 // squares]], b:[[ref, code]], k:[[ply, letter, note?]], q:[[ply, letter,
-// square]], t:[tactic rows], h:[[ref, colour]], o:[their CLAMP slips] }; a ref
-// is a main-line ply (0: the start) or [the ply it leaves from, uci…].
+// square]], t:[tactic rows], h:[[ref, colour]], o:[their CLAMP slips], n:[plies
+// whose engine badge was taken off], rc: when the engine's review was cleared };
+// a ref is a main-line ply (0: the start) or [the ply it leaves from, uci…].
 import { Chess } from 'chess.js';
 import { START_FEN } from './startPos';
 import { mainLineFrom, addMove, nodePath } from './moveTree';
@@ -76,6 +78,11 @@ export function parseAn(an) {
     return null;
   }
 }
+
+// Whether the engine's review (its date) was cleared since: Clear analysis takes it off the
+// game and leaves its own date in the analysis record (rc). The two can travel apart (a linked
+// game shares its records field by field), so an older copy of it that turns up later is none.
+export const reviewCleared = (A, at) => Number.isFinite(A?.rc) && A.rc >= (Number.isFinite(at) ? at : 0);
 
 // FNV-1a over the moves (Chess Arcade's gnFnv): which moves an engine review is of.
 export function movesSig(moves) {
@@ -215,7 +222,8 @@ const tacticRow = (x) => {
 // is ('white' | 'black'), for "yours" and "theirs". Null when there's nothing.
 export function reviewOnBoard({ tree, moves = [], startFen = null, records, side = null }) {
   const A = parseAn(records?.an) ?? {};
-  const engine = parseEngineReview(records?.rv, moves);
+  const read = parseEngineReview(records?.rv, moves);
+  const engine = read && !reviewCleared(A, read.at) ? read : null;
   const note = text(records?.note, 10000).trim();
   const larry = text(records?.lr, 10000).trim();
   const W = treeWalker(tree, startFen || START_FEN);
@@ -257,8 +265,9 @@ export function reviewOnBoard({ tree, moves = [], startFen = null, records, side
     if (id && id !== 'root' && BADGE_OF_CODE[x[1]]) ownBadges[id] = BADGE_OF_CODE[x[1]];
   }
   if (engine) {
+    const off = new Set(list('n')); // "No badge" on that move
     engine.badges.forEach((b, i) => {
-      const id = W.nodeAtPly(i + 1);
+      const id = off.has(i + 1) ? null : W.nodeAtPly(i + 1);
       if (b && id) engineBadges[id] = b;
     });
   }

@@ -15,7 +15,7 @@ import { PEN_HEX, BADGE_OF_CODE, LINE_COLOR, parseAn } from './reviewOnBoard';
 // Chess Arcade's own limit on one record (GN_MAX): a longer one isn't kept.
 export const MAX_RECORD = 10000;
 
-const KNOWN = ['v', 'l', 'c', 'm', 'b', 'k', 'q', 't', 'h', 'o'];
+const KNOWN = ['v', 'l', 'c', 'm', 'b', 'k', 'q', 't', 'h', 'o', 'z', 'n'];
 const CODE_OF_BADGE = Object.fromEntries(Object.entries(BADGE_OF_CODE).map(([c, id]) => [id, c]));
 const CODE_OF_LINE = Object.fromEntries(Object.entries(LINE_COLOR).map(([c, name]) => [name, c]));
 export const reviewBadge = (id) => Boolean(CODE_OF_BADGE[id]);
@@ -112,6 +112,7 @@ export function setCommentAt(an, ref, text) {
 // Your badge on a move (null takes it off; the engine's are its own). Once a
 // record has had badges it keeps b, [] when they're all off — Chess Arcade's
 // rule, so an older copy without b isn't read as your having taken them off.
+// Yours on a move marked "No badge" (n) takes that mark off, as in Game Review.
 export function setBadgeAt(an, ref, id) {
   if (!refOk(ref) || ref === 0) return an;
   if (id && !CODE_OF_BADGE[id]) return an;
@@ -120,6 +121,7 @@ export function setBadgeAt(an, ref, id) {
   if (id) {
     A.b.push([ref, CODE_OF_BADGE[id]]);
     keepLine(A, ref);
+    if (rows(A, 'n').includes(ref)) A.n = rows(A, 'n').filter((p) => p !== ref);
   }
   return close(A);
 }

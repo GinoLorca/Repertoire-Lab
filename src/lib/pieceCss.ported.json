@@ -1,9 +1,9 @@
 {
-  "from": "7598522 Theme piece sets: Game Boy Minimal Chess ONE, Rose Royal Minimal, Drive-Thru Rim Light, Chess Book standard (index.html)",
+  "from": "Chess Arcade with accuracy by piece (the rules RL ported at 7598522, and Analytics' .ga-pci icons added to them: nothing to port)",
   "groups": {
-    "base": "f6f895418d396cf21dde0c7e3cf19e1a1f96272a55d56d28855fe89aa7cb2ac8",
+    "base": "b8bdc33de81c77fe7bd6830c89c20a9aa955f5541d84b7e35f8656ab8054bc55",
     "set:cardCrown": "072ea5d8e82035cb6c1f56df0d3f9992103f5fffc992d7032edc56dd1d8258c8",
-    "set:courtCards": "768443a24223c0f6e706d473634bb1fae1d145156842fcaba6e2340bf4b993c3",
+    "set:courtCards": "6973dc48792c9dc3afd89c6764ea07b1e4f232ce737975df47643b89ffd6e329",
     "theme:cards": "583e684da2cc3760081ebe01e02d9ebc4d109778bd8eac450c635e5e925ddb98",
     "theme:chessbook": "609413501b174d6a3822bcca5b9476ae96be874b07aba5999cd06a445355d5e4",
     "theme:drivethru": "46e452d081326844a54cb9eb371965a927bb9c1e2b906b8cb8e8c6d47418619b",
@@ -11,6 +11,6 @@
     "theme:hustler": "5b8b4d747f20d61d77439506acfd07d95b46e20af40dc9091045a096cae9a82b",
     "theme:outerspace": "7a8be950787122dff3d95c8ea9d1b45274f89c204c323217f6ec28a78dc3c84d",
     "theme:rose": "f2ea1fb54b90ebd786e1de225588fe92af1de1a7775d0585c2087ebb908625ca",
-    "theme:uptown": "caf63160c4ddfe8ec5d21bc090d53e81965c901d680e1c18545e376461fe17bb"
+    "theme:uptown": "ac7f615d07b221c03eb34ae9e6d6d0bef7b8217e6cf4f348defbe7831926766c"
   }
 }

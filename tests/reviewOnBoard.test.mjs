@@ -53,6 +53,22 @@ test('comments, arrows and squares, by move', () => {
   assert.deepEqual(r.marks.root.arrows, [['e2', 'e4', PEN_HEX.G]], 'the start position\'s marks');
 });
 
+test('the engine\'s badges: none on a move marked "No badge"; none at all once the review was cleared', () => {
+  const plain = read({ records: { rv: rv() } });
+  const some = read({ records: { rv: rv(), an: JSON.stringify({ v: 1, n: [6, 8, 'x', 99] }) } });
+  assert.ok(plain.r.engineBadges[plain.ply(6)] && plain.r.engineBadges[plain.ply(8)]);
+  assert.equal(some.r.engineBadges[some.ply(6)], undefined);
+  assert.equal(some.r.engineBadges[some.ply(8)], undefined);
+  assert.equal(Object.keys(some.r.engineBadges).length, Object.keys(plain.r.engineBadges).length - 2);
+  assert.deepEqual(some.r.accuracy, plain.r.accuracy, 'the numbers don\'t change');
+  const own = read({ records: { rv: rv(), an: JSON.stringify({ v: 1, b: [[6, 'm']], n: [6] }) } });
+  assert.equal(badgeShown(own.ply(6), null, own.r), 'mistake', 'yours shows');
+  // cleared (rc) after the review was run: an older copy of it that comes back is none; one run again counts
+  assert.equal(reviewOnBoard({ tree: makeTree(MOVES), moves: MOVES, records: { rv: rv(), an: '{"v":1,"rc":1700}' } }), null);
+  const again = read({ records: { rv: rv(MOVES, { at: 1701 }), an: '{"v":1,"rc":1700}' } });
+  assert.ok(again.r.accuracy && again.r.engineBadges[again.ply(1)]);
+});
+
 test('badges: set by hand (side lines too), the engine\'s on the game\'s moves; the board\'s own win, then the review\'s', () => {
   const { r, main, ply } = read();
   const bc5 = main[3].children[1].children[0].id;

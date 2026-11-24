@@ -192,7 +192,7 @@ export default function PlayerInsights({
         <p className="muted-note pi-empty">
           {openings && `No games with moves on ${player.name}’s card yet. Add or import their games and they’re sorted here.`}
           {view === 'tactics' && `No tactics marked on ${player.name}’s games yet.`}
-          {view === 'clamp' && `No CLAMP letters or ?? badges on ${player.name}’s games yet.`}
+          {view === 'clamp' && `No CLAMP letters or blunders on ${player.name}’s games yet.`}
           {!openings && ' Open a game with “Send to Game Review” and mark its moves there — they’re counted here.'}
         </p>
       )}

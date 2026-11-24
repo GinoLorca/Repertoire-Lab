@@ -20,7 +20,7 @@ import { useArcadeLook, onArcadeArrows } from '../lib/arcadeLook';
 import { reviewRepertoire } from '../lib/openingsBasis';
 import {
   arcadeId, tempArcadeId, arcadeGame, cleanRecords, sameRecords, fromArchive, recordsFor,
-  writesReviewLayer, withGameReview,
+  writesReviewLayer, reviewDelivered, withGameReview,
 } from '../lib/gameReviewBridge';
 import {
   readPgnFiles, indexGames, openGame, searchGames, gameRecord, alreadyIn, sideIn,
@@ -275,18 +275,27 @@ export default function GameReviewView({ open, onOpen, onBoard }) {
   useEffect(() => {
     if (openedRef.current && openedRef.current === caId) markSeen();
   }, [saved?.game?.reviews, saved?.game?.coachNews]); // eslint-disable-line react-hooks/exhaustive-deps
+  const noClear = Boolean(saved && reviewDelivered(saved.game, saved.player));
   useEffect(() => {
     const a = api();
     if (!ready || !a || !caId || !source) return;
     if (openKeyRef.current === openKey) return;
     openKeyRef.current = openKey;
-    if (openedRef.current === caId) { a.open(arcadeGame(source, caId, { side }), openOpts ?? {}); return; }
+    // (_noClear, always said: Chess Arcade shows Clear analysis only where it is false)
+    const game = { ...arcadeGame(source, caId, { side }), _noClear: noClear };
+    if (openedRef.current === caId) { a.open(game, openOpts ?? {}); return; }
     openedRef.current = caId;
     setPlies(0);
     markSeen();
     a.load(caId, records ?? {});
-    a.open(arcadeGame(source, caId, { side }), openOpts ?? {});
+    a.open(game, openOpts ?? {});
   }, [ready, openKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A coach's review that comes in (or is taken away) while the game is open:
+  // Clear analysis goes, or is back.
+  useEffect(() => {
+    if (ready && caId) api()?.noClear?.(caId, noClear);
+  }, [ready, caId, noClear]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Repertoire Lab's corners in the review, while it has the whole window.
   useEffect(() => {

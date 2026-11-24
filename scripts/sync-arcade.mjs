@@ -75,8 +75,8 @@ function replaceOnce(html, find, replace, what) {
 // Every name in Chess Arcade's own code the bridge below uses. Most of those calls sit in
 // try/catch, so a Chess Arcade that renamed one would break a part of Game Review quietly:
 // the copy answers __rlReview.missing() with any it no longer has, and scripts/check-arcade.mjs
-// refuses a copy that names one. tests/arcadeSync.test.mjs keeps this list up to date with
-// the bridge.
+// refuses a copy that names one; a Chess Arcade that doesn't declare one isn't copied at all
+// (below). tests/arcadeSync.test.mjs keeps this list up to date with the bridge.
 const USES = [
   'GH_STATE', 'GH_UI', 'GN', 'GN_TAC_MEMO', 'HV_STATE', 'HV_TREES', 'RP', 'RP_JOB', 'RP_RES',
   'applyLookPrefs', 'currentView', 'ghBaseList', 'ghGameFromSummary', 'ghOpenGame', 'ghRender',
@@ -85,7 +85,8 @@ const USES = [
   'hvNote', 'hvOnNode', 'hvOpen', 'hvRenderBoard', 'lookPrefs', 'rlDecode', 'rlEncode', 'rpFire',
   'rpMake', 'rpQueue', 'saveLookPrefs', 'showView', 'ttPractice', 'setAnnoProfile', 'annoProfile',
   'hrSave', 'hrLoad', 'hrSig', 'hrEncScore', 'hrDecScore', 'hrValidEntry', 'hrReadStore', 'hrJob',
-  'hrRenderAll', 'hvRedraw', 'HR_BY_ID', 'HR_BY_CODE', 'GH_FILTERS', 'PIECE_SETS',
+  'hrRenderAll', 'hvRedraw', 'HR_BY_ID', 'HR_BY_CODE', 'GH_FILTERS', 'PIECE_SETS', 'HRS_VER', 'OJ_RS', 'OJ_VER',
+  'ctModel', 'ctRender',
 ];
 // …and the ones only a player's Positions uses (the bridge's POSITIONS part). Chess Arcade has had Positions as a tab of
 // its own, with pawn structures, since 2026-11; a copy from before it is never asked for these, nor for Positions
@@ -276,6 +277,14 @@ const BRIDGE = String.raw`
       const e = rec && (!mine || (rec.at || 0) >= (mine.at || 0)) ? rec : mine;
       return e ? JSON.stringify(e) : '';
     };
+    // blunders (Chess Arcade's blOf, ojRevs): the reviews Repertoire Lab gave count as this device's own
+    const storeWas = hrReadStore;
+    hrReadStore = function(){
+      const st = storeWas.apply(this, arguments);
+      RV.forEach((t, gid)=>{ const e = rvParse(gid, t), m = st.g[gid]; if(e && !(m && (m.at || 0) >= (e.at || 0))) st.g[gid] = e; });
+      return st;
+    };
+    const rvFresh = ()=>{ HRS_VER++; OJ_RS = null; OJ_VER++; };
     const reviewSaved = hrSave;
     hrSave = function(S, R){
       const ok = reviewSaved.apply(this, arguments);
@@ -338,12 +347,29 @@ const BRIDGE = String.raw`
       return openGameWas.apply(this, arguments);
     };
     // The Openings and Positions tabs: Game History's list is every game of the player's that Repertoire Lab hands over
-    // (history), not only the ones with a note — CLAMP and Tactics keep reading the games with marks, as before.
+    // (history), not only the ones with a note. CLAMP: the games handed over too (marked, badged or reviewed), so a review's
+    // blunders count with no letter on the game, and a letter's games are listed. Tactics keeps reading the games with marks,
+    // as before.
     let rlBase = null;
     const baseWas = ghBaseList;
     ghBaseList = function(){
-      if(historyOn() && rlBase && (GH_UI.view==='openings' || GH_UI.view==='positions')) return rlBase.slice();
+      if(historyOn() && rlBase && (GH_UI.view==='openings' || GH_UI.view==='positions' || GH_UI.view==='clamp')) return rlBase.slice();
       return baseWas.apply(this, arguments);
+    };
+    // CLAMP isn't given the player's other games, so what it says of all of them stays out: "Not marked yet" (losses with no
+    // letters) and "of N games against people".
+    const modelWas = ctModel;
+    ctModel = function(){
+      const md = modelWas.apply(this, arguments);
+      if(historyOn() && md) md.loss = 0;
+      return md;
+    };
+    const renderWas = ctRender;
+    ctRender = function(){
+      const r = renderWas.apply(this, arguments);
+      const c = historyOn() ? document.getElementById('gh-count') : null, t = c ? c.textContent.replace(/ of [\d,]+ games? against people$/, '') : '';
+      if(c && c.textContent!==t) c.textContent = t;
+      return r;
     };
     const practiceWas = ttPractice;
     ttPractice = function(key){
@@ -494,6 +520,14 @@ const BRIDGE = String.raw`
         return changed || rvChanged;
       },
       open(game, opts){ hvOpen(game, null, opts || {}); },
+      // Clear analysis is for a player's own copy (open()'s _noClear): said again when a coach's review of the open game comes in.
+      noClear(gid, on){
+        const g = HV_STATE && HV_STATE.game;
+        if(!g || String(g.id)!==String(gid) || g._noClear===!!on) return false;
+        g._noClear = !!on;
+        try{ hrRenderAll(); }catch(e){}
+        return true;
+      },
       // Repertoire Lab's corners on (the review has the whole window) or off.
       chrome(on){
         document.documentElement.classList.toggle('rl-chrome', !!on);
@@ -502,9 +536,9 @@ const BRIDGE = String.raw`
       },
       current(){ return HV_STATE && HV_STATE.game ? String(HV_STATE.game.id) : null; },
       line(){ return playedLine(); },
-      // games: [{ id, an, summary }] — that player's, and only theirs; view: 'clamp' | 'tactics' | 'openings' | 'positions'
-      // (Openings and Positions: every game with moves, marked or not). place: Positions as it was when a game was opened
-      // from it (openGame's place).
+      // games: [{ id, an, rv?, summary }] — that player's, and only theirs (rv: the game's review); view: 'clamp' | 'tactics' |
+      // 'openings' | 'positions' (Openings and Positions: every game with moves, marked or not). place: Positions as it was
+      // when a game was opened from it (openGame's place).
       history(games, view, place){
         const want = new Set((games || []).map((g)=> 'an-'+String(g.id)));
         quiet++;
@@ -519,13 +553,16 @@ const BRIDGE = String.raw`
           gnPersist();
         } finally { quiet--; }
         try{ GN_TAC_MEMO.clear(); }catch(e){}
+        RV.clear();
+        (games || []).forEach((g)=>{ if(typeof g.rv==='string' && rvParse(String(g.id), g.rv)) RV.set(String(g.id), g.rv); });
+        rvFresh();
         const tab = view === 'tactics' ? 'tactics' : view === 'openings' ? 'openings' : view === 'positions' && POSITIONS ? 'positions' : 'clamp';
-        rlBase = tab === 'openings' || tab === 'positions'
+        rlBase = tab !== 'tactics'
           ? (games || []).filter((g)=> g && g.summary).map((g)=> ghGameFromSummary({ id: String(g.id), g: gnCleanG(g.summary) })).filter((g)=> g.moves)
           : null;
         if(POSITIONS && rlBase) rlBase.forEach(lastOf);
-        // Game History counts itself loaded once its own list has games (it's Lichess's, here none): the Openings and
-        // Positions tabs' are those; CLAMP and Tactics go back to reading the games with marks.
+        // Game History counts itself loaded once its own list has games (it's Lichess's, here none): the Openings, Positions
+        // and CLAMP tabs' are those; Tactics goes back to reading the games with marks.
         GH_STATE.games = rlBase ? rlBase.slice() : [];
         GH_STATE.ids = new Set(GH_STATE.games.map((g)=> g.id));
         GH_STATE.exhausted = true;
@@ -705,6 +742,16 @@ for (const [, , code] of scripts) {
     throw new Error(`sync-arcade: the copy's code doesn't parse (${err.message}) — not written`);
   }
 }
+
+// A Chess Arcade without something the bridge uses (an older one than this script is written for, or one
+// that renamed it) would be a copy that breaks as it's used: not written.
+const declared = new Set();
+for (const m of original.matchAll(/^ {2}(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/gm)) declared.add(m[1]);
+for (const m of original.matchAll(/^ {2}(?:const|let|var)\s+([^;]*);/gm)) {
+  for (const part of m[1].split(',')) declared.add(part.split('=')[0].trim());
+}
+const gone = USES.filter((n) => !declared.has(n));
+if (gone.length) throw new Error(`sync-arcade: this Chess Arcade doesn't have ${gone.join(', ')}, which the bridge uses — not written`);
 
 const hash = createHash('sha256').update(html).digest('hex').slice(0, 10);
 const outDir = join(root, 'public', 'arcade');

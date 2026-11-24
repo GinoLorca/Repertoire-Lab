@@ -12,7 +12,7 @@
 //   · arcadeRepertoire: those openings in Chess Arcade's compact form.
 //   · openingsGames: every game of theirs with moves, with the summary Game
 //     History reads (who had which side, the result, the speed, the moves).
-import { arcadeId, recordsFor, insightSummary } from './gameReviewBridge';
+import { arcadeId, recordsFor, insightSummary, reviewIn, playedMoves } from './gameReviewBridge';
 import { START_FEN, fen4 } from './startPos';
 import { bookOpenings, bookName } from './repertoire';
 
@@ -110,7 +110,9 @@ export function openingsGames(player) {
     if (from && fen4(from) !== fen4(START_FEN)) continue;
     const id = arcadeId(game.id);
     byArcadeId.set(id, game.id);
-    games.push({ id, an: recordsFor(game, player)?.an ?? '', summary: insightSummary(game, player) });
+    const rec = recordsFor(game, player);
+    const rv = reviewIn(rec, playedMoves(game));
+    games.push({ id, an: rec?.an ?? '', ...(rv ? { rv } : {}), summary: insightSummary(game, player) });
   }
   return { games, byArcadeId };
 }

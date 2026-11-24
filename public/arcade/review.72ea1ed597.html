@@ -67094,6 +67094,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const e = rec && (!mine || (rec.at || 0) >= (mine.at || 0)) ? rec : mine;
       return e ? JSON.stringify(e) : '';
     };
+    // blunders (Chess Arcade's blOf, ojRevs): the reviews Repertoire Lab gave count as this device's own
+    const storeWas = hrReadStore;
+    hrReadStore = function(){
+      const st = storeWas.apply(this, arguments);
+      RV.forEach((t, gid)=>{ const e = rvParse(gid, t), m = st.g[gid]; if(e && !(m && (m.at || 0) >= (e.at || 0))) st.g[gid] = e; });
+      return st;
+    };
+    const rvFresh = ()=>{ HRS_VER++; OJ_RS = null; OJ_VER++; };
     const reviewSaved = hrSave;
     hrSave = function(S, R){
       const ok = reviewSaved.apply(this, arguments);
@@ -67156,12 +67164,29 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       return openGameWas.apply(this, arguments);
     };
     // The Openings and Positions tabs: Game History's list is every game of the player's that Repertoire Lab hands over
-    // (history), not only the ones with a note — CLAMP and Tactics keep reading the games with marks, as before.
+    // (history), not only the ones with a note. CLAMP: the games handed over too (marked, badged or reviewed), so a review's
+    // blunders count with no letter on the game, and a letter's games are listed. Tactics keeps reading the games with marks,
+    // as before.
     let rlBase = null;
     const baseWas = ghBaseList;
     ghBaseList = function(){
-      if(historyOn() && rlBase && (GH_UI.view==='openings' || GH_UI.view==='positions')) return rlBase.slice();
+      if(historyOn() && rlBase && (GH_UI.view==='openings' || GH_UI.view==='positions' || GH_UI.view==='clamp')) return rlBase.slice();
       return baseWas.apply(this, arguments);
+    };
+    // CLAMP isn't given the player's other games, so what it says of all of them stays out: "Not marked yet" (losses with no
+    // letters) and "of N games against people".
+    const modelWas = ctModel;
+    ctModel = function(){
+      const md = modelWas.apply(this, arguments);
+      if(historyOn() && md) md.loss = 0;
+      return md;
+    };
+    const renderWas = ctRender;
+    ctRender = function(){
+      const r = renderWas.apply(this, arguments);
+      const c = historyOn() ? document.getElementById('gh-count') : null, t = c ? c.textContent.replace(/ of [\d,]+ games? against people$/, '') : '';
+      if(c && c.textContent!==t) c.textContent = t;
+      return r;
     };
     const practiceWas = ttPractice;
     ttPractice = function(key){
@@ -67312,6 +67337,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         return changed || rvChanged;
       },
       open(game, opts){ hvOpen(game, null, opts || {}); },
+      // Clear analysis is for a player's own copy (open()'s _noClear): said again when a coach's review of the open game comes in.
+      noClear(gid, on){
+        const g = HV_STATE && HV_STATE.game;
+        if(!g || String(g.id)!==String(gid) || g._noClear===!!on) return false;
+        g._noClear = !!on;
+        try{ hrRenderAll(); }catch(e){}
+        return true;
+      },
       // Repertoire Lab's corners on (the review has the whole window) or off.
       chrome(on){
         document.documentElement.classList.toggle('rl-chrome', !!on);
@@ -67320,9 +67353,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       },
       current(){ return HV_STATE && HV_STATE.game ? String(HV_STATE.game.id) : null; },
       line(){ return playedLine(); },
-      // games: [{ id, an, summary }] — that player's, and only theirs; view: 'clamp' | 'tactics' | 'openings' | 'positions'
-      // (Openings and Positions: every game with moves, marked or not). place: Positions as it was when a game was opened
-      // from it (openGame's place).
+      // games: [{ id, an, rv?, summary }] — that player's, and only theirs (rv: the game's review); view: 'clamp' | 'tactics' |
+      // 'openings' | 'positions' (Openings and Positions: every game with moves, marked or not). place: Positions as it was
+      // when a game was opened from it (openGame's place).
       history(games, view, place){
         const want = new Set((games || []).map((g)=> 'an-'+String(g.id)));
         quiet++;
@@ -67337,13 +67370,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           gnPersist();
         } finally { quiet--; }
         try{ GN_TAC_MEMO.clear(); }catch(e){}
+        RV.clear();
+        (games || []).forEach((g)=>{ if(typeof g.rv==='string' && rvParse(String(g.id), g.rv)) RV.set(String(g.id), g.rv); });
+        rvFresh();
         const tab = view === 'tactics' ? 'tactics' : view === 'openings' ? 'openings' : view === 'positions' && POSITIONS ? 'positions' : 'clamp';
-        rlBase = tab === 'openings' || tab === 'positions'
+        rlBase = tab !== 'tactics'
           ? (games || []).filter((g)=> g && g.summary).map((g)=> ghGameFromSummary({ id: String(g.id), g: gnCleanG(g.summary) })).filter((g)=> g.moves)
           : null;
         if(POSITIONS && rlBase) rlBase.forEach(lastOf);
-        // Game History counts itself loaded once its own list has games (it's Lichess's, here none): the Openings and
-        // Positions tabs' are those; CLAMP and Tactics go back to reading the games with marks.
+        // Game History counts itself loaded once its own list has games (it's Lichess's, here none): the Openings, Positions
+        // and CLAMP tabs' are those; Tactics goes back to reading the games with marks.
         GH_STATE.games = rlBase ? rlBase.slice() : [];
         GH_STATE.ids = new Set(GH_STATE.games.map((g)=> g.id));
         GH_STATE.exhausted = true;
@@ -67531,6 +67567,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         try{ void HR_BY_CODE; }catch(e){ gone.push('HR_BY_CODE'); }
         try{ void GH_FILTERS; }catch(e){ gone.push('GH_FILTERS'); }
         try{ void PIECE_SETS; }catch(e){ gone.push('PIECE_SETS'); }
+        try{ void HRS_VER; }catch(e){ gone.push('HRS_VER'); }
+        try{ void OJ_RS; }catch(e){ gone.push('OJ_RS'); }
+        try{ void OJ_VER; }catch(e){ gone.push('OJ_VER'); }
+        try{ void ctModel; }catch(e){ gone.push('ctModel'); }
+        try{ void ctRender; }catch(e){ gone.push('ctRender'); }
         if(POSITIONS){
         try{ void GHP; }catch(e){ gone.push('GHP'); }
         try{ void GHP_IX; }catch(e){ gone.push('GHP_IX'); }

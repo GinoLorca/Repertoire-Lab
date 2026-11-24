@@ -13,13 +13,16 @@
 //     Review — and one taken away is gone
 //   · a game opens, and a note typed in its Notes card is saved and reported
 //   · an engine review handed in as a record (rv) shows on the game's moves,
-//     comes back out as it went in, and goes when the record does
+//     comes back out as it went in, and goes when the record does; Clear analysis
+//     has its button only where Repertoire Lab says so (_noClear: false)
 //   · Repertoire Lab's theme, dark and light, is the one it wears, and its
 //     arrow colour profile, set from here and told back when picked in there
 //   · Repertoire Lab's piece set is the one it draws (any set the copy's own
 //     Piece style row offers; a set it doesn't have, or 'constructor', leaves
 //     one of its own), Custom's outline is Repertoire Lab's or the set's own,
 //     and its own Piece style and Piece outline rows are hidden
+//   · a reviewed game's ?? counts in CLAMP with no letter on the game, and not once
+//     its review was cleared
 //   · a repertoire goes in, and CLAMP, Tactics and Openings each open; the Puzzles tab
 //     (its Settings field and its panel) and the review's "your usual in this line" stay
 //     out of the copy
@@ -42,7 +45,7 @@ import { createRequire } from 'node:module';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ARCADE_REVIEW_URL, ARCADE_FROM, ARCADE_POSITIONS } from '../src/lib/arcadeBuild.js';
-import { arcadeGame, arcadeId, cleanRecords } from '../src/lib/gameReviewBridge.js';
+import { arcadeGame, arcadeId, cleanRecords, insightGames } from '../src/lib/gameReviewBridge.js';
 import { arcadeRepertoire, openingsGames } from '../src/lib/openingsBasis.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -164,6 +167,16 @@ try {
   ok(badged, 'an engine review handed in (rv) shows its badges on the game’s moves');
   back = cleanRecords(await frame.evaluate((gid) => window.__rlReview.records(gid), gid));
   ok(back?.rv === RV, 'and comes back out as it went in');
+  // Clear analysis: never on a copy Repertoire Lab didn't say is the player's own
+  const clearShown = async (noClear) => {
+    await frame.evaluate((g) => window.__rlReview.open(g, {}), noClear === undefined ? game : { ...game, _noClear: noClear });
+    await page.waitForTimeout(500);
+    return frame.evaluate(() => { const b = document.getElementById('hr-clear'); return b ? !b.hidden : 'no #hr-clear in this copy'; });
+  };
+  const clears = [await clearShown(undefined), await clearShown(true), await clearShown(false)];
+  ok(JSON.stringify(clears) === '[false,false,true]', `Clear analysis only where Repertoire Lab says so (${clears.join(', ')})`);
+  await frame.evaluate((g) => window.__rlReview.open(g, {}), game);
+  await page.waitForTimeout(300);
   await frame.evaluate(({ gid, rec }) => window.__rlReview.load(gid, rec), { gid, rec: { note: NOTE, an: '', lr: LR } });
   const gone = await frame.waitForFunction(() => document.querySelectorAll('#hv-movelist .hv-badge').length === 0, null, { timeout: 8000 })
     .then(() => true, () => false);
@@ -279,6 +292,17 @@ try {
       && !!document.getElementById('view-history')?.offsetParent);
     ok(res === true && shown, `${view === 'clamp' ? 'CLAMP' : view[0].toUpperCase() + view.slice(1)} opens${res === true ? '' : ` — ${res}`}`);
   }
+  // a game's review, with no letter on the game: its ?? counts in CLAMP; cleared since (rc), it doesn't
+  const clampText = async (rec) => {
+    const { games: handed } = insightGames({ ...player, games: [{ ...player.games[0], gameReview: rec }] });
+    await frame.evaluate((gs) => window.__rlReview.history(gs, 'clamp'), handed);
+    await page.waitForTimeout(500);
+    return frame.evaluate(() => (document.getElementById('ct')?.innerText ?? '').replace(/\s+/g, ' '));
+  };
+  const counted = await clampText({ note: '', an: '', rv: RV });
+  ok(/\b1 blunder in 1 game\b/.test(counted), `a reviewed game’s ?? counts in CLAMP${/\b1 blunder in 1 game\b/.test(counted) ? '' : ` — ${counted.slice(0, 160)}`}`);
+  const cleared = await clampText({ note: '', an: JSON.stringify({ v: 1, l: [], c: [], m: [], rc: Date.now() + 1000 }), rv: RV });
+  ok(!/\bblunder/i.test(cleared), 'and not once its review was cleared');
   // Chess Arcade's Puzzles tab (2026-11) stays out of the copy: its Settings field and its panel are hidden by the bridge
   // (unhidden for a moment here, so the bridge's own rule is what's asked, not Game History's tab state)
   const gzOut = await frame.evaluate(() => {
