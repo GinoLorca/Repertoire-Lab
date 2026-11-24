@@ -6691,6 +6691,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   /* the row wraps where it can't hold the button too (a phone): it takes a line of its own under the arrows */
   #hv-controls{ flex-wrap:wrap; row-gap:8px; }
   #hv-controls .hv-px-here{ margin-left:6px; }
+  /* the engine's arrows, under the board where the engine card's cog is out of sight (a phone, a tablet) */
+  #hv-controls .hv-arr-btn{ display:none; align-self:stretch; padding-left:12px; padding-right:12px; }
+  .hv-arr-btn svg{ width:18px; height:18px; margin:-3px 0; display:block; }
+  #hv-controls .hv-arr-btn{ position:relative; }
+  .hv-arr-btn::after{ content:''; position:absolute; inset:-2px 0; }      /* 44px to a finger */
+  @media (max-width:899.98px), (pointer:coarse) and (orientation:portrait){ #hv-controls .hv-arr-btn{ display:inline-flex; align-items:center; justify-content:center; } }
+  .hv-eng-pop.hv-arr-pop{ right:auto; z-index:30; }
+  @media (pointer:coarse){ .hv-eng-pop .hv-pop-check{ min-height:44px; box-sizing:border-box; } }
   @media (max-width:599.98px){ #hv-controls .hv-px-here{ margin-left:0; } }
   .hv-eng-pop{ right:8px; min-width:210px; }
   .hv-pop-head{ padding:6px 10px 4px; font-size:11px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-soft); }
@@ -9356,6 +9364,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .ga-pcb:focus-visible, .ga-pcx:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
   .ga-pcx{ flex:0 0 auto; min-width:44px; justify-content:flex-end; text-align:right; }
   #ga-pc .ga-cov{ margin:4px 0 0; }
+  /* the card's two views (Accuracy | How often) at the head's right, under the title when they don't fit; How often's cells have a third line */
+  .ga-pchd{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 16px; }
+  @media (min-width:641px){ .ga-q.is-folded .ga-pcsw{ display:none; } }      /* a phone's cards start folded: the buttons say there are two views */
+  .ga-pfb{ min-height:64px; }
+  .ga-pfb.is-sum{ cursor:default; }
+  .ga-pfb.is-sum .ga-pcv{ text-decoration:none; }
+  .ga-pfs{ display:none; }
+  @media (hover:hover){ .ga-pfb.is-sum:hover{ background:none; } .ga-pfb.is-sum:hover .ga-pcn{ color:var(--ink-soft); } .ga-pfb.is-sum.is-thin:hover .ga-pcv{ color:var(--ink-soft); } }
   #ga-pcm .ga-cov{ margin:2px 0 0; }
   .ga-pcmh{ flex-wrap:nowrap; }
   .ga-pcmh > div:first-child{ flex:1 1 auto; }
@@ -9368,6 +9384,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     .ga-pcv{ font-size:15px; }
     .ga-pcn{ font-size:11.5px; }
     .ga-pcw{ display:none; }
+    .ga-pfl{ display:none; }
+    .ga-pfs{ display:inline-block; white-space:pre; }
+    .ga-pft .ga-pcr{ grid-template-columns:64px repeat(4, minmax(0,1fr)); gap:0 2px; }
+    .ga-pft .ga-pcl{ flex-direction:column; align-items:flex-start; gap:2px; font-size:12px; }
+    .ga-pft .ga-pci.is-none{ display:none; }
+    .ga-pfb.is-all .ga-pcn{ white-space:normal; text-align:center; }
   }
   @media (max-width:360px){
     .ga-pcr{ grid-template-columns:64px repeat(4, minmax(0,1fr)); gap:0 2px; }
@@ -9376,6 +9398,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     .ga-pch{ font-size:10.5px; }
     .ga-pcv{ font-size:14px; }
   }
+  @media (max-width:375px){ .ga-pfb .ga-pcn{ white-space:normal; text-align:center; } }
   .ga-cal2{ display:grid; grid-template-columns:minmax(0,1fr); gap:14px; }
   @media (min-width:760px){ .ga-cal2{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:24px; } }
   .ga-dows{ display:flex; flex-direction:column; gap:4px; min-width:0; }
@@ -9982,6 +10005,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <button type="button" class="toggle active" data-card="tabs" aria-pressed="true">Moves &#183; Review &#183; Explorer</button>
       </div>
       <div class="field-hint">The cards around the board when you review a game. Turn one off to hide it; the cards left in its column take its room. With the Engine card off the engine still runs when it&#8217;s on (L turns it on or off).</div>
+    </div>
+
+    <!-- the arrows Stockfish draws on the review board (the engine card's cog has them too: small, and on a phone in the Engine tab; 2026-11-24) -->
+    <div class="field" id="hvarr-field">
+      <div class="field-label" id="hvarr-label">Engine arrows</div>
+      <div class="toggle-row hvcards-row" id="hvarr-row" role="group" aria-labelledby="hvarr-label">
+        <button type="button" class="toggle" data-k="1" aria-pressed="false">Best move</button>
+        <button type="button" class="toggle" data-k="2" aria-pressed="false">2nd best</button>
+        <button type="button" class="toggle" data-k="3" aria-pressed="false">3rd best</button>
+      </div>
+      <div class="field-hint">The arrows Stockfish draws on the review board. Turn all three off for none. On a phone or an upright tablet the arrow button under the board does the same; on a keyboard, keys 1, 2 and 3.</div>
     </div>
 
     <div class="modal-sep"></div>
@@ -10877,6 +10911,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <button class="btn btn-ghost hv-share" id="hv-share" type="button" aria-haspopup="menu" aria-expanded="false" title="Share the game at this move, or this position">Share</button>
         <button class="btn btn-ghost hv-copy-pgn" id="hv-copy-pgn" type="button" title="Copy the game&rsquo;s PGN as text">Copy PGN</button>
         <button class="btn btn-ghost hv-calc-btn" id="hv-calc-btn" type="button" aria-pressed="false" aria-keyshortcuts="V" aria-label="Capture Calculator (V)" title="Capture Calculator (V)"><span class="hv-calc-btn-w">Capture </span>Calculator</button>
+        <button class="btn btn-ghost hv-arr-btn" id="hv-arr-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Engine arrows" title="Engine arrows: best, 2nd best, 3rd best"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 19.5 15.2 8.8M8.6 6.6h8.8v8.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"/></svg></button>
       </div>
       <!-- Settings > Click to draw (hvCd): there only while it is on -->
       <div class="hv-cd" id="hv-cd" role="group" aria-label="Click to draw" hidden>
@@ -11084,13 +11119,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <!-- Similar openings (sm*): the lines in your repertoire this position resembles -->
         <div class="hv-pane hv-pane-similar" role="tabpanel" id="hv-pane-similar" aria-labelledby="hv-tab-similar"></div>
         <div class="hv-pane hv-pane-notes" role="tabpanel" id="hv-pane-notes" aria-labelledby="hv-tab-notes">
-          <div class="hv-notes-head"><label class="field-label" id="hv-note-label" for="hv-note">Notes</label><button class="field-label hv-lr-tab" id="hv-lr-tab" type="button" aria-pressed="false" aria-controls="hv-lr-wrap" title="Larry's review of this game: paste it here, and every move in it takes the board there">Larry Review</button><button class="hv-fold" id="hv-fold-notes" type="button" aria-expanded="true" aria-controls="hv-note"><span class="hv-fold-chev" aria-hidden="true"></span></button></div>
+          <div class="hv-notes-head"><label class="field-label" id="hv-note-label" for="hv-note">Notes</label><button class="field-label hv-lr-tab" id="hv-lr-tab" type="button" aria-pressed="false" aria-controls="hv-lr-wrap" title="The Larry-Duet review of this game: paste it here, and every move in it takes the board there">Larry-Duet Review</button><button class="hv-fold" id="hv-fold-notes" type="button" aria-expanded="true" aria-controls="hv-note"><span class="hv-fold-chev" aria-hidden="true"></span></button></div>
           <div class="text-input gn-ta hv-note" id="hv-note" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true" aria-labelledby="hv-note-label" data-placeholder="Your analysis: key moments, mistakes, plans, what to try next time."></div>
           <div class="gn-status" id="hv-note-status" aria-live="polite"></div>
           <!-- Larry's review (hvLr*): pasted once, then shown as text, every move in it a link (HV_MV_EDS) -->
           <div class="hv-lr" id="hv-lr-wrap">
-            <textarea class="text-input hv-lr-in" id="hv-lr-in" rows="7" spellcheck="false" aria-label="Larry's review" placeholder="Paste Larry's review here. Every move he writes becomes a link: click it and the board goes there."></textarea>
-            <div class="hv-lr-text" id="hv-lr" role="region" aria-label="Larry's review" hidden></div>
+            <textarea class="text-input hv-lr-in" id="hv-lr-in" rows="7" spellcheck="false" aria-label="Larry-Duet review" placeholder="Paste the Larry-Duet review here. Every move in it becomes a link: click it and the board goes there."></textarea>
+            <div class="hv-lr-text" id="hv-lr" role="region" aria-label="Larry-Duet review" hidden></div>
             <div class="hv-lr-acts">
               <button type="button" class="btn-link" id="hv-lr-save" hidden>Save</button>
               <button type="button" class="btn-link" id="hv-lr-cancel" hidden>Cancel</button>
@@ -38097,6 +38132,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const pick = (w, at)=>{ if(at < 0 || at >= n) return null; const c = w.filter(x=> x[0] < n); return c.find(x=> x[1]) || c[0] || null; };
     const A = pick(m >= 0 ? win.a : win.b, m >= 0 ? m : out.s), Bq = m >= 0 ? pick(win.b, out.s) : null;
     Object.assign(out, { m, n, h:gnFnv(toks.join(' ')), all:n===toks.length, qa: A ? A[0] : -1, fa: A ? A[2] : '', qb: Bq ? Bq[0] : -1, fb: Bq ? Bq[2] : '' });
+    out.pf = gaPfCount(toks, out);          // how often each piece moved, both colors (Analytics, gaPf*)
     return out;
   }
   function egReady(){ return EG_DONE; }       // from the first finished pass on; a game read later just matches no setting until then
@@ -40861,7 +40897,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!gaValid.re){
       const P = 'prev:(?:3|7|15|30|90|year)';
       const A = '(?:all|how:(?:left|agree|rep|stale|insuf|tvi|fifty|cheat|other)|ph:[ome]|cs:[omen]|clkg|clk:(?:tt|b20|b30|b40|e20|a20|lta)'
-        +'|opp:(?:all|hi|ev|lo)|dow:[0-6]|tod:[nmae]|eng:[yn]|(?:acc|blu):[ome1-5a]:[rl]|cca|nomark)';
+        +'|opp:(?:all|hi|ev|lo)|dow:[0-6]|tod:[nmae]|eng:[yn]|(?:acc|blu):[ome1-5a]:[rl]|cca|nomark|pf:[pnbrqk][aome]:[hl](?:100|[1-9]?\\d))';
       gaValid.re = new RegExp('^(?:'+P+'|(?:'+P+'\\+)?'+A+')$');
     }
     return gaValid.re.test(s);
@@ -40870,6 +40906,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function gaFoldsValid(o){
     const out = {};
     if(!o || typeof o!=='object') return out;
+    if(o['ga-pcf']===1) out['ga-pcf'] = 1;                              // ... and Accuracy by piece's other view, How often (gaPfOn)
     ['ga-col', 'ga-clk', 'ga-ou', 'ga-pc', 'ga-mate', 'ga-marks', 'ga-opp', 'ga-end', 'ga-acc', 'ga-cas', 'ga-cal'].forEach(k=>{ if(o[k]===0 || o[k]===1) out[k] = o[k]; });
     return out;
   }
@@ -41014,7 +41051,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const a = s ? gaParse(s).atom : '';
     if(/^clk/.test(a) || a==='cs:n') return 'f';
     if(/^cs:/.test(a)) return 'feg';
-    if(/^ph:/.test(a)) return 'eg';
+    if(/^ph:/.test(a) || /^pf:/.test(a)) return 'eg';
     if(/^(acc|blu):[ome]:/.test(a)) return 'eeg';
     if(/^(eng|acc|blu):/.test(a)) return 'e';
     return '';
@@ -41061,6 +41098,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     if(t==='cca'){ const me = ghMyColor(g, u); return g.site==='cc' && !!g.ccAcc && typeof g.ccAcc[me]==='number'; }
     if(t==='nomark') return !gnClampOf(String(g.id)).length && !gnTacOf(String(g.id)).has;
+    if(t==='pf') return gaPfAtom(g, u, v);
     if(t==='eng' || t==='acc' || t==='blu') return gaEngAtom(g, u, t, v);
     return false;
   }
@@ -41102,6 +41140,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(t==null){
       const m = /^dow:(\d)$/.exec(a), e = /^(acc|blu):(.):([rl])$/.exec(a);
       if(m) t = 'Started on '+D[Number(m[1])];
+      else if(a.indexOf('pf:')===0) t = gaPfLabel(a.slice(3));
       else if(e){
         const part = ({ o:'the opening', m:'the middlegame', e:'the endgame', a:'the game', 1:'moves 1-10', 2:'moves 11-20', 3:'moves 21-30', 4:'moves 31-40', 5:'moves 41+' })[e[2]];
         t = (e[1]==='acc' ? 'Accuracy in ' : 'A blunder in ')+part+', '+(e[3]==='r' ? 'Chess Arcade\u2019s review' : 'Lichess\u2019s analysis');
@@ -41879,7 +41918,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     });
     // the chip rows: Left / Right (Home / End on a Mac) move and press, as the site tabs
     sec.addEventListener('keydown', (e)=>{
-      const row = e.target.closest && e.target.closest('#ga-win, #ga-speed');
+      const row = e.target.closest && e.target.closest('#ga-win, #ga-speed, .ga-pcsw');
       if(!row || e.altKey || e.ctrlKey || e.metaKey) return;
       const tabs = Array.from(row.querySelectorAll('.toggle')), i = tabs.indexOf(document.activeElement);
       if(i < 0) return;
@@ -42564,51 +42603,89 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // the other half of that source line, at the end of the one on "Where does my play drop?" (added where the card is registered)
   function gaPcNote(card){
     const p = card && card.id==='ga-acc' ? card.querySelector('.ga-x > .ga-src:last-child') : null;
-    if(p) p.appendChild(document.createTextNode(' It turns the average score lost per move into one number; \u201cAccuracy by piece\u201d scores each move by itself, so its numbers are higher.'));
+    if(p) p.appendChild(document.createTextNode(' It turns the average score lost per move into one number; each piece\u2019s accuracy, in its own card, scores each move by itself, so its numbers are higher.'));
   }
   // a cell's words: "Pawns in the middlegame", "All moves in the endgame", "Pawns"
   function gaPcWords(t, c){ return GA_PCT[t][2]+(c ? ' in '+GA_PHW[c - 1] : ''); }
+  // the card's head: its title and the two views, "Accuracy | How often" (one Tab stop, Left and Right; kept with the folds: gaPfOn)
+  function gaPcHead(c){
+    const hd = ghEl('div', 'ga-pchd'), sw = ghEl('div', 'toggle-row ghv-chips ga-chips ga-pcsw'), cur = gaPfOn() ? 'f' : 'a';
+    sw.setAttribute('role', 'group'); sw.setAttribute('aria-label', 'Show');
+    [['a', 'Accuracy'], ['f', 'How often']].forEach(([v, w])=>{
+      const b = gaBtn('toggle'+(v===cur ? ' active' : ''), w, 'pcview', 'pcview|'+v);
+      b.dataset.val = v;
+      b.setAttribute('aria-pressed', v===cur ? 'true' : 'false');
+      b.tabIndex = v===cur ? 0 : -1;
+      sw.appendChild(b);
+    });
+    c.insertBefore(hd, c.firstChild);
+    hd.appendChild(c.querySelector('.ga-qh'));
+    hd.appendChild(sw);
+    return c;
+  }
+  // the other view, drawn in place (the boards under the accuracy close with it)
+  GA_ACTS.pcview = (b)=>{
+    const v = b.dataset.val==='f' ? 'f' : 'a';
+    if(gaPfOn()===(v==='f') || !GA.model) return;
+    const top = b.getBoundingClientRect().top;
+    GH_UI.gaf = Object.assign({}, GH_UI.gaf || {}, { 'ga-pcf':v==='f' ? 1 : 0 });
+    ghSaveFilters();
+    GA.pcs = null;
+    gaDrawOne(GA.model, 'ga-pc');
+    gaDrawPcm();
+    const el = document.querySelector('#ga-pc .ga-pcsw [data-val="'+v+'"]');
+    if(!el) return;
+    try{ el.focus({ preventScroll:true }); }catch(e){}
+    // the buttons stay under your finger (the browser may follow what is below the card, whose height changed)
+    const keep = ()=>{ const dy = el.isConnected ? el.getBoundingClientRect().top - top : 0; if(Math.abs(dy) > 1) window.scrollBy(0, dy); };
+    keep();
+    requestAnimationFrame(keep);
+  };
+  // the table both views fill: a row a piece (drawn in the set in use), a column a phase
+  function gaPcTable(label, fill, cls){
+    const tb = ghEl('div', 'ga-pct'+(cls ? ' '+cls : '')), role = (el, r)=>{ el.setAttribute('role', r); return el; };
+    role(tb, 'table').setAttribute('aria-label', label);
+    const head = role(ghEl('div', 'ga-pcr is-head'), 'row');
+    head.appendChild(role(ghEl('span', 'ga-pch is-l', 'Piece'), 'columnheader'));
+    GA_PCP.forEach(w=> head.appendChild(role(ghEl('span', 'ga-pch', w), 'columnheader')));
+    tb.appendChild(head);
+    GA_PCT.forEach(([ch, name], t)=>{
+      const r = role(ghEl('div', 'ga-pcr'), 'row'), l = role(ghEl('span', 'ga-pcl'), 'rowheader'), ic = ghEl('span', 'ga-pci'+(ch ? '' : ' is-none'));
+      r.dataset.t = String(t);
+      ic.setAttribute('aria-hidden', 'true');
+      if(ch && PIECE_SVG['w'+ch]){ const pw = ghEl('span', 'piece-wrap'); pw.innerHTML = PIECE_SVG['w'+ch]; ic.appendChild(pw); }      // an app constant; a new set repaints it (applyLookPrefs)
+      l.appendChild(ic);
+      l.appendChild(ghEl('span', '', name));
+      r.appendChild(l);
+      for(let k = 0; k < 4; k++){ const cell = role(ghEl('span', 'ga-pcc'), 'cell'); fill(cell, t, k); r.appendChild(cell); }
+      tb.appendChild(r);
+    });
+    return tb;
+  }
+  function gaPcNone(w){ const z = ghEl('span', 'ga-pcz', '\u2013'); z.setAttribute('aria-label', w); z.setAttribute('role', 'img'); return z; }
   function gaDrawPc(md, frag){
-    const K = md.pc, c = gaCard('ga-pc', 'Accuracy by piece', 'Engine numbers', true), wds = 'in '+gaWinWords(md.v);
+    if(gaPfOn()){ gaDrawPf(md, frag); return; }
+    const K = md.pc, c = gaPcHead(gaCard('ga-pc', 'Accuracy by piece', 'Engine numbers', true)), wds = 'in '+gaWinWords(md.v);
     if(K.wait){ c.appendChild(ghEl('div', 'ga-num')); gaReading(c, frag, gaRead(md, md.W.length - K.wait)); return; }
     const say = gaSay(c, md.say['ga-pc']), x = gaX(c);
     if(!md.W.length){ frag.appendChild(c); return; }
     if(K.games){
       if(!K.ph) say.classList.add('ga-phr');
-      const tb = ghEl('div', 'ga-pct'), role = (el, r)=>{ el.setAttribute('role', r); return el; }, open = GA.pcs;
-      role(tb, 'table').setAttribute('aria-label', 'Your accuracy by piece and phase');
-      const head = role(ghEl('div', 'ga-pcr is-head'), 'row');
-      head.appendChild(role(ghEl('span', 'ga-pch is-l', 'Piece'), 'columnheader'));
-      GA_PCP.forEach(w=> head.appendChild(role(ghEl('span', 'ga-pch', w), 'columnheader')));
-      tb.appendChild(head);
-      GA_PCT.forEach(([ch, name], t)=>{
-        const r = role(ghEl('div', 'ga-pcr'), 'row'), l = role(ghEl('span', 'ga-pcl'), 'rowheader'), ic = ghEl('span', 'ga-pci'+(ch ? '' : ' is-none'));
-        r.dataset.t = String(t);
-        ic.setAttribute('aria-hidden', 'true');
-        if(ch && PIECE_SVG['w'+ch]){ const pw = ghEl('span', 'piece-wrap'); pw.innerHTML = PIECE_SVG['w'+ch]; ic.appendChild(pw); }      // an app constant; a new set repaints it (applyLookPrefs)
-        l.appendChild(ic);
-        l.appendChild(ghEl('span', '', name));
-        r.appendChild(l);
-        K.cells[t].forEach((x2, k)=>{
-          const cell = role(ghEl('span', 'ga-pcc'), 'cell');
-          if(!x2.n){ const z = ghEl('span', 'ga-pcz', '\u2013'); z.setAttribute('aria-label', k && !K.ph ? 'not read yet' : 'no moves'); role(z, 'img'); cell.appendChild(z); }
-          else {
-            const v = Math.round(x2.s / x2.n), weak = K.weak.some(w=> w.t===t && w.c===k), b = gaBtn('ga-pcb'+(x2.n < GA_PC_MIN ? ' is-thin' : '')+(weak ? ' is-weak' : ''), '', 'pcc', 'pc|'+t+'|'+k);
-            b.dataset.t = String(t); b.dataset.c = String(k); b.dataset.n = String(x2.n); b.dataset.v = String(v);
-            b.setAttribute('aria-label', gaPcWords(t, k)+': '+v+'%, '+ghoN(x2.n, 'move')+(weak ? (K.low ? ', low for the phase' : K.weak.length > 1 ? ', one of the two weakest' : ', the weakest') : '')+(x2.n < GA_PC_MIN ? ', fewer than '+GA_PC_MIN : '')+'. Show the costliest');
-            b.setAttribute('aria-expanded', open && open.t===t && open.c===k ? 'true' : 'false');
-            b.setAttribute('aria-controls', 'ga-pcm');
-            b.appendChild(ghEl('span', 'ga-pcv', v+'%'));
-            const n = ghEl('span', 'ga-pcn', x2.n.toLocaleString('en-US'));
-            n.appendChild(ghEl('span', 'ga-pcw', x2.n===1 ? ' move' : ' moves'));
-            b.appendChild(n);
-            cell.appendChild(b);
-          }
-          r.appendChild(cell);
-        });
-        tb.appendChild(r);
-      });
-      x.appendChild(tb);
+      const open = GA.pcs;
+      x.appendChild(gaPcTable('Your accuracy by piece and phase', (cell, t, k)=>{
+        const x2 = K.cells[t][k];
+        if(!x2.n){ cell.appendChild(gaPcNone(k && !K.ph ? 'not read yet' : 'no moves')); return; }
+        const v = Math.round(x2.s / x2.n), weak = K.weak.some(w=> w.t===t && w.c===k), b = gaBtn('ga-pcb'+(x2.n < GA_PC_MIN ? ' is-thin' : '')+(weak ? ' is-weak' : ''), '', 'pcc', 'pc|'+t+'|'+k);
+        b.dataset.t = String(t); b.dataset.c = String(k); b.dataset.n = String(x2.n); b.dataset.v = String(v);
+        b.setAttribute('aria-label', gaPcWords(t, k)+': '+v+'%, '+ghoN(x2.n, 'move')+(weak ? (K.low ? ', low for the phase' : K.weak.length > 1 ? ', one of the two weakest' : ', the weakest') : '')+(x2.n < GA_PC_MIN ? ', fewer than '+GA_PC_MIN : '')+'. Show the costliest');
+        b.setAttribute('aria-expanded', open && open.t===t && open.c===k ? 'true' : 'false');
+        b.setAttribute('aria-controls', 'ga-pcm');
+        b.appendChild(ghEl('span', 'ga-pcv', v+'%'));
+        const n = ghEl('span', 'ga-pcn', x2.n.toLocaleString('en-US'));
+        n.appendChild(ghEl('span', 'ga-pcw', x2.n===1 ? ' move' : ' moves'));
+        b.appendChild(n);
+        cell.appendChild(b);
+      }));
     }
     // coverage: which games have engine scores and from where; the rest as one list, and whether they are on their way
     const cv = ghEl('p', 'ct-vs ga-cov');
@@ -42636,6 +42713,215 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       'The review and \u201cWhere does my play drop?\u201d turn the average score lost per move into one number, so theirs are lower; Lichess\u2019s accuracy for a whole game counts bad moves more, so it is usually lower too.'+
       (K.nl && typeof hrClear==='function' ? ' After Clear analysis, a game Lichess analyzed counts from Lichess\u2019s scores.' : ''));
     frag.appendChild(c);
+  }
+  // ---- How often each piece moves (gaPf*, 2026-11-24; the user: "along with piece accuracy, can we also include piece frequency? The percentage of how
+  // many times I move a piece during the game"): the card's other view. Each piece's share of your moves, in the whole game and in each phase, your moves
+  // a game and your opponents' share in the same games: every game of the window with a move, reviewed or not. The piece and the phase are the accuracy's.
+  // A game is counted once, both colors, in the phases' own pass (egOf: x.pf); the card adds the games up when it is drawn. Never the engine. ----
+  var GA_PF_G = 20, GA_PF_GAP = 5, GA_PF_MIN = 4.5, GA_PF_PC = 10, GA_PF_Z = 3.5;      // what the sentence names: a phase 20 games reached; 5 points as shown and 4.5 unrounded; 10 moves of the piece on the larger side; 3.5 standard errors, game by game
+  var GA_PF_MV = 8, GA_PF_N = 20;                         // what a share opens: games with 8 of your moves there; the 20 (a quarter at most) that go furthest, with those level with the last of them half of the games at most
+  var GA_PF = new WeakMap();                              // a game whose moves the pass couldn't all replay: its counts (no phases), by its moves
+  var GA_PFW = [['Your pawns make', 'pawns'], ['Your knights make', 'knights'], ['Your bishops make', 'bishops'], ['Your rooks make', 'rooks'], ['Your queen makes', 'queens'], ['Your king makes', 'kings']];
+  var GA_PFH = ['opening', 'middlegame', 'endgame'];
+  function gaPfOn(){ return !!(GH_UI.gaf && GH_UI.gaf['ga-pcf']===1); }
+  // a game's counts: [color*24 + piece*4 + column] (0 White; column 0 the whole game, 1-3 the phases), then the king's answers to a check
+  // [48 + color*4 + column]. x: egOf's record (its phases only when every move was replayed)
+  function gaPfCount(toks, x){
+    const c = new Uint16Array(56), B = x && x.all ? hpfBounds({ mid:x.m, end:x.s, N:x.n }) : null;
+    for(let i = 0; i < toks.length; i++){
+      const s = i & 1, t = gaPcPiece(toks[i]), k = gaPcCol(B, i + 1), q = s*24 + t*4, chk = t===5 && i && toks[i - 1].indexOf('+') > 0;
+      c[q]++;
+      if(k) c[q + k]++;
+      if(chk){ c[48 + s*4]++; if(k) c[48 + s*4 + k]++; }
+    }
+    return c;
+  }
+  // the counts of a game the pass has read (null: not yet); .length 56; ph: whether its phases count
+  function gaPfOf(g){
+    const x = EG.get(g.id);
+    if(!x || !x.pf) return null;
+    if(x.all && x.n===gaPlies(g)) return x.pf;
+    let o = GA_PF.get(g);
+    if(!o || o.mv!==g.moves){ o = { mv:g.moves, c:gaPfCount(gaToks(g), null) }; GA_PF.set(g, o); }
+    return o.c;
+  }
+  // a window's numbers (kept with the model): each cell your moves y and theirs o, what its standard error needs, and how many games lie at each
+  // whole percent or over (hi) and at it or under (lo); n, o: all moves a column, yours and theirs; g: the games with a move of yours there.
+  // A seventh row (6): the king's moves that don't answer a check. Those are what the sentence and the king's links are about (gaPfZ): on the user's
+  // archive 6 of the 10 points between the kings in the endgame are checks answered, the loser's king being chased
+  function gaPfModel(md){
+    if(md.pf) return md.pf;
+    const K = md.pf = { ph:egReady(), games:0, wait:0, none:0, miss:0, n:[0, 0, 0, 0], o:[0, 0, 0, 0], g:[0, 0, 0, 0], el:[0, 0, 0, 0], nn:[0, 0, 0, 0], mm:[0, 0, 0, 0], nm:[0, 0, 0, 0],
+      named:null, wide:null, cols:[],
+      cells:[0, 1, 2, 3, 4, 5, 6].map(()=> [0, 1, 2, 3].map(()=> ({ y:0, o:0, yy:0, oo:0, yo:0, yn:0, ym:0, on:0, om:0, hi:new Uint32Array(101), lo:new Uint32Array(101) }))) };
+    if(!K.ph) return K;
+    const Y = [0, 0, 0, 0, 0, 0, 0], O = [0, 0, 0, 0, 0, 0, 0];
+    md.W.forEach(e=>{
+      const g = e.g, c = gaPfOf(g);
+      if(!c){ if(gaPlies(g)) K.wait++; else K.none++; return; }
+      const a = e.color==='white' ? 0 : 24, b = 24 - a, x = EG.get(g.id);
+      K.games++;
+      if(!(x.all && x.n===gaPlies(g))) K.miss++;
+      for(let k = 0; k < 4; k++){
+        let n = 0, m = 0;
+        for(let t = 0; t < 6; t++){ n += Y[t] = c[a + t*4 + k]; m += O[t] = c[b + t*4 + k]; }
+        if(!n && !m) continue;
+        K.n[k] += n; K.o[k] += m; K.nn[k] += n*n; K.mm[k] += m*m; K.nm[k] += n*m;
+        if(n) K.g[k]++;
+        const el = n >= GA_PF_MV;
+        if(el) K.el[k]++;
+        Y[6] = Y[5] - c[48 + (a ? 4 : 0) + k]; O[6] = O[5] - c[48 + (b ? 4 : 0) + k];
+        for(let t = 0; t < 7; t++){
+          const z = K.cells[t][k], y = Y[t], o = O[t];
+          z.y += y; z.o += o; z.yy += y*y; z.oo += o*o; z.yo += y*o; z.yn += y*n; z.ym += y*m; z.on += o*n; z.om += o*m;
+          if(el){ z.hi[Math.floor(100*y/n)]++; z.lo[Math.ceil(100*y/n)]++; }
+        }
+      }
+    });
+    gaPfNamed(K);
+    return K;
+  }
+  function gaPfZ(K, t, k){ return K.cells[t===5 ? 6 : t][k]; }
+  // the standard error (in points) of your share less theirs, the games being the sample (each game's own distance from the two shares)
+  function gaPfSe(K, t, k){
+    const z = gaPfZ(K, t, k), N = K.n[k], M = K.o[k], p = z.y / N, q = z.o / M;
+    const a = z.yy - 2*p*z.yn + p*p*K.nn[k], b = z.oo - 2*q*z.om + q*q*K.mm[k], x = z.yo - q*z.ym - p*z.on + p*q*K.nm[k];
+    return 100*Math.sqrt(Math.max(0, a / (N*N) + b / (M*M) - 2*x / (N*M)));
+  }
+  // K.named: the biggest difference between you and your opponents that is 5 points or more as shown (4.5 or more unrounded), rests on 10 moves of the
+  // piece or more and is 3.5 standard errors or more, in a phase 20 games reached; K.wide: the widest as shown, whatever the test says (big: 5 points;
+  // few: only the 10 moves are missing). The king's are its moves that don't answer a check. (Over the user's 2,351 games the same difference moved 1 to
+  // 4 points from month to month in the opening and middlegame and 2 to 10 in the endgame: a margin alone would name that; with 3 standard errors
+  // windows of 25-100 games with the two players shuffled still named something 7-8% of the time, with 3.5 2-3%.)
+  function gaPfNamed(K){
+    const R = Math.round;
+    for(let k = 1; k < 4; k++){
+      if(K.g[k] < GA_PF_G || !K.o[k]) continue;
+      K.cols.push(k);
+      for(let t = 0; t < 6; t++){
+        const z = gaPfZ(K, t, k), p = 100*z.y / K.n[k], q = 100*z.o / K.o[k], d = p - q, s = Math.abs(R(p) - R(q)), x = { t, c:k, d, s };
+        x.big = s >= GA_PF_GAP && Math.abs(d) >= GA_PF_MIN - GA_EPS;
+        const enough = (d > 0 ? z.y : z.o) >= GA_PF_PC, sure = x.big && Math.abs(d) >= GA_PF_Z*gaPfSe(K, t, k) - GA_EPS;
+        x.few = sure && !enough;
+        if(!K.wide || s > K.wide.s || (s===K.wide.s && Math.abs(d) > Math.abs(K.wide.d))) K.wide = x;
+        if(sure && enough && (!K.named || Math.abs(d) > Math.abs(K.named.d))) K.named = x;
+      }
+    }
+  }
+  // "31%", "<1%" for a share that rounds to nothing
+  function gaPfPct(y, n){ const v = Math.round(100*y / n); return y && !v ? '<1%' : v+'%'; }
+  function gaPfPer(y, g){ const v = Math.round(10*y / g); return y && !v ? '<0.1' : (v / 10).toFixed(1); }
+  function gaPfSay(K, md){
+    if(!K.ph || (!K.games && K.wait)) return gaPhRead(md);
+    if(!K.games) return md.W.length===1 ? 'This game has no moves.' : 'None of these '+ghoN(md.W.length, 'game')+' has a move.';
+    if(!K.cols.length) return 'The biggest difference from your opponents shows once '+GA_PF_G+' games reach a phase; '+ghoN(K.games, 'game')+' here.';
+    const x = K.named, w = K.wide, N = (n)=> n.toLocaleString('en-US'), NC = 'answers to a check left out';
+    // the kings' gap in the table when it is wider than the sentence's: what it is without the answers to a check
+    const king = (s, own)=>{
+      let b = null;
+      K.cols.forEach(k=>{ const z = K.cells[5][k], g = Math.abs(Math.round(100*z.y / K.n[k]) - Math.round(100*z.o / K.o[k])); if(g > s && !(own && own.t===5 && own.c===k) && (!b || g > b.g)) b = { g, k }; });
+      if(!b) return '';
+      const z = K.cells[5][b.k], f = K.cells[6][b.k], P = (q)=> gaPfPct(q.y, K.n[b.k])+' and '+gaPfPct(q.o, K.o[b.k]);
+      return ' The kings\u2019 '+P(z)+' in '+GA_PHW[b.k - 1]+' are '+P(f)+' with '+NC+'.';
+    };
+    if(x){
+      const z = gaPfZ(K, x.t, x.c), W = GA_PFW[x.t][0];
+      return (x.t===5 ? NC[0].toUpperCase()+NC.slice(1)+', '+W[0].toLowerCase()+W.slice(1) : W)+' '+gaPfPct(z.y, K.n[x.c])+' of your '+GA_PFH[x.c - 1]+' moves, your opponents\u2019 '+GA_PFW[x.t][1]+' '+gaPfPct(z.o, K.o[x.c])+' of theirs: '+
+        N(z.y)+' of your '+N(K.n[x.c])+' and '+N(z.o)+' of their '+N(K.o[x.c])+', in '+ghoN(K.g[x.c], 'game')+'.'+king(x.s, x);
+    }
+    if(w.big){
+      const z = gaPfZ(K, w.t, w.c);
+      return 'No piece stands out: the widest difference, '+GA_PFW[w.t][1].replace(/^(queen|king)s$/, 'the $1')+' in '+GA_PHW[w.c - 1]+' ('+(w.t===5 ? NC+': ' : '')+gaPfPct(z.y, K.n[w.c])+' of your moves, '+gaPfPct(z.o, K.o[w.c])+' of theirs), '+
+        (w.few ? 'rests on only '+ghoN(w.d > 0 ? z.y : z.o, 'move') : 'could be chance in '+ghoN(K.g[w.c], 'game'))+'.'+king(w.s, w);
+    }
+    const ph = K.cols.length===3 ? 'each phase' : K.cols.map(k=> GA_PHW[k - 1]).join(' and ');
+    return 'No piece stands out: in '+ph+' you and your opponents move every piece about as often, '+(w.s ? 'within '+ghoN(w.s, 'point') : 'to the point')+', in '+ghoN(K.games, 'game')+'.'+king(w.s, null);
+  }
+  // what a share opens: the games with 8 or more of your moves there where the piece moved most (20 of them, a quarter at most, and those level with the
+  // last of them); where the sentence says it moved less than theirs, least. The king: its moves that don't answer a check. null: nothing worth opening
+  // (or the level ones make it more than half of the games)
+  function gaPfLink(K, t, k){
+    const z = gaPfZ(K, t, k), want = Math.min(GA_PF_N, Math.floor(K.el[k] / 4)), low = !!K.named && K.named.t===t && K.named.c===k && K.named.d < 0, av = 100*z.y / K.n[k];
+    if(want < 3) return null;
+    let n = 0;
+    for(let i = 0; i <= 100; i++){
+      const p = low ? i : 100 - i;
+      n += low ? z.lo[p] : z.hi[p];
+      if(n >= want) return (low ? p < av : p > av) && 2*n <= K.el[k] ? { k:(low ? 'l' : 'h')+p, n, p, low } : null;
+    }
+    return null;
+  }
+  // the drill-down atom pf:<piece><column>:<h|l><percent>: at least / at most that share of 8 or more of your moves (a king's answers to a check left out)
+  function gaPfAtom(g, u, v){
+    const m = /^([pnbrqk])([aome]):([hl])(\d+)$/.exec(v), c = m ? gaPfOf(g) : null;
+    if(!c) return false;
+    const a = ghMyColor(g, u)==='white' ? 0 : 24, k = 'aome'.indexOf(m[2]), y = c[a + 'pnbrqk'.indexOf(m[1])*4 + k] - (m[1]==='k' ? c[48 + (a ? 4 : 0) + k] : 0);
+    let n = 0;
+    for(let t = 0; t < 6; t++) n += c[a + t*4 + k];
+    return n >= GA_PF_MV && (m[3]==='h' ? 100*y >= Number(m[4])*n : 100*y <= Number(m[4])*n);
+  }
+  function gaPfLabel(v){
+    const m = /^([pnbrqk])([aome]):([hl])(\d+)$/.exec(v);
+    if(!m) return '';
+    const p = Number(m[4]), ph = m[2]==='a' ? '' : GA_PFH['ome'.indexOf(m[2])]+' ';
+    return GA_PCT['pnbrqk'.indexOf(m[1])][2].replace(/ moves$/, '')+(m[1]==='k' ? ', not answering a check' : '')+': '+(m[3]==='l' && !p ? 'never moved, in games with '+GA_PF_MV+' or more '+ph+'moves of yours' :
+      (m[3]==='l' ? p+'% or less of' : p===100 ? 'all' : p+'% or more of')+' your '+ph+'moves, in games with '+GA_PF_MV+' or more of them');
+  }
+  function gaDrawPf(md, frag){
+    const K = gaPfModel(md), c = gaPcHead(gaCard('ga-pc', 'How often each piece moves', '', true)), wds = 'in '+gaWinWords(md.v), N = (n)=> n.toLocaleString('en-US');
+    const say = gaSay(c, { t:md.W.length ? gaPfSay(K, md) : '', kind:'fact', bold:false }), x = gaX(c);
+    frag.appendChild(c);
+    if(!md.W.length) return;
+    if(!K.ph){ say.classList.add('ga-phr'); return; }              // the phases' pass counts the moves: its line until it has read them (gaRender moves the count)
+    if(K.games) x.appendChild(gaPcTable('How often each piece moves, by phase', (cell, t, k)=>{
+      if(!K.n[k]){ cell.appendChild(gaPcNone('no moves')); return; }
+      const thin = K.g[k] < GA_PF_G ? ' is-thin' : '', per = (n)=> gaPfPer(n, K.g[k]);
+      if(t===6){
+        const b = ghEl('span', 'ga-pcb ga-pfb is-sum is-all'+thin);
+        b.appendChild(ghEl('span', 'ga-pcv', per(K.n[k])));
+        b.appendChild(ghEl('span', 'ga-pcn', 'a game, in'));
+        b.appendChild(ghEl('span', 'ga-pcn', ghoN(K.g[k], 'game')));
+        cell.appendChild(b);
+        return;
+      }
+      const z = K.cells[t][k], v = gaPfPct(z.y, K.n[k]), o = K.o[k] ? gaPfPct(z.o, K.o[k]) : '', L = gaPfLink(K, t, k), top = !!K.named && K.named.t===t && K.named.c===k;
+      const b = L ? gaBtn('ga-pcb ga-pfb', '', 'go', 'pf|'+t+'|'+k) : ghEl('span', 'ga-pcb ga-pfb is-sum');
+      b.className += thin+(top ? ' is-weak' : '');
+      b.dataset.t = String(t); b.dataset.c = String(k); b.dataset.n = String(z.y); b.dataset.o = String(z.o);
+      if(L){
+        b.dataset.q = JSON.stringify({ ga:'pf:'+'pnbrqk'[t]+'aome'[k]+':'+L.k });
+        b.dataset.g = String(L.n);
+        b.setAttribute('aria-label', GA_PCT[t][1]+(k ? ' in '+GA_PHW[k - 1] : '')+': '+v+' of your moves, '+per(z.y)+' a game'+(o ? '; opponents '+o : '')+(top ? ', your biggest difference' : '')+(thin ? '; fewer than '+GA_PF_G+' games' : '')+
+          '. '+gaOpenLab(L.n, 'where it '+(L.low && !L.p ? 'never moved' : 'made '+(L.p===100 ? 'all' : L.p+'% or '+(L.low ? 'less' : 'more')+' of')+' your moves')+(t===5 ? ', answers to a check left out' : '')+' ('+GA_PF_MV+' or more moves of yours'+(k ? ' there' : '')+')', wds));
+      }
+      b.appendChild(ghEl('span', 'ga-pcv', v));
+      const r = ghEl('span', 'ga-pcn', per(z.y));             // the words, and the shorter ones a phone shows
+      r.appendChild(ghEl('span', 'ga-pfl', ' a game'));
+      r.appendChild(ghEl('span', 'ga-pfs', '/game'));
+      b.appendChild(r);
+      if(o){
+        const q = ghEl('span', 'ga-pcn ga-pfo');
+        q.appendChild(ghEl('span', 'ga-pfl', 'opponents '));
+        q.appendChild(ghEl('span', 'ga-pfs', 'opp. '));
+        q.appendChild(document.createTextNode(o));
+        b.appendChild(q);
+      }
+      cell.appendChild(b);
+    }, 'ga-pft'));
+    const cv = ghEl('p', 'ct-vs ga-cov');
+    if(K.games){
+      const all = K.games===md.W.length;
+      if(all){ const b = gaGo(N(K.games), { ga:'all' }, 'pf|cov', gaOpenLab(K.games, '', wds).replace(/ {2,}/g, ' ')); b.dataset.n = String(K.games); cv.appendChild(b); }
+      cv.appendChild(document.createTextNode((all ? '' : N(K.games)+' of '+N(md.W.length))+(md.W.length===1 ? ' game here counts' : ' games here count')+', reviewed or not: '+ghoN(K.n[0], 'move')+' of yours, '+N(K.o[0])+' of your opponents\u2019.'));
+    }
+    if(K.wait) cv.appendChild(document.createTextNode((cv.firstChild ? ' ' : '')+(K.wait===1 ? '1 isn\u2019t read yet.' : N(K.wait)+' aren\u2019t read yet.')));
+    if(K.none) cv.appendChild(document.createTextNode((cv.firstChild ? ' ' : '')+(K.none===1 ? '1 has no moves.' : N(K.none)+' have no moves.')));
+    if(K.miss) cv.appendChild(document.createTextNode(' The phases of '+ghoN(K.miss, 'game')+' can\u2019t be read: those moves count under All only.'));
+    if(cv.firstChild) x.appendChild(cv);
+    if(K.games) gaSrc(x, 'Each piece\u2019s share of your moves, from the moves alone (no engine); under it, your moves with it in a game that reached the phase, and your opponents\u2019 share in the same games. Castling counts as a king move, a promotion as a pawn move. '+
+      'The sentence names a difference of '+GA_PF_GAP+' points or more, from '+GA_PF_PC+' moves of the piece in a phase '+GA_PF_G+' games or more reached, so steady from game to game that chance is unlikely; numbers from fewer than '+GA_PF_G+' games are faint. '+
+      'A share opens the games (of '+GA_PF_MV+' or more moves of yours there) where the piece moved most; the outlined one, when it is under your opponents\u2019, where it moved least. '+
+      'A king\u2019s answers to a check count in the table, not in the sentence or in the games its share opens.');
   }
   // ---- a cell's costliest moves as boards (#ga-pcm, under the card; the Moments pattern) ----
   var GA_PCIO = null, GA_PCB = new Map();       // the boards' observer; the boards drawn (60 kept)
@@ -48084,6 +48370,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // the engine Analyze turned on for a played-out position only (PX.engWas) is never the saved setting
     const o = PX && PX.engWas===false ? Object.assign({}, hvPrefs, { engine:false }) : hvPrefs;
     try{ localStorage.setItem(HV_PREFS_KEY, JSON.stringify(o)); }catch(e){}
+    hvArrPaint();
   }
 
   // ---- state ----
@@ -51967,6 +52254,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     tog.disabled = !S.std;
     const ar = document.getElementById('hv-eng-arrow');
     ar.disabled = !S.std || !hvPrefs.engine;
+    document.getElementById('hv-arr-btn').disabled = ar.disabled;
     if(ar.disabled && hvMenu && hvMenu.kind==='arrows') hvMenuClose();
     const st = document.getElementById('hv-eng-status');
     const nBook = hvRenderBook();
@@ -52217,9 +52505,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
   }
   // ---- the cog: which engine arrows to draw, and E's "Hide suggested moves" ----
-  function hvArrowMenuOpen(){
+  function hvArrowMenuOpen(from){      // from the engine card's cog, or (from) the Arrows button under the board
     hvMenuClose();
-    const S = HV_STATE, btn = document.getElementById('hv-eng-arrow'), card = document.getElementById('hv-engine');
+    const S = HV_STATE, btn = from || document.getElementById('hv-eng-arrow'), card = document.getElementById(from ? 'hv-controls' : 'hv-engine');
     if(!S || btn.disabled) return;
     const el = hvEl('div', 'hv-pop hv-eng-pop');
     el.id = 'hv-arrow-pop';
@@ -52260,8 +52548,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const keyRow = hvEl('div', 'hv-pop-key');
     keyRow.append(hvEl('span', '', 'Play the best move'), hvEl('span', 'kbd', 'B'));
     el.appendChild(keyRow);
+    if(from) el.classList.add('hv-arr-pop');
     card.appendChild(el);
     el.style.top = (btn.offsetTop + btn.offsetHeight + 6)+'px';
+    if(from) el.style.left = Math.max(0, Math.min(btn.offsetLeft + (btn.offsetWidth - el.offsetWidth)/2, card.clientWidth - el.offsetWidth))+'px';
     // with the engine at the foot of the side column (card 2, under three columns) it opens upward where the screen ends under it
     const er = el.getBoundingClientRect(), bt = btn.getBoundingClientRect().top;
     if(er.bottom > window.innerHeight - 8 && bt - er.height - 6 >= 8) el.style.top = (btn.offsetTop - el.offsetHeight - 6)+'px';
@@ -52288,6 +52578,24 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   document.getElementById('hv-eng-arrow').addEventListener('click', ()=>{
     if(hvMenu && hvMenu.kind==='arrows') hvMenuClose(true); else hvArrowMenuOpen();
   });
+  document.getElementById('hv-arr-btn').addEventListener('click', (e)=>{
+    if(hvMenu && hvMenu.kind==='arrows') hvMenuClose(true); else hvArrowMenuOpen(e.currentTarget);
+  });
+  // Settings > Engine arrows: the same three switches (hvSavePrefs keeps them in step with the keys and the cog)
+  function hvArrPaint(){
+    document.querySelectorAll('#hvarr-row .toggle').forEach(b=>{
+      const on = !!hvPrefs.arrows[Number(b.dataset.k) - 1];
+      b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
+    });
+  }
+  document.getElementById('hvarr-row').addEventListener('click', (e)=>{
+    const b = e.target.closest('.toggle');
+    if(!b) return;
+    hvPrefs.arrows[Number(b.dataset.k) - 1] = !hvPrefs.arrows[Number(b.dataset.k) - 1];
+    hvSavePrefs();
+    hvRenderEngineNow();
+  });
+  hvArrPaint();
   function hvToggleEngine(){
     if(!HV_STATE || !HV_STATE.std) return;
     hvPrefs.engine = !hvPrefs.engine;
