@@ -4913,6 +4913,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .ghg-card-star:empty{ display:none; }
   .ghg-page{ display:flex; flex-direction:column; gap:16px; }
   .ghg-back{ align-self:flex-start; }
+  .ps-backs{ display:flex; flex-wrap:wrap; gap:2px 20px; }
+  .ps-back[hidden]{ display:none; }
   .ghg .panel.ghg-head{ gap:6px; padding:16px 20px; }
   .ghg .panel.ghg-games{ gap:10px; padding:16px 20px; }
   .ghg-name{ font-family:"Big Shoulders Display",sans-serif; font-size:36px; font-weight:700; line-height:1.1; color:var(--ink); background:transparent;
@@ -6450,6 +6452,48 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   /* the fold arrows of the left column's two cards: only in the three columns (see that band) */
   .hv-head-top{ display:contents; }
   .hv-fold{ display:none; }
+  /* The Game review card's own tabs (hct*, 2026-11-24): Game review | Phase of the game | Pawn structures, for a game.
+     Three columns: the card's first line, as the analysis card's tabs. Under them a quieter row of three under the
+     tabbed card's own (they'd look alike), each a third of the card; it stays in view while the tab scrolls. */
+  .hct[hidden], .hct-tab[hidden], .hct-pane.is-off, .hct-none[hidden]{ display:none; }
+  .hct-pane{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+  #hcp-phase, #hcp-pawns{ gap:8px; }
+  .hct-tab{ flex:1 1 auto; min-width:0; padding:6px 4px; background:none; border:1px solid var(--line); border-radius:8px; cursor:pointer;
+    white-space:nowrap; font:inherit; font-size:12.5px; font-weight:700; line-height:1.3; color:var(--ink-soft); }
+  .hct-tab:hover{ color:var(--ink); }
+  .hct-tab[aria-selected="true"]{ color:var(--ink); background:var(--surface-2); border-color:var(--ink-soft); }
+  .hct-tab:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+  :root[data-skin="bauhaus"] .hct-tab{ border-radius:0; }
+  .hct-s{ display:none; }
+  .hct{ container:hct / inline-size; }
+  #hv-pane-review.hct-on{ padding-top:0; }      /* (the strip's own padding: a sticky strip counts from the pane's) */
+  #hv-pane-review > .hct{ display:flex; gap:6px; margin:0 -14px 10px; padding:8px 14px; background:var(--surface); border-bottom:1px solid var(--line); }
+  #hv-pane-review > .hct[hidden]{ display:none; }
+  #hv-pane-review > .hct > .hct-tab{ flex:1 1 0; min-height:34px; }
+  @container hct (max-width:359px){ .hct-l{ display:none; } .hct-s{ display:inline; } #hv-pane-review > .hct > .hct-tab{ flex:1 1 auto; } }
+  #hv-pane-review.hct-away > .hr-wrap{ display:none; }      /* the review's results go with the card's Game review tab */
+  :root[data-skin="cards"] .hv-head-top > .hct > .hct-tab[aria-selected="true"]{ background:var(--cc-orn-ribbon); color:var(--cc-orn-ribbon-ink); border-radius:7px 7px 0 0; border-bottom-color:var(--cc-orn-gilt); box-shadow:var(--cc-orn-ribbon-edge); text-shadow:0 1px 0 rgba(60,0,10,.22); }
+  :root[data-skin="cards"] .hv-head-top > .hct > .hct-tab[aria-selected="true"]:focus-visible{ outline-color:var(--cc-orn-ribbon-ink); }
+  :root[data-skin="cards"] #hv-head.is-game .hv-head-top, :root[data-skin="cards"] #hv-pane-review > .hct{ border-bottom-color:var(--cc-orn-gilt); }
+  @media (min-width:1440px) and (min-height:561px){ :root[data-skin="cards"] .hv-sidecol-review > #hv-head.is-game, :root[data-skin="cards"] .hv-sidecol-review > #hv-head.is-game.hv-folded{ background-image:none; } }
+  .hct-none{ margin:0; font-size:13px; line-height:1.45; color:var(--ink-soft); }
+  /* Pawn structures: the structures this game reached */
+  #hcp-pawns{ container:hcs / inline-size; }
+  @container hcs (min-width:520px){ .hcs-it > .hcs-b{ grid-column:2; align-self:end; margin-top:0; } .hcs-it > .hcs-bd{ grid-row:1 / span 2; } }
+  .hcs{ display:flex; flex-direction:column; gap:10px; margin:0; padding:0; list-style:none; }
+  .hcs-it{ display:grid; grid-template-columns:96px minmax(0, 1fr); gap:4px 12px; align-items:start; padding:8px; border:1px solid var(--line); border-radius:8px; }
+  .hcs-it.is-now{ border-color:var(--ink-soft); background:var(--surface-2); }
+  .hcs-it.is-now .hcs-w{ color:var(--ink); }
+  .hcs-bd{ width:96px; }
+  .hcs-tx{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+  .hcs-n{ margin:0; font-size:14.5px; font-weight:800; line-height:1.3; color:var(--ink); overflow-wrap:anywhere; }
+  .hcs-w{ font-size:12.5px; line-height:1.4; color:var(--ink-soft); font-variant-numeric:tabular-nums; }
+  .hcs-r{ font-size:13px; line-height:1.4; color:var(--ink); }
+  .hcs-r b{ font-weight:700; font-variant-numeric:tabular-nums; }
+  .hcs-b{ grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+  .hcs-b .btn{ padding:6px 10px; font-size:12.5px; }
+  :root[data-skin="bauhaus"] .hcs-it{ border-radius:0; }
+  @media (pointer:coarse){ .hcs-b .btn{ min-height:44px; } }
   :root:not([data-skin="uptown"]) #hv-head .eyebrow{ color:var(--ink-soft); }   /* Uptown's eyebrow is a sign with its own ink */
   /* the list's result pill, with ink text: its colored text is under 4.5:1 on several skins */
   #hv-result .history-result-pill{ color:var(--ink); }
@@ -6683,8 +6727,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .hv-px-acts .btn:disabled{ opacity:.5; cursor:default; }
   @media (pointer:coarse){ .hv-px-acts .btn{ min-height:44px; } }
   /* until the game's over and Analyze is pressed: no engine card, arrows or eval, no Explorer (they'd give moves away);
-     never the review, notes, prep or phase cards (a position played out here isn't one of your games) */
-  #view-play-history.is-px :is(#hv-opx, #hv-prep, #hpf, #hv-tab-notes, #hv-notes-card, #hv-com-card){ display:none !important; }
+     never the review, notes or prep (a position played out here isn't one of your games) */
+  #view-play-history.is-px :is(#hv-opx, #hv-prep, #hv-tab-notes, #hv-notes-card, #hv-com-card){ display:none !important; }
   #view-play-history.is-px:not(.hv-tabbed) #hv-tab-review{ display:none !important; }      /* (tabbed: the Game review tab, the header alone) */
   #view-play-history.is-px-play :is(#hv-engine, #hv-tab-explorer, #hv-tab-similar){ display:none !important; }
   #view-play-history.is-px-play .hv-eval{ visibility:hidden; }          /* kept for its room: the board doesn't move when Analyze shows it */
@@ -6695,7 +6739,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   #hv-controls .hv-arr-btn{ display:none; align-self:stretch; padding-left:12px; padding-right:12px; }
   .hv-arr-btn svg{ width:18px; height:18px; margin:-3px 0; display:block; }
   #hv-controls .hv-arr-btn{ position:relative; }
-  .hv-arr-btn::after{ content:''; position:absolute; inset:-2px 0; }      /* 44px to a finger */
+  .hv-arr-btn::after{ content:''; position:absolute; inset:-4px 0; }      /* 44px to a finger */
   @media (max-width:899.98px), (pointer:coarse) and (orientation:portrait){ #hv-controls .hv-arr-btn{ display:inline-flex; align-items:center; justify-content:center; } }
   .hv-eng-pop.hv-arr-pop{ right:auto; z-index:30; }
   @media (pointer:coarse){ .hv-eng-pop .hv-pop-check{ min-height:44px; box-sizing:border-box; } }
@@ -6797,7 +6841,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   #view-play-history.hv-tabbed #hv-card2:not(.hv-tabs-none){ display:flex; overflow:visible; }      /* (the cog's pop-up opens past its edges) */
   #view-play-history .hv-tab.hv-tab-gone, #view-play-history .hv-tabs.hv-tabs-none{ display:none; }
   #hv-pane-review > #hv-head{ padding:0; background:none; border:0; border-radius:0; box-shadow:none; }
-  #hv-pane-review > #hv-head.is-game .eyebrow{ display:none; }      /* a game's would say the tab's name again (a puzzle's, Play it out's stay) */
+  #hv-head.is-game .eyebrow{ display:none; }      /* a game's would say the tab's name again (a puzzle's, Play it out's stay) */
   #hv-pane-review > #hv-head:not(.hv-card-off) + .hr-wrap{ margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
   #hv-pane-review.hv-res-off > .hr-wrap{ display:none; }        /* the tabs' card off, or Play it out: the header alone */
   #hv-pane-engine{ padding:0; }
@@ -6930,6 +6974,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     .hv-side{ position:sticky; top:6px; max-height:calc(100vh - 70px); max-height:calc(100dvh - 70px); }
     .hv-tabs{ flex:1 1 auto; min-height:0; }
     .hv-pane.active{ flex:1 1 auto; overflow:auto; }
+    #hv-pane-review > .hct{ position:sticky; top:0; z-index:3; }
     /* The two tabbed cards (under three columns, 2026-11-02): the first takes the room the comment
        card and the second leave (its pane scrolls inside); the second keeps its own height, the
        Explorer at most about 45% of the column (scrolling inside). The column keeps its height, so
@@ -7000,11 +7045,21 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
        longer; Notes keeps a bit under half the column */
     #hv-head{ flex:1 1 auto; min-height:0; overflow:auto; }
     .hv-notes-card{ display:flex; flex-direction:column; flex:0 1 45%; min-height:150px; padding:0; overflow:hidden; }
-    /* with the phase field between them, the header gives up the room (Notes keeps its share,
-       so a diagram still fits) and scrolls; on a very short screen the field card scrolls too */
-    .hv-sidecol-review:has(> #hpf:not([hidden])) > #hv-head{ flex:1 1 0; min-height:96px; }
-    #hpf{ flex:0 1 auto; min-height:0; overflow:auto; }
-    #hpf > *{ flex-shrink:0; }       /* the card scrolls; the field keeps its shape */
+    /* a game's: the card's tabs on its first line, the tab shown scrolls under them. The Game review tab keeps its
+       place when another is shown (unseen, the other laid over it), so the card's height, and Notes under it, never
+       change with the tab */
+    #hv-head.is-game{ overflow:hidden; gap:0; padding-bottom:0; }
+    #hv-head.is-game .hv-head-top{ flex:0 0 auto; margin:-12px -14px 0; border-bottom:1px solid var(--line); }
+    #hv-head.is-game > .hct-panes{ position:relative; display:flex; flex-direction:column; flex:1 1 auto; min-height:0; margin:0 -14px; }
+    #hv-head.is-game .hct-pane{ flex:1 1 auto; min-height:0; box-sizing:border-box; overflow:auto; padding:10px 14px 12px; }
+    #hv-head.is-game #hcp-review.is-off{ display:flex; visibility:hidden; }
+    #hv-head.is-game :is(#hcp-phase, #hcp-pawns){ position:absolute; inset:0; }
+    #hv-head.is-game .hct-pane > *{ flex-shrink:0; }       /* (the tab scrolls; what's in it keeps its shape) */
+    .hv-head-top > .hct{ display:flex; gap:2px; flex:1 1 auto; min-width:0; padding:4px 0 0 8px; }
+    .hv-head-top > .hct[hidden]{ display:none; }
+    .hv-head-top > .hct > .hct-tab{ padding:9px 4px 8px; margin-bottom:-1px; border:0; border-bottom:2px solid transparent; border-radius:0; font-size:13px; line-height:normal; }
+    .hv-head-top > .hct > .hct-tab[aria-selected="true"]{ background:none; border-bottom-color:var(--brass); }
+    .hv-head-top > .hct > .hct-tab:focus-visible{ outline-offset:-3px; border-radius:6px; }
     #view-play-history.is-px #hv-head{ flex:0 0 auto; }      /* played out: nothing under the header, so it keeps its own height */
     #hv-com-card{ max-height:max(84px, calc(100% - 340px)); }       /* the column is the board's height: about 150 Engine, 170 tabs, 20 gaps stay */
     /* with the header turned off, Notes takes the room */
@@ -7039,11 +7094,21 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     /* (25px tall: it ends where the bar's own line starts, when the bar wraps under the title) */
     .hv-sidecol-review .hv-notes-head > .hv-fold{ position:absolute; top:-7px; right:-6px; height:25px; margin:0; }
     #hv-fold-head{ margin:-9px -6px -9px auto; }       /* a 10px margin box: the eyebrow still sets its row's height */
+    #hv-head.is-game #hv-fold-head{ margin:0 6px 0 0; }
     /* A card folds only while the other one is there to take the room: not in a puzzle's analysis or
        a played-out position (no Notes card), nor with either card turned off in Settings. */
     .hv-sidecol-review:has(> #hv-notes-card[hidden]) #hv-fold-head, .hv-sidecol-review:has(> #hv-head.hv-card-off) #hv-fold-notes{ display:none; }
     #view-play-history .hv-sidecol-review:has(> #hv-notes-card:not([hidden])) > #hv-head.hv-folded{ flex:0 0 auto; min-height:0; overflow:hidden; }
-    .hv-sidecol-review:has(> #hv-notes-card:not([hidden])) > #hv-head.hv-folded > :is(.hv-opx, .hv-prep, .hv-actions){ display:none !important; }
+    .hv-sidecol-review:has(> #hv-notes-card:not([hidden])) > #hv-head.hv-folded :is(.hv-opx, .hv-prep, .hv-actions, .hpf-more, .hcs-bd, .hcs-b){ display:none !important; }
+    .hv-sidecol-review:has(> #hv-notes-card:not([hidden])) > #hv-head.hv-folded :is(.hct-panes, .hct-pane){ flex:0 0 auto; }
+    #view-play-history .hv-sidecol-review:has(> #hv-notes-card:not([hidden])) > #hv-head.hv-folded .hct-pane.is-off{ display:none; }      /* folded, as tall as the tab shown's own lines */
+    #view-play-history .hv-sidecol-review:has(> #hv-notes-card:not([hidden])) > #hv-head.hv-folded .hct-pane:not(.is-off){ position:static; }
+    .hv-sidecol-review:has(> #hv-notes-card:not([hidden])) > #hv-head.hv-folded .hpf-mini{ display:block; }
+    .hv-sidecol-review:has(> #hv-notes-card:not([hidden])) > #hv-head.hv-folded .hcs-it{ display:block; padding:0; border:0; background:none; }
+    .hv-sidecol-review:has(> #hv-notes-card:not([hidden])) > #hv-head.hv-folded .hcs{ gap:4px; }
+    .hv-sidecol-review:has(> #hv-notes-card:not([hidden])) > #hv-head.hv-folded .hcs-tx{ display:block; }
+    .hv-sidecol-review:has(> #hv-notes-card:not([hidden])) > #hv-head.hv-folded :is(.hcs-n, .hcs-w){ display:inline; font-size:13px; }
+    .hv-sidecol-review:has(> #hv-notes-card:not([hidden])) > #hv-head.hv-folded .hcs-r{ display:none; }
     .hv-sidecol-review:has(> #hv-head.hv-folded) > .hv-notes-card{ flex:1 1 auto; }
     #view-play-history .hv-sidecol-review:not(:has(> #hv-head.hv-card-off)) > .hv-notes-card.hv-folded{ flex:0 0 auto; min-height:0; }
     .hv-sidecol-review:not(:has(> #hv-head.hv-card-off)) > .hv-notes-card.hv-folded #hv-pane-notes > :not(.hv-notes-head),
@@ -7069,7 +7134,6 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     #hv-tabs{ order:7; overflow:visible; }
     #hv-com-card, #hv-engine{ order:8; }
     #hv-card2{ order:9; }
-    #hpf{ order:10; }
     #hv-head{ order:11; }
     /* the page ends clear of the Friends pill in the bottom corner */
     .wrap.play-mode #view-play-history.active{ padding-bottom:56px; }
@@ -7189,6 +7253,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
      finger (the line menu is the only way to delete a line on an iPhone). */
   @media (pointer:coarse){
     #view-play-history.hv-tabbed .hv-tab{ min-height:44px; }
+    #view-play-history .hct > .hct-tab{ min-height:44px; }
+    #hv-pane-review > .hct > .hct-tab{ min-height:44px; }
     #view-play-history .hv-movelist > .mv-san, #view-play-history .hv-movelist > .mv-num{ padding-top:6px; padding-bottom:6px; }
     #view-play-history .hv-movelist .hv-var{ align-items:center; }
     #view-play-history .hv-var-menu{ width:34px; height:34px; margin-top:0; line-height:34px; font-size:18px; }
@@ -7219,6 +7285,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     #view-play-history .hv-side{ position:static; max-height:none; }
     #view-play-history #hv-com-card{ max-height:none; }       /* the page scrolls here: the comment's own 260px only */
     #view-play-history .hv-pane.active{ overflow:visible; }
+    #hv-pane-review > .hct{ position:static; }
     #view-play-history.hv-tabbed #hv-card2{ max-height:none; }
     #view-play-history.hv-tabbed .hv-side{ height:auto; }
   }
@@ -7403,27 +7470,19 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .hr-cc{ font-size:12.5px; line-height:1.4; color:var(--ink-soft); overflow-wrap:anywhere; }      /* chess.com's own accuracy (chesscom SPEC C.3) */
   /* Phase of the game (hpf*): a field, your goal line on the left; the opening green, the
      middlegame yellow, the endgame the red zone (the field's colors are the same on every skin) */
-  .hpf{ display:flex; flex-direction:column; gap:6px; padding:10px 12px 10px; container:hpf / inline-size; }
-  .hpf.is-open{ cursor:pointer; }                                   /* a click on the open card closes it */
-  .hpf-bar{ display:flex; flex-direction:column; gap:6px; width:100%; padding:0; border:0; background:none; color:inherit; font:inherit; text-align:left; cursor:pointer; }
-  .hpf-bar:focus-visible{ outline:2px solid var(--focus); outline-offset:4px; border-radius:4px; }
-  .hpf-bar-top{ display:flex; align-items:baseline; gap:10px; min-width:0; }
-  .hpf-title{ flex:none; }
-  .hpf-chev{ flex:none; width:8px; height:8px; margin-left:auto; border-right:2px solid var(--ink-soft); border-bottom:2px solid var(--ink-soft); transform:translateY(-2px) rotate(45deg); align-self:center; transition:transform .15s; }
-  .hpf.is-open .hpf-chev{ transform:translateY(2px) rotate(-135deg); }
-  .hpf-mini{ display:block; width:100%; height:26px; border-radius:5px; overflow:hidden; box-shadow:inset 0 0 0 1px rgba(0,0,0,.2); }
-  .hpf.is-open .hpf-mini{ display:none; }
+  .hpf{ display:flex; flex-direction:column; gap:6px; container:hpf / inline-size; }
+  .hpf[hidden]{ display:none; }
+  .hpf-mini{ display:none; width:100%; height:26px; border-radius:5px; overflow:hidden; box-shadow:inset 0 0 0 1px rgba(0,0,0,.2); }      /* the folded card's */
   .hpf-more{ display:flex; flex-direction:column; gap:6px; }
   .hpf-dot{ display:inline-block; width:9px; height:9px; margin-right:6px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.25); vertical-align:0; }
   .hpf-info{ align-self:flex-start; font-size:12px; }
-  @media (prefers-reduced-motion:reduce){ .hpf-chev{ transition:none; } }
   .hpf-how{ margin:0; font-size:12px; line-height:1.45; color:var(--ink-soft); }
   .hpf-now{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:var(--ink-soft); font-variant-numeric:tabular-nums; }
   .hpf-field{ position:relative; width:100%; aspect-ratio:4 / 1; border-radius:6px; overflow:hidden; box-shadow:inset 0 0 0 1px rgba(0,0,0,.2); }
   .hpf-svg{ position:absolute; inset:0; width:100%; height:100%; display:block; }
   .hpf-num{ font:700 4.4px "Big Shoulders Display",sans-serif; fill:#ffffff; stroke:#1d231e; stroke-opacity:.4; stroke-width:.4px; paint-order:stroke; }
   .hpf-zone{ font:800 3.6px "Big Shoulders Display",sans-serif; letter-spacing:.2px; fill:#16201a; fill-opacity:.74; }
-  @container hpf (max-width:330px){ .hpf-zone{ display:none; } .hpf-title-rest{ display:none; } }      /* narrow: "Phase", so the phase and your accuracy fit */
+  @container hpf (max-width:330px){ .hpf-zone{ display:none; } }
   .hpf-qtext{ font:800 2.7px "JetBrains Mono",monospace; fill:#16201a; }
   .hpf-marks{ position:absolute; inset:0; pointer-events:none; }
   /* dark symbols (white fails on the amber and orange), a white ring and a dark one round it
@@ -7440,6 +7499,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .hpf-ph:hover:not(:disabled){ background:var(--surface-2); }
   .hpf-ph:disabled{ cursor:default; color:var(--ink-soft); }
   .hpf-ph[aria-current="step"]{ background:var(--surface-2); box-shadow:inset 0 0 0 1px var(--line); }
+  .hpf-ph[aria-current="step"] .hpf-ph-sub{ color:var(--ink); }       /* (the softer ink is under 4.5:1 on that ground on three themes) */
   .hpf-ph:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
   .hpf-ph-name{ flex:0 0 6.2em; font-size:12.5px; font-weight:700; }
   .hpf-ph-num{ flex:0 0 2.9em; text-align:right; font:800 13.5px/1.35 "JetBrains Mono",monospace; font-variant-numeric:tabular-nums; }
@@ -7447,15 +7507,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .hpf-ph-sub{ display:flex; gap:0 6px; margin-left:auto; font-size:11.5px; color:var(--ink-soft); text-align:right; }
   .hpf-ph-sub > :empty{ display:none; }
   .hpf-ph-marks:not(:empty) + .hpf-ph-avg:not(:empty)::before{ content:'\00b7'; margin-right:6px; }
-  @container hpf (max-width:339px){ .hpf-ph-marks{ display:none; } .hpf-ph-marks + .hpf-ph-avg::before{ content:none !important; } }
+  @container hpf (max-width:329px){ .hpf-ph-marks{ display:none; } .hpf-ph-marks + .hpf-ph-avg::before{ content:none !important; } }
   .hpf-go{ align-self:flex-start; font-size:12.5px; }
   .hpf-season{ font-size:12px; line-height:1.4; color:var(--ink-soft); }
   .hpf-src{ font-size:12px; line-height:1.35; color:var(--ink-soft); }
   .hpf-src[hidden]{ display:none; }
   .hpf-season b{ color:var(--ink); font-weight:700; }
   :root[data-skin="bauhaus"] :is(.hpf-field, .hpf-ph){ border-radius:0; }
-  .hpf-bar-top .hpf-now{ min-width:0; }
-  @media (min-width:900px){ .hv-boardcol > #hpf{ margin-top:6px; } }      /* two columns: a little more room under the controls */
   .hr-acc-cc{ margin-top:2px; font-size:11.5px; line-height:1.3; color:var(--ink-soft); }
   .hr-graph-wrap{ min-width:0; }
   .hr-graph{ display:block; width:100%; height:110px; background:#2b2b2b; border-radius:6px; cursor:pointer; touch-action:pan-y; box-shadow:0 0 0 1px var(--line); }
@@ -9997,14 +10055,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       <div class="field-label" id="hvcards-label">Analysis board cards</div>
       <div class="toggle-row hvcards-row" id="hvcards-row" role="group" aria-labelledby="hvcards-label">
         <button type="button" class="toggle active" data-card="head" aria-pressed="true">Game review</button>
-        <button type="button" class="toggle" data-card="phase" aria-pressed="false">Phase of the game</button>
+        <button type="button" class="toggle active" data-card="phase" aria-pressed="true">Phase of the game</button>
         <button type="button" class="toggle active" data-card="notes" aria-pressed="true">Notes</button>
         <button type="button" class="toggle active" data-card="comment" aria-pressed="true">Comment</button>
         <button type="button" class="toggle active" data-card="larry" aria-pressed="true">Larry Suggestions</button>
         <button type="button" class="toggle active" data-card="engine" aria-pressed="true">Engine</button>
         <button type="button" class="toggle active" data-card="tabs" aria-pressed="true">Moves &#183; Review &#183; Explorer</button>
       </div>
-      <div class="field-hint">The cards around the board when you review a game. Turn one off to hide it; the cards left in its column take its room. With the Engine card off the engine still runs when it&#8217;s on (L turns it on or off).</div>
+      <div class="field-hint">The cards around the board when you review a game. Turn one off to hide it; the cards left in its column take its room. Phase of the game is a tab of the Game review card. With the Engine card off the engine still runs when it&#8217;s on (L turns it on or off).</div>
     </div>
 
     <!-- the arrows Stockfish draws on the review board (the engine card's cog has them too: small, and on a phone in the Engine tab; 2026-11-24) -->
@@ -10558,7 +10616,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
          for the exact position. One board (#ghp-setup) and one answer (#ghp-results) serve both sub-tabs -->
     <section class="ghp" id="ghp" hidden>
       <section class="panel ps-page" id="ps-page" aria-labelledby="ps-name" hidden>
-        <button type="button" class="btn-link ghg-back ps-back" id="ps-back">&larr; All pawn structures</button>
+        <div class="ps-backs"><button type="button" class="btn-link ghg-back ps-back" id="ps-rv" hidden>&larr; Back to the game</button>
+        <button type="button" class="btn-link ghg-back ps-back" id="ps-back">&larr; All pawn structures</button></div>
         <div class="ps-body" id="ps-page-body"></div>
       </section>
       <section class="panel ps-panel" id="ps-you" aria-labelledby="ps-you-h" hidden>
@@ -10946,8 +11005,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <!-- the arrow folds this card to its first lines and Notes takes the room (three columns: hvApplyFold) -->
         <div class="hv-head-top">
           <div class="eyebrow">Game review</div>
+          <!-- the card's own tabs (hct*, 2026-11-24), for a game: its own line at the top of the card; under three columns
+               the top of the Game review tab (hvPlaceTabs moves it there) -->
+          <div class="hct" id="hct" role="tablist" aria-label="Game review card" hidden>
+            <button class="hct-tab" role="tab" type="button" id="hct-review" aria-controls="hcp-review" aria-selected="true" title="Game review (key 4 goes along these tabs)">Game review</button>
+            <button class="hct-tab" role="tab" type="button" id="hct-phase" aria-controls="hcp-phase" aria-selected="false" tabindex="-1" aria-label="Phase of the game" title="Phase of the game (key 4 goes along these tabs)"><span class="hct-l">Phase of the game</span><span class="hct-s">Phase</span></button>
+            <button class="hct-tab" role="tab" type="button" id="hct-pawns" aria-controls="hcp-pawns" aria-selected="false" tabindex="-1" aria-label="Pawn structures" title="Pawn structures (key 4 goes along these tabs)"><span class="hct-l">Pawn structures</span><span class="hct-s">Structures</span></button>
+          </div>
           <button class="hv-fold" id="hv-fold-head" type="button" aria-expanded="true" aria-controls="hv-head"><span class="hv-fold-chev" aria-hidden="true"></span></button>
         </div>
+        <div class="hct-panes">
+        <div class="hct-pane" role="tabpanel" id="hcp-review" aria-labelledby="hct-review">
         <h1 class="title hv-title" id="hv-title">Game</h1>
         <div class="hv-result" id="hv-result"></div>
         <div class="subtitle hv-meta" id="hv-meta"></div>
@@ -10994,31 +11062,34 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           <a class="btn btn-ghost hv-act" id="hv-lichess" target="_blank" rel="noopener noreferrer">Open on Lichess</a>
           <button class="btn btn-ghost hv-act" id="hv-groups" type="button" aria-haspopup="menu" aria-expanded="false">Groups</button>
         </div>
-        <textarea id="hv-pgn" hidden readonly tabindex="-1" aria-hidden="true"></textarea>
-      </div>
-      <!-- Phase of the game (hpf*): the game as a drive down a field, the opening green, the
-           middlegame yellow, the endgame the red zone; your accuracy in each phase -->
-      <div class="hv-card hpf" id="hpf" hidden>
-        <!-- small until clicked: the zones (the one you're in at full colour), the evaluation for
-             you and the move shown; open, the field, your grades and the rest. A click anywhere
-             on the card but its buttons closes it again. -->
-        <button type="button" class="hpf-bar" id="hpf-bar" aria-expanded="false" aria-controls="hpf-more">
-          <span class="hpf-bar-top"><span class="eyebrow hpf-title">Phase<span class="hpf-title-rest"> of the game</span></span><span class="hpf-now" id="hpf-now"></span><span class="hpf-chev" aria-hidden="true"></span></span>
-          <svg class="hpf-mini" id="hpf-mini" viewBox="0 0 120 12" preserveAspectRatio="none" aria-hidden="true" focusable="false"></svg>
-        </button>
-        <div class="hpf-more" id="hpf-more" hidden>
-          <div class="hpf-field" id="hpf-field">
-            <svg class="hpf-svg" id="hpf-svg" viewBox="0 0 120 30" aria-hidden="true" focusable="false"></svg>
-            <div class="hpf-marks" id="hpf-marks"></div>
-          </div>
-          <div class="hpf-queens" id="hpf-queens" hidden></div>
-          <div class="hpf-phases" id="hpf-phases"></div>
-          <button type="button" class="btn-link hpf-go" id="hpf-go" hidden>Analyze game to grade each phase</button>
-          <div class="hpf-src" id="hpf-src" hidden></div>
-          <div class="hpf-season" id="hpf-season" hidden></div>
-          <button type="button" class="btn-link hpf-info" id="hpf-info" aria-expanded="false" aria-controls="hpf-how">How the phases are split</button>
-          <p class="hpf-how" id="hpf-how" hidden>The phases follow the pieces, as on Lichess: the middlegame starts once the pieces are developed or traded, the endgame with 6 or fewer pieces left (not counting pawns and kings), or 8 or fewer once both queens are off. A move counts in the phase it was played in; the averages are your other reviewed games.</p>
         </div>
+        <!-- Phase of the game (hpf*): the game as a drive down a field, the opening green, the
+             middlegame yellow, the endgame the red zone; your accuracy in each phase. The small
+             strip is the folded card's (three columns) -->
+        <div class="hct-pane is-off" role="tabpanel" id="hcp-phase" aria-labelledby="hct-phase">
+          <p class="hct-none" id="hpf-none" hidden></p>
+          <div class="hpf" id="hpf" hidden>
+            <div class="hpf-now" id="hpf-now"></div>
+            <svg class="hpf-mini" id="hpf-mini" viewBox="0 0 120 12" preserveAspectRatio="none" aria-hidden="true" focusable="false"></svg>
+            <div class="hpf-more" id="hpf-more">
+              <div class="hpf-field" id="hpf-field">
+                <svg class="hpf-svg" id="hpf-svg" viewBox="0 0 120 30" aria-hidden="true" focusable="false"></svg>
+                <div class="hpf-marks" id="hpf-marks"></div>
+              </div>
+              <div class="hpf-queens" id="hpf-queens" hidden></div>
+              <div class="hpf-phases" id="hpf-phases"></div>
+              <button type="button" class="btn-link hpf-go" id="hpf-go" hidden>Analyze game to grade each phase</button>
+              <div class="hpf-src" id="hpf-src" hidden></div>
+              <div class="hpf-season" id="hpf-season" hidden></div>
+              <button type="button" class="btn-link hpf-info" id="hpf-info" aria-expanded="false" aria-controls="hpf-how">How the phases are split</button>
+              <p class="hpf-how" id="hpf-how" hidden>The phases follow the pieces, as on Lichess: the middlegame starts once the pieces are developed or traded, the endgame with 6 or fewer pieces left (not counting pawns and kings), or 8 or fewer once both queens are off. A move counts in the phase it was played in; the averages are your other reviewed games.</p>
+            </div>
+          </div>
+        </div>
+        <!-- Pawn structures (hctPawns): the structures this game reached, each with its way to practice -->
+        <div class="hct-pane is-off" role="tabpanel" id="hcp-pawns" aria-labelledby="hct-pawns"></div>
+        </div>
+        <textarea id="hv-pgn" hidden readonly tabindex="-1" aria-hidden="true"></textarea>
       </div>
       <div class="hv-card hv-notes-card" id="hv-notes-card"></div>
       </div>
@@ -35256,7 +35327,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
      board is the structure's pawns, or its typical position, with an arrow for each candidate break (green: role a's, blue:
      role b's, as the review's arrows look) and a ring on each key square. Nothing is fetched; a model game is a link. ---- */
   var PS_LB = null;                // a card's id -> the card
-  var PS_UI = { sig:'', cur:null, ps:null, mode:'pawns', brk:-1, flip:false, back:null, lib:'', libPs:null, all:false, more:null, cnt:'', io:null };
+  var PS_UI = { sig:'', cur:null, ps:null, mode:'pawns', brk:-1, flip:false, back:null, rv:null, lib:'', libPs:null, all:false, more:null, cnt:'', io:null };
   var PS_PREF_KEY = 'wavyChessPrepPawnPage', PS_PREF = null;       // this viewer's, on this device: { s:{ section: 1 open | 0 closed }, f: the library's chip, v r l: Your structures' view, rank, level }
   var PS_FAM = ['Caro-Kann', 'Jobava London', 'Slav', "Queen's pawn", "Queen's Gambit", 'Catalan', 'Indian defenses', 'Benoni and Benko', 'Dutch', 'English',
     'French', 'Scandinavian', 'Sicilian', 'Open games', 'Spanish', 'Pirc and Modern'];      // the library's chips
@@ -35811,9 +35882,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     return { E, by, sp, all, named, ops:{} };
   }
   // what there is to show: the model (or the one drawn before, while new games are read) and the progress line
+  function psnWho(){ return GH_UI.site+'|'+(ghMe() || '')+'|'+(ghCcUp() ? ccUser() : '')+'|'+(GH_FILTERS.speed || '')+'|'+(GH_FILTERS.color || ''); }      // whose games a count is of
   function psnNow(base){
     base = base || ghBaseList();
-    const A = psAll(base), f = GH_FILTERS, busy = psLoading(), who = GH_UI.site+'|'+(ghMe() || '')+'|'+(ghCcUp() ? ccUser() : '')+'|'+(f.speed || '')+'|'+(f.color || '');
+    const A = psAll(base), f = GH_FILTERS, busy = psLoading(), who = psnWho();
     PSN.tot = A.n;
     if(A.ready && !busy){
       const key = who+'|'+ghpBaseKey(base)+'|'+PS_GEN;
@@ -36343,7 +36415,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if((GH_UI.pcard || '')===id && (GH_UI.pm ? 1 : 0)===m && (GH_UI.pc || '')===pc) return;
     const pg = document.getElementById('ps-page'), inPage = !!pg && pg.contains(document.activeElement), bk = id ? null : PS_UI.back;
     if(id && !GH_UI.pcard) PS_UI.back = { y:window.scrollY, fid:o.fid || '' };
-    if(!id){ PS_UI.back = null; PS_UI.sig = ''; }
+    if(!id){ PS_UI.back = null; PS_UI.sig = ''; PS_UI.rv = null; }
     GH_UI.pcard = id; GH_UI.pm = m; GH_UI.pc = pc;
     if(id) GH_UI.psub = 'structures';
     ghSaveFilters();
@@ -36363,6 +36435,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     set('ps-page', !page);
     set('ps-you', !on || page);
     set('ps-lib', !on || page);
+    set('ps-rv', !PS_UI.rv);
     if(page){ psPage(); psnPage(base); }
     else if(on){ PSN.few = false; psnYou(base); if(!PSN.few) psLibrary(); }          // (into an empty list: the library after its rows)
     return page;
@@ -36393,6 +36466,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     document.getElementById('ghp-sub').addEventListener('click', (e)=>{ const b = e.target.closest('.gh-sub-b'); if(b) ghpSetSub(b.dataset.val); });
     document.getElementById('ghp-offer-b').addEventListener('click', ghpOfferGo);
     document.getElementById('ps-back').addEventListener('click', ()=> psOpen(''));
+    document.getElementById('ps-rv').addEventListener('click', hctBack);
     document.getElementById('ghp-color').addEventListener('click', (e)=>{ const b = e.target.closest('.toggle'); if(!b) return; GHP.color = b.dataset.val; ghpDraw(); if(GHP.q) ghpSearch(); });
     document.getElementById('ghp-go').addEventListener('click', ()=>{ if(ghpCanSearch()) ghpSearch(); });
   })();
@@ -48337,13 +48411,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   const HV_TABS = ['moves', 'review', 'explorer', 'similar', 'notes'];
   const HV_TABS1 = ['review', 'moves', 'notes', 'larry'], HV_TABS2 = ['engine', 'explorer', 'similar'];      // the two cards under three columns
   const HV_CARDS = ['head', 'phase', 'notes', 'comment', 'engine', 'tabs', 'larry'];     // the cards around the board (Settings)
+  const HCT = ['review', 'phase', 'pawns'];      // the Game review card's own tabs (hct*, 2026-11-24)
   const hvPrefs = (function(){
-    // v2 (2026-11-02): the phase card is off unless turned on in Settings (it was on); fold: the
+    // v3 (2026-11-24): Phase of the game is a tab of the Game review card, on. v2 (2026-11-02) had it off
+    // unless turned on, and wrote that off with every save: an off saved by v2 is nobody's choice and comes
+    // on; one saved before v2 (on by default then) or since v3 is, and stays. ctab: the card's tab. fold: the
     // left column's two cards folded to their first lines (three columns). cards.comment (2026-11-02,
     // the comment card over the engine): on, and on for a save from before it (no key)
     // tab1 / tab2 (2026-11-02): the two tabbed cards' tabs under three columns (Game review | Moves |
     // Notes, Engine | Explorer); tab is the three columns' own
-    const p = { v:2, engine:true, arrows:[true, true, true], hide:false, tab:'moves', exDb:'masters', cards:{ head:true, phase:false, notes:true, comment:true, engine:true, tabs:true, larry:true }, phaseOpen:false,
+    const p = { v:3, engine:true, arrows:[true, true, true], hide:false, tab:'moves', exDb:'masters', cards:{ head:true, phase:true, notes:true, comment:true, engine:true, tabs:true, larry:true }, ctab:'review',
       fold:{ head:false, notes:false, larry:false }, tab1:'moves', tab2:'engine', calcHide:false };
     try{
       const raw = JSON.parse(localStorage.getItem(HV_PREFS_KEY) || 'null');
@@ -48357,10 +48434,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         if(HV_TABS2.indexOf(raw.tab2)>=0) p.tab2 = raw.tab2;
         if(raw.exDb==='masters' || raw.exDb==='lichess') p.exDb = raw.exDb;
         if(raw.cards && typeof raw.cards==='object') HV_CARDS.forEach(k=>{ if(typeof raw.cards[k]==='boolean') p.cards[k] = raw.cards[k]; });
-        // saved before v2, cards.phase was the old default (every save wrote it): off now, once
-        if(!(raw.v >= 2)) p.cards.phase = false;
-        if(typeof raw.phaseOpen==='boolean') p.phaseOpen = raw.phaseOpen;
-        if(typeof raw.calcHide==='boolean') p.calcHide = raw.calcHide;     // the Capture Calculator's "Hide the count" (2026-11-19)     // the phase card open (small by default)
+        if(raw.v===2) p.cards.phase = true;
+        if(HCT.indexOf(raw.ctab)>=0) p.ctab = raw.ctab;
+        if(typeof raw.calcHide==='boolean') p.calcHide = raw.calcHide;     // the Capture Calculator's "Hide the count" (2026-11-19)
         if(raw.fold && typeof raw.fold==='object') ['head', 'notes', 'larry'].forEach(k=>{ if(typeof raw.fold[k]==='boolean') p.fold[k] = raw.fold[k]; });
       }
     }catch(e){}
@@ -48824,12 +48900,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // In one column (phone, iPad portrait) the panels sit under the board: a
   // jump picked there (a note's diagram, a review count, a move far down
   // the list, an explorer move) brings the board back into view, or
-  // nothing would seem to happen. A board mostly in view stays put.
-  function hvRevealBoard(){
+  // nothing would seem to happen. A board mostly in view stays put (whole:
+  // only one all in view).
+  function hvRevealBoard(whole){
     const b = hvBoardEl.getBoundingClientRect();
     if(!b.height || !hvViewActive()) return;
     const vh = window.innerHeight || document.documentElement.clientHeight;
-    if((Math.min(b.bottom, vh) - Math.max(b.top, 0)) / b.height >= 0.6) return;
+    if((Math.min(b.bottom, vh) - Math.max(b.top, 0)) / b.height >= (whole ? 0.99 : 0.6)) return;
     const top = document.getElementById('hv-row-top').getBoundingClientRect().top;
     const fab = document.getElementById('home-fab'), fr = fab ? fab.getBoundingClientRect() : null;
     const clear = fr && fr.height ? fr.bottom + 6 : 8;           // under the corner buttons
@@ -50473,6 +50550,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         col.insertBefore(tabs, $('hv-calc').nextSibling);      // (under Play it out and the Capture Calculator)
         tl1.insertBefore($('hv-tab-review'), tl1.firstElementChild);
         rp.insertBefore(head, rp.firstChild);
+        rp.insertBefore($('hct'), head);          // the card's own tabs, at the top of the Game review tab
         $('hv-pane-engine').appendChild(eng);
         tl2.appendChild($('hv-tab-explorer'));
         card2.appendChild($('hv-pane-explorer'));
@@ -50480,6 +50558,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         card2.appendChild($('hv-pane-similar'));
       } else {
         rcol.insertBefore(head, rcol.firstElementChild);
+        head.querySelector('.hv-head-top').insertBefore($('hct'), $('hv-fold-head'));
         tl1.insertBefore($('hv-tab-review'), $('hv-tab-moves').nextSibling);
         tl1.insertBefore($('hv-tab-explorer'), $('hv-tab-review').nextSibling);
         tabs.insertBefore($('hv-pane-explorer'), rp.nextSibling);
@@ -50510,6 +50589,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     tabs.classList.toggle('hv-tabs-none', t2 && !hvShownTab(1));
     card2.classList.toggle('hv-tabs-none', t2 && !hvShownTab(2));
     document.getElementById('hv-pane-review').classList.toggle('hv-res-off', t2 && hvResOff());
+    hctSync();
     if(!t2) return;
     const a = hvShownTab(1), b = hvShownTab(2);
     [[HV_TABS1, a], [HV_TABS2, b]].forEach(([set, cur])=> set.forEach(t=>{
@@ -50524,7 +50604,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!HV_STATE || !hvViewActive()) return [];
     if(hvTabbed()){
       const v = [], a = hvShownTab(1);
-      if(a && !(a==='review' && hvResOff())) v.push(a);          // the Game review tab holding the header alone: no review on screen
+      if(a && !(a==='review' && (hvResOff() || hctTab()!=='review'))) v.push(a);          // the Game review tab holding the header alone, or on another of its tabs: no review on screen
       const b = hvShownTab(2);
       if(b==='explorer' || b==='similar') v.push(b);
       return v;
@@ -52779,7 +52859,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hvRenderBoard();
     hvRenderStrips();
     hvRenderEval();
-    if(!HV_STATE.me) hpfRender();      // whose side unknown: the phase card grades the side at the bottom
+    if(!HV_STATE.me){ hpfRender(); hctPawns(); }      // whose side unknown: the phase tab grades the side at the bottom, the structures are its
   }
   document.getElementById('hv-flip').addEventListener('click', hvFlip);
   // Copy PGN, beside Share (2026-11-02): the game's PGN as plain text, to paste anywhere. On a phone or an
@@ -52823,7 +52903,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     return m && e.key && e.key.length===1 ? Number(m[1]) : 0;
   }
   // ---- keys 4 / 5 / 6 / 7: the tabs (2026-11-02) ----
-  // 4 Game review, 5 Moves, 6 Notes, 7 Explorer. Under three columns, a tab of the two tabbed
+  // 4 Game review (again: along that card's own tabs, hctNext), 5 Moves, 6 Notes, 7 Explorer. Under three columns, a tab of the two tabbed
   // cards (picked as a click picks it, and remembered); in the three columns, the Review /
   // Moves / Explorer tab, 4 also opening the folded header card and 6 the folded Notes card
   // (brought into view, never focused). The keys stay where they were (the arrows still step).
@@ -52831,8 +52911,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const t = ['review', 'moves', 'notes', 'explorer', 'similar'][n-4], name = t==='similar' ? 'Similar openings' : hvTabName(t);
     if(hvTabbed()){
       if(!hvTabOn(t)){ hvSay(name+' isn\u2019t shown here'); return; }
+      if(t==='review' && hvShownTab(1)==='review' && hctNext()) return;
       hvSetTab(t, { save:true });
-      hvSay(name);
+      hvSay(t==='review' ? hctName() : name);
       return;
     }
     const px = !!HV_STATE.game._practice;
@@ -52844,6 +52925,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       return;
     }
     let did = false;
+    if(t==='review' && !hvPrefs.fold.head && (hvTab==='review' || !hvPrefs.cards.tabs) && hctNext()) return;
     if(t==='review' && hvPrefs.fold.head && hvPrefs.cards.head){ hvPrefs.fold.head = false; hvSavePrefs(); hvApplyFold(); did = true; }
     if(hvPrefs.cards.tabs && !(px && !pxTabOk(t))){ hvSetTab(t, { save:true }); did = true; }
     hvSay(did ? name : name+' isn\u2019t shown here');
@@ -55432,7 +55514,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     phases: document.getElementById('hpf-phases'), go: document.getElementById('hpf-go'), season: document.getElementById('hpf-season'), cells: [],
     src: document.getElementById('hpf-src'),
     info: document.getElementById('hpf-info'), how: document.getElementById('hpf-how'),
-    bar: document.getElementById('hpf-bar'), mini: document.getElementById('hpf-mini'), more: document.getElementById('hpf-more')
+    mini: document.getElementById('hpf-mini'), none: document.getElementById('hpf-none')
   };
   // ---- the phases ----
   function hpfPieces(B){ let n = 0; for(let i=0; i<64; i++){ const p = B[i]; if(p && p.type!=='k' && p.type!=='p') n++; } return n; }
@@ -55577,8 +55659,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   function hpfRender(){
     const S = HV_STATE, E = hpfEl, on = hpfOn(S);
+    if(!S || !hctShown('phase')) return;          // drawn when its tab shows (hctSync)
     E.card.hidden = !on;
-    if(!on) return;
+    E.none.hidden = on;
+    if(!on){ E.none.textContent = S.std ? 'No moves to split into phases.' : 'Not a standard game, so it isn\u2019t split into phases.'; return; }
     hpfBuild();
     hpfDrawStatic();
     if(!S._hpf) S._hpf = hpfDivide(S.plyStates);
@@ -55590,7 +55674,6 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     S._hpfG = G;
     E.src.hidden = !LG;
     if(LG && E.src.textContent!=='From Lichess\u2019s analysis of this game') E.src.textContent = 'From Lichess\u2019s analysis of this game';
-    hpfSetOpen(hvPrefs.phaseOpen, true);
     hpfDrawQueens(d);
     // your other reviewed games (this one left out), a phase's average from 2 or more of them
     const O = job ? null : hpfOthers(hpfSeason(), S), avg = (k)=> O && O.cnt[k] >= 2 ? 'avg '+Math.round(O.avg[k]) : '';
@@ -55676,7 +55759,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // the move shown; on a side line, the game's move it branches from (as the review graph)
   function hpfRenderMarker(){
     const S = HV_STATE, E = hpfEl;
-    if(!hpfOn(S) || !S._hpf || E.card.hidden) return;
+    if(!hctShown('phase') || !hpfOn(S) || !S._hpf || E.card.hidden) return;
     const base = hvBranchBase(S.cur) || S.root;
     const d = S._hpf, pos = Math.min(d.N, base.ply || 0), k = hpfPhaseOf(d, pos);
     hpfDrawMarker(10 + hpfYard(d, pos));
@@ -55777,20 +55860,6 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(work){ E.appendChild(document.createTextNode('work on the ')); E.appendChild(hvEl('b', '', work)); }
     E.hidden = !(lead || rest);
   }
-  // Three columns: the left column, between the header and Notes. Narrower, after the board's
-  // controls: two columns keep the side column the screen's height (the card would squeeze the
-  // moves), and one column orders it after the tabs (order 8).
-  function hpfPlace(){
-    const card = hpfEl.card, wide = hvMqWide.matches;
-    const host = wide ? document.querySelector('#view-play-history .hv-sidecol-review') : document.querySelector('#view-play-history .hv-boardcol');
-    const before = wide ? document.getElementById('hv-notes-card') : null;
-    if(!host || (card.parentNode===host && card.nextElementSibling===before)) return;
-    const fa = document.activeElement, had = !!fa && card.contains(fa);
-    host.insertBefore(card, before);
-    if(had) try{ fa.focus({ preventScroll:true }); }catch(e){}
-  }
-  hpfPlace();
-  try{ hvMqWide.addEventListener('change', hpfPlace); }catch(e){ try{ hvMqWide.addListener(hpfPlace); }catch(e2){} }
   hpfEl.go.addEventListener('click', ()=> hrStart());
   // how the phases are split, shown on demand (a tooltip alone reaches neither touch nor keys)
   hpfEl.info.addEventListener('click', ()=>{
@@ -55798,7 +55867,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hpfEl.how.hidden = !open;
     hpfEl.info.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
-  // The small strip: the zones (the one you're in at full colour, the others faded), the
+  // The small strip, the folded card's: the zones (the one you're in at full colour, the others faded), the
   // evaluation for you once graded (up is good for you, the middle even), the move shown.
   function hpfWinPct(score, mine){
     const cp = hrMoverScore(score, 'w') * (mine==='w' ? 1 : -1);      // a mate counts as 1000, as in the review
@@ -55806,7 +55875,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   function hpfDrawMini(S, d, pos, k){
     const svg = hpfEl.mini;
-    if(hpfEl.card.classList.contains('is-open')) return;              // hidden: drawn when it closes
+    if(!hvPrefs.fold.head) return;              // the folded card's: drawn when it folds (hvApplyFold)
     while(svg.firstChild) svg.removeChild(svg.firstChild);
     const H = 12, fade = (z)=> z===k ? 1 : 0.4;
     hpfSvg('rect', { x:0, y:0, width:120, height:H, fill:'#ffffff' }, svg);       // the faded zones light tints on every skin
@@ -55824,35 +55893,249 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hpfSvg('line', { x1:x, y1:0, x2:x, y2:H, stroke:'#ffffff', 'stroke-width':4, 'vector-effect':'non-scaling-stroke' }, svg);
     hpfSvg('line', { x1:x, y1:0, x2:x, y2:H, stroke:'#141815', 'stroke-width':2, 'vector-effect':'non-scaling-stroke' }, svg);
   }
-  // open (the whole card) or small; remembered
-  function hpfSetOpen(open, quiet){
-    const E = hpfEl;
-    E.card.classList.toggle('is-open', !!open);
-    E.more.hidden = !open;
-    E.bar.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if(quiet) return;
-    hvPrefs.phaseOpen = !!open;
-    hvSavePrefs();
-    hpfRender();
-  }
-  hpfEl.bar.addEventListener('click', ()=> hpfSetOpen(!hpfEl.card.classList.contains('is-open')));
-  // the open card: a click on it closes it, but for its buttons (marks, rows, Analyze, How) and the text they show
-  hpfEl.card.addEventListener('click', (e)=>{
-    if(!hpfEl.card.classList.contains('is-open') || (e.target.closest && e.target.closest('button, a, .hpf-how'))) return;
-    const lost = hpfEl.more.contains(document.activeElement);       // the keys were inside what closes: to the bar
-    hpfSetOpen(false);
-    if(lost) try{ hpfEl.bar.focus({ preventScroll:true }); }catch(err){}
-  });
   // a new width spaces the discs again
   try{
     let raf = 0;
     new ResizeObserver(()=>{
       if(raf) return;
-      raf = requestAnimationFrame(()=>{ raf = 0; if(!hpfEl.card.hidden && Math.round((hpfEl.field.clientWidth || 300) / 10)!==hpfFieldW) hpfRender(); });
+      raf = requestAnimationFrame(()=>{ raf = 0; if(!hpfEl.card.hidden && hpfEl.field.clientWidth && Math.round(hpfEl.field.clientWidth / 10)!==hpfFieldW) hpfRender(); });
     }).observe(hpfEl.field);
   }catch(e){}
   hvOnGame(()=>{ hpfEl.marks.dataset.sig = '-'; hpfEl.now.dataset.k = ''; hpfRender(); });
   hvOnNode(()=> hpfRenderMarker());
+
+  /* ---- the Game review card's own tabs (hct*, 2026-11-24; the user: "put that in the game review card as a tab, on by
+     default, I can just switch over from game review into phase of the game"): Game review (what the card showed, and under
+     three columns the review's results with it) | Phase of the game (hpf*) | Pawn structures (hctPawns). For a game of
+     yours: a puzzle's card and a played-out position's have none. The tab is kept on this device (hvPrefs.ctab) and is
+     never moved by a game that has nothing for it: that tab says so. Phase of the game off in Settings: no tab, the card
+     on Game review meanwhile. Three columns: the strip is the card's first line; under them the top of the Game review
+     tab. Only the shown tab is drawn. Key 4 on the card goes along them. ---- */
+  function hctGame(){ return !!(HV_STATE && HV_STATE.game && !HV_STATE.game._puzzle && !HV_STATE.game._practice); }
+  function hctTabs(){ return HCT.filter(t=> t!=='phase' || hvPrefs.cards.phase); }
+  function hctTab(){ return hctGame() && hvPrefs.cards.head && hctTabs().indexOf(hvPrefs.ctab) >= 0 ? hvPrefs.ctab : 'review'; }
+  function hctName(){ return document.getElementById('hct-'+hctTab()).getAttribute('aria-label') || 'Game review'; }
+  // on screen (under three columns the Game review tab is up too)
+  function hctShown(t){ return hctTab()===t && (!hvTabbed() || hvShownTab(1)==='review'); }
+  function hctSync(){
+    const on = hctGame() && !!hvPrefs.cards.head, t = hctTab();
+    document.getElementById('hct').hidden = !on;
+    document.getElementById('hv-pane-review').classList.toggle('hct-on', on && hvTabbed());
+    HCT.forEach(k=>{
+      const b = document.getElementById('hct-'+k), cur = k===t;
+      b.hidden = k==='phase' && !hvPrefs.cards.phase;
+      b.setAttribute('aria-selected', cur ? 'true' : 'false');
+      b.tabIndex = cur ? 0 : -1;
+      document.getElementById('hcp-'+k).classList.toggle('is-off', !cur);
+    });
+    document.getElementById('hv-pane-review').classList.toggle('hct-away', hvTabbed() && t!=='review');      // (three columns: that pane is the analysis card's)
+    if(t==='phase') hpfRender();
+    if(t==='pawns') hctPawns();
+  }
+  function hctSet(t, focus){
+    if(HCT.indexOf(t) < 0) return;
+    const before = hvVisiblePanes();
+    hvPrefs.ctab = t;
+    hvSavePrefs();
+    hctSync();
+    const p = document.getElementById('hv-pane-review');
+    if(hvTabbed() && p.scrollTop) p.scrollTop = 0;
+    if(focus) try{ document.getElementById('hct-'+t).focus({ preventScroll:true }); }catch(e){}
+    hrRenderTabDot();
+    hvVisiblePanes().forEach(x=>{ if(before.indexOf(x) < 0) hvFire(hvPaneLs, x); });
+  }
+  // key 4 with the card up: its next tab
+  function hctNext(){
+    if(!hctGame() || !hvPrefs.cards.head) return false;
+    const L = hctTabs();
+    hctSet(L[(L.indexOf(hctTab()) + 1) % L.length]);
+    hvSay(hctName());
+    return true;
+  }
+  (function(){
+    const tl = document.getElementById('hct');
+    tl.addEventListener('click', (e)=>{
+      const b = e.target.closest('.hct-tab');
+      if(!b) return;
+      hctSet(b.id.slice(4));
+      if(e.detail) b.blur();            // pressed with a pointer: the arrow keys stay the game's (on a tab reached by the keyboard they go along the tabs)
+    });
+    tl.addEventListener('keydown', (e)=>{
+      const b = e.target.closest('.hct-tab'), L = hctTabs(), i = b ? L.indexOf(b.id.slice(4)) : -1;
+      if(i < 0 || e.ctrlKey || e.metaKey || e.altKey) return;
+      const j = e.key==='ArrowRight' ? (i + 1) % L.length : e.key==='ArrowLeft' ? (i + L.length - 1) % L.length : e.key==='Home' ? 0 : e.key==='End' ? L.length - 1 : -1;
+      if(j < 0) return;
+      e.preventDefault(); e.stopPropagation();
+      hctSet(L[j], true);
+    });
+  })();
+
+  // ---- Pawn structures: the named structures this game reached (psOf), in the order they stood ----
+  // [{ id, m (colors reversed), p (the ply it first stands at), at:[[from, to]...] }]: a structure once, with every stretch of it
+  function hctList(S){
+    const g = S && S.std && gnIdOk(String(S.game.id || '')) ? S.game : null, out = [];
+    let L = [];
+    if(g) try{ L = psOf(g); }catch(e){ L = []; }
+    L.forEach(x=>{
+      const r = psCard(x.id);
+      if(!r || x.p > S.main.length) return;
+      const m = r.sym ? 0 : (x.m ? 1 : 0), was = out.find(o=> o.id===x.id && o.m===m);
+      if(was) was.at.push([x.p, x.z]); else out.push({ id:x.id, m, p:x.p, at:[[x.p, x.z]] });
+    });
+    return out;
+  }
+  function hctMove(p){ return Math.max(1, Math.ceil(p / 2)); }
+  // "Moves 9 to 24", "Moves 9 to 12 and 20 to 24", "Move 9"
+  function hctWhen(at){
+    const t = at.map(x=>{ const a = hctMove(x[0]), z = hctMove(x[1]); return a===z ? String(a) : a+' to '+z; });
+    return (t.length===1 && t[0].indexOf(' ') < 0 ? 'Move ' : 'Moves ')+(t.length < 2 ? t[0] : t.slice(0, -1).join(', ')+' and '+t[t.length - 1]);
+  }
+  // your own numbers, when every game of Game History's list is there and has been read (nothing is asked for here): Your structures' own
+  function hctNums(){
+    try{
+      const base = ghBaseList();
+      if(!base.length || psLoading() || psPart() || !base.every(g=> psGet(g))) return null;
+      return psnNow(base).M;
+    }catch(e){ return null; }
+  }
+  var HCT_PW = { sig:'', M:null, v:0, t:0, busy:false };      // M: the counts last made, v: goes up with every new M; busy: drawn during a game of yours
+  function hctPawns(){
+    if(!HV_STATE || !hctShown('pawns')) return;
+    // the numbers come after the list is on screen (a first count takes a moment)
+    if(!HCT_PW.t) HCT_PW.t = setTimeout(()=>{ HCT_PW.t = 0; const M = hctShown('pawns') && !olBusy() ? hctNums() : null; if(M!==HCT_PW.M){ HCT_PW.M = M; HCT_PW.v++; hctPawnsDraw(); } }, 30);
+    hctPawnsDraw();
+  }
+  function hctPawnsDraw(){
+    const S = HV_STATE, box = document.getElementById('hcp-pawns');
+    if(!S || !hctShown('pawns')) return;
+    const busy = olBusy(), L = busy ? [] : hctList(S), known = !!S.me, me = S.me || (S.flipped ? 'black' : 'white');
+    const why = busy ? 'Pawn structures show once your game is over.' : !S.std ? 'Not a standard game, so its pawn structures have no names.' : 'No named structure in this game.';
+    HCT_PW.busy = busy;
+    // the counts in hand, unless Game History's site, speed or color has changed since (the new ones come in a moment)
+    const M = !busy && HCT_PW.M && HCT_PW.M.who===psnWho() ? HCT_PW.M : null, sig = [S.game.id, S.main.length, me, known ? 1 : 0, M ? HCT_PW.v : '', L.length ? '' : why, L.map(x=> x.id+'.'+x.m+'.'+x.at.join('-')).join(' ')].join('|');
+    if(HCT_PW.sig===sig && box.firstChild){ hctNow(); return; }
+    const fa = document.activeElement, fid = fa && box.contains(fa) ? fa.dataset.k || '' : '';
+    HCT_PW.sig = sig;
+    box.textContent = '';
+    if(!L.length){ box.appendChild(hvEl('p', 'hct-none', why)); return; }
+    const ul = hvEl('ul', 'hcs');
+    L.forEach((x, i)=>{
+      const r = psCard(x.id), name = psName(x.id), mine = r.sym ? (me==='white' ? 'a' : 'b') : (me==='white')===!x.m ? 'a' : 'b', n = hctMove(x.p);
+      const li = hvEl('li', 'hcs-it');
+      li.dataset.i = String(i); li.dataset.id = x.id; li.dataset.m = String(x.m);
+      const bd = hvEl('div', 'hcs-bd'), fen = x.p ? S.main[x.p - 1].fen : S.root.fen;
+      try{ const b = nbMiniBoard({ fen:ghbPawnFen(fen), flip:me==='black', arrows:[], squares:[], label:'', ply:null, line:null, extra:[] }); b.setAttribute('aria-label', 'The pawns at move '+n); bd.appendChild(b); }catch(e){}
+      li.appendChild(bd);
+      const tx = hvEl('div', 'hcs-tx');
+      tx.appendChild(hvEl('h3', 'hcs-n', name));
+      tx.appendChild(document.createTextNode(' '));
+      tx.appendChild(hvEl('span', 'hcs-w', hctWhen(x.at)));
+      // your side of it, in its card's own words; with your numbers once they're there (a side's numbers say it themselves)
+      const t = known && M ? M.by.get(x.id) : null, T = t ? t.T[mine] : null, two = t && T.n ? psnSideText(x.id, mine, x.m)[0] : '';
+      // (both sides have the same: nothing to say; "the pressure on them" names the pawns when it stands alone)
+      const ra = psRoleIs(x.id, 'a', x.m), rb = psRoleIs(x.id, 'b', x.m);
+      const role = ra===rb ? '' : known ? 'You have '+(mine==='a' ? ra : rb.replace(/ them$/, ' '+ra)) : psColor('a', x.m)+' has '+ra+', '+psColor('b', x.m)+' has '+rb;
+      if(role && two!==role) tx.appendChild(hvEl('span', 'hcs-r', role));
+      if(two){
+        const p = hvEl('span', 'hcs-r hcs-num', two+': ');
+        p.appendChild(hvEl('b', '', ghoN(T.n, 'game')+', '+psnScore(T)));
+        // (no site tabs on this screen: the words say which one when it isn't both)
+        const only = psnOnly()+(GH_UI.site==='chesscom' ? ' on Chess.com' : GH_UI.site==='lichess' ? ' on Lichess' : '');
+        if(only) p.appendChild(document.createTextNode(only));
+        p.title = 'W '+T.W+' \u00b7 D '+T.D+' \u00b7 L '+T.L;
+        tx.appendChild(p);
+      }
+      li.appendChild(tx);
+      const acts = hvEl('div', 'hcs-b'), color = me==='white' ? 'White' : 'Black';
+      const add = (k, text, label)=>{ const b = hvEl('button', 'btn btn-ghost', text); b.type = 'button'; b.dataset.a = k; b.dataset.k = k+'.'+x.id+'.'+x.m; b.title = label; b.setAttribute('aria-label', text+': '+label); acts.appendChild(b); return b; };
+      add('go', 'Go to move '+n, 'where '+psThe(x.id)+' first stands');
+      if(psLib(x.id)){
+        const pg = add('page', hrRl() ? 'Find games with it' : 'Open its page', hrRl() ? 'the games that reach these pawns' : psThe(x.id)+' in Positions');
+        if(hrRl()) pg.classList.add('hv-pop-findpawns');          // (Repertoire Lab hides it where there's no player to look in)
+        add('px', 'Practice: Play it out', 'as '+color+', from the typical position of '+psThe(x.id)+', against Stockfish on this device. Nothing is kept.');
+      }
+      li.appendChild(acts);
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+    psTie(ul);
+    if(fid){ const b = box.querySelector('button[data-k="'+CSS.escape(fid)+'"]'); if(b) try{ b.focus({ preventScroll:true }); }catch(e){} }
+    hctNow();
+  }
+  // the structure standing at the move shown (on a side line: at the game's move it branches from)
+  function hctNow(){
+    const S = HV_STATE;
+    if(!S || !hctShown('pawns')) return;
+    if(HCT_PW.busy!==olBusy()){ hctPawns(); return; }        // a game of yours began or ended since the list was drawn
+    const items = document.querySelectorAll('#hcp-pawns .hcs-it');
+    if(!items.length) return;
+    const b = hvBranchBase(S.cur) || S.root, p = b.ply || 0, L = hctList(S);
+    items.forEach((li, i)=>{
+      const on = !!L[i] && L[i].at.some(a=> p >= a[0] && p <= a[1]);
+      if(li.classList.contains('is-now')!==on){ li.classList.toggle('is-now', on); if(on) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current'); }
+    });
+  }
+  hvOnNode(()=> hctNow());
+  hvOnGame((S)=>{ if(S && S.game && !S.game._practice) PS_UI.rv = null; document.querySelectorAll('.hct-pane').forEach(p=>{ p.scrollTop = 0; }); hctPawns(); });
+  // a structure's page in Positions (its Back to the game comes back here, at this move)
+  function hctPage(x, me, k){
+    const S = HV_STATE;
+    if(olBusy()) return;
+    if(hrRl()){ ghpFrom(x.p ? S.main[x.p - 1].fen : S.root.fen, me==='black', 'structures'); return; }      // Repertoire Lab: that player's Positions, by these pawns
+    const rv = { game:S.game, user:S.username, at:hvNodeRef(S.cur), flip:S.flipped, sel:'#hcp-pawns button[data-k="'+k+'"]',
+      gh:{ view:GH_UI.view, group:GH_UI.group || '', psub:GH_UI.psub, pcard:GH_UI.pcard || '', pm:GH_UI.pm, pc:GH_UI.pc || '' }, ga:GH_FILTERS.ga || '', pback:PS_UI.back };
+    // straight to Positions: what Game History showed isn't drawn on the way (its scroll and its card are still there for Back
+    // to the game); ghoSetView's own rules for the tab that's left
+    if(GH_UI.view==='groups') ghgLeave();
+    GH_FILTERS = Object.assign({}, GH_FILTERS, { ga:'' });
+    GH_UI.view = 'positions'; GH_UI.psub = 'structures'; GH_UI.pcard = '';          // (a page open from before: it opens again, at its top)
+    showView('history');
+    PS_UI.rv = rv;
+    psOpen(x.id, x.m, { color:me });
+    PS_UI.rv = rv;
+    const b = document.getElementById('ps-rv');
+    b.hidden = false;
+    try{ b.focus({ preventScroll:true }); }catch(e){}
+  }
+  function hctBack(){
+    const rv = PS_UI.rv;
+    if(!rv) return;
+    PS_UI.rv = null;
+    // Game History as it was when the game was opened: its own Back, and the address, go there (drawn when it's next shown)
+    Object.assign(GH_UI, rv.gh);
+    PS_UI.back = rv.pback;
+    if(rv.ga && rv.gh.view==='games' && !GH_FILTERS.ga) GH_FILTERS = ghValidFilters(Object.assign({}, GH_FILTERS, { ga:rv.ga }));       // (Positions had dropped Analytics' drill-down key)
+    ghSaveFilters();
+    ghSyncHash();
+    hvOpen(rv.game, rv.user, { at:rv.at, flip:rv.flip });
+    hctShowBtn(rv.sel);
+  }
+  // back at the button a screen was left by: the keyboard on it, its structure on the screen (false: it isn't there)
+  function hctShowBtn(sel){
+    const el = document.querySelector(sel);
+    if(!el || !el.getClientRects().length) return false;
+    try{ el.focus({ preventScroll:true }); (el.closest('.hcs-it') || el).scrollIntoView({ block:'nearest' }); }catch(e){}
+    return true;
+  }
+  // Practice: its typical position as your side, against the built-in Stockfish (px*); back to this game at this move
+  function hctPlay(x, me, btn){
+    const S = HV_STATE, c = psLib(x.id), was = btn.parentNode.querySelector('.px-note');
+    if(!S || !c) return;
+    if(was) was.remove();
+    if(olBusy()){ pxNote(btn, 'Finish your game first.'); return; }
+    const back = { game:S.game, user:S.username, at:hvNodeRef(S.cur), flip:S.flipped, sel:'#hcp-pawns button[data-k="'+btn.dataset.k+'"]' };
+    const why = pxOpen({ fen:x.m ? psMirrorFen(c.fen) : c.fen, color:me, title:psName(x.id), meta:'A typical position of '+psThe(x.id), back });
+    if(why) pxNote(btn, why); else hvRevealBoard(true);          // (the same screen: one column may be scrolled down to the list)
+  }
+  document.getElementById('hcp-pawns').addEventListener('click', (e)=>{
+    const b = e.target.closest('button[data-a]'), li = b ? b.closest('.hcs-it') : null, S = HV_STATE;
+    if(!li || !S) return;
+    const x = hctList(S)[Number(li.dataset.i)], me = S.me || (S.flipped ? 'black' : 'white');
+    if(!x || x.id!==li.dataset.id) return;
+    if(b.dataset.a==='go'){ hvGoto(x.p); hvRevealBoard(); }
+    else if(b.dataset.a==='page') hctPage(x, me, b.dataset.k);
+    else hctPlay(x, me, b);
+  });
 
   // ---- the cards around the board (Settings: Analysis board cards) ----
   // A card turned off is hidden and the others in its column take its room. Notes off goes the
@@ -55907,6 +56190,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       b.setAttribute('aria-label', name);
       b.title = folded ? 'Show all of it' : tip;
     });
+    hpfRenderMarker();          // (the folded card's strip)
   }
   // Notes opens when it's folded and something is added to it, or its title is clicked
   function hvUnfoldNotes(){
@@ -55920,7 +56204,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       hvPrefs.fold[k] = !hvPrefs.fold[k];
       hvSavePrefs();
       hvApplyFold();
-      if(hvPrefs.fold[k]) document.getElementById(HV_FOLD[k][0]).scrollTop = 0;    // its first lines in view
+      if(hvPrefs.fold[k]){ document.getElementById(HV_FOLD[k][0]).scrollTop = 0; if(k==='head') document.querySelectorAll('.hct-pane').forEach(p=>{ p.scrollTop = 0; }); }    // its first lines in view
     });
   });
   hvApplyFold();
@@ -66191,6 +66475,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(P && P.gz){ GZ.back = { y:b.y, fid:b.fid }; GZ.y = null; showView('history'); return; }      // Win it again: the Puzzles tab at its card (gzBack)
     if(b.game){
       hvOpen(b.game, b.user, { at:b.at, flip:b.flip });
+      if(b.sel && hctShowBtn(b.sel)) return;
       const h = document.getElementById('hv-px-here');
       try{ (h.hidden ? document.getElementById('hv-flip') : h).focus({ preventScroll:true }); }catch(e){}
       return;
