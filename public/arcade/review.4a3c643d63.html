@@ -6070,7 +6070,26 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   @keyframes hv-cc-float{ 0%, 100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
   @media (prefers-reduced-motion:reduce){ #hv-com-card{ animation:none; } }
   .hv-cc-head{ display:flex; align-items:center; gap:6px; min-width:0; font-family:"JetBrains Mono",monospace; font-size:12.5px; font-weight:700; line-height:1.4; color:var(--ink); }
-  .hv-cc-logo{ position:relative; flex:0 0 auto; width:34px; height:34px; margin:-3px 4px -3px -3px; isolation:isolate; pointer-events:none; }
+  /* light along the card's edges while a comment is up (2026-11-23; the user: as a phone's edges glow for its assistant,
+     "not too strong... peeking through the edges", "subtle, but enough to catch attention", never against the logo's own
+     glow): the theme's glass colors, faint, turning slowly. As a comment comes up (hvCcCue) it brightens once, just after
+     the logo's flash, as if the flash ran out along the edges, and settles. It is brightest on the edges and seeps in toward the middle,
+     fading as light through glass does ("it's going to seep through... so it kind of highlights the text"), under the words. */
+  @property --cc-ang{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
+  #hv-com-card{ position:relative; }
+  .hv-cc-edge{ position:absolute; inset:-15px; z-index:0; pointer-events:none;
+    --m:#000 0 14px, rgba(0,0,0,.52) 19px, rgba(0,0,0,.3) 30px, rgba(0,0,0,.17) 48px, rgba(0,0,0,.09) 78px, rgba(0,0,0,.06) 50%, rgba(0,0,0,.09) calc(100% - 78px), rgba(0,0,0,.17) calc(100% - 48px), rgba(0,0,0,.3) calc(100% - 30px), rgba(0,0,0,.52) calc(100% - 19px), #000 calc(100% - 14px);
+    -webkit-mask:linear-gradient(90deg, var(--m)), linear-gradient(var(--m)); mask:linear-gradient(90deg, var(--m)), linear-gradient(var(--m)); }
+  @media (max-width:1100px){ .hv-cc-edge{ inset:-11px; } }      /* (the page's own gutter there is 12px) */
+  .hv-cc-edge b{ position:absolute; inset:9px; border-radius:20px; filter:blur(5px) saturate(1.2); opacity:.28; --cc-ang:40deg;
+    background:conic-gradient(from var(--cc-ang), var(--glass-a, #60b0ff), color-mix(in srgb, var(--glass-a, #60b0ff) 45%, #fff), var(--glass-b, #ff84ba), color-mix(in srgb, var(--glass-a, #60b0ff) 50%, var(--glass-b, #ff84ba)), color-mix(in srgb, var(--glass-b, #ff84ba) 50%, #fff), var(--glass-a, #60b0ff));
+    animation:hv-ce-turn 9s linear infinite, hv-ce-breathe 5.2s ease-in-out infinite; }
+  .hv-cc-edge.is-hit b{ animation:hv-ce-turn 9s linear infinite, hv-ce-hit 1.9s ease-out calc(70ms + var(--cc-d, 0ms)) backwards, hv-ce-breathe 5.2s ease-in-out calc(1.97s + var(--cc-d, 0ms)) infinite; }
+  @keyframes hv-ce-turn{ from{ --cc-ang:0deg; } to{ --cc-ang:360deg; } }
+  @keyframes hv-ce-breathe{ 0%, 100%{ opacity:.2; } 50%{ opacity:.36; } }
+  @keyframes hv-ce-hit{ 0%{ opacity:0; } 14%{ opacity:.62; } 40%{ opacity:.42; } 100%{ opacity:.2; } }
+  @media (prefers-reduced-motion:reduce){ .hv-cc-edge b, .hv-cc-edge.is-hit b{ animation:none; opacity:.3; } }
+  .hv-cc-logo{ z-index:1; position:relative; flex:0 0 auto; width:34px; height:34px; margin:-3px 4px -3px -3px; isolation:isolate; pointer-events:none; }
   .hv-cc-logo > *{ position:absolute; inset:0; }
   .hv-cc-logo .g{ inset:-24px; border-radius:50%; opacity:.45;
     background:radial-gradient(closest-side, color-mix(in srgb, var(--glass-a, #60b0ff) 70%, #fff) 12%, color-mix(in srgb, var(--glass-a, #60b0ff) 78%, transparent) 34%, color-mix(in srgb, var(--glass-b, #ff84ba) 52%, transparent) 58%, color-mix(in srgb, var(--glass-b, #ff84ba) 20%, transparent) 78%, transparent 97%);
@@ -45846,10 +45865,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // commented moves stays silent. Settings: Comment sound.
   var hvCcT = 0, hvCcStep = false, hvCcRep = false;
   const HV_CC_DELAY = 90;
-  function hvCcCue(logo){
+  function hvCcCue(logo, edge){
     const wait = hvCcStep ? HV_CC_DELAY : 0, S = HV_STATE, n = S.cur, rep = hvCcRep;
-    logo.style.setProperty('--cc-d', wait+'ms');
-    logo.classList.add('is-hit');
+    [logo, edge].forEach(x=>{ x.style.setProperty('--cc-d', wait+'ms'); x.classList.add('is-hit'); });
     clearTimeout(hvCcT); hvCcT = 0;
     if(rep || soundPrefs.comment===false) return;
     hvCcT = setTimeout(()=>{ hvCcT = 0; if(HV_STATE===S && S.cur===n && hvViewActive() && !document.hidden) playSound('comment'); }, wait);
@@ -45868,7 +45886,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     el.textContent = '';
     const head = hvEl('div', 'hv-cc-head');
     head.innerHTML = HV_CC_ICON;
-    if(hit) hvCcCue(head.firstChild);
+    const edge = hvEl('i', 'hv-cc-edge');
+    edge.setAttribute('aria-hidden', 'true');
+    edge.appendChild(document.createElement('b'));
+    if(hit) hvCcCue(head.firstChild, edge);
     head.appendChild(hvEl('span', 'hv-cc-move', lab));
     hvAddBadge(head, n);          // yours over the engine's, as in the move list
     hvAddClamp(head, n);
@@ -45876,6 +45897,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const body = hvEl('div', 'hv-cc-body'), p = hvEl('p', 'hv-cc-text');
     hvComText(p, text);
     body.appendChild(p);
+    el.appendChild(edge);
     el.appendChild(head);
     el.appendChild(body);
     el.dataset.node = n.id;
