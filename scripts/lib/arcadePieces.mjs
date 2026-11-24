@@ -281,7 +281,7 @@ function rimCream(css) {
 
 const TAGS = new Set(['svg', 'g', 'path', 'circle', 'ellipse', 'rect', 'polygon', 'polyline', 'line']);
 const ATTRS = new Set([
-  'viewBox', 'xmlns', 'version', 'd', 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'width', 'height', 'points', 'x1', 'y1', 'x2', 'y2',
+  'viewBox', 'xmlns', 'version', 'overflow', 'd', 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'width', 'height', 'points', 'x1', 'y1', 'x2', 'y2',
   'transform', 'style', 'fill', 'stroke', 'stroke-width', 'opacity', 'fill-rule', 'clip-rule',
 ]);
 const camel = (name) => (name.startsWith('--') ? name : name.replace(/-([a-z])/g, (m, c) => c.toUpperCase()));
