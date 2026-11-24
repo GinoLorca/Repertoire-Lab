@@ -2941,6 +2941,177 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       --sq: clamp(30px, min(calc((100dvh - 170px - var(--ol-frame-extra)) / 8), calc((100vw - 100px) / 8)), 85px);
     }
   }
+  /* ---- Full screen (2026-11-23, olFull*) ----
+     The game over the whole window, as Repertoire Lab's full screen does: its own layout, not the browser's. The board is
+     as large as the window allows, in whole pixels, and everything the screen has is still there: both players' rows, the
+     moves with the opening's name, the messages, every button, the HUD, the tips and Leave. Not the game's and out of the
+     way until you leave it: the friends and activity pills and the now-playing card. A class on the view and one on body,
+     so a switch in the middle of a game rebuilds nothing. Taller than wide (an iPad standing, a phone): the board across
+     the window, a row above and below it, moves and buttons under them. Wider than tall: the board on the left at the
+     window's full height, one slim column on the right. --ol-w / --ol-h: what stands beside / around the squares. */
+  .ol-full-btn{
+    position:relative; flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    box-sizing:border-box; height:30px; min-width:46px; padding:0 9px;
+    background:var(--surface-2); border:1px solid color-mix(in srgb, var(--line), var(--ink) 40%); border-radius:6px;
+    color:var(--ink); font-family:inherit; font-size:12.5px; font-weight:600; line-height:1; white-space:nowrap; cursor:pointer; touch-action:manipulation;
+  }
+  .ol-full-btn::before{ content:""; position:absolute; inset:-8px -1px; }      /* 44px to tap, 30 drawn: the rows keep their height */
+  .ol-full-btn:hover{ border-color:var(--brass-soft); }
+  .ol-full-btn svg{ width:15px; height:15px; flex:0 0 auto; display:block; }
+  .ol-full-btn .ol-full-in, #view-play-online.ol-full .ol-full-btn .ol-full-out{ display:none; }
+  #view-play-online.ol-full .ol-full-btn .ol-full-in{ display:inline; }
+  .ol-player-row > .ol-full-btn{ margin-left:auto; margin-right:10px; }
+  :root[data-skin="bauhaus"] .ol-full-btn{ border-radius:0; }
+  /* a phone on its side, the normal layout: your row is a column beside the board there, the button in its corner */
+  @media (max-width:1179.98px) and (orientation:landscape) and (max-height:540px){
+    #view-play-online.ol-in-game:not(.ol-full) > #ol-me-row{ position:relative; }
+    #view-play-online.ol-in-game:not(.ol-full) > #ol-me-row > .ol-full-btn{ position:absolute; right:12px; bottom:8px; margin:0; }
+    #ol-me-row > .ol-full-btn > .ol-full-t{ display:none; }
+  }
+  @media (max-width:699.98px){
+    .ol-full-t{ display:none; }
+    #view-play-online.ol-full.active .result-banner .btn-row{ flex-wrap:nowrap; }      /* a friend's long name: on two lines, not a row of its own */
+    #view-play-online.ol-full.active .result-banner .btn{ flex:1 1 0; min-width:0; padding:4px 8px; line-height:1.15; overflow-wrap:anywhere; }
+  }
+  body.ol-full-on{ overflow:hidden; min-height:0; }      /* Safari's 100vh is the window without its bars: 75px of page to scroll under the game */
+  body.ol-full-on :is(.friends-widget, .lichess-activity-widget, .spotify-widget){ display:none !important; }
+  body.ol-full-on .home-fab{ top:6px; left:8px; }
+  body.ol-full-on .settings-fab{ top:6px; right:8px; }
+  #view-play-online.ol-full.active{
+    --ol-fp:8px; --ol-px:8px;
+    --ol-w:calc(2 * var(--ol-px) + 2 * var(--ol-fp) + 20px);
+    --ol-h:calc(48px + 94px + 2 * var(--ol-fp) + 18px + 40px + 130px);
+    --ol-sq:min(calc((100vw - var(--ol-w) - var(--ol-frame-extra)) / 8), calc((100dvh - var(--ol-h) - var(--ol-frame-extra)) / 8));
+    --sq:max(30px, var(--ol-sq));
+    position:fixed; inset:0; z-index:30; box-sizing:border-box; margin:0; overflow:hidden;
+    padding:4px var(--ol-px) 8px;
+    display:grid; gap:6px 10px; align-items:stretch; justify-content:stretch;
+    grid-template-columns:auto minmax(0,1fr);
+    grid-template-rows:minmax(44px,auto) auto auto auto minmax(0,1fr) auto;
+    grid-template-areas:"leave hud" "opp opp" "board board" "me me" "panel panel" "hint hint";
+  }
+  @supports (width:round(down, 1.5px, 1px)){
+    #view-play-online.ol-full.active{ --sq:max(30px, round(down, var(--ol-sq), 1px)); }
+  }
+  #view-play-online.ol-full.active > .back-link{ grid-area:leave; align-self:center; margin:0 4px 0 58px; position:relative; }
+  #view-play-online.ol-full.active > .back-link::after{ content:""; position:absolute; inset:-15px -8px; }
+  #view-play-online.ol-full.active > .hud{ grid-area:hud; align-self:center; justify-self:stretch; margin:0 52px 0 0; padding:5px 10px 5px 12px; flex-wrap:nowrap; box-shadow:none; min-width:0; }
+  #view-play-online.ol-full.active > #ol-opp-row{ grid-area:opp; margin:0; align-self:stretch; }
+  #view-play-online.ol-full.active > .board-frame{ grid-area:board; width:fit-content; justify-self:center; align-self:center; padding:var(--ol-fp); }
+  #view-play-online.ol-full.active > #ol-me-row{ grid-area:me; margin:0; align-self:stretch; }
+  #view-play-online.ol-full.active > .ol-player-row{ width:auto; max-width:none; justify-self:stretch; align-self:stretch; margin:0; padding:6px 12px; flex-direction:row; align-items:center; min-width:0; }
+  #view-play-online.ol-full.active > .side-panel{ grid-area:panel; position:static; padding:0; gap:8px; min-height:0; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; container:olpanel / size; }
+  #view-play-online.ol-full.active > .anno-hint{ grid-area:hint; justify-self:start; margin-inline:7px; max-width:calc(100% - 14px); }
+  #view-play-online.ol-full.active > .anno-hint .kbd{ padding:0 3px; font-size:9px; line-height:13px; }
+  /* the moves first, as tall as the room allows; the messages and the buttons under them, by your own row */
+  #view-play-online.ol-full.active .ol-movelist-wrap{ order:-1; flex:1 1 0; min-height:72px; box-sizing:border-box; }
+  #view-play-online.ol-full.active .ol-movelist{ flex:1 1 0; min-height:0; max-height:none; align-content:start; overscroll-behavior:contain; line-height:1.55; padding-right:4px;
+    grid-template-columns:repeat(auto-fill, 28px minmax(62px,1fr) minmax(62px,1fr)); }      /* a wide, low box: as many moves a row as fit */
+  #view-play-online.ol-full.active #ol-status{ flex:0 0 auto; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:8px 10px; color:var(--ink); }
+  #view-play-online.ol-full.active #ol-status:empty{ display:none; }
+  #view-play-online.ol-full.active .side-panel > *{ flex-shrink:0; }
+  #view-play-online.ol-full.active .side-panel > .ol-movelist-wrap{ flex-shrink:1; }
+  #view-play-online.ol-full.active .side-panel > .btn-row > .btn{ flex:1 1 0; min-height:44px; }
+  #view-play-online.ol-full.active .side-panel > .btn-row > .btn-ghost{ background-color:var(--surface); }
+  /* their takeback question on one line; where the moves have little room they give way to it until it's answered */
+  #view-play-online.ol-full.active .ol-takeback{ flex-direction:row; align-items:center; padding:4px 6px 4px 12px; }
+  #view-play-online.ol-full.active .ol-takeback[hidden]{ display:none; }
+  #view-play-online.ol-full.active .ol-takeback-text{ flex:1 1 0; min-width:0; overflow-wrap:anywhere; font-size:13px; }
+  #view-play-online.ol-full.active .ol-takeback > .btn-row{ flex:0 0 auto; flex-wrap:nowrap; gap:6px; }
+  #view-play-online.ol-full.active .ol-takeback .btn{ padding-inline:14px; }
+  #view-play-online.ol-full.active .result-banner{ padding:12px 14px; gap:6px; }
+  /* a message, their question or the result: the moves give it their room (all of it where little is left), so every button
+     stays in the window; their answer gives it back */
+  #view-play-online.ol-full.active :is(#ol-status:not(:empty), .ol-takeback:not([hidden]), .result-banner[style*="flex"]) ~ .ol-movelist-wrap{ min-height:0; overflow:hidden; }
+  @container olpanel (max-height:123px){ #view-play-online.ol-full.active .ol-movelist-wrap{ min-height:0; } }
+  @container olpanel (max-height:165px){ #view-play-online.ol-full.active #ol-status:not(:empty) ~ .ol-movelist-wrap{ display:none !important; } }
+  @container olpanel (max-height:172px){ #view-play-online.ol-full.active .ol-takeback:not([hidden]) ~ .ol-movelist-wrap{ display:none !important; } }
+  @container olpanel (max-height:228px){ #view-play-online.ol-full.active #ol-status:not(:empty) ~ .ol-takeback:not([hidden]) ~ .ol-movelist-wrap{ display:none !important; } }
+  @container olpanel (max-height:260px){      /* the result on one line, its buttons under it */
+    #view-play-online.ol-full.active .result-banner{ flex-direction:row !important; flex-wrap:wrap; align-items:baseline; gap:4px 12px; padding:8px 12px; }
+    #view-play-online.ol-full.active .result-banner > .btn-row{ flex:0 0 100%; }
+    #view-play-online.ol-full.active .result-sub{ line-height:1.35; }
+  }
+  @container olpanel (max-height:178px){ #view-play-online.ol-full.active .result-banner[style*="flex"] ~ .ol-movelist-wrap{ display:none !important; } }
+  @container olpanel (max-height:149px){
+    #view-play-online.ol-full.active #ol-status:not(:empty):has(~ .ol-takeback:not([hidden])){ padding-block:0; border:0; margin-bottom:-4px; }
+    #view-play-online.ol-full.active #ol-status:not(:empty) ~ .ol-takeback{ padding-block:0; margin-bottom:-4px; }
+    #view-play-online.ol-full.active .result-banner{ padding-block:4px; }
+  }
+  /* ... and the buttons stay at the foot of the column while messages come and go over them */
+  #view-play-online.ol-full.ol-in-game.active .side-panel > :is(#ol-live-controls, #ol-abort-controls, .result-banner){ margin-top:auto; }
+  /* Offer draw / Resign come where Abort was, and New game where they were: a click already on its way is for the button before */
+  #view-play-online.ol-full.active :is(#ol-live-controls, .result-banner){ animation:olFullWait .7s; }
+  @keyframes olFullWait{ from, to{ pointer-events:none; } }
+  #view-play-online.ol-full.active .result-banner .btn{ min-height:44px; }
+  /* where a row has no room for everything on one line, the captured pieces take a line of their own (kept while there
+     are none, so nothing moves at the first capture) */
+  @media (max-width:699.98px), (min-aspect-ratio:1/1){
+    #view-play-online.ol-full.active .ol-player-info{ flex-wrap:wrap; row-gap:1px; align-items:center; }
+    #view-play-online.ol-full.active .ol-player-name{ max-width:100%; }
+    #view-play-online.ol-full.active .ol-material{ flex:0 0 100%; min-height:15px; }
+  }
+  /* a phone standing: the board edge to edge */
+  @media (max-width:699.98px) and (max-aspect-ratio:999/1000){
+    #view-play-online.ol-full.active{ --ol-fp:2px; --ol-px:0px; --ol-h:calc(48px + 96px + 2 * var(--ol-fp) + 18px + 40px + 130px); }
+    #view-play-online.ol-full.active > :is(#ol-opp-row, #ol-me-row, .side-panel){ margin-inline:8px; }
+    #view-play-online.ol-full.active > .anno-hint{ margin-inline:15px; max-width:calc(100% - 30px); }
+    #view-play-online.ol-full.active > .board-frame{ border-radius:0; }
+  }
+  /* half of an iPad lying: as wide as it is tall, nearly. Every pixel around the board goes to it */
+  @media (max-width:699.98px) and (max-aspect-ratio:3/4) and (min-aspect-ratio:65/100){
+    #view-play-online.ol-full.active{ --ol-fp:2px; row-gap:4px; --ol-h:calc(48px + 96px + 2 * var(--ol-fp) + 18px + 30px + 130px); }
+  }
+  /* little room under the board: the tips give theirs to the moves, and under any board so do the box's two small headings */
+  @media (max-aspect-ratio:999/1000) and (max-height:759.98px), (max-aspect-ratio:999/1000) and (min-aspect-ratio:3/4), (max-aspect-ratio:3/4) and (min-aspect-ratio:7/10) and (max-width:959.98px), (max-aspect-ratio:3/4) and (min-aspect-ratio:65/100) and (max-width:699.98px){
+    #view-play-online.ol-full.active > .anno-hint{ display:none; }
+  }
+  @media (max-aspect-ratio:999/1000), (min-aspect-ratio:1/1) and (max-height:540px){
+    #view-play-online.ol-full.active .ol-player-name{ max-width:calc(100% - 64px); }      /* a long name gives way to its rating: the row keeps its two lines */
+    #view-play-online.ol-full.active .ol-movelist-wrap{ padding:8px 10px; gap:4px; }
+    #view-play-online.ol-full.active .ol-movelist-wrap .ol-movelist-title{ display:none; }
+    #view-play-online.ol-full.active .ol-opening{ padding-bottom:5px; margin-bottom:0; }
+    #view-play-online.ol-full.active .ol-opening-name{ font-size:13px; line-height:1.25; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
+  }
+  @media (max-aspect-ratio:999/1000) and (max-height:699.98px), (min-aspect-ratio:1/1) and (max-height:540px){ #view-play-online.ol-full.active .ol-opening-name{ -webkit-line-clamp:1; } }
+  /* nearly as wide as tall: the opening's name beside the moves, the board keeps the height */
+  @media (max-aspect-ratio:999/1000) and (min-aspect-ratio:3/4){
+    #view-play-online.ol-full.active{ --ol-fp:4px; row-gap:4px; --ol-h:calc(48px + 94px + 2 * var(--ol-fp) + 18px + 30px + 106px); }
+    #view-play-online.ol-full.active .ol-movelist-wrap{ flex-direction:row; gap:14px; min-height:54px; }
+    #view-play-online.ol-full.active .ol-opening{ flex:0 1 36%; padding:0; border:0; }
+  }
+  @media (min-aspect-ratio:1/1){
+    body.ol-full-on .home-fab{ left:auto; right:56px; }
+    #view-play-online.ol-full.active{
+      --ol-col:clamp(220px, calc(100vw - 100dvh), 280px);      /* a window nearly as tall as wide: a slimmer column, a bigger board */
+      --ol-w:calc(2 * var(--ol-px) + 14px + var(--ol-col) + 2 * var(--ol-fp) + 20px);
+      --ol-h:calc(16px + 2 * var(--ol-fp) + 18px);
+      padding:8px var(--ol-px); gap:8px 14px; justify-content:center;
+      grid-template-columns:auto minmax(var(--ol-col), 380px);
+      grid-template-rows:minmax(38px,auto) auto auto auto minmax(0,1fr) auto;
+      grid-template-areas:"board leave" "board hud" "board hint" "board opp" "board panel" "board me";
+    }
+    #view-play-online.ol-full.active > .back-link{ margin:0 0 0 8px; }
+    #view-play-online.ol-full.active > .hud{ margin:0; }
+    #view-play-online.ol-full.active .side-panel > .btn-row > .btn{ padding-inline:8px; }
+    #view-play-online.ol-full.active .ol-full-t{ display:none; }      /* the column is slim: the sign alone, its name in the title */
+  }
+  @media (min-aspect-ratio:1/1) and (min-height:540.02px){
+    #view-play-online.ol-full.active .ol-movelist{ grid-template-columns:34px 1fr 1fr; font-size:15px; }
+    #view-play-online.ol-full.active .ol-player-clock{ font-size:24px; padding:3px 10px; }
+  }
+  /* a phone on its side: Leave and the HUD share the top line, the tips give their room to the moves */
+  @media (min-aspect-ratio:1/1) and (max-height:540px){
+    #view-play-online.ol-full.active{
+      --ol-fp:4px; --ol-h:calc(8px + 2 * var(--ol-fp) + 18px); padding-block:4px; row-gap:5px;
+      grid-template-columns:auto auto minmax(calc(var(--ol-col) - 80px), 300px);
+      grid-template-rows:minmax(44px,auto) auto minmax(0,1fr) auto;
+      grid-template-areas:"board leave hud" "board opp opp" "board panel panel" "board me me";
+    }
+    #view-play-online.ol-full.active > .hud{ margin-right:104px; padding-block:3px; }
+    #view-play-online.ol-full.active > .anno-hint{ display:none; }
+    #view-play-online.ol-full.active > .ol-player-row{ padding-block:3px; }
+  }
   @media (min-width:1180px){
     .wrap.play-mode{ max-width:1240px; }
     .wrap.play-mode .view.active.has-side{
@@ -12461,6 +12632,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <div class="hud-mode" id="ol-hud-mode"><span class="side-dot w" id="ol-side-dot"></span><span id="ol-hud-mode-text">SEEKING</span></div>
         <div class="hud-round" id="ol-hud-round">Looking for an opponent&#8230;</div>
       </div>
+      <!-- in the HUD while seeking; by your clock once there is a game (olFullPlace) -->
+      <button class="ol-full-btn" id="ol-full-btn" type="button" aria-label="Full screen" aria-keyshortcuts="M" title="Full screen (M)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path class="ol-full-out" d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/><path class="ol-full-in" d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4"/>
+        </svg>
+        <span class="ol-full-t" id="ol-full-t">Full screen</span>
+      </button>
     </div>
 
     <div class="anno-hint" data-dynamic="true">
@@ -24590,6 +24768,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const root = document.documentElement;
       const card = document.getElementById('gl-spotify-card');
       const widget = document.getElementById('spotify-widget');
+      if(document.body.classList.contains('ol-full-on')) return;      // hidden there: it has no top to measure (olFullPaint asks again after)
       // A widget the user has dragged to their own spot, or minimized, is
       // no longer at the default bottom-center this offset exists to clear
       // -- trust their own placement instead of still padding the page for
@@ -27334,8 +27513,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     picker.className='promo-picker'; picker.id='ol-promo-picker';
     picker.style.left=(sqRect.left-frameRect.left)+'px';
     picker.style.top=(sqRect.top-frameRect.top)+'px';
+    picker.dataset.to = sqEl.dataset.idx;
     function cleanup(){ picker.remove(); document.removeEventListener('pointerdown', onOutside, true); }
-    function onOutside(e){ if(!picker.contains(e.target)) cleanup(); }
+    // (the full screen button isn't "outside": the choice stays open over a switch, olFullPromo)
+    function onOutside(e){ if(!picker.contains(e.target) && !(e.target.closest && e.target.closest('#ol-full-btn'))) cleanup(); }
     ['q','n','r','b'].forEach(pt=>{
       const m = candidates.find(c=>c.promotion===pt);
       if(!m) return;
@@ -27346,6 +27527,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       picker.appendChild(btn);
     });
     frame.appendChild(picker);
+    olFullPromo();
     setTimeout(()=>document.addEventListener('pointerdown', onOutside, true), 0);
   }
 
@@ -27514,6 +27696,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     document.getElementById('ol-opp-row').style.display='none';
     document.getElementById('ol-me-row').style.display='none';
     document.getElementById('view-play-online').classList.remove('ol-in-game');
+    olFullPaint();
     document.getElementById('ol-movelist-wrap').style.display='none';
     document.getElementById('ol-result-banner').style.display='none';
     document.getElementById('ol-error-banner').style.display='none';
@@ -27535,6 +27718,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     document.getElementById('ol-opp-row').style.display='flex';
     document.getElementById('ol-me-row').style.display='flex';
     document.getElementById('view-play-online').classList.add('ol-in-game');      // the rows head the column (CSS)
+    olFullPaint();
     document.getElementById('ol-movelist-wrap').style.display='flex';
     document.getElementById('ol-hud-mode-text').textContent = roundOl.color==='white' ? 'PLAYING WHITE' : 'PLAYING BLACK';
     document.getElementById('ol-side-dot').className = 'side-dot ' + (roundOl.color==='white'?'w':'b');
@@ -27708,6 +27892,109 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       renderBoardOl();
     }
   });
+
+  /* ---- Full screen (2026-11-23): the game over the whole window, as Repertoire Lab's full screen does (the app's own
+     layout; the browser's own full screen is never asked for). A class on the view and one on body, nothing else: no
+     board is rebuilt and nothing is redrawn, so a drag, a picked piece, a sent move and the clocks go on through a
+     switch (the marks redraw themselves when the board's size changes: annoShowRO). Remembered on this device; the next
+     game opens the same way, and so does the search for one. The button sits by your clock (in the HUD while there are
+     no rows), the key is M: F is the blue pen. ---- */
+  const OL_FULL_KEY = 'wavyChessPrepPlayFull';
+  const olViewEl = document.getElementById('view-play-online'), olFullBtn = document.getElementById('ol-full-btn');
+  let olFullPref = false, olFullDue = false, olFullHeld = null, olFullHeldAt = 0, olFullTap = null;
+  try{ olFullPref = localStorage.getItem(OL_FULL_KEY)==='1'; }catch(e){}
+  function olFullOn(){ return olViewEl.classList.contains('ol-full'); }
+  function olFullPlace(){
+    const me = document.getElementById('ol-me-row'), hud = olViewEl.querySelector('.hud');
+    const game = olViewEl.classList.contains('ol-in-game'), host = game ? me : hud;
+    if(olFullBtn.parentNode!==host) host.insertBefore(olFullBtn, game ? document.getElementById('ol-me-clock') : null);
+  }
+  function olFullPaint(){
+    olFullDue = false;
+    olFullPlace();
+    const on = olFullPref && currentView==='play-online', was = olFullOn();
+    const name = on ? 'Exit full screen' : 'Full screen';
+    if(olFullBtn.getAttribute('aria-label')!==name){
+      olFullBtn.setAttribute('aria-label', name);
+      olFullBtn.title = name+' (M)';
+      document.getElementById('ol-full-t').textContent = name;
+    }
+    if(on===was) return;
+    olViewEl.classList.toggle('ol-full', on);
+    document.body.classList.toggle('ol-full-on', on);
+    if(!on) spotifyReserveWidgetSpace();
+    if(currentView!=='play-online') return;
+    window.scrollTo(0, 0);
+    olFullPromo();
+    olFullScroll();
+    // an opening screen still up (VS, Uptown's doors) goes with the board; a friend's banner finds its spot again
+    const vs = document.getElementById('vs-overlay'), doors = document.getElementById('doors-overlay');
+    if(vs && vs.classList.contains('active')) placeOverBoard(vs);
+    if(doors && doors.classList.contains('active')) placeOverBoard(doors, doorsTarget);
+    if(chReady) chBannerSoon();
+  }
+  function olFullSet(on){
+    olFullPref = !!on;
+    try{ if(olFullPref) localStorage.setItem(OL_FULL_KEY, '1'); else localStorage.removeItem(OL_FULL_KEY); }catch(e){}
+    olFullDue = olFullHeld!=null && (performance.now() - olFullHeldAt < 1500 || !!document.querySelector('.drag-ghost:not(.returning)'));
+    if(!olFullDue) olFullPaint();
+  }
+  // a press on the board (a piece in the hand, a press on a dot, an arrow being drawn): a switch asked for meanwhile waits
+  // for its end and its click. The squares moving under it lost the drop, or could play it on another square
+  olBoardEl.addEventListener('pointerdown', (e)=>{ olFullHeld = e.pointerId; olFullHeldAt = performance.now(); }, true);
+  ['pointerup', 'pointercancel'].forEach(t=> window.addEventListener(t, (e)=>{
+    if(e.pointerId!==olFullHeld) return;
+    olFullHeld = null;
+    if(olFullDue) setTimeout(()=>{ if(olFullDue && olFullHeld==null) olFullPaint(); }, 60);
+  }, true));
+  // a promotion being chosen stays on its square, at the squares' new size; on a turned board (X) it opens upward where
+  // the window ends below it, the queen still on the square
+  function olFullPromo(){
+    const p = document.getElementById('ol-promo-picker'), sq = p && olBoardEl.querySelector('[data-idx="'+p.dataset.to+'"]');
+    if(!sq) return;
+    const f = olBoardEl.closest('.board-frame').getBoundingClientRect(), r = sq.getBoundingClientRect();
+    p.querySelectorAll('button').forEach(b=>{ b.style.width = b.style.height = r.width+'px'; });
+    const up = r.top + p.offsetHeight > window.innerHeight && r.bottom >= p.offsetHeight;
+    p.style.flexDirection = up ? 'column-reverse' : '';
+    p.style.left = (r.left - f.left)+'px'; p.style.top = ((up ? r.bottom - p.offsetHeight : r.top) - f.top)+'px';
+  }
+  // the moves' box changed height: the last move stays in sight (the one you look at, on an older move)
+  function olFullScroll(){
+    const el = document.getElementById('ol-movelist');
+    if(!roundOl || !el.offsetParent) return;
+    const v = olIsLiveView() ? null : el.querySelector('.mv-viewed');
+    if(!v) el.scrollTop = el.scrollHeight;
+    else if(v.offsetTop < el.scrollTop + el.offsetTop || v.offsetTop + v.offsetHeight > el.scrollTop + el.offsetTop + el.clientHeight) el.scrollTop = v.offsetTop - el.offsetTop - el.clientHeight/2;
+  }
+  if(typeof ResizeObserver==='function') new ResizeObserver(()=>{ if(olFullOn()) olFullScroll(); }).observe(document.getElementById('ol-movelist'));
+  window.addEventListener('resize', ()=>{ if(document.getElementById('ol-promo-picker')) olFullPromo(); });
+  olFullBtn.addEventListener('click', (e)=>{
+    olFullTap = e.clientX || e.clientY ? { x:e.clientX, y:e.clientY, t:performance.now(), eat:false } : null;
+    olFullSet(!olFullPref);
+  });
+  // a double click (or tap) on the button: its second press isn't for what the switch put there (Offer draw, Abort, a square
+  // of the board: with the king picked up it castled)
+  ['pointerdown', 'click'].forEach(t=> window.addEventListener(t, (e)=>{
+    const p = olFullTap;
+    if(!p || olFullBtn.contains(e.target)) return;
+    const now = performance.now();
+    if(t==='click'){ if(!p.eat || now - p.t > 1500) return; p.eat = false; }
+    else if(now - p.t < 500 && Math.hypot(e.clientX - p.x, e.clientY - p.y) < 32) p.eat = true;
+    else { olFullTap = null; return; }
+    p.t = now;
+    e.preventDefault(); e.stopImmediatePropagation();
+  }, true));
+  document.addEventListener('keydown', (e)=>{
+    if(e.key!=='m' && e.key!=='M') return;
+    if(currentView!=='play-online' || e.repeat || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
+    if(document.querySelector('.modal-overlay.active')) return;      // Settings or the end box has the keys
+    const a = document.activeElement, tag = a && a.tagName;
+    if(tag==='INPUT' || tag==='TEXTAREA' || tag==='SELECT' || (a && a.isContentEditable)) return;
+    e.preventDefault();
+    olFullSet(!olFullPref);
+  });
+  // leaving the screen (the leave hooks run before the view changes): off, the choice kept
+  onLeavePlay(()=>{ if(olFullOn()){ olViewEl.classList.remove('ol-full'); document.body.classList.remove('ol-full-on'); spotifyReserveWidgetSpace(); } });
 
   function olFinishGame(){
     roundOl.phase='ended';
