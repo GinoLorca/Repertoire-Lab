@@ -9480,6 +9480,36 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .tx-pill.ga-mpill{ background:var(--ink); color:var(--surface); box-shadow:0 0 0 2px var(--surface), 0 3px 10px rgba(0,0,0,.35); }
   .ga-mpill .tx-pill-dot{ background:var(--surface); }
   .ga-mpill .tx-pill-w{ border-left-color:color-mix(in srgb, var(--surface) 55%, transparent); }
+  /* Why didn't I win? (gaWy*, 2026-11-25): the rows (reason, you, opponents; under a reason what to do about it) beside the newest boards from
+     1180px, above them under it; the Clock card's two lines */
+  .ga-wy2{ display:grid; grid-template-columns:minmax(0,1fr); gap:16px 24px; align-items:start; min-width:0; }
+  @media (min-width:1180px){ .ga-wy2{ grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); } .ga-wy2.is-one{ grid-template-columns:minmax(0,760px); } }
+  #ga-why .ga-cov, #ga-why .ga-wyhow{ margin:0; }
+  .ga-wyl, .ga-wybd{ min-width:0; }
+  .ga-wyt{ display:flex; flex-direction:column; min-width:0; }
+  .ga-wyr{ display:grid; grid-template-columns:minmax(0,1.9fr) repeat(2, minmax(0,1fr)); align-items:center; gap:0 8px; padding:4px 0; border-top:1px solid var(--line); }
+  .ga-wyr.is-head{ border-top:0; padding:0 0 2px; align-items:end; }
+  .ga-wyr.is-up{ border-top:2px solid var(--ink-soft); }
+  .ga-wyhn{ display:block; font-weight:400; font-variant-numeric:tabular-nums; }
+  .ga-wyn{ min-width:0; display:flex; flex-direction:column; gap:1px; padding:3px 0; }
+  .ga-wyw{ font-size:14px; font-weight:700; line-height:1.3; }
+  .ga-wyex{ grid-column:1 / -1; display:flex; flex-direction:column; gap:3px; padding:0 0 4px; }
+  .ga-wyx, .ga-wydo{ font-size:13px; line-height:1.45; }
+  .ga-wydo .ct-l{ font-size:13px; }
+  .ga-wybd{ display:flex; flex-direction:column; gap:8px; }
+  .ga-wybd .ct-k{ margin:0; }
+  .ga-wygrid{ grid-template-columns:repeat(3, minmax(0,1fr)); }
+  @media (min-width:641px) and (max-width:1179px){ .ga-wygrid{ grid-template-columns:repeat(6, minmax(0,1fr)); gap:8px; } }
+  @media (max-width:900px){ .ga-wygrid{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
+  @media (max-width:640px){ .ga-wygrid{ grid-template-columns:repeat(2, minmax(0,1fr)); } .ga-wyw{ font-size:13.5px; } }
+  .ga-up{ margin-top:2px; }
+  .ga-up .ct-k{ margin:4px 0 0; }
+  .ga-uplen .ga-b{ color:var(--ink); }
+  .ga-up .ga-r25{ grid-template-columns:142px minmax(50px,1fr) auto 40px; }
+  @media (max-width:640px){ .ga-up .ga-r25{ grid-template-columns:84px minmax(40px,1fr) auto 34px; } }
+  .hr-why{ margin:0; font-size:13px; line-height:1.45; color:var(--ink); overflow-wrap:anywhere; }
+  .hr-why[hidden]{ display:none; }
+  @media (pointer:coarse){ #view-play-history .hr-why .hr-link{ display:inline-flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; padding:0 2px; margin:-12.5px -2px; } }
   /* More questions (6.7-6.11): the heading strip, result rows, how games end, the engine card's rows, the calendar */
   .ct-card.ga-mqc{ padding:8px 16px; }
   .ga-mqh{ font-family:"JetBrains Mono",monospace; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); }
@@ -41458,8 +41488,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   var GA_WINS = [['3', '3d', 'Last 3 days', 3], ['7', '7d', 'Last 7 days', 7], ['15', '15d', 'Last 15 days', 15], ['30', '30d', 'Last 30 days', 30],
     ['90', '90d', 'Last 90 days', 90], ['', 'All', 'All dates', 0]];
   // the cards, in the page's order (their folds are kept per card in GH_UI.gaf; the list is also in gaFoldsValid)
-  var GA_CARDS = ['ga-out', 'ga-res', 'ga-col', 'ga-clk', 'ga-ou', 'ga-pc', 'ga-mate', 'ga-marks', 'ga-opp', 'ga-end', 'ga-acc', 'ga-cas', 'ga-cal'];
-  var GA_MORE = ['ga-opp', 'ga-end', 'ga-acc', 'ga-cas', 'ga-cal'];       // "More questions": folded by default below 960px
+  var GA_CARDS = ['ga-out', 'ga-res', 'ga-col', 'ga-clk', 'ga-ou', 'ga-pc', 'ga-mate', 'ga-marks', 'ga-opp', 'ga-end', 'ga-why', 'ga-acc', 'ga-cas', 'ga-cal'];
+  var GA_MORE = ['ga-opp', 'ga-end', 'ga-why', 'ga-acc', 'ga-cas', 'ga-cal'];       // "More questions": folded by default below 960px
   var GA_NOFOLD = ['ga-out', 'ga-res'];                                     // never folded (the first screen's answers)
   function gaOn(){ return GH_UI.view==='analytics'; }
   // "now" for Analytics and its drill-downs, floored to the hour: a number and the list it opens count the same games
@@ -41476,6 +41506,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const P = 'prev:(?:3|7|15|30|90|year)';
       const A = '(?:all|how:(?:left|agree|rep|stale|insuf|tvi|fifty|cheat|other)|ph:[ome]|cs:[omen]|clkg|clk:(?:tt|b20|b30|b40|e20|a20|lta)'
         +'|clk:(?:[me]25[abc]|[nq][yo]\\d{1,3}|s[yo][ome]\\d{1,4})'
+        +'|why:(?:all|a|cg|nl|no|sl|3|o[tqu]|[ncosterdxz])|whyo:(?:all|a|cg|3|[ncosterdxz])|clk:(?:[ul]3[yn]|lt[ws])'
         +'|opp:(?:all|hi|ev|lo)|dow:[0-6]|tod:[nmae]|eng:[yn]|(?:acc|blu):[ome1-5a]:[rl]|cca|nomark|pf:[pnbrqk][aome]:[hl](?:100|[1-9]?\\d))';
       gaValid.re = new RegExp('^(?:'+P+'|(?:'+P+'\\+)?'+A+')$');
     }
@@ -41486,7 +41517,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const out = {};
     if(!o || typeof o!=='object') return out;
     if(o['ga-pcf']===1) out['ga-pcf'] = 1;                              // ... and Accuracy by piece's other view, How often (gaPfOn)
-    ['ga-col', 'ga-clk', 'ga-ou', 'ga-pc', 'ga-mate', 'ga-marks', 'ga-opp', 'ga-end', 'ga-acc', 'ga-cas', 'ga-cal'].forEach(k=>{ if(o[k]===0 || o[k]===1) out[k] = o[k]; });
+    ['ga-col', 'ga-clk', 'ga-ou', 'ga-pc', 'ga-mate', 'ga-marks', 'ga-opp', 'ga-end', 'ga-why', 'ga-acc', 'ga-cas', 'ga-cal'].forEach(k=>{ if(o[k]===0 || o[k]===1) out[k] = o[k]; });
     return out;
   }
   // { prev:'30' | 'year' | '', atom } (a bare prev:N is the window before, all its games)
@@ -41628,6 +41659,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // what an atom needs read first: 'f' tier 1, 'eg' the phases, 'e' engine facts ('' nothing)
   function gaNeeds(s){
     const a = s ? gaParse(s).atom : '';
+    if(/^why/.test(a)) return 'q';                                      // Why didn't I win?: the scores (gevOf; the quick ones read in)
+    if(/^clk:(?:[ul]3|lt[ws])/.test(a)) return 'fq';
     if(/^clk:e25/.test(a)) return 'ef';                                 // Where your clock goes: the engine's scores at move 25 too
     if(/^clk:s/.test(a)) return 'feg';                                  // ... the phases
     if(/^clk/.test(a) || a==='cs:n') return 'f';
@@ -41642,10 +41675,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function gaAtom(g, u, a){
     if(a==='all') return true;
     const k = a.indexOf(':'), t = k > 0 ? a.slice(0, k) : a, v = k > 0 ? a.slice(k + 1) : '';
+    if(t==='why' || t==='whyo') return gaWyAtom(g, u, t, v);
     if(t==='clkg' || t==='clk'){
       const f = gaF(g);
       if(!f || !f.clk) return false;
       if(t==='clkg') return true;
+      if(/^(?:[ul]3[yn]|lt[ws])$/.test(v)) return gaUpAtom(g, u, f, v);
       if(v==='tt') return f.tt;
       if(v==='lta') return g.status==='outoftime' && ghGameResult(g, u)==='loss' && f.mat!=null && f.mat >= 3;
       if(/^(?:[me]25|[nq][yo]|s[yo])/.test(v)) return gaGoAtom(g, u, f, v);
@@ -41702,6 +41737,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(n.indexOf('f') >= 0 && !gaF(g)) return true;
     if(n.indexOf('eg') >= 0 && !EG.has(g.id)) return true;
     if(n.charAt(0)==='e' && n.indexOf('eg')!==0 && gaEngUnread(g)) return true;
+    if(n.indexOf('q') >= 0 && gaWyUnread(g, s)) return true;
     return false;
   }
   // the chip's words for a drill-down key
@@ -41719,6 +41755,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       'cs:o':'Castled in the opening', 'cs:m':'Castled in the middlegame', 'cs:e':'Castled in the endgame', 'cs:n':'Never castled',
       'eng:y':'With engine scores', 'eng:n':'No engine scores', cca:'With chess.com\u2019s accuracy', nomark:'No marks of yours' };
     let t = W[a];
+    if(t==null) t = gaWyLabel(a);
     if(t==null){
       const m = /^dow:(\d)$/.exec(a), e = /^(acc|blu):(.):([rl])$/.exec(a);
       if(m) t = 'Started on '+D[Number(m[1])];
@@ -41825,7 +41862,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(!gaJobWant()){ GA_JOB = null; return; }           // picked up again by the next redraw on Analytics
       if(GA.ttWant){ const w = GA.ttWant; GA.ttWant = null; try{ GA.tt = { k:w.k, T:ttModel(w.base, { result:'', variant:'', ga:'' }) }; }catch(e){ GA.tt = null; } setTimeout(tick, 0); return; }
       const t = performance.now();
-      while(job.i < job.list.length && performance.now() - t < 10){ const g = job.list[job.i++]; try{ gaFacts(g, job.u); gaEngine(g, job.u, job.R); }catch(e){} }
+      while(job.i < job.list.length && performance.now() - t < 10){ const g = job.list[job.i++]; try{ gaFacts(g, job.u); gaEngine(g, job.u, job.R); gaWyOf(g, job.u); }catch(e){} }
       if(job.i < job.list.length){ gaCountLine(); setTimeout(tick, 0); return; }
       GA_JOB = null;
       GA_FV++;
@@ -41972,6 +42009,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     gaModelMm(md);
     gaModelMarks(md, base);
     gaModelMore(md);
+    gaModelWhy(md);
     gaModelOut(md);
     md.countText = gaCountWords(md);
     return md;
@@ -42177,7 +42215,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function gaPreKey(base){
     let h = base.length;
     for(let i = 0; i < base.length; i++) h = (h*31 + gaGameKey(base[i])) | 0;
-    return [GH_UI.site, JSON.stringify(GH_FILTERS), gaNow(), h, GA_FV, MM_V, EG_DONE ? EG.size : -1, EG_DONE ? 1 : 0, OJ_VER, gaRevStamp(),
+    return [gevVer(), gevReady() ? 1 : 0,          // the scores the cards read (gev*)
+      GH_UI.site, JSON.stringify(GH_FILTERS), gaNow(), h, GA_FV, MM_V, EG_DONE ? EG.size : -1, EG_DONE ? 1 : 0, OJ_VER, gaRevStamp(),
       ghMe() || '', gaNotesStamp(), gaPhone() ? 1 : 0, JSON.stringify(gaLoaded()), ghTabBusy() ? 1 : 0, GA_DRAW.size,
       // the usual card's own inputs the terms above don't cover (the endgames and scores are: EG gated, OJ_VER): which repertoire,
       // how far the games are sorted into it, the other site's games and noted ones (the usual reads every game you have)
@@ -42212,6 +42251,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       }
       if(fid && GA.model===md){ const el = Array.from(body.querySelectorAll('[data-fid]')).find(x=> x.dataset.fid===fid); if(el && el!==document.activeElement) try{ el.focus({ preventScroll:true }); }catch(e){} }
     } else GA.model.countText = md.countText;
+    gaWySync(md, em, sig);
     // the endgames pass still reading: its lines move in place (its end redraws the cards: egEnsure's own redraw)
     if(!EG_DONE && GA.model===md && !GA.emp){ const t = gaPhRead(md); document.querySelectorAll('#ga-body .ga-phr').forEach(p=>{ if(p.textContent!==t) p.textContent = t; }); }
     gaDrawMoments();
@@ -42772,6 +42812,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     won.appendChild(document.createTextNode('.'));
     f1.appendChild(won);
     x.appendChild(f1);
+    gaDrawFlag(md, x);                      // by the engine's score when your flag fell (gaUp*)
     // 2. under 10% of your clock, 5+ moves to go
     const f2 = ghEl('p', 'ga-ln ga-tt');
     if(K.tt.n) f2.appendChild(gaGo(K.tt.n, { ga:'clk:tt' }, 'clk|tt', gaOpenLab(K.tt.n, 'where your clock fell under 10% with 5 or more moves to go'))); else f2.appendChild(document.createTextNode('0'));
@@ -42801,9 +42842,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       });
       x.appendChild(box);
     }
+    gaDrawUp(md, x);                        // up by 3, then the clock
     // 4. where your clock goes (2026-11-24): in place of the folded move 20/30/40 table
     gaDrawGo(md, x);
-    gaSrc(x, 'Behind = 10% of your starting clock or more below theirs after the same number of moves. Under 10% = before one of your moves, with 5 or more still to play.'+gaGoSrc(md));
+    gaSrc(x, 'Behind = 10% of your starting clock or more below theirs after the same number of moves. Under 10% = before one of your moves, with 5 or more still to play.'+gaGoSrc(md)+gaUpSrc(md));
     frag.appendChild(c);
   }
   // ---- Where your clock goes (2026-11-24, ~/mine-work/list.md item 2): in the Clock card where the folded move 20/30/40 table was. One time
@@ -45391,6 +45433,788 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   GA_ACTS.ends = (t)=> gaToOpenings('gho-ends', t.dataset.fid);
   GA_DRAW_CARDS.push(['ga-more', gaDrawMoreH], ['ga-opp', gaDrawOpp], ['ga-end', gaDrawEnd], ['ga-acc', (md, frag)=>{ gaDrawAcc(md, frag); gaPcNote(frag.lastElementChild); }], ['ga-cas', gaDrawCas], ['ga-cal', gaDrawCal]);
+  // ---- Why didn't I win? (2026-11-25, ~/mine-work/list.md items 1 and 3, and the advantage leakage half of "How you got ahead"; gaWy*, gaUp*) ----
+  // The Filters' games you lost or drew, each one with scores in exactly one row: still better at the end (on time, resigned, drawn, left) first,
+  // else never ahead / a chance offered and not taken / gone in one move / slid away. A game's scores are the one source gevOf gives: your review, else
+  // Lichess's analysis, else the quick scores. Quick scores count in the shares; a move, a board, a moment and the split "a tactic at once"
+  // come from reviews and Lichess's analysis only. Your opponents: their games not won among the same games, by the same rule. No engine here.
+  var GA_WY_B = 150, GA_WY_D = 15, GA_WY_N = 30, GA_WY_NB = 6, GA_WY_UP = 300, GA_WY_MATE = 5, GA_WY_R = 3, GA_WY_PLY = 10, GA_WY_MIN = 6000;
+  var GA_WY_KS = ['n', 'c', 'o', 's', 't', 'e'], GA_WY_AH = 'ostrdxz';         // 'e': resigned, drawn, left or ended another way while better (r, d, x, z)
+  var GA_WY = new WeakMap(), GA_WY_V = 0, GA_WY_JOB = 0, GA_WY_Q = [], GA_WY_QT = 0, GA_WYB = new Map();
+  // one side of a game (E: gevOf's scores, every position known; odd: the positions, by parity, where `me` is to move):
+  //   k: 'e' 1.5 or better in the last position, whoever is to move (the Clock card's "when your flag fell" reads the same position); else 'n'
+  //   never better by 1.5 on your turn; 'c' better by 1.5 on your turn, never after your move; else ahead (a held pair: 1.5 or better on your turn
+  //   and after your move), and after the last such pair 'o' the first of your moves that took you from 1.5 or better to under it and cost 15
+  //   points of winning chances (p: the position before it), 's' no such move
+  //   late ('s'): the first 15-point move of yours after it had slid under 1.5 (-1: none)
+  //   gave ('c'): the chance came from a move of theirs that cost 15 points; up: the first of two positions in a row at 3 or better (-1: none)
+  //   drawn: a draw claimed on their move (a repetition, 50 moves) is scored 0.00 in the last position: the one before it says who was better
+  function gaWySide(E, me, odd, drawn){
+    const s = E.s, n = E.n, sg = me==='b' ? -1 : 1, W = (p)=> gevWin(s[p], me);
+    let ch = false, last = -1, up = -1, gave = false, k = '', at = -1, late = -1;
+    for(let p = 0; p < n; p++){
+      const a = s[p]*sg, b = s[p + 1]*sg;
+      if(up < 0 && a >= GA_WY_UP && b >= GA_WY_UP) up = p;
+      if(p % 2!==odd || a < GA_WY_B) continue;
+      ch = true;
+      if(b >= GA_WY_B) last = p;
+      else if(p && !gave && W(p) - W(p - 1) >= GA_WY_D) gave = true;
+    }
+    if(s[n]*sg >= GA_WY_B || (drawn && n % 2===odd && s[n]===0 && s[n - 1]*sg >= GA_WY_B)) k = 'e';
+    else if(last < 0) k = ch ? 'c' : 'n';
+    else {
+      // (after the last held pair a position of 1.5 or better on your turn is always under it after your move)
+      for(let p = last + 2; p < n; p += 2) if(W(p) - W(p + 1) >= GA_WY_D){ if(s[p]*sg >= GA_WY_B){ k = 'o'; at = p; break; } if(late < 0) late = p; }
+      if(!k) k = 's';
+    }
+    return { k, p:at, gave:k==='c' && gave, late:k==='s' ? late : -1, up };
+  }
+  // better to the end and not won: drawn (any draw), on time, resigned, left the game, or an end the game doesn't say (Repertoire Lab's own games)
+  function gaWyEnd(st, lost){ return !lost ? 'd' : st==='outoftime' ? 't' : st==='resign' ? 'r' : st==='timeout' || st==='abandoned' ? 'x' : 'z'; }
+  // a game's facts, kept while its scores are the same: { E, me, src, quick, gap, res, y: yours (you didn't win), o: theirs (they didn't), uy, uo:
+  // where you / they stood 3 better }; gap: Lichess left positions unscored (then it counts nowhere); null: no scores, or 5 moves or fewer
+  function gaWyOf(g, u){
+    const E = gevOf(g);
+    if(!E || !(E.n > GA_WY_PLY)) return null;
+    const me = ghMyColor(g, u)==='white' ? 'w' : 'b';
+    let w = GA_WY.get(E);
+    if(w && w.me===me && w.st===g.status && w.wn===g.winner) return w;
+    w = { E, me, st:g.status, wn:g.winner, src:E.src, quick:E.quick, gap:E.known <= E.n, res:ghGameResult(g, u), y:null, o:null, uy:-1, uo:-1, un:undefined };
+    if(!w.gap){
+      const odd = gevTurn(g, 0)===me ? 0 : 1, dr = w.res==='draw', Y = gaWySide(E, me, odd, dr), O = gaWySide(E, me==='w' ? 'b' : 'w', 1 - odd, dr);
+      w.uy = Y.up; w.uo = O.up;
+      if(w.res!=='win'){ if(Y.k==='e') Y.k = gaWyEnd(w.st, w.res==='loss'); w.y = Y; }
+      if(w.res!=='loss'){ if(O.k==='e') O.k = gaWyEnd(w.st, w.res==='win'); w.o = O; }
+    }
+    GA_WY.set(E, w);
+    return w;
+  }
+  // ---- what the move allowed, from the line (reviews and Lichess's analysis only). The line is the engine's best reply (a review that kept
+  // it), else the reply played when it cost them 3 points at most. After it every answer of yours is tried and the captures that follow are
+  // counted (a side in check tries every move): 2 points of material or more lost whatever you play, or a mate in 5 or fewer, is a tactic at
+  // once. Anything else says only "no tactic at once", never what the plan was ----
+  var GA_WY_PV = { p:1, n:3, b:3, r:5, q:9, k:100 };
+  function gaWyMat(B, c){ let d = 0; for(let i = 0; i < 64; i++){ const p = B[i]; if(p && p.type!=='k') d += p.color===c ? GA_WY_PV[p.type] : -GA_WY_PV[p.type]; } return d; }
+  // c's captures and queen promotions [gain, the piece's worth, from, to, promotes], the biggest first (legality aside: a king taken is 100)
+  function gaWyCaps(B, c){
+    const out = [], up = c==='w' ? 1 : -1, last = c==='w' ? 7 : 0;
+    for(let i = 0; i < 64; i++){
+      const p = B[i];
+      if(!p || p.color!==c) continue;
+      const r = i >> 3, f = i & 7, v = GA_WY_PV[p.type];
+      const hit = (t)=>{ const q = B[t]; if(q && q.color!==c) out.push([GA_WY_PV[q.type], v, i, t, false]); };
+      if(p.type==='p'){
+        const rr = r + up, pr = rr===last;
+        if(rr < 0 || rr > 7) continue;
+        for(const d of [-1, 1]) if(f + d >= 0 && f + d < 8){ const q = B[rr*8 + f + d]; if(q && q.color!==c) out.push([GA_WY_PV[q.type] + (pr ? 8 : 0), 1, i, rr*8 + f + d, pr]); }
+        if(pr && !B[rr*8 + f]) out.push([8, 1, i, rr*8 + f, true]);
+        continue;
+      }
+      const D = p.type==='n' ? KNIGHT_OFFSETS : p.type==='b' ? PZ_BISHOP_DIRS : p.type==='r' ? PZ_ROOK_DIRS : PZ_KING_DIRS, far = p.type!=='n' && p.type!=='k';
+      for(const d of D){
+        let x = r + d[0], y = f + d[1];
+        while(x >= 0 && x < 8 && y >= 0 && y < 8){ if(B[x*8 + y]){ hit(x*8 + y); break; } if(!far) break; x += d[0]; y += d[1]; }
+      }
+    }
+    return out.sort((a, b)=> b[0] - a[0] || a[1] - b[1]);
+  }
+  // the material c (to move) ends with, m now: it may stop capturing at any point, but not while in check; alpha-beta, d plies at most
+  function gaWyQs(B, c, m, al, be, d){
+    if(d <= 0) return m;
+    const o = c==='w' ? 'b' : 'w';
+    let L = gaWyCaps(B, c), best = m;
+    if(L.length && L[0][0] >= 100) return 100;
+    const k = findKing(B, c);
+    if(k >= 0 && attackersOf(B, k, o).length){
+      best = -100;
+      L = [];
+      const st = { board:B, turn:c, castling:{}, epSquare:null };
+      for(let i = 0; i < 64; i++) if(B[i] && B[i].color===c) pzPseudoMovesFor(st, i).forEach(x=>{ if(!x.promotion || x.promotion==='q') L.push([(x.captured ? GA_WY_PV[x.captured] : 0) + (x.promotion ? 8 : 0), GA_WY_PV[x.piece], x.from, x.to, !!x.promotion]); });
+      L.sort((a, b)=> b[0] - a[0] || a[1] - b[1]);
+    } else if(best >= be) return best;
+    for(const x of L){
+      const a = B[x[2]], t = B[x[3]];
+      B[x[2]] = null; B[x[3]] = x[4] ? { type:'q', color:c } : a;
+      const v = -gaWyQs(B, o, -(m + x[0]), -be, -Math.max(al, best), d - 1);
+      B[x[2]] = a; B[x[3]] = t;
+      if(v > best){ best = v; if(best >= be) break; }
+    }
+    return best;
+  }
+  // { t:'m', n } mate in n (0: in a few moves), { t:'t', v } v points of material, { t:'q' } no tactic at once, { t:'u' } the line isn't known.
+  // p: the position before the move; best: the engine's move after it ('' when not known)
+  function gaWyTac0(g, E, me, p, best){
+    const a = gevObj(E.s[p + 1]), mt = a && a.type==='mate' ? (me==='w' ? a.value : -a.value) : 0;
+    if(mt < 0 && mt >= -GA_WY_MATE) return { t:'m', n:-mt };
+    const toks = gaToks(g), at = kmAt(g, p), mv = at ? rpSanToMove(at.st, toks[p]) : null;
+    if(!mv) return { t:'u' };
+    const st1 = pzApplyMoveRaw(at.st, mv), o = me==='w' ? 'b' : 'w';
+    let m = best ? pzAllLegalMoves(st1).find(x=> gzUci(x)===best) || null : null;
+    if(!m && p + 2 <= E.n && gevWin(E.s[p + 2], me) - gevWin(E.s[p + 1], me) <= GA_WY_R) m = rpSanToMove(st1, toks[p + 1]);
+    if(!m) return { t:'u' };
+    const st2 = pzApplyMoveRaw(st1, m), L = pzAllLegalMoves(st2);
+    if(!L.length) return pzIsInCheck(st2, me) ? { t:'m', n:1 } : { t:'q' };
+    const m0 = gaWyMat(at.st.board, me);
+    let top = -200;
+    for(const x of L){
+      const B = pzApplyMoveRaw(st2, x).board, v = -gaWyQs(B, o, -gaWyMat(B, me), -200, -top, 6);
+      if(v > top){ top = v; if(top >= m0 - 1) break; }
+    }
+    return m0 - top < 2 ? { t:'q' } : m0 - top >= 60 ? { t:'m', n:0 } : { t:'t', v:m0 - top };
+  }
+  function gaWyTac(g, w){
+    const y = w.y;
+    if(y.tac===undefined){ let r = null; try{ r = gaWyTac0(g, w.E, w.me, y.p, gevBest(g, y.p + 1)); }catch(e){ r = null; } y.tac = r || { t:'u' }; }
+    return y.tac;
+  }
+  function gaWyTacK(t){ return t.t==='m' || t.t==='t' ? 't' : t.t; }
+  function gaWyTacW(t){ return t.t==='m' ? 'A tactic at once: mate'+(t.n ? ' in '+t.n : '') : t.t==='t' ? 'A tactic at once: '+t.v+' points of material' : t.t==='q' ? 'No tactic at once' : ''; }
+  // the lines (and the boards' moves, x.b) read a few at a time, the newest first, while Analytics (or a list that needs them) is on screen; at the
+  // end the card alone is drawn again (the list, with its own redraw)
+  function gaWyJobKick(list){
+    if(GA_WY_JOB) return;
+    const L = list.filter(x=> x.w.y.tac===undefined || (x.b && x.w.y.at===undefined));
+    if(!L.length) return;
+    let i = 0;
+    const tick = ()=>{
+      if(currentView!=='history' || !(gaOn() || /^(?:prev:\w+\+)?why:o[tqu]$/.test(GH_FILTERS.ga || ''))){ GA_WY_JOB = 0; return; }
+      if(document.hidden){ GA_WY_JOB = setTimeout(tick, 1000); return; }
+      const t = performance.now();
+      while(i < L.length && performance.now() - t < 8){ const x = L[i++]; gaWyTac(x.g, x.w); if(x.b) gaWyAt(x); }
+      if(i < L.length){ GA_WY_JOB = setTimeout(tick, 0); return; }
+      GA_WY_JOB = 0;
+      GA_WY_V++;
+      if(gaOn() && GA.model) gaWySync(GA.model, null, GA.sig); else gaSoon();
+    };
+    GA_WY_JOB = setTimeout(tick, 0);
+  }
+  // ---- the model: md.why (Why didn't I win?) and md.clk.up (the Clock card's lines) ----
+  function gaWyZ(){ return { N:0, n:0, c:0, o:0, s:0, t:0, e:0, r:0, d:0, x:0, z:0, cg:0, sl:0 }; }
+  function gaWyPut(t, S){ t.N++; t[S.k]++; if('rdxz'.indexOf(S.k) >= 0) t.e++; if(S.gave) t.cg++; if(S.late >= 0) t.sl++; }
+  // a game with no scores that the quick pass takes (rapid and blitz only; not one whose moves it couldn't replay or score): on or off
+  function gaWyCan(g){ if(!qkAble() || !qkGameOk(g)) return false; const f = QK_F.get(String(g.id)); return !(f && (f.why==='moves' || f.tries >= 3) && f.h===hraSigOf(g).h); }
+  function gaWyAhead(t){ let a = 0; for(const k of GA_WY_AH) a += t[k]; return a; }
+  function gaModelWhy(md){
+    if(!GA.wyNews) GA.wyNews = gevOnNews(()=>{ if(gaOn() || /why|clk:(?:[ul]3|lt[ws])/.test(GH_FILTERS.ga || '')) gaSoon(); });
+    gevReady();                                             // the first card that asks: the quick scores are read from this device
+    // the facts job reads each game's scores as it goes (gaWyOf), so the cards wait for it as the others do
+    if(md.unread > 0){ md.why = { wait:true, one:[] }; md.say['ga-why'] = { t:'', kind:'wait', bold:false }; return; }
+    const K = md.why = { nw:0, gap:0, src:{ review:0, lichess:0, quick:0 }, y:gaWyZ(), o:gaWyZ(), up:{ y:gaT(), o:gaT(), N:0, all:0, q:0, src:{ review:0, lichess:0, quick:0 } }, one:[], nev:[],
+      q:0, bad:0, slow:{}, sp:{ rapid:[0, 0], blitz:[0, 0], other:[0, 0] }, since:0, sinceIn:0, cut:0, left:{ n:0, of:0 }, oj:{ n:0, of:0 } };
+    const L = [], able = qkAble();
+    md.W.forEach(e=>{
+      if(!(gaPlies(e.g) > GA_WY_PLY)) return;
+      const nw = e.res!=='win', w = gaWyOf(e.g, md.u), ok = !!w && !w.gap, sp = e.speed==='rapid' || e.speed==='blitz' ? e.speed : 'other', can = !w && gaWyCan(e.g);
+      K.up.all++;
+      if(can) K.up.q++;
+      if(nw){
+        K.nw++; K.sp[sp][1]++;
+        if(ok) K.sp[sp][0]++;
+        if(sp!=='other') L.push([e.at, ok, ok && w.quick]);
+        if(w && w.gap) K.gap++;
+        else if(can) K.q++;                                               // not scored yet: the pass comes to it
+        else if(!w && able){ if(sp==='other') K.slow[e.speed] = (K.slow[e.speed] || 0) + 1; else K.bad++; }
+      }
+      if(!ok) return;
+      K.up.N++; K.up.src[w.src]++;
+      if(w.y){
+        gaWyPut(K.y, w.y);
+        K.src[w.src]++;
+        if(w.y.k==='o' && !w.quick) K.one.push({ e, g:e.g, w });
+        if(w.y.k==='n') K.nev.push(e);
+      }
+      if(w.o) gaWyPut(K.o, w.o);
+      if(w.uy >= 0) gaAdd(K.up.y, e.res);
+      if(w.uo >= 0) gaAdd(K.up.o, e.res==='win' ? 'loss' : e.res==='loss' ? 'win' : 'draw');
+    });
+    K.one.sort((a, b)=> b.e.at - a.e.at || (String(a.g.id) < String(b.g.id) ? -1 : 1));
+    K.one.slice(0, GA_WY_NB).forEach(x=>{ x.b = true; });
+    // how far back the quick scores go in these games (they are made newest first, rapid and blitz only), while there are more to come
+    K.part = K.src.quick > 0 && K.q > 0;
+    if(K.src.quick){
+      let cut = Infinity;
+      L.forEach(x=>{ if(x[2] && x[0] < cut) cut = x[0]; });
+      K.cut = cut;
+      L.forEach(x=>{ if(x[0] >= cut){ K.since++; if(x[1]) K.sinceIn++; } });
+    }
+    // the never-ahead games: did the opening do its job, and who left your lines first
+    K.nev.forEach(e=>{
+      if(ojReady()){ const r = ojOf(e.g); if(r && (r.k==='done' || r.k==='not')){ K.oj.of++; if(r.k==='done') K.oj.n++; } }
+      const r = rpReady() && !hrRl() ? rpResult(e.g) : null;
+      if(r && r.left && r.kind!=='norep'){ K.left.of++; if(r.left.who==='you') K.left.n++; }
+    });
+    md.say['ga-why'] = gaWySay(md, K);
+    gaModelUp(md);
+  }
+  // a share, from GA_WY_N games on that side ('' under it)
+  function gaWyPct(n, N){ return N >= GA_WY_N ? gaPfPct(n, N) : ''; }
+  // the sentence: the row with the most of your games, with your opponents' share of the same row (30 games on each side). Bold when the two
+  // shares differ by 5 points and twice the standard error; What stands out takes it from three
+  var GA_WY_SAY = { n:(a, N)=> 'You were never ahead in '+a+' of the '+N, c:(a, N)=> 'A chance was offered and not taken in '+a+' of the '+N, o:(a, N)=> 'You were ahead, then one move of yours cost 15 points or more, in '+a+' of the '+N,
+    s:(a, N)=> 'You were ahead, then it slid away with no single big move in '+a+' of the '+N, t:(a, N)=> 'Your flag fell while you were better in '+a+' of the '+N,
+    e:(a, N)=> 'You were still better when it ended, and not on time, in '+a+' of the '+N };
+  function gaWySay(md, K){
+    const Y = K.y, O = K.o, F = (n)=> n.toLocaleString('en-US');
+    if(Y.N < GA_WY_N) return { t:'', kind:'fact', bold:false };
+    const k = GA_WY_KS.slice().sort((a, b)=> Y[b] - Y[a] || GA_WY_KS.indexOf(a) - GA_WY_KS.indexOf(b))[0];
+    let t = GA_WY_SAY[k](F(Y[k]), F(Y.N))+' games you didn\u2019t win'+(Y.N < K.nw ? ' that have scores (of '+F(K.nw)+(K.part ? ', the newest first' : '')+')' : '')+': '+gaPfPct(Y[k], Y.N)+'.';
+    if(O.N < GA_WY_N) return { t, kind:'fact', bold:false };
+    const p = Y[k] / Y.N, q = O[k] / O.N, se = Math.sqrt(p*(1 - p)/Y.N + q*(1 - q)/O.N), d = p - q, z = se > 0 ? Math.abs(d) / se : 0, pass = !md.partial && Math.abs(d) >= 0.05 - GA_EPS && z >= 2 - GA_EPS;
+    t += ' Your opponents, in these same games: '+F(O[k])+' of the '+F(O.N)+' they didn\u2019t win, '+gaPfPct(O[k], O.N)+'.';
+    return { t, kind:pass ? 'test' : 'fact', bold:pass, z, n:Y.N + O.N, pick:true, partial:md.partial };
+  }
+  // the Clock card's part (rapid): up by 3 for two positions in a row, then under a minute or never, by your clock before your moves from there
+  // on, or your flag (the last think has no move after it) (the same for the games that went on 20 or more of your moves: long games are the ones where clocks run down); and the engine's score
+  // when your flag fell, rapid and blitz apart
+  function gaUpUnder(g, w){
+    if(w.un!==undefined) return w.un;
+    const C = g.clocks, ini = kmStart(g, w.me).ini, odd = gevTurn(g, 0)===w.me ? 0 : 1;
+    w.un = (w.st==='outoftime' && w.res==='loss') || ((w.st==='outoftime' || w.st==='timeVsInsufficient') && w.res==='draw' && w.E.n % 2===odd);
+    if(!w.un) for(let p = w.uy + ((w.uy % 2===odd) ? 0 : 1); p < w.E.n; p += 2){
+      const c = p >= 2 ? C[p - 2] : ini;
+      if(typeof c==='number' && c < GA_WY_MIN){ w.un = true; break; }
+    }
+    return w.un;
+  }
+  function gaUpLong(w){ return w.E.n - w.uy >= 40; }
+  function gaModelUp(md){
+    const K = md.clk;
+    if(!K || K.wait || !K.G) return;
+    const fl = ()=> ({ n:0, sc:0, w:0, q:0 }), U = K.up = { n:0, sc:0, qk:0, q:0, y:gaT(), no:gaT(), ly:gaT(), ln:gaT(), fl:{ rapid:fl(), blitz:fl() } };
+    K.G.forEach(e=>{
+      const F = U.fl[e.speed];
+      if(!F) return;
+      const w = gaWyOf(e.g, md.u), ok = !!w && !w.gap, can = !w && gaPlies(e.g) > GA_WY_PLY && gaWyCan(e.g);
+      if(ok && w.quick) U.qk++;
+      if(e.speed==='rapid' && gaPlies(e.g) > GA_WY_PLY){
+        U.n++;
+        if(can) U.q++;
+        if(ok){
+          U.sc++;
+          if(w.uy >= 0){ const q = gaUpUnder(e.g, w); gaAdd(q ? U.y : U.no, e.res); if(gaUpLong(w)) gaAdd(q ? U.ly : U.ln, e.res); }
+        }
+      }
+      if(e.res==='loss' && e.g.status==='outoftime' && gaPlies(e.g) > GA_WY_PLY){ F.n++; if(can) F.q++; if(ok){ F.sc++; if(gevCp(w.E.s[w.E.n], w.me) >= GA_WY_B) F.w++; } }
+    });
+  }
+  // ---- the drill-down keys: why:<row> (yours), whyo:<row> (your opponents'), all, a (ahead and not won), cg, nl, o<t|q|u>, 3 (up by 3 at some
+  // point, any result), no (not won, no scores); clk:<u|l>3<y|n>, clk:ltw (flag fell while better), clk:lts (flag fell, with scores) ----
+  function gaWyAtom(g, u, t, v){
+    if(!(gaPlies(g) > GA_WY_PLY)) return false;
+    const w = gaWyOf(g, u), ok = !!w && !w.gap, o = t==='whyo', S = ok ? (o ? w.o : w.y) : null;
+    if(v==='no') return !w && ghGameResult(g, u)!=='win';
+    if(!ok){ gevReady(); return false; }
+    if(v==='3') return (o ? w.uo : w.uy) >= 0;
+    if(!S) return false;
+    if(v==='all') return true;
+    if(v==='a') return GA_WY_AH.indexOf(S.k) >= 0;
+    if(v==='e') return 'rdxz'.indexOf(S.k) >= 0;
+    if(v==='cg') return S.gave;
+    if(v==='sl') return S.late >= 0;
+    if(v==='nl'){ const r = S.k==='n' ? rpResult(g) : null; return !!(r && r.left && r.kind!=='norep' && r.left.who==='you'); }
+    if(v.length===2) return S.k==='o' && !w.quick && S.tac!==undefined && gaWyTacK(S.tac)===v[1];
+    return S.k===v;
+  }
+  function gaUpAtom(g, u, f, v){
+    if(!(gaPlies(g) > GA_WY_PLY)) return false;
+    const w = gaWyOf(g, u);
+    if(!w || w.gap){ gevReady(); return false; }
+    if(v[0]==='l' && v[1]==='t'){
+      if(g.status!=='outoftime' || ghGameResult(g, u)!=='loss') return false;
+      return v==='lts' || gevCp(w.E.s[w.E.n], w.me) >= GA_WY_B;
+    }
+    return w.uy >= 0 && (v[0]==='u' || gaUpLong(w)) && gaUpUnder(g, w)===(v[2]==='y');
+  }
+  // a game one of these keys can't place yet: the quick scores not read in, or its line not read (the split)
+  function gaWyUnread(g, s){
+    if(!(gaPlies(g) > GA_WY_PLY)) return false;
+    const w = gaWyOf(g, ghMe());
+    if(!w) return !gevReady();
+    const v = gaParse(s).atom;
+    if(!/^why:o[tqu]$/.test(v) || w.gap || !w.y || w.y.k!=='o' || w.quick || w.y.tac!==undefined) return false;
+    GA_WY_Q.push({ g, w });                                 // (a list that needs lines: read together, after this redraw)
+    if(!GA_WY_QT) GA_WY_QT = setTimeout(()=>{ const L = GA_WY_Q; GA_WY_QT = 0; GA_WY_Q = []; gaWyJobKick(L.sort((a, b)=> (Number(b.g.createdAt) || 0) - (Number(a.g.createdAt) || 0))); }, 0);
+    return true;
+  }
+  // [the row, the chip's words, the review line's]
+  var GA_WY_ROW = {
+    n:['Never ahead', 'never ahead'], c:['A chance offered, not taken', 'a chance offered, not taken'], o:['Gone in one move', 'gone in one move'],
+    s:['Slid away', 'slid away, no single big move'], t:['On time while better', 'lost on time while better'],
+    e:['Resigned, drawn or left while better', 'resigned, drawn or left while better'], r:['Resigned while better', 'resigned while better'],
+    d:['Drawn while better', 'drawn while better'], x:['Left while better', 'left while better'], z:['Still better at the end', 'still better at the end'] };
+  // the row's name from the kinds either side has ("Resigned, drawn or left while better")
+  function gaWyEName(L){
+    if(L.length < 2) return GA_WY_ROW[L[0] || 'e'][0];
+    const W = L.map(z=> ({ r:'resigned', d:'drawn', x:'left', z:'ended another way' })[z]), t = W.slice(0, -1).join(', ')+' or '+W[W.length - 1]+' while better';
+    return t.charAt(0).toUpperCase()+t.slice(1);
+  }
+  function gaWyLabel(a){
+    let m = /^why(o?):(\w+)$/.exec(a);
+    if(m){
+      const v = m[2], who = m[1] ? 'Your opponents: ' : '';
+      const X = { all:m[1] ? 'games they didn\u2019t win, with scores' : 'Not won, with scores', a:'Not won after being ahead', cg:'A chance after a move of theirs that cost 15+ points, not taken', nl:'Never ahead, and you left your lines first',
+        sl:'Slid away, and later a move that cost 15+ points', ot:'Gone in one move: a tactic at once', oq:'Gone in one move: no tactic at once', ou:'Gone in one move: the line isn\u2019t known', 3:'Up by 3 or more at some point', no:'Not won, no scores yet' }[v];
+      const R = GA_WY_ROW[v] ? GA_WY_ROW[v][1] : '', t = X || (m[1] ? R : R.charAt(0).toUpperCase()+R.slice(1));
+      return who+(who ? t.charAt(0).toLowerCase()+t.slice(1) : t);
+    }
+    m = /^clk:([ul])3([yn])$/.exec(a);
+    if(m) return 'Up by 3 or more, then '+(m[2]==='y' ? 'under a minute on your clock' : 'never under a minute')+(m[1]==='l' ? ', 20+ of your moves after it' : '');
+    return a==='clk:ltw' ? 'Lost on time while better by 1.5+ (engine)' : a==='clk:lts' ? 'Lost on time, with engine scores' : null;
+  }
+  // ---- drawing ----
+  // what the card shows, beside the model (its counts), in one string: drawn again in place when only this changed
+  function gaWyStamp(md){
+    const K = md.why, U = md.clk && md.clk.up;
+    if(!K) return '';
+    if(K.wait) return 'wait';
+    if(!K.stamp) K.stamp = gnFnv(JSON.stringify([K.nw, K.gap, K.src, K.y, K.o, K.up, K.q, K.bad, K.slow, K.sp, qkAble() ? (qkOn() ? 2 : 1) : 0, K.since, K.sinceIn, K.cut, K.left, K.oj, K.one.map(x=> x.g.id+':'+x.w.y.p+':'+x.w.E.at)]));
+    return K.stamp+'|'+(U ? gnFnv(JSON.stringify(U)) : '')+'|'+GA_WY_V+'|'+(GZ_LOADED ? GZ_FV : '-')+'|'+gnFnv(JSON.stringify(md.out || []));
+  }
+  // after a redraw that changed nothing else: the quick scores moved (30 s apart at most), the lines were read, the puzzles came in
+  function gaWySync(md, em, sig){
+    if(em || GA.emp || !GA.model || sig!==GA.sig || !md.why || md.why.wait || !gaOn()) return;
+    const st = gaWyStamp(md);
+    if(st!==GA.wys){
+      const was = String(GA.wys || '').split('|'), now = st.split('|'), fa = document.activeElement, body = document.getElementById('ga-body'), fid = fa && body.contains(fa) && fa.dataset ? fa.dataset.fid || '' : '';
+      GA.model = md;
+      if(was[0]!==now[0] || was[2]!==now[2] || was[3]!==now[3]) gaDrawOne(md, 'ga-why');
+      if(was[1]!==now[1]) gaDrawOne(md, 'ga-clk');
+      if(was[4]!==now[4]) gaDrawOne(md, 'ga-out');
+      GA.wys = st;
+      if(fid){ const el = Array.from(body.querySelectorAll('[data-fid]')).find(x=> x.dataset.fid===fid); if(el && el!==document.activeElement) try{ el.focus({ preventScroll:true }); }catch(e){} }
+    }
+    gaWyJobKick(md.why.one);
+  }
+  // how the scores come, when they are missing
+  function gaWyHow(K){
+    if(!qkAble()) return (hraClass()==='phone' && !hrRl() ? 'A phone makes no quick scores: a' : 'A')+' game counts here once it has a review, or Lichess\u2019s analysis.';
+    if(qkOn()) return 'Older games get quick scores in the background, the newest first (Settings, Game reviews).';
+    return K.src.quick ? 'Quick scores are off: no more are made. A game without one counts once it has a review, or Lichess\u2019s analysis.' : 'Quick scores for older games are off: a game counts once it has a review, or Lichess\u2019s analysis.';
+  }
+  function gaWyDay(ts){ try{ return new Date(ts).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); }catch(e){ return ctDay(ts); } }
+  function gaWyAnd(L){ return L.length < 2 ? L.join('') : L.slice(0, -1).join(', ')+' and '+L[L.length - 1]; }
+  function gaWyFrom(S){
+    const F = (n)=> n.toLocaleString('en-US'), by = [];
+    if(S.review) by.push(F(S.review)+' reviewed');
+    if(S.lichess) by.push(F(S.lichess)+' analyzed on Lichess');
+    if(S.quick) by.push(F(S.quick)+' with quick scores');
+    return by.join(', ');
+  }
+  // how many of the games were read, beside the number (folded too): all of them, or which (the newest first, by speed)
+  function gaWyTop(md, c, wds){
+    const K = md.why, N = K.y.N, F = (n)=> n.toLocaleString('en-US'), p = ghEl('p', 'ct-vs ga-cov ga-wycov'), T = (t)=> p.appendChild(document.createTextNode(t));
+    if(!N) T(K.nw===1 ? 'The 1 game you didn\u2019t win has no scores'+(K.q ? ' yet.' : '.') : 'None of the '+ghoN(K.nw, 'game')+' you didn\u2019t win has scores'+(K.q ? ' yet.' : '.'));
+    else {
+      const all = N===K.nw, b = gaGo(F(N), { ga:'why:all' }, 'why|all', gaOpenLab(N, 'you didn\u2019t win, with scores', wds));
+      b.dataset.n = String(N);
+      if(all) T(N===1 ? 'The ' : 'All ');
+      p.appendChild(b);
+      T((all ? ' '+(N===1 ? 'game' : 'games') : ' of the '+ghoN(K.nw, 'game'))+' you didn\u2019t win '+(N===1 ? 'has' : 'have')+' scores'+(K.part ? ', the newest first' : ''));
+      const S = K.sp, by = [['rapid', S.rapid], ['blitz', S.blitz], ['other speeds', S.other]].filter(x=> x[1][1]);
+      if(!all && by.length > 1) T(' ('+by.map(x=> x[0]+' '+F(x[1][0])+' of '+F(x[1][1])).join(', ')+')');
+      T('.');
+    }
+    c.appendChild(p);
+  }
+  // ... and from where, what is missing, and what would score it
+  function gaWyBase(md, x, wds){
+    const K = md.why, N = K.y.N, F = (n)=> n.toLocaleString('en-US'), p = ghEl('p', 'ct-vs ga-cov ga-wysrc'), T = (t)=> p.appendChild(document.createTextNode((p.firstChild ? ' ' : '')+t));
+    if(N) T('Scores: '+gaWyFrom(K.src)+'.');
+    if(K.part){
+      const S = K.sp, rb = S.rapid[0] + S.blitz[0];
+      T(K.sinceIn===K.since && K.sinceIn===rb && !S.other[0] ? 'Quick scores are made newest first: these are the newest '+F(N)+'.'
+        : 'Quick scores are made newest first and reach back to '+gaWyDay(K.cut)+': '+F(K.sinceIn)+' of the '+F(K.since)+' '+gaWyAnd(['rapid', 'blitz'].filter(z=> S[z][1]))+' games since then have scores.');
+    }
+    const no = K.nw - N - K.gap, slow = Object.keys(K.slow).reduce((n, k)=> n + K.slow[k], 0);
+    if(no > 0 && N){
+      const b = gaGo(F(no)+' not scored'+(K.q ? ' yet' : ''), { ga:'why:no' }, 'why|no', gaOpenLab(no, 'you didn\u2019t win, with no scores'+(K.q ? ' yet' : ''), wds));
+      b.dataset.n = String(no);
+      T('');
+      p.appendChild(b);
+      p.appendChild(document.createTextNode('.'));
+    }
+    if(slow){
+      const w = ['bullet', 'ultraBullet', 'classical', 'correspondence'].filter(k=> K.slow[k]).concat(Object.keys(K.slow).filter(k=> !GA_SPEED_W[k])).map(k=> k==='ultraBullet' ? 'UltraBullet' : gaSpeedW(k).toLowerCase() || 'other'), t = gaWyAnd(w);
+      T(t.charAt(0).toUpperCase()+t.slice(1)+' games get no quick scores ('+F(slow)+' here): they need a review, or Lichess\u2019s analysis.');
+    }
+    if(K.bad) T(ghoN(K.bad, 'game')+' couldn\u2019t be scored.');
+    if(K.gap) T(ghoN(K.gap, 'game')+' with positions Lichess left unscored '+(K.gap===1 ? 'is' : 'are')+' left out.');
+    if(p.firstChild) x.appendChild(p);
+    if(no > 0 && (qkAble() ? K.q > 0 && (!qkOn() || !K.src.quick) : true)){
+      const h = ghEl('p', 'ga-ln ga-soft ga-wyhow', gaWyHow(K));
+      if(qkAble() && !qkOn()){ const b = gaBtn('ct-l', 'Open Settings', 'settings', 'why|set'); b.dataset.val = 'hra-field'; h.appendChild(document.createTextNode(' ')); h.appendChild(b); }
+      x.appendChild(h);
+    }
+  }
+  // the puzzles the Puzzles tab lists under these Filters, by kind ({} until this visit has read them; none in Repertoire Lab)
+  function gaWyPz(md){
+    const n = { job:0, win:0, jobL:0, winL:0 };
+    if(hrRl()) return n;
+    if(!GZ_LOADED){ if(GZ_ON && !GA.wyPz){ GA.wyPz = 1; gzLoad(); let k = 0; const w = ()=>{ if(GZ_LOADED){ if(gaOn() && GA.model) gaWySync(GA.model, null, GA.sig); } else if(k++ < 20) setTimeout(w, 400); }; setTimeout(w, 400); } return n; }
+    const res = GH_FILTERS.result || '', ids = new Map();
+    md.W.forEach(e=>{ if((!res || e.res===res) && e.g.status!=='cheat') ids.set(String(e.g.id), e.res); });
+    GZ.P.forEach(it=>{ if((it.kind==='job' || it.kind==='win') && Array.isArray(it.games) && it.games.some(x=> ids.has(String(x.id)))){ n[it.kind]++; if(it.games.some(x=> /^(?:loss|draw)$/.test(ids.get(String(x.id)) || ''))) n[it.kind+'L']++; } });
+    return n;
+  }
+  function gaDrawWhy(md, frag){
+    const K = md.why, c = gaCard('ga-why', 'Why didn\u2019t I win?', 'Engine scores', true), top = ghEl('div', 'ga-num'), wds = 'in '+gaWinWords(md.v), Y = K.y, O = K.o, F = (n)=> n.toLocaleString('en-US');
+    GA.wys = gaWyStamp(md);
+    c.appendChild(top);
+    if(K.wait){ gaReading(c, frag, gaRead(md, md.W.length - md.unread)); return; }
+    if(!K.nw){ gaSay(c, { t:md.W.length ? 'No game here that you lost or drew.' : '', kind:'fact', bold:false }); gaX(c); frag.appendChild(c); return; }
+    const a = gaWyAhead(Y), oa = gaWyAhead(O);
+    if(Y.N){
+      const pc = gaWyPct(a, Y.N), lab = gaOpenLab(a, 'you didn\u2019t win after being ahead', wds);
+      if(a) gaBigNum(top, pc || F(a), { ga:'why:a' }, 'why|big', lab, a, pc ? Math.round(100*a/Y.N) : null);
+      else { const z = ghEl('span', 'ct-big ga-big', '0'); z.dataset.n = '0'; top.appendChild(z); }
+      top.appendChild(ghEl('span', 'ct-what', pc ? 'of the games you didn\u2019t win: you had been ahead' : 'of '+ghoN(Y.N, 'game')+' you didn\u2019t win: you had been ahead'));
+      const ov = O.N ? 'Your opponents: '+(gaWyPct(oa, O.N) ? gaPfPct(oa, O.N)+' ('+F(oa)+' of '+F(O.N)+')' : F(oa)+' of '+F(O.N)) : '';
+      const vs = (pc ? F(a)+' of '+F(Y.N) : '')+(pc && ov ? ' \u00b7 ' : '')+ov;
+      if(vs) top.appendChild(ghEl('span', 'ct-vs', vs));
+    }
+    gaWyTop(md, c, wds);
+    const s = md.say['ga-why'];
+    if(s && s.t) gaSay(c, s);
+    const x = gaX(c);
+    gaWyBase(md, x, wds);
+    if(Y.N){
+      const two = ghEl('div', 'ga-wy2'), left = ghEl('div', 'ga-wyl');
+      gaWyTable(md, left, wds);
+      two.appendChild(left);
+      const B = gaWyBoards(md);
+      if(B) two.appendChild(B); else two.classList.add('is-one');
+      x.appendChild(two);
+      // (How you got ahead, the other half of "advantage leakage", goes here: the same games' stretches at +3, under the same base line)
+    }
+    gaSrc(x, 'Ahead = 1.5 pawns or more better on your turn and still after your move, or when the game ended. Never ahead = that never came, nor 1.5 or better on your turn. A chance not taken = 1.5 or better on your turn, gone with your move each time. '+
+      'While better = 1.5 or better in the last position, whatever came before (before the claim, in a draw by repetition or 50 moves); these games are in no other row. '+
+      'Gone in one move = after the last time you were ahead, the first move of yours that took you from 1.5 or better to under it and cost 15 points of winning chances or more. Slid away = ahead, then under 1.5 with no such move. '+
+      'A tactic at once = after that move the engine\u2019s best reply (or the reply played, when it cost them '+GA_WY_R+' points at most) wins 2 points of material or more against any answer, counted over the captures that follow, or it is mate in '+GA_WY_MATE+' or fewer. No tactic at once = only that. '+
+      'Score once up by 3 = wins and half the draws in every game, won or not, where you (or they) stood 3 pawns or more better for two positions in a row. Opponents = the games they didn\u2019t win among these same games, by the same rule. '+
+      'Scores = your review, else Lichess\u2019s analysis, else quick scores (a quick look of 12,000 positions a move; rapid and blitz only). Quick scores = in the shares only: boards and tactics come from reviews and Lichess\u2019s analysis. Percentages from '+GA_WY_N+' games. Games of 5 moves or fewer are left out.');
+    frag.appendChild(c);
+    gaWyJobKick(K.one);
+  }
+  // the rows: the reason, yours, your opponents'; under the reason what it means and what to do about it
+  function gaWyTable(md, box, wds){
+    const K = md.why, F = (n)=> n.toLocaleString('en-US'), role = (el, r)=>{ el.setAttribute('role', r); return el; }, P = gaWyPz(md);
+    const tb = role(ghEl('div', 'ga-wyt'), 'table');
+    tb.setAttribute('aria-label', 'Why the games weren\u2019t won, you and your opponents');
+    const hd = role(ghEl('div', 'ga-wyr is-head'), 'row');
+    [['Where it went', ''], ['You', F(K.y.N)+' not won'], ['Opponents', F(K.o.N)+' not won']].forEach(([w, n], i)=>{
+      const h = role(ghEl('span', 'ga-goh'+(i ? '' : ' is-l'), w), 'columnheader');
+      if(n) h.appendChild(ghEl('span', 'ga-wyhn', n));
+      hd.appendChild(h);
+    });
+    tb.appendChild(hd);
+    const cell = (j, n, N, ga, lab, unit)=>{
+      const c = role(ghEl('span', 'ga-goc'), 'cell'), pc = gaWyPct(n, N), t = pc || F(n), base = pc ? F(n)+' of '+F(N) : 'of '+F(N);
+      if(!N){ c.appendChild(gaPcNone('no games with scores')); return c; }
+      const b = n ? gaBtn('ga-gob', '', 'go', 'why|'+(j ? 'o' : 'y')+'|'+unit) : ghEl('span', 'ga-gob is-sum');
+      b.dataset.k = unit;
+      b.appendChild(ghEl('span', 'ga-gov', t));
+      b.appendChild(ghEl('span', 'ga-gon', base));
+      if(n){ b.dataset.q = JSON.stringify({ ga:(j ? 'whyo:' : 'why:')+ga }); b.dataset.n = String(n); b.setAttribute('aria-label', (j ? 'Opponents' : 'You')+', '+lab+': '+(pc ? pc+', ' : '')+F(n)+' of '+F(N)+'. '+gaOpenLab(n, j ? 'where that was your opponent' : 'where that was you', wds)); }
+      c.appendChild(b);
+      return c;
+    };
+    const num = (p, n, ga, fid, lab, more)=>{ const b = gaGo(F(n), Object.assign({ ga }, more || {}), fid, gaOpenLab(n, lab, wds)); b.dataset.n = String(n); p.appendChild(b); };
+    const pz = (p, kind, n, w)=>{ const b = gaBtn('ct-l', w+' ('+F(n)+')', 'wypz', 'why|pz|'+kind+'|'+p.dataset.k); b.dataset.val = kind; b.dataset.n = String(n); b.setAttribute('aria-label', w+': '+ghoN(n, 'puzzle')+' from these Filters\u2019 games, in Puzzles'); p.appendChild(b); };
+    GA_WY_KS.forEach(k=>{
+      if(!(k==='n' || k==='c' || k==='o') && !K.y[k] && !K.o[k]) return;   // always the first three; the others when either side has such games
+      const E3 = k==='e' ? ['r', 'd', 'x', 'z'].filter(z=> K.y[z] || K.o[z]) : [], R = k==='e' ? [gaWyEName(E3)] : GA_WY_ROW[k], r = role(ghEl('div', 'ga-wyr'), 'row'), l = role(ghEl('span', 'ga-wyn'), 'rowheader');
+      r.dataset.k = k;
+      l.appendChild(ghEl('span', 'ga-wyw', R[0]));
+      r.appendChild(l);
+      r.appendChild(cell(0, K.y[k], K.y.N, k, R[0].toLowerCase(), k));
+      r.appendChild(cell(1, K.o[k], K.o.N, k, R[0].toLowerCase(), k));
+      const ex = [];
+      if(k==='c' && K.y.cg){
+        const p = ghEl('p', 'ga-ln ga-wyx');
+        num(p, K.y.cg, 'why:cg', 'why|cg', 'where the chance came from a move of theirs that cost 15 points or more');
+        p.appendChild(document.createTextNode(' of '+F(K.y.c)+' came from a move of theirs that cost 15 points or more.'));
+        ex.push(p);
+      }
+      if(k==='s' && K.y.sl){
+        const p = ghEl('p', 'ga-ln ga-wyx');
+        num(p, K.y.sl, 'why:sl', 'why|sl', 'where it slid away, and a move of yours cost 15 points or more later');
+        p.appendChild(document.createTextNode(' of '+F(K.y.s)+' had a move of yours that cost 15 points or more later, once it was under 1.5.'));
+        ex.push(p);
+      }
+      if(k==='o' && K.one.length) ex.push(gaWySplit(md, num));
+      if(E3.length > 1){
+        const p = ghEl('p', 'ga-ln ga-wyx');
+        // (each side's kinds, under one name)
+        [['You: ', K.y, 'why'], ['Opponents: ', K.o, 'whyo']].forEach(([w, t, a])=>{
+          const L = E3.filter(z=> t[z]);
+          L.forEach((z, i)=>{ p.appendChild(document.createTextNode((i ? ' \u00b7 ' : (p.firstChild ? ' ' : '')+w)+{ r:'resigned ', d:'drawn ', x:'left ', z:'ended another way ' }[z])); num(p, t[z], a+':'+z, a+'|'+z, GA_WY_ROW[z][1]); });
+          if(L.length) p.appendChild(document.createTextNode('.'));
+        });
+        ex.push(p);
+      }
+      // what to do about it, with what the app has (nothing where it has none)
+      const d = ghEl('p', 'ga-ln ga-wydo');
+      d.dataset.k = k;
+      if(k==='n' && K.y.n){
+        if(K.oj.of){
+          d.appendChild(document.createTextNode('The opening did its job in '));
+          if(K.oj.n && !md.f.oj) num(d, K.oj.n, 'why:n', 'why|oj', 'where you were never ahead and the opening did its job', { oj:'done' }); else d.appendChild(document.createTextNode(F(K.oj.n)));
+          d.appendChild(document.createTextNode(' of '+F(K.oj.of)+' checked. '));
+          d.appendChild(gaBtn('ct-l', 'See it in Openings', 'oj', 'why|ojgo'));
+        }
+        if(K.left.n){
+          d.appendChild(document.createTextNode((d.firstChild ? ' ' : '')+'You left your lines first in '));
+          num(d, K.left.n, 'why:nl', 'why|nl', 'where you were never ahead and left your lines first');
+          d.appendChild(document.createTextNode(' of '+F(K.left.of)+'. '));
+          d.appendChild(gaBtn('ct-l', 'Forgot your line', 'wyfl', 'why|fl'));
+        }
+      } else if(k==='t'){
+        if(K.y.t && md.clk && md.clk.G && md.clk.G.length){ const b = gaBtn('ct-l', 'Your clock: Am I down a lot on the clock?', 'out', 'why|clk'); b.dataset.card = 'ga-clk'; d.appendChild(b); }
+      } else if(K.y[k]){
+        const L = (k==='c' ? ['job'] : k==='o' ? ['job', 'win'] : ['win']).filter(z=> P[z+'L']);        // (none when they all come from games you won)
+        if(L.length) d.appendChild(document.createTextNode('Practice: '));
+        L.forEach((z, i)=>{ if(i) d.appendChild(document.createTextNode(' \u00b7 ')); pz(d, z, P[z], z==='job' ? 'Finish the job' : 'Win it again'); });
+      }
+      if(d.firstChild) ex.push(d);
+      if(ex.length){ const b = role(ghEl('div', 'ga-wyex'), 'cell'); b.setAttribute('aria-colspan', '3'); ex.forEach(p=> b.appendChild(p)); r.appendChild(b); }
+      tb.appendChild(r);
+    });
+    // once up by 3: every game, won or not
+    const U = K.up;
+    if(U.y.n || U.o.n){
+      const r = role(ghEl('div', 'ga-wyr is-up'), 'row'), l = role(ghEl('span', 'ga-wyn'), 'rowheader');
+      r.dataset.k = '3';
+      l.appendChild(ghEl('span', 'ga-wyw', 'Score once up by 3'));
+      r.appendChild(l);
+      [U.y, U.o].forEach((t, j)=>{
+        const c = role(ghEl('span', 'ga-goc'), 'cell');
+        if(!t.n){ c.appendChild(gaPcNone('no games')); r.appendChild(c); return; }
+        const b = gaBtn('ga-gob', '', 'go', 'why|'+(j ? 'o' : 'y')+'|3'), pc = t.n >= GA_WY_N ? Math.round(100*gaSc(t))+'%' : '';
+        b.dataset.k = '3'; b.dataset.n = String(t.n); b.dataset.q = JSON.stringify({ ga:(j ? 'whyo:3' : 'why:3') });
+        if(pc) b.dataset.pct = pc;
+        b.appendChild(ghEl('span', 'ga-gov', pc || t.W+'-'+t.D+'-'+t.L));
+        b.appendChild(ghEl('span', 'ga-gon', pc ? 'of '+ghoN(t.n, 'game') : 'won-drawn-lost'));
+        b.setAttribute('aria-label', (j ? 'Opponents' : 'You')+', score once up by 3: '+(pc ? pc+' of '+ghoN(t.n, 'game') : t.W+' won, '+t.D+' drawn, '+t.L+' lost')+'. '+gaOpenLab(t.n, j ? 'where your opponent was up by 3' : 'where you were up by 3', wds));
+        c.appendChild(b);
+        r.appendChild(c);
+      });
+      const p = ghEl('p', 'ga-ln ga-wyx ga-wyupb', (U.N===U.all ? 'Scores in all '+ghoN(U.all, 'game') : 'Scores in '+F(U.N)+' of '+ghoN(U.all, 'game'))+', won or not'+(U.q && U.src.quick ? ', the newest first' : '')+': '+gaWyFrom(U.src)+'.'), q = role(ghEl('div', 'ga-wyex'), 'cell');
+      q.setAttribute('aria-colspan', '3');
+      q.appendChild(p);
+      r.appendChild(q);
+      tb.appendChild(r);
+    }
+    box.appendChild(tb);
+  }
+  // Gone in one move, split by the line: the games with a review or Lichess's analysis only
+  function gaWySplit(md, num){
+    const L = md.why.one, p = ghEl('p', 'ga-ln ga-wyx ga-wysp'), n = { t:0, q:0, u:0 }, T = (t)=> p.appendChild(document.createTextNode(t));
+    let wait = 0;
+    L.forEach(x=>{ const t = x.w.y.tac; if(t===undefined) wait++; else n[gaWyTacK(t)]++; });
+    T('With a review or Lichess\u2019s analysis: '+ghoN(L.length, 'game')+'. ');
+    if(wait){ T('Reading their lines: '+(L.length - wait).toLocaleString('en-US')+' of '+L.length.toLocaleString('en-US')+'\u2026'); return p; }
+    const out = [['t', 'ot', 'a tactic at once', 'gone in one move, a tactic at once'], ['q', 'oq', 'no tactic at once', 'gone in one move, no tactic at once'], ['u', 'ou', 'line not known', 'gone in one move, the line not known']].filter(y=> n[y[0]]);
+    out.forEach(([k, ga, w, lab], i)=>{ if(i) T(' \u00b7 '); T((i ? w : w.charAt(0).toUpperCase()+w.slice(1))+' '); num(p, n[k], 'why:'+ga, 'why|'+ga, lab); });
+    T('.');
+    return p;
+  }
+  // the newest six as boards: the position before the move (your side at the bottom), the move in red, the engine's in green where the review kept it
+  function gaWyBoards(md){
+    const L = md.why.one.slice(0, GA_WY_NB);
+    if(!L.length) return null;
+    const box = ghEl('div', 'ga-wybd');
+    box.appendChild(ghEl('p', 'ct-k', L.length===1 ? 'The newest one, as a board' : 'The newest '+L.length+', as boards'));
+    if(L.some(x=> x.w.y.at===undefined)){ box.appendChild(ghEl('p', 'ga-ln ga-soft', 'Reading the moves\u2026')); return box; }
+    if(GA.wyPs!==PIECE_SVG){ GA.wyPs = PIECE_SVG; GA_WYB.clear(); }
+    const grid = ghEl('div', 'ct-mgrid ga-mgrid ga-wygrid');
+    GA.wyby = new Map();
+    L.forEach(y=>{ const card = gaWyCard(y); if(card){ GA.wyby.set(card.dataset.fid, y); grid.appendChild(card); } });
+    if(!grid.firstChild) return null;
+    box.appendChild(grid);
+    gaWyFill(grid);
+    return box;
+  }
+  // drawn as they come near the screen; the ones drawn before put back at once
+  var GA_WYIO = null;
+  function gaWyFill(root){
+    const fill = (bd, kept)=>{
+      const card = bd.closest('.ct-m'), y = card && !bd.firstChild && GA.wyby ? GA.wyby.get(card.dataset.fid) : null, b = y ? gaWyBoard(y, kept) : null;
+      if(b) bd.appendChild(b);
+    };
+    const list = root.querySelectorAll('.ct-mbd');
+    if(!('IntersectionObserver' in window)){ list.forEach(bd=> fill(bd)); return; }
+    if(!GA_WYIO){
+      const cb = (ents)=>{ ents.forEach(en=>{ if(en.isIntersecting){ GA_WYIO.unobserve(en.target); fill(en.target); } }); };
+      try{ GA_WYIO = new IntersectionObserver(cb, { root:document, rootMargin:'600px 0px' }); }catch(e){ GA_WYIO = new IntersectionObserver(cb, { rootMargin:'600px 0px' }); }
+    }
+    list.forEach(bd=>{ fill(bd, true); if(!bd.firstChild) GA_WYIO.observe(bd); });
+  }
+  // the move, only when gevMove names it (never from quick scores) and it is legal there; the engine's, only when it is
+  function gaWyAt(y){
+    if(y.w.y.at!==undefined) return y.w.y.at;
+    const p = y.w.y.p, m = gevMove(y.g, p + 1), at = m && m.mover===y.w.me && m.pts >= GA_WY_D ? kmAt(y.g, p) : null, mv = at ? rpSanToMove(at.st, gaToks(y.g)[p]) : null;
+    if(!mv) return (y.w.y.at = null);
+    const u = gevBest(y.g, p), all = u ? pzAllLegalMoves(at.st) : [], bm = all.find(z=> gzUci(z)===u) || null;
+    let bs = '';
+    if(bm && gzUci(mv)!==u) try{ bs = pzMoveToSAN(at.st, bm, pzApplyMoveRaw(at.st, bm)); }catch(e){ bs = ''; }
+    return (y.w.y.at = { p:p + 1, m, fen:at.fen, mv:gzUci(mv), best:bs ? u : '', bs });
+  }
+  function gaWyBoard(y, kept){
+    const A = gaWyAt(y), flip = y.e.color==='black', key = y.g.id+'|'+A.p+'|'+(flip ? 1 : 0)+'|'+A.best;
+    let mb = GA_WYB.get(key);
+    if(mb || kept) return mb || null;
+    const arrows = (A.best ? [{ f:A.best.slice(0, 2), t:A.best.slice(2, 4), c:'G' }] : []).concat([{ f:A.mv.slice(0, 2), t:A.mv.slice(2, 4), c:'R' }]);
+    try{ mb = nbMiniBoard({ fen:A.fen, flip, arrows, squares:[], label:'', ply:null, line:null, extra:[] }); }catch(e){ return null; }
+    GA_WYB.set(key, mb);
+    if(GA_WYB.size > 24) GA_WYB.delete(GA_WYB.keys().next().value);
+    return mb;
+  }
+  function gaWyCard(y){
+    const A = gaWyAt(y);
+    if(!A) return null;
+    const e = y.e, g = y.g, me = y.w.me, p = A.p, toks = gaToks(g), a = Math.round(gevWin(y.w.E.s[p - 1], me)), z = Math.round(gevWin(y.w.E.s[p], me));
+    const b = ghEl('button', 'ct-m ga-mm is-x ga-wym');
+    b.type = 'button'; b.dataset.act = 'wyopen';
+    b.dataset.gid = String(g.id); b.dataset.ply = String(p);
+    b.dataset.fid = 'wym|'+g.id+'|'+p;
+    b.appendChild(ghEl('span', 'ct-mbd'));
+    const opp = ghoOppOf(g), L = [ghClampLabel(p, toks[p - 1], 0)+' \u00b7 cost '+(a - z)+' points', 'Chances '+a+'% \u2192 '+z+'%'], tw = y.w.y.tac ? gaWyTacW(y.w.y.tac) : '';
+    if(A.bs) L.push('Best was '+ghClampLabel(p, A.bs, 0));
+    if(tw) L.push(tw);
+    const k = kmClock(g, p);
+    if(k) L.push(gaClockW(k.me)+' left \u00b7 took '+gaTookW(k.spent));
+    L.push(ctRes(e.res)+(opp ? ' vs '+opp : '')+' \u00b7 '+ctDay(e.at)+' \u00b7 '+(y.w.src==='review' ? 'your review' : GA_SRC_W.l));
+    const l1 = ghEl('span', 'ct-mmv ga-ml1');
+    l1.appendChild(ghEl('b', '', L[0]));
+    b.appendChild(l1);
+    L.slice(1).forEach(t=> b.appendChild(ghEl('span', 'ct-mft', t)));
+    b.setAttribute('aria-label', L.join('. ')+'. Open the review there');
+    return b;
+  }
+  GA_ACTS.wyopen = (b)=>{
+    const y = GA.wyby && GA.wyby.get(b.dataset.fid);
+    const A = y ? gaWyAt(y) : null;
+    if(!A) return;
+    GA.back = { y:window.scrollY, fid:b.dataset.fid };
+    GA.y = null;
+    ghOpenGame(y.g, { at:{ ply:A.p } });
+  };
+  // the Puzzles tab on that kind; Back (or Analytics) returns here
+  GA_ACTS.wypz = (b)=>{
+    GA.back = { y:window.scrollY, fid:b.dataset.fid };
+    GA.y = null;
+    GH_UI.gzk = gzValidK(b.dataset.val);
+    GZ.shown = 0; GZ.y = null;
+    ghoSetView('puzzles');
+    window.scrollTo({ top:0 });
+  };
+  GA_ACTS.wyfl = (b)=> gaToOpenings('gho-gaps', b.dataset.fid);
+  // ---- the Clock card's lines: under "Lost on time", and above "Where your clock goes" ----
+  function gaDrawFlag(md, x){
+    const U = md.clk.up, F = (n)=> n.toLocaleString('en-US');
+    if(!U) return;
+    const L = ['rapid', 'blitz'].filter(s=> U.fl[s].sc);
+    if(!L.length) return;
+    const p = ghEl('p', 'ga-ln ga-wyfl');
+    p.appendChild(document.createTextNode('By the engine you were 1.5 or more better when your flag fell: '));
+    L.forEach((s, i)=>{
+      const f = U.fl[s], pc = gaWyPct(f.w, f.sc), n = ghEl('span', 'ga-nw');
+      if(i) p.appendChild(document.createTextNode(' \u00b7 '));
+      n.appendChild(document.createTextNode(s+' '));
+      if(f.w){ const b = gaGo(F(f.w), { speed:s, result:'loss', end:'time', ga:'clk:ltw' }, 'clk|ltw|'+s, gaOpenLab(f.w, 'you lost on time in '+s+' while better by 1.5 or more')); b.dataset.n = String(f.w); n.appendChild(b); } else n.appendChild(document.createTextNode('0'));
+      n.appendChild(document.createTextNode(' of '));
+      const b = gaGo(F(f.sc), { speed:s, result:'loss', end:'time', ga:'clk:lts' }, 'clk|lts|'+s, gaOpenLab(f.sc, 'you lost on time in '+s+', with engine scores'));
+      b.dataset.n = String(f.sc); n.appendChild(b);
+      if(pc) n.appendChild(document.createTextNode(' ('+pc+')'));
+      p.appendChild(n);
+    });
+    const part = ['rapid', 'blitz'].filter(s=> U.fl[s].sc < U.fl[s].n);
+    p.appendChild(document.createTextNode('.'+(part.length ? ' Time losses with scores'+(part.some(s=> U.fl[s].q) ? ' so far' : '')+': '+part.map(s=> s+' '+F(U.fl[s].sc)+' of '+F(U.fl[s].n)).join(', ')+(U.qk && part.some(s=> U.fl[s].q) ? ' (quick scores go newest first)' : '')+'.' : '')));
+    x.appendChild(p);
+  }
+  function gaDrawUp(md, x){
+    const U = md.clk.up, F = (n)=> n.toLocaleString('en-US'), wds = 'in '+gaWinWords(md.v);
+    if(!U || !(U.y.n + U.no.n)) return;
+    const box = ghEl('div', 'ga-rows3 ga-up');
+    box.appendChild(ghEl('p', 'ct-k', 'Up by 3 in rapid, then the clock'));
+    [['y', 'Later under a minute', U.y, 'u3y', 'where you were up by 3, then under a minute'], ['n', 'Never under a minute', U.no, 'u3n', 'where you were up by 3 and never under a minute']].forEach(([k, w, t, atom, lab])=>{
+      const r = ghEl('div', 'ga-r3 ga-r25'+(t.n < GA_WY_N ? ' is-thin' : '')), q = { speed:'rapid', ga:'clk:'+atom };
+      r.dataset.k = k;
+      r.appendChild(ghEl('span', 'ga-r3l', w));
+      r.appendChild(t.n ? gaBar(t, q, gaBarLab(w, t), 'up|'+k) : ghEl('span', 'gho-bar'));
+      const n = ghEl('span', 'ga-r3n');
+      n.dataset.n = String(t.n);
+      if(t.n){ const b = gaGo(ghoN(t.n, 'game'), q, 'up|'+k+'|n', gaOpenLab(t.n, lab, wds)); b.dataset.n = String(t.n); n.appendChild(b); } else n.textContent = '0 games';
+      r.appendChild(n);
+      const s = ghEl('span', 'ga-r3s', t.n >= GA_WY_N ? Math.round(gaSc(t)*100)+'%' : '');
+      if(t.n >= GA_WY_N) s.dataset.pct = String(Math.round(gaSc(t)*100));
+      r.appendChild(s);
+      box.appendChild(r);
+    });
+    // long games are the ones where clocks run down: the same two groups among the games that went on 20 or more of your moves
+    const p = ghEl('p', 'ga-ln ga-soft ga-uplen'), T = (t)=> p.appendChild(document.createTextNode(t));
+    const go = (t, atom, lab)=>{ if(!t.n){ T('0'); return; } const b = gaGo(F(t.n), { speed:'rapid', ga:'clk:'+atom }, 'up|'+atom, gaOpenLab(t.n, lab, wds)); b.dataset.n = String(t.n); p.appendChild(b); };
+    T('Long games run clocks down. Only the games that went on 20 or more of your moves: ');
+    const sc = (t)=> t.n >= GA_WY_N ? Math.round(gaSc(t)*100)+'% of ' : t.n ? t.W+' won, '+t.D+' drawn, '+t.L+' lost of ' : '';
+    T(sc(U.ly)); go(U.ly, 'l3y', 'up by 3, then under a minute, 20 or more of your moves after it'); T(' later under a minute, '+sc(U.ln)); go(U.ln, 'l3n', 'up by 3, never under a minute, 20 or more of your moves after it'); T(' never.');
+    box.appendChild(p);
+    box.appendChild(ghEl('p', 'ga-ln ga-soft ga-upbase', 'Scores in '+(U.sc===U.n ? 'all '+F(U.n) : F(U.sc)+' of '+F(U.n))+' rapid games with clocks'+(U.q ? ' so far'+(U.qk ? ' (quick scores go newest first)' : '') : '')+'; up by 3 for two positions in a row in '+F(U.y.n + U.no.n)+' of them.'));
+    x.appendChild(box);
+  }
+  function gaUpSrc(md){
+    const U = md.clk && md.clk.up;
+    if(!U || !(U.sc || U.fl.rapid.sc || U.fl.blitz.sc)) return '';
+    return ' Up by 3 = 3 pawns or more better for two positions in a row; under a minute: your clock before one of your moves from there on, or your flag fell. Flag fell while better: the last position, 1.5 pawns or more for you. Scores as in Why didn\u2019t I win?';
+  }
+  GA_DRAW_CARDS.splice(GA_DRAW_CARDS.findIndex(y=> y[0]==='ga-end') + 1, 0, ['ga-why', gaDrawWhy]);       // the wide card after the Opponents | How games end pair
+  // ---- the review's line: the open game, lost or drawn, by the same rules and from its own review's scores only (the Game review card, under
+  // the graph). The move is a button that goes to it ----
+  function gaWyReview(S, R){
+    const g = S && S.game, me = S && S.me ? String(S.me).charAt(0) : '';
+    if(!g || !me || !S.std || !R || R.partial || g._puzzle || g._practice || g.initialFen || !Array.isArray(R.ev)) return null;
+    const n = S.main.length, win = g.winner || '', st = g.status || '';
+    if(win ? win.charAt(0)===me : !(GA_DRAWN.has(st) || st==='outoftime' || st==='timeVsInsufficient' || (!st && g._me))) return null;      // (Repertoire Lab's own games say who won, or a draw by neither, and never how)
+    if(n <= GA_WY_PLY || R.ev.length!==n + 1) return null;
+    const E = { n, s:Int16Array.from(R.ev, gevNum) };
+    if(E.s.indexOf(GEV_NONE) >= 0) return null;
+    const odd = me==='w' ? 0 : 1, w = gaWySide(E, me, odd, !win);
+    w.k = w.k==='e' ? gaWyEnd(st, !!win) : w.k;
+    w.E = E; w.me = me; w.lost = !!win;
+    if(w.k==='o'){ try{ w.tac = gaWyTac0({ moves:S.main.map(x=> x.san).join(' ') }, E, me, w.p, (Array.isArray(R.best) && R.best[w.p + 1]) || ''); }catch(e){ w.tac = null; } }
+    return w;
+  }
+  function hrWhyLine(S, R, done){
+    let el = document.getElementById('hr-why');
+    if(!el){ if(!done) return; el = hvEl('p', 'hr-why'); el.id = 'hr-why'; hrUI.counts.parentNode.insertBefore(el, hrUI.counts); }
+    let w = null;
+    if(done) try{ w = gaWyReview(S, R); }catch(e){ w = null; }
+    el.hidden = !w;
+    const key = w ? [S.game.id, w.k, w.p, w.late, R.at, w.tac ? w.tac.t+(w.tac.v || w.tac.n || '') : ''].join('|') : '';
+    if(el.dataset.k===key) return;
+    el.dataset.k = key;
+    el.textContent = '';
+    if(!w) return;
+    const go = (p)=>{
+      const node = S.main[p], b = hvEl('button', 'hr-link', hvNodeLabel(node));
+      b.type = 'button';
+      b.addEventListener('click', ()=>{ if(HV_STATE===S && S.main[p]===node){ hvGoNode(node); hvRevealBoard(); } });
+      el.appendChild(b);
+    };
+    const T = (t)=> el.appendChild(document.createTextNode(t)), cp = (p)=>{ const a = gevObj(w.E.s[p]); return a.type==='mate' ? ((a.value > 0)===(w.me==='w') ? 'mate for you' : 'mate for them') : (()=>{ const v = (w.me==='w' ? a.value : -a.value) / 100; return (v >= 0 ? '+' : '\u2212')+Math.abs(v).toFixed(1); })(); };
+    el.appendChild(hvEl('b', '', 'Why you didn\u2019t win: '));
+    const R0 = GA_WY_ROW[w.k];
+    if(w.k==='o'){
+      T('gone in one move, ');
+      go(w.p);
+      const t = w.tac ? gaWyTacW(w.tac) : '';
+      T(' ('+cp(w.p)+' to '+cp(w.p + 1)+')'+(t ? '. '+t+'.' : '.'));
+    } else if(w.k==='n') T('never ahead. Your score was never 1.5 or better on your turn and after your move.');
+    else if(w.k==='c') T('a chance offered, not taken. You were better by 1.5 or more on your turn, gone with your move each time.');
+    else if(w.k==='s'){
+      T('it slid away: you were ahead, then under 1.5 with no single move that cost 15 points.');
+      if(w.late >= 0){ T(' Later '); go(w.late); T(' did ('+cp(w.late)+' to '+cp(w.late + 1)+').'); }
+    } else { const n = w.E.n; T(R0[1]+' ('+(gevCp(w.E.s[n], w.me) >= GA_WY_B ? cp(n)+' in the last position' : cp(n - 1)+' before the draw')+').'); }
+  }
   /* ---- Puzzles from your games (2026-11-21; the user: "something ... where it would go through the game and it would have
      me play the position again", spec ~/puzzles-work/SPEC.md): Game History's sixth tab. Positions from your own games
      (Lichess and chess.com, people only) where a big swing came, found and checked by Stockfish 16 on this device: never
@@ -57168,6 +57992,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     U.counts.hidden = !done;
     U.foot.hidden = !done;
     hrRenderClear(S, done, job);
+    hrWhyLine(S, R, done);
     if(done){
       hrRenderAcc(S, R);
       hrRenderCounts(S, R);
