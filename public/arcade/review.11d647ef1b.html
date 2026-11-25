@@ -5588,6 +5588,29 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .gho-gap-more{ align-self:flex-start; margin-top:4px; font:inherit; font-size:12.5px; color:var(--ink); background:none; border:0; padding:4px 0; text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
   .gho-gap-none{ font-size:12.5px; color:var(--ink-soft); padding:6px 0 2px; border-top:1px solid var(--line); }
   @media (max-width:760px){ .gho-gaps{ grid-template-columns:minmax(0,1fr); } }
+  /* Same mistake again (agn*, 2026-11-25), under Forgot your line: folded under its sentence, then a board a move */
+  .gho-same{ display:flex; flex-direction:column; gap:2px; margin-top:8px; padding-top:10px; border-top:1px solid var(--line); }
+  .gho-same[hidden]{ display:none; }
+  .gho-same-st{ margin:0; font-size:13.5px; line-height:1.4; overflow-wrap:anywhere; }
+  .gho-same-st b{ font-family:"JetBrains Mono",monospace; font-weight:700; }
+  .gho-same-acts{ display:flex; flex-wrap:wrap; gap:2px 16px; }
+  .gho-same-acts:empty{ display:none; }
+  .gho-same-wide{ grid-column:1 / -1; }            /* opened: the moves, across both cards (two side by side from 1024px) */
+  .gho-same-wide[hidden]{ display:none; }
+  .gho-same-g{ margin-top:6px; padding:10px 0 6px; font-size:12.5px; line-height:1.35; overflow-wrap:anywhere; }
+  .gho-same-g b{ font-weight:700; }
+  @media (max-width:760px){ .gho-same-wide > .gho-gap-h{ display:none; } .gho-same-wide .gho-same-g:first-child{ margin-top:0; padding-top:2px; } }
+  @media (min-width:1024px){ .gho-same-wide .gho-gap-list{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); column-gap:28px; } .gho-same-wide .gho-same-g, .gho-same-wide .gho-gap-mores{ grid-column:1 / -1; } }
+  .gho-same-r{ --bw:128px; --bg:12px; }
+  .gho-same-go{ flex:1 1 100%; display:grid; grid-template-columns:var(--bw) minmax(0,1fr); column-gap:var(--bg); align-items:start; }
+  .gho-same-bd{ display:block; width:var(--bw); }
+  .gho-same-bd:empty::before{ content:''; display:block; padding-top:100%; background:var(--surface-2); border-radius:2px; }
+  .gho-same-tx{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .gho-same-back{ font-size:12px; line-height:1.35; font-weight:700; color:var(--ink); overflow-wrap:anywhere; }
+  .gho-same-r .gho-gap-ls{ flex:1 1 100%; flex-wrap:wrap; gap:2px 16px; padding-left:calc(var(--bw) + var(--bg)); }
+  @media (pointer:coarse){ .gho-same-acts .gho-gap-more, .gho-same-wide .gho-gap-more{ min-height:44px; } .gho-same-wide .gho-gap-l{ min-width:44px; } }
+  @media (max-width:420px){ .gho-same-r{ --bw:104px; --bg:10px; } }
+  @media (max-width:340px){ .gho-same-r{ --bw:84px; } }
   /* who you met: under a row's numbers, and By opponent (2026-11-09) */
   .gho-who{ font-size:12px; line-height:1.35; color:var(--ink-soft); overflow-wrap:anywhere; }
   .gho-opps{ display:flex; flex-direction:column; gap:2px; padding:11px 13px 8px; background:var(--surface); color:var(--ink); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); }
@@ -10189,7 +10212,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <button type="button" class="toggle" data-val="off" aria-pressed="false">Off</button>
       </div>
       <div class="bg-status" id="oj-status" aria-live="polite"></div>
-      <div class="field-hint">Stockfish scores the position where each of your games leaves the opening, on this device, while Game History&#8217;s Openings tab is open. Games with a review, yours or Lichess&#8217;s, need no check. The first time takes about an hour on a laptop; after that, seconds a game.</div>
+      <div class="field-hint">Stockfish scores the position where each of your games leaves the opening, on this device, while Game History&#8217;s Openings tab is open. Games with a review, yours or Lichess&#8217;s, need no check. The first time takes about an hour on a laptop; after that, seconds a game. With your Repertoire Lab lines it also checks the moves you played more than once, for Same mistake again (about another hour the first time).</div>
     </div>
 
     <div class="modal-sep"></div>
@@ -10828,7 +10851,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       <ul class="gho-facts" id="gho-facts" aria-label="This week, in detail" hidden></ul>
       <div class="gho-gaps" id="gho-gaps" hidden>
         <section class="gho-gap-col" aria-labelledby="gho-gap-opp-h"><h3 class="gho-gap-h" id="gho-gap-opp-h">Not in your lines</h3><p class="gho-gap-sub">Your opponents&rsquo; moves that your Repertoire Lab lines don&rsquo;t answer</p><ul class="gho-gap-list" id="gho-gap-opp"></ul></section>
-        <section class="gho-gap-col" aria-labelledby="gho-gap-you-h"><h3 class="gho-gap-h" id="gho-gap-you-h">Forgot your line</h3><p class="gho-gap-sub">Where you played something other than your prepared move</p><ul class="gho-gap-list" id="gho-gap-you"></ul></section>
+        <section class="gho-gap-col" aria-labelledby="gho-gap-you-h"><h3 class="gho-gap-h" id="gho-gap-you-h">Forgot your line</h3><p class="gho-gap-sub">Where you played something other than your prepared move</p><ul class="gho-gap-list" id="gho-gap-you"></ul>
+          <div class="gho-same" id="gho-same" hidden>
+            <h4 class="gho-gap-h" id="gho-same-h">Same mistake again</h4>
+            <p class="gho-gap-sub" id="gho-same-sub"></p>
+            <p class="gho-same-st" id="gho-same-st"></p>
+            <div class="gho-same-acts" id="gho-same-acts"></div>
+          </div>
+        </section>
+        <section class="gho-gap-col gho-same-wide" id="gho-same-wide" aria-labelledby="gho-same-h" hidden><h4 class="gho-gap-h">Same mistake again</h4><ul class="gho-gap-list" id="gho-same-list" aria-labelledby="gho-same-h"></ul></section>
       </div>
       <!-- By opponent (gho-opps): who you met, what was played against your repertoire, how it went -->
       <section class="gho-opps" id="gho-opps" aria-labelledby="gho-opps-h" hidden>
@@ -30706,7 +30737,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   const GH_PARAM_KEYS = ['speed','result','opening','oq','color','tc','rated','opp','gap','end','eg','oj','len','date','variant','notes','rep','ck','ga','gold'];
   var EG = new Map(), EG_JOB = null, EG_SIG = '', EG_DONE = false;       // each game's endgame (where it begins, the kinds it went through): egEnsure
   // the repertoire filter (gho*, SPEC B.7): opening / trunk / course / chapter / line, outside, or a spot
-  const GH_REP_RE = /^(?:w\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}\.(?:[0-9a-f]{32}|n)\.[0-9a-z]{1,12}|[ot]\.[A-Za-z0-9_-]{1,64}|[kc]\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}|l(?:\.[A-Za-z0-9_-]{1,64}){3}|x\.[wb](?:\.(?:none|[a-z0-9]+(?:-[a-z0-9]+)*))?|s\.[0-9a-f]{8}(?:\.(?:t\.[A-Za-z0-9_-]{1,64}|c\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}|x\.[wb]))?)$/;
+  const GH_REP_RE = /^(?:w\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}\.(?:[0-9a-f]{32}|n)\.[0-9a-z]{1,12}|[ot]\.[A-Za-z0-9_-]{1,64}|[kc]\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}|l(?:\.[A-Za-z0-9_-]{1,64}){3}|x\.[wb](?:\.(?:none|[a-z0-9]+(?:-[a-z0-9]+)*))?|s\.[0-9a-f]{8}(?:\.(?:t\.[A-Za-z0-9_-]{1,64}|c\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}|x\.[wb]))?|m\.[0-9a-f]{16})$/;
   const GH_SECONDARY = ['rated','gap','end','eg','oj','len','date','opp','variant','gold'];
   let GH_FILTERS = Object.assign({}, GH_F_DEFAULT);
   const GH_UI = { more:false, open:false, view:'games', osort:'games', site:'all', osub:'overview', vrank:'played', vlvl:'c', gaf:{}, gzk:'all', psub:'structures', pcard:'', pm:0, pc:'' };   // site: the All | Lichess | Chess.com tab (chesscom SPEC B.1); psub: Positions' sub-tab; pcard, pm: the pawn structure whose page is open (links only)
@@ -30742,6 +30773,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         if(d.ui && /^(all|lichess|chesscom)$/.test(String(d.ui.site))) GH_UI.site = d.ui.site;
         GH_UI.boards = !!(d.ui && d.ui.boards); GH_UI.bmom = d.ui && (d.ui.bmom==='b' || d.ui.bmom==='k') ? d.ui.bmom : 'a';
         GH_UI.osub = d.ui && d.ui.osub==='variations' ? 'variations' : 'overview';     // Openings: Overview | Variations
+        GH_UI.same = !!(d.ui && d.ui.same);                                            // Openings: Same mistake again opened
         GH_UI.psub = d.ui && d.ui.psub==='find' ? 'find' : 'structures';               // Positions: Pawn structures | Find a position
         if(d.ui && /^(played|best|worst|job)$/.test(String(d.ui.vrank))) GH_UI.vrank = d.ui.vrank;
         GH_UI.vlvl = d.ui && d.ui.vlvl==='l' ? 'l' : 'c';
@@ -30750,7 +30782,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }catch(e){}
   })();
   function ghSaveFilters(){
-    try{ localStorage.setItem(GH_FILTERS_KEY, JSON.stringify({ v:1, f:Object.assign({}, GH_FILTERS, { ga:'' }), ui:{ more:!!GH_UI.more, view:GH_UI.view, osort:GH_UI.osort, site:GH_UI.site, boards:!!GH_UI.boards, bmom:GH_UI.bmom==='b' || GH_UI.bmom==='k' ? GH_UI.bmom : 'a', osub:GH_UI.osub==='variations' ? 'variations' : 'overview', psub:GH_UI.psub==='find' ? 'find' : 'structures', vrank:GH_UI.vrank, vlvl:GH_UI.vlvl==='l' ? 'l' : 'c', gaf:gaFoldsValid(GH_UI.gaf), gzk:gzValidK(GH_UI.gzk) } })); }catch(e){}
+    try{ localStorage.setItem(GH_FILTERS_KEY, JSON.stringify({ v:1, f:Object.assign({}, GH_FILTERS, { ga:'' }), ui:{ more:!!GH_UI.more, view:GH_UI.view, osort:GH_UI.osort, site:GH_UI.site, boards:!!GH_UI.boards, bmom:GH_UI.bmom==='b' || GH_UI.bmom==='k' ? GH_UI.bmom : 'a', osub:GH_UI.osub==='variations' ? 'variations' : 'overview', same:!!GH_UI.same, psub:GH_UI.psub==='find' ? 'find' : 'structures', vrank:GH_UI.vrank, vlvl:GH_UI.vlvl==='l' ? 'l' : 'c', gaf:gaFoldsValid(GH_UI.gaf), gzk:gzValidK(GH_UI.gzk) } })); }catch(e){}
   }
   function ghIsOn(k){ return k==='oq' ? (!GH_FILTERS.opening && !!GH_FILTERS.oq) : !!GH_FILTERS[k]; }
   function ghActiveCount(){ return GH_PARAM_KEYS.filter(ghIsOn).length; }
@@ -31854,6 +31886,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     ghFixOldSlugs(base);
     if(typeof rpEnsure==='function') rpEnsure();     // games waiting to be sorted (a note synced for an older game) get sorted
     egEnsure();                                      // the endgames, for the Endgame filter and the Openings tab
+    if(agnFilterOn()) agnEnsure();                   // a list of one repeated move's games (Same mistake again): the moves are read for it
     ojEnsure();                                      // the opening checks (Openings tab, the filter, Boards): only scores what's missing
     psEnsure();                                      // the pawn structures of the rows on screen (and of every game, once something wants them all)
     ghSyncFilterUI();
@@ -33194,6 +33227,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // B.7: is game g in the repertoire filter value rep?
   function rpRepMatch(g, rep){
+    if(typeof rep==='string' && rep.indexOf('m.')===0) return agnMatch(g, rep);      // Same mistake again: a position and a move
     const r = rpResult(g);
     if(!r || typeof rep!=='string') return false;
     const p = rep.split('.'), t = p[0], inRep = r.kind==='chapter' || r.kind==='trunk';
@@ -36809,6 +36843,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // a row of the Games list filtered to a spot opens the review at that move
   function ghoOpenOpts(g){
     const rep = GH_FILTERS.rep;
+    if(rep && rep.indexOf('m.')===0 && rpReady()){ const p = agnPly(g, rep); return p==null ? undefined : { at:{ ply:p + 1 } }; }
     if(!rep || rep.indexOf('s.')!==0 || !rpReady()) return undefined;
     const r = rpResult(g);
     return r && r.left && r.left.atPly!=null && r.left.spot===rep.split('.')[1] ? { at:{ ply:r.left.atPly + 1 } } : undefined;
@@ -36830,6 +36865,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!rep) return '';
     if(!rpReady()) return null;
     const p = rep.split('.'), t = p[0], o = RP.ops.get(p[1]);
+    if(t==='m') return agnLabel(rep);
     if(t==='x') return 'Outside your repertoire as '+(p[1]==='b' ? 'Black' : 'White')+(p[2] ? ': '+ghOpeningLabel(p[2]) : '');
     if(t==='s'){
       let r = null;
@@ -37650,6 +37686,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(fg){ const F = GHO_BRIEF.facts[Number(fg.dataset.fi)]; const a = F && F.acts[Number(fg.dataset.ai)]; if(a && a.go){ const why = a.go(); if(typeof why==='string') pxNote(fg, why); } return; }
       const fm = e.target.closest('.gho-facts-more');
       if(fm){ GHO_BRIEF.allFacts = !GHO_BRIEF.allFacts; ghoDrawFacts(); const nb = document.querySelector('.gho-facts-more'); if(nb) try{ nb.focus({ preventScroll:true }); }catch(err){} return; }
+      if(e.target.closest('#gho-same, #gho-same-wide') && agnClick(e)) return;
       const gpx = e.target.closest('.gho-gap-px');
       if(gpx){
         const y = GHO_LAST && GHO_LAST.gaps && GHO_LAST.gaps[gpx.dataset.gapk] ? GHO_LAST.gaps[gpx.dataset.gapk][Number(gpx.dataset.gapi)] : null;
@@ -38154,7 +38191,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function ghoDrawGaps(model){
     const box = document.getElementById('gho-gaps');
     const L = model ? ghoGapList(model) : null;
-    box.hidden = !L || (!L.opp.length && !L.you.length);
+    const ag = agnDraw(model || null);                  // Same mistake again, under Forgot your line
+    box.hidden = !L || (!L.opp.length && !L.you.length && !ag);
     if(model) model.gaps = L;
     if(box.hidden) return;
     const draw = (key, list)=>{
@@ -38369,9 +38407,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // calm position from there (the move into it no capture or promotion, no check), its FEN; the same from the endgame
     let mid = -1;
     const win = { a:[], b:[] };          // [position, calm, fen] in each window (up to 5 positions)
+    const ac = ojMine(g), ag = [];       // your own early moves, "position move" (Same mistake again, agn*)
     for(let i = 0; i < toks.length; i++){
       const mv = rpSanToMove(st, toks[i]);
       if(!mv) break;
+      if(i < AGN_PLIES && (i % 2 ? 'b' : 'w')===ac) ag.push(rpKey(st)+' '+gzUci(mv));
       st = pzApplyMoveRaw(st, mv);
       n = i + 1;
       half = (mv.piece==='p' || mv.captured || mv.isEP) ? 0 : half + 1;
@@ -38392,6 +38432,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // a checkpoint needs a move played after it, else the game was over there
     const pick = (w, at)=>{ if(at < 0 || at >= n) return null; const c = w.filter(x=> x[0] < n); return c.find(x=> x[1]) || c[0] || null; };
     const A = pick(m >= 0 ? win.a : win.b, m >= 0 ? m : out.s), Bq = m >= 0 ? pick(win.b, out.s) : null;
+    out.ac = ac; out.ag = ag;
     Object.assign(out, { m, n, h:gnFnv(toks.join(' ')), all:n===toks.length, qa: A ? A[0] : -1, fa: A ? A[2] : '', qb: Bq ? Bq[0] : -1, fb: Bq ? Bq[2] : '' });
     out.pf = gaPfCount(toks, out);          // how often each piece moved, both colors (Analytics, gaPf*)
     const fg = GA_F.get(g);                 // ... and where the clock went by phase (gaGoPh), when the game's clock facts are read
@@ -38404,13 +38445,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!e) return false;                                    // a game the pass doesn't read (Chess960, no moves): no endgame setting matches it
     return v==='yes' ? e.s >= 0 : v==='no' ? e.s < 0 : e.t.indexOf(v) >= 0;
   }
+  // the first and the last game read: other games, as many of them, are other games (another player, in Repertoire Lab)
+  function ghEnds(){ const L = GH_STATE.games, n = L.length; return n ? L[0].id+' '+L[n - 1].id : ''; }
   // the games without an endgame yet get one; only when the filter or the Openings tab wants them, and only when the
   // games changed (a draw costs nothing otherwise)
   function egEnsure(){
-    if(!GH_FILTERS.eg && !ghoOn() && !((GH_UI.view==='games' || ctOn() || ttOn()) && (GH_FILTERS.oj || ghbOn())) && !gaOn() && !gzOn() && !gaNeedsEg(GH_FILTERS.ga)
+    if(!GH_FILTERS.eg && !ghoOn() && !agnFilterOn() && !((GH_UI.view==='games' || ctOn() || ttOn()) && (GH_FILTERS.oj || ghbOn())) && !gaOn() && !gzOn() && !gaNeedsEg(GH_FILTERS.ga)
       && !(currentView==='play-history' && typeof HV_STATE!=='undefined' && HV_STATE)) return;      // the review's usual line (hpUsual) reads them too
     if(EG_JOB){ EG_JOB.more = true; return; }
-    const sig = GH_STATE.games.length+'|'+(ghCcUp() ? ccGames().length : 0)+'|'+(typeof GN==='object' && GN && GN.notes ? Object.keys(GN.notes).length : 0);
+    const sig = GH_STATE.games.length+'|'+(ghCcUp() ? ccGames().length : 0)+'|'+(typeof GN==='object' && GN && GN.notes ? Object.keys(GN.notes).length : 0)+'|'+ghEnds();
     if(sig===EG_SIG) return;
     const list = rpGames().filter(g=> !EG.has(g.id));
     EG_SIG = sig;
@@ -38428,7 +38471,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(job.added) OJ_VER++;                                  // games read: the opening's job grades them (oj*)
       if(currentView==='play-history' && typeof HV_STATE!=='undefined' && HV_STATE) setTimeout(()=>{ try{ if(HV_STATE) hpRender(HV_STATE); }catch(e){} }, 0);
       // drawn once with the new endgames: right away the first time, else after a pause (never while you type a search)
-      const draw = ()=>{ if(currentView!=='history' || !(GH_FILTERS.eg || GH_FILTERS.oj || ghoOn() || GH_UI.boards || gaOn() || gzOn() || gaNeedsEg(GH_FILTERS.ga))) return; if(Date.now() - GHO_QAT < 900){ setTimeout(draw, 900); return; } OJ_VER++; ghRender(); };
+      const draw = ()=>{ if(currentView!=='history' || !(GH_FILTERS.eg || GH_FILTERS.oj || ghoOn() || agnFilterOn() || GH_UI.boards || gaOn() || gzOn() || gaNeedsEg(GH_FILTERS.ga))) return; if(Date.now() - GHO_QAT < 900){ setTimeout(draw, 900); return; } OJ_VER++; ghRender(); };
       setTimeout(draw, first ? 0 : 400);
     };
     setTimeout(tick, 0);
@@ -38798,7 +38841,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           // the watchdog counts from the engine being ready (the first visit downloads the 40 MB network); multi settles on
           // every ending, and starts nothing once this call is over (live)
           Promise.resolve(hve.ready).then(()=>{ if(job.wake===resolve) arm(); }, ()=>{});
-          hve.multi(fen, { k:mo.k, nodes, fresh:true, live:()=> OJ_JOB===job && job.wake===resolve }).then(resolve, ()=> resolve(null));
+          hve.multi(fen, { k:mo.k, mv:mo.mv || '', nodes, fresh:true, live:()=> OJ_JOB===job && job.wake===resolve }).then(resolve, ()=> resolve(null));
         } else {
           arm();
           hve.check(fen, nodes, (f, best, ci)=> resolve(ci || null)).then(ok=>{ if(!ok) resolve(false); });
@@ -38824,11 +38867,25 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         await new Promise(r=> setTimeout(r, !a || a==='dog' ? (a==='dog' ? 500 : 250) : 0));
         continue;
       }
+      // Same mistake again (agn*): one search of its own between two of the others', so neither list waits for the other
+      if(!job.ag){
+        const t = agnNext();
+        if(t){
+          job.ag = true;
+          const a = await ask(t.fen, t.nodes, t);
+          if(OJ_JOB!==job) return;
+          if((a===false || a==null) && hve.state==='failed'){ if(hve.failWhy!=='slow') OJ_NOENG = true; break; }
+          agnTake(t, a===false ? null : a);
+          if(!a || a==='dog') await new Promise(r=> setTimeout(r, 250));
+          continue;
+        }
+      }
+      job.ag = false;
       // the list done: what's left now (an endgame to score for a game that just turned out to be "did its job, then
       // lost"); with every checkpoint scored, the key moments, a position at a time (kmNext)
       if(job.i >= job.todo.length){
         job.todo = ojTodo(); job.i = 0;
-        if(!job.todo.length){ const k = kmNext(); if(k) job.todo = [k]; else { job.empty = true; break; } }
+        if(!job.todo.length){ const k = kmNext(); if(k) job.todo = [k]; else if(agnNext()) continue; else { job.empty = true; break; } }
       }
       const t = job.todo[job.i++], id = String(t.g.id);
       let info = null;
@@ -38867,13 +38924,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     if(OJ_JOB===job){
       OJ_JOB = null;
-      if(kind==='oj'){ OJ_IDLE = job.empty ? ojIdleSig() : ''; ojStatus(); if(job.done || OJ_NOENG) ojSoonDraw(true); }      // Stockfish can't run: once, so the lines say why
+      if(kind==='oj'){ OJ_IDLE = job.empty ? ojIdleSig() : ''; ojStatus(); agnDraw(); if(job.done || OJ_NOENG) ojSoonDraw(true); }      // Stockfish can't run: once, so the lines say why
       else { ojStatus(); gzStatus(); gzWakeSync(); gzCountLine(); if(job.games || OJ_NOENG) gzSoon(true); }                // OJ_IDLE: only an Opening checks job sets it
       if(currentView==='history' && !job.err) setTimeout(ojEnsure, 0);     // the tab may have changed meanwhile: its own job, if it has work
     }
   }
   // what an empty to-do list depended on: while it's the same, there's nothing to check (no job, no redraw)
-  function ojIdleSig(){ return OJ_VER+'|'+EG.size+'|'+OJ_FAIL.size+'|'+OJ_ON+'|'+OJ_DB.size+'|'+KM_VER+'|'+KM_FAIL.size+'|'+KM_LOADED; }
+  function ojIdleSig(){ return OJ_VER+'|'+EG.size+'|'+OJ_FAIL.size+'|'+OJ_ON+'|'+OJ_DB.size+'|'+KM_VER+'|'+KM_FAIL.size+'|'+KM_LOADED+'|'+agnIdle(); }
   function ojStop(){
     const j = OJ_JOB;
     OJ_JOB = null;
@@ -38934,6 +38991,485 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(k.all) t += ' Key moments: '+n(k.done)+' of '+ghoN(k.all, 'game')+' looked at.';
     }
     if(el.textContent!==t) el.textContent = t;
+  }
+  /* ---- Same mistake again (agn*, 2026-11-25), in the Openings tab's Forgot your line card: a move of yours in the first 18
+     moves that cost 10 or more points of winning chances (Lichess's 0-100 scale), played in two or more games from the same
+     position. The same position is the position itself, however the moves got there (rpKey, the repertoire's own key). A move
+     that stays in your Repertoire Lab lines is never called a mistake. A shallow score never names one either: two quick
+     searches (AGN_QN nodes: the position, then your move alone) only pick what is worth checking, and two close ones decide
+     (AGN_DN nodes each, a fresh hash, one line: the same answer in any order and after any stop). One search at a time, in the
+     opening checks' own job (ojRun: its switch, its gate, its rules for giving way), never while a game of yours is on; each
+     position and each move is kept in IndexedDB (wavyChessPrepSameMistakes) and searched once. The games are read from the
+     moves the endgames pass replays anyway (egOf's `ag`). ---- */
+  var AGN_V = 1, AGN_PLIES = 36, AGN_MIN = 2, AGN_COST = 10, AGN_LOOK = 4;        // 4: on the user's games a quick look missed 2 of 43 mistakes at 6, none at 4
+  var AGN_QN = 20000, AGN_DN = 600000;                  // quick: under half a second a search on a laptop; close: five seconds or so
+  const AGN_DBN = 'wavyChessPrepSameMistakes', AGN_GAP = 91*864e5, AGN_YEAR = 365*864e5, AGN_STOP = 3, AGN_N = 6, AGN_STEP = 20;          // 6: three rows of two on a wide screen
+  var AGN = { sig:'', pairs:[], byH:new Map(), byK:new Map(), pos:new Map(), first:new Set() };      // the moves played in 2+ games
+  var AGN_JOB = null, AGN_DB = new Map(), AGN_LOADED = false, AGN_LOADING = false, AGN_IDBP = null, AGN_DONE = 0, AGN_VER = 0;
+  var AGN_FAIL = new Map(), AGN_SHOW = AGN_N, AGN_ROWS = [], AGN_BD = new Map(), AGN_IO = null, AGN_PS = null, AGN_PSN = 0, AGN_T = 0, AGN_LIVE = false;
+  function agnFilterOn(){ return /^m\./.test(GH_FILTERS.rep || ''); }
+  // ---- the store: a record a position { id: fen4, v, q:[best uci, score], d:[best uci, score, depth] }, a record a move of it
+  // { id: fen4 + ' ' + uci, v, q:[score], d:[score, depth] }, and '#done' { at }: the newest game when everything was checked
+  // (from then on the list is always shown, with how many moves are still to check) ----
+  function agnIdb(){
+    return AGN_IDBP || (AGN_IDBP = new Promise((res)=>{
+      try{
+        const q = indexedDB.open(AGN_DBN, 1);
+        q.onupgradeneeded = ()=>{ try{ q.result.createObjectStore('m', { keyPath:'id' }); }catch(e){} };
+        q.onsuccess = ()=> res(q.result); q.onerror = ()=> res(null); q.onblocked = ()=> res(null);
+      }catch(e){ res(null); }
+    }));
+  }
+  function agnLoad(){
+    if(AGN_LOADED || AGN_LOADING) return;
+    AGN_LOADING = true;
+    agnIdb().then(db=> new Promise(res=>{
+      if(!db) return res();
+      try{ const q = db.transaction('m').objectStore('m').getAll(); q.onsuccess = ()=>{ (q.result || []).forEach(r=>{ if(agnRecOk(r)) AGN_DB.set(r.id, r); }); res(); }; q.onerror = ()=> res(); }catch(e){ res(); }
+    })).then(()=>{ const r = AGN_DB.get('#done'); AGN_DONE = r ? r.at : 0; AGN_LOADED = true; AGN_VER++; AGN.pairs.forEach(p=>{ p.k = ''; }); agnDraw(); ojEnsure(); });
+  }
+  // a record as it should be (an odd one is searched again)
+  function agnRecOk(r){
+    const sc = (t)=> typeof t==='string' && /^M?-?\d{1,6}$/.test(t), uc = (t)=> typeof t==='string' && /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(t);
+    if(!r || typeof r.id!=='string' || r.v!==AGN_V) return false;
+    if(r.id==='#done') return Number.isFinite(r.at);
+    const pos = r.id.split(' ').length===4;
+    return ['q', 'd'].every(k=> r[k]===undefined || (Array.isArray(r[k]) && (pos ? uc(r[k][0]) && sc(r[k][1]) : sc(r[k][0]))));
+  }
+  function agnPut(rec){
+    AGN_DB.set(rec.id, rec);
+    agnIdb().then(db=>{
+      if(!db) return;
+      try{
+        // what another tab kept of it meanwhile stays (the same searches give the same answers)
+        const st = db.transaction('m', 'readwrite').objectStore('m'), q = st.get(rec.id);
+        q.onsuccess = ()=>{ const o = q.result, r = Object.assign({}, rec); if(agnRecOk(o)){ if(o.q && !r.q) r.q = o.q; if(o.d && !r.d) r.d = o.d; if(o.at > r.at) r.at = o.at; } st.put(r); };
+      }catch(e){}
+    });
+  }
+  // ---- the moves you played in two or more games ----
+  // your own early moves of a game, "position move" (egOf read them; a game read for another account is replayed)
+  function agnKeys(g){
+    const x = EG.get(g.id), me = ojMine(g);
+    if(!x || !me) return [];
+    if(x.ag && x.ac===me) return x.ag;
+    const ag = [], toks = gaToks(g);
+    let st = pzStartPosition();
+    for(let i = 0; i < toks.length && i < AGN_PLIES; i++){
+      const mv = rpSanToMove(st, toks[i]);
+      if(!mv) break;
+      if((i % 2 ? 'b' : 'w')===me) ag.push(rpKey(st)+' '+gzUci(mv));
+      st = pzApplyMoveRaw(st, mv);
+    }
+    x.ag = ag; x.ac = me;
+    return ag;
+  }
+  function agnSig(){ return [GH_STATE.games.length, ghCcUp() ? ccGames().length : 0, typeof GN==='object' && GN && GN.notes ? Object.keys(GN.notes).length : 0, EG.size, ghMe() || '', ghEnds()].join('|'); }
+  // read again only when the games changed, 8 ms at a time
+  function agnEnsure(){
+    if(!egReady() || EG_JOB) return;                      // the endgames pass reads the moves; its end draws again
+    agnLoad();
+    const sig = agnSig();
+    if(sig===AGN.sig || (AGN_JOB && AGN_JOB.sig===sig)) return;
+    const job = AGN_JOB = { sig, list:null, i:0, ph:0, m:new Map(), keys:new Set(), pos:new Map(), raw:[], out:[] };
+    const step = ()=>{
+      if(job.ph===0){
+        if(!job.list) job.list = rpGames().filter(g=> !g.initialFen && !gaNoRes(g.status)).sort((a, b)=> (Number(a.createdAt) || 0) - (Number(b.createdAt) || 0));
+        if(job.i >= job.list.length){ job.ph = 1; job.i = 0; return true; }
+        const i = job.i++;
+        agnKeys(job.list[i]).forEach(s=>{
+          const w = job.m.get(s);
+          if(w===undefined) job.m.set(s, i);
+          else if(typeof w==='number'){ if(w!==i) job.m.set(s, [w, i]); }
+          else if(w[w.length - 1]!==i) w.push(i);
+        });
+        return true;
+      }
+      if(job.ph===1){
+        job.m.forEach((w, s)=>{ if(typeof w!=='number'){ const k = s.slice(0, s.lastIndexOf(' ')); job.keys.add(k); job.raw.push([s, k, w]); } });
+        job.m = null; job.ph = 2;
+        return true;
+      }
+      if(job.ph===2){
+        // how many games reached each of those positions with you to move
+        if(job.i >= job.list.length){ job.ph = 3; job.i = 0; return true; }
+        const g = job.list[job.i++], id = String(g.id);
+        agnKeys(g).forEach(s=>{
+          const k = s.slice(0, s.lastIndexOf(' '));
+          if(!job.keys.has(k)) return;
+          const a = job.pos.get(k);
+          if(!a) job.pos.set(k, [id]); else if(a[a.length - 1]!==id) a.push(id);
+        });
+        return true;
+      }
+      if(job.i >= job.raw.length) return false;
+      const r = job.raw[job.i++], p = agnPair(r[0], r[1], r[2].map(i=> job.list[i]));
+      if(p) job.out.push(p);
+      return true;
+    };
+    const tick = ()=>{
+      if(AGN_JOB!==job) return;
+      const t = performance.now();
+      let more = true;
+      try{ while((more = step()) && performance.now() - t < 8); }catch(e){ more = false; }
+      if(more){ setTimeout(tick, 0); return; }
+      AGN_JOB = null;
+      const byH = new Map(), byK = new Map();
+      job.out.sort((a, b)=> b.last - a.last || (a.id < b.id ? -1 : 1));         // newest first
+      job.out.forEach(p=>{ byH.set(p.h, p); const a = byK.get(p.key); if(a) a.push(p); else byK.set(p.key, [p]); });
+      AGN = { sig:job.sig, pairs:job.out, byH, byK, pos:job.pos, first:new Set() };
+      AGN_VER++;
+      if(currentView!=='history') return;
+      if(agnFilterOn() && GH_UI.view==='games'){ ghRender(); return; }
+      agnDraw();
+      ojEnsure();
+    };
+    setTimeout(tick, 0);
+  }
+  // one of them: the position (key), your move (uci, san), its games oldest first, and the position it leads to (ka)
+  function agnPair(id, key, gs){
+    const uci = id.slice(key.length + 1), g = gs[gs.length - 1], ply = agnPlyOf(g, id), st = hvStateFromFen(key);
+    let r = null;
+    try{ r = pzApplyUCI(st, uci); }catch(e){ r = null; }
+    if(!r || ply==null) return null;
+    const p = { id, key, uci, san:pzMoveToSAN(st, r.move, r.next), color:st.turn, ply, ka:rpKey(r.next), h:gnFnv('a'+id)+gnFnv('b'+id),
+      gs:gs.map(x=> ({ g:x, id:String(x.id), at:Number(x.createdAt) || 0 })), ids:new Set(gs.map(x=> String(x.id))), last:0, k:'', bh:null, inb:false, bk:[] };
+    p.last = p.gs[p.gs.length - 1].at;
+    return p;
+  }
+  function agnPlyOf(g, id){ const j = agnKeys(g).indexOf(id); return j < 0 ? null : 2*j + (ojMine(g)==='b' ? 1 : 0); }
+  function agnSan(key, uci){ try{ const st = hvStateFromFen(key), r = pzApplyUCI(st, uci); return pzMoveToSAN(st, r.move, r.next); }catch(e){ return ''; } }
+  // your lines there (RP.hash: they changed, or an opening was turned off): your move stays in them, or what they play
+  function agnBook(p){
+    if(p.bh===RP.hash) return;
+    const S = RP.side[p.color==='w' ? 'white' : 'black'], nz = (t)=> String(t).replace(/[+#!?=]/g, '').replace(/0/g, 'O');
+    p.bh = RP.hash; p.k = '';
+    p.bk = rpBookAt(p.color==='w' ? 'white' : 'black', p.key);
+    p.inb = p.bk.some(t=> nz(t)===nz(p.san)) || !!(S && S.idx && (S.idx.get(p.ka) || RP_NONE).length);
+  }
+  function agnLost(p, a, b){ return gaPcWin(hrDecScore(a), p.color) - gaPcWin(hrDecScore(b), p.color); }
+  // 'line' (it stays in your lines), 'ok', 'bad' (a mistake), 'fail' (no answer this visit), or the search it needs next:
+  // 'q' and 'q2' (quick: the position, your move), 'd' and 'd2' (close). p.dd: decided by the close ones
+  function agnState(p){
+    agnBook(p);
+    if(p.k) return p.k;
+    const P = AGN_DB.get(p.key), M = AGN_DB.get(p.id);
+    p.dd = false;
+    let k = '';
+    if(p.inb) k = 'line';
+    else if(!P || !P.q) k = 'q';
+    else if(P.q[0]===p.uci) k = 'ok';
+    else if(!M || !M.q) k = 'q2';
+    else if(agnLost(p, P.q[1], M.q[0]) < AGN_LOOK - 1e-9) k = 'ok';
+    else if(!P.d) k = 'd';
+    else if(P.d[0]!==p.uci && !M.d) k = 'd2';
+    else { p.dd = true; k = P.d[0]===p.uci || agnLost(p, P.d[1], M.d[0]) < AGN_COST - 1e-9 ? 'ok' : 'bad'; }
+    if((AGN_FAIL.get((k==='q' || k==='d' ? p.key : p.id)+'|'+k) || 0) >= 3) k = 'fail';
+    return (p.k = k);
+  }
+  // ---- the searches (ojRun asks for one at a time) ----
+  function agnMay(){ return !!RP && RP.built && AGN_LOADED && !!AGN.sig && ghoOn() && !hraPlaying(); }
+  function agnComing(){ return GH_STATE.loading || (ghCcUp() && ccState()==='loading'); }          // games still coming
+  function agnIdle(){ return [AGN_VER, AGN_LOADED, AGN.sig, AGN_FAIL.size, RP ? RP.hash : '', RP && RP.built ? 1 : 0, hraPlaying() ? 1 : 0, agnComing() ? 1 : 0].join(':'); }
+  // the moves of the games on screen (the filters) first, each group's quick looks before its close checks, newest first
+  function agnNext(){
+    if(!agnMay()) return null;
+    for(let w = 0; w < 2; w++){
+      let d = null;
+      for(const p of AGN.pairs){
+        if(AGN.first.has(p.id)===(w===1)) continue;
+        const k = agnState(p);
+        if(k==='q' || k==='q2') return agnAsk(p, k);
+        if(!d && (k==='d' || k==='d2')) d = agnAsk(p, k);
+      }
+      if(d) return d;
+    }
+    const at = AGN.pairs.reduce((m, p)=> Math.max(m, p.last), 0);
+    if(AGN.sig===agnSig() && at > AGN_DONE && !agnComing()){ AGN_DONE = at; agnPut({ id:'#done', v:AGN_V, at }); }
+    return null;
+  }
+  function agnAsk(p, k){
+    const close = k==='d' || k==='d2', one = k==='q2' || k==='d2';
+    return { p, kind:k, rid: one ? p.id : p.key, f: close ? 'd' : 'q', mv: one ? p.uci : '', fen:p.key+' 0 1', nodes: close ? AGN_DN : AGN_QN, k:1 };
+  }
+  function agnTake(t, a){
+    const L = a && a!=='dog' && a.lines && a.lines[0], ok = !!(L && L.score && L.ucis && L.ucis[0]), key = t.rid+'|'+t.kind;
+    if(!ok) AGN_FAIL.set(key, a==='dog' || a ? 3 : (AGN_FAIL.get(key) || 0) + 1);       // stopped: asked again; no score for it: left for another visit
+    else {
+      const old = AGN_DB.get(t.rid), rec = { id:t.rid, v:AGN_V };
+      if(old && old.q) rec.q = old.q;
+      if(old && old.d) rec.d = old.d;
+      rec[t.f] = (t.mv ? [] : [L.ucis[0]]).concat([hrEncScore(L.score)], t.f==='d' ? [L.depth || 0] : []);
+      agnPut(rec);
+    }
+    (AGN.byK.get(t.p.key) || []).forEach(p=>{ p.k = ''; });
+    AGN_VER++;
+    agnDraw();
+  }
+  // ---- the filter "this move from this position" (rep m.<hash>): its games, each on the move ----
+  function agnMatch(g, rep){ const p = AGN.byH.get(rep.slice(2)); return !!p && p.ids.has(String(g.id)); }
+  function agnPly(g, rep){ const p = AGN.byH.get(rep.slice(2)); return p && p.ids.has(String(g.id)) ? agnPlyOf(g, p.id) : null; }
+  function agnLabel(rep){
+    const p = AGN.byH.get(rep.slice(2)), P = p && AGN_DB.get(p.key), b = P && P.d && P.d[0]!==p.uci && !hraPlaying() ? agnSan(p.key, P.d[0]) : '';
+    return p ? 'Same mistake: '+rpMoveText(p.ply, p.san)+(b ? ' instead of '+rpMoveText(p.ply, b) : '') : 'Same mistake again';
+  }
+  // ---- what the card says: the moves of the games shown (the same filters as the lists above) ----
+  // null: nothing to say. { wait } being read; { live } a game of yours is on; else the counts and the mistakes (rows)
+  function agnView(model){
+    if(!model || !model.rep || !RP) return null;
+    if(hraPlaying()) return { live:true, rows:[] };
+    if(!AGN.sig || !AGN_LOADED || !RP.built) return { wait:true, rows:[] };
+    const E = new Map(), first = new Set(), V = { rows:[], tot:0, q:0, cand:0, d:0, fail:0, left:0, ck:0 };
+    ['white', 'black'].forEach(c=>{ const sd = model.sides[c]; if(sd && !sd.hidden) sd.list.forEach(e=> E.set(String(e.g.id), e)); });
+    AGN.pairs.forEach(p=>{
+      let n = 0;
+      for(let i = 0; i < p.gs.length && n < AGN_MIN; i++) if(E.has(p.gs[i].id)) n++;
+      if(n < AGN_MIN) return;
+      first.add(p.id);
+      const k = agnState(p);
+      if(k==='line') return;
+      V.tot++;
+      if(k==='fail'){ V.fail++; return; }
+      if(p.dd || k==='d' || k==='d2') V.cand++;
+      if(k==='q' || k==='q2') V.q++;
+      else if(k==='d' || k==='d2') V.d++;
+      if(k!=='ok' && k!=='bad') V.left++; else V.ck++;
+      if(k==='bad') V.rows.push(agnRow(p, E));
+    });
+    AGN.first = first;
+    // the ones you still play first (agnRow's grp), the costliest first in each, the newest of those that cost the same
+    V.rows.sort((a, b)=> a.grp - b.grp || b.cost - a.cost || b.to - a.to || (a.p.id < b.p.id ? -1 : 1));
+    // never half an answer the first time; once everything has been checked, what is known stays (with how many are left:
+    // newer games, or lines that changed), unless none of these games' moves is checked yet
+    V.show = !V.left || (AGN_DONE > 0 && V.ck > 0);
+    return V;
+  }
+  // one mistake over the games shown: its games, how many of the games that got there, your points, what it cost; since: how
+  // many times you got there after the last one (and played something else); grp: 0 played in the past year, 1 not, 2 no date,
+  // 3 stopped (AGN_STOP times since). A game without a date (Repertoire Lab's) counts, but never in what happened when
+  function agnRow(p, E){
+    const P = AGN_DB.get(p.key), M = AGN_DB.get(p.id), gs = p.gs.filter(x=> E.has(x.id)), list = gs.map(x=> E.get(x.id));
+    const best = hrDecScore(P.d[1]), got = hrDecScore(M.d[0]), w0 = Math.round(gaPcWin(best, p.color)), w1 = Math.round(gaPcWin(got, p.color));
+    const dt = list.map(e=> Number(e.g.createdAt) || 0).filter(t=> t > 0).sort((a, b)=> a - b), seen = (AGN.pos.get(p.key) || []).filter(id=> E.has(id)), to = dt.length ? dt[dt.length - 1] : 0;
+    let W = 0, D = 0, back = null, since = 0;
+    list.forEach(e=>{ if(e.res==='win') W++; else if(e.res==='draw') D++; });
+    for(let i = 1; i < dt.length; i++) if(dt[i] - dt[i - 1] >= AGN_GAP) back = [dt[i - 1], dt[i]];       // made again after three months (the last time that happened)
+    if(dt.length===gs.length) seen.forEach(id=>{ if((Number(E.get(id).g.createdAt) || 0) > to) since++; });
+    const cp = (s)=> ouPawns(hrMoverScore(s, p.color), s.type==='mate');
+    return { p, n:gs.length, gids:new Set(gs.map(x=> x.id)), seen:seen.length, since, grp: since >= AGN_STOP ? 3 : !to ? 2 : to < Date.now() - AGN_YEAR ? 1 : 0, from: dt.length ? dt[0] : 0, to, nd:gs.length - dt.length, W, D, g:gs[gs.length - 1].g,
+      best:agnSan(p.key, P.d[0]), w0, w1, cost:w0 - w1, c0:cp(best), c1:cp(got), back, e:list[list.length - 1] };
+  }
+  // the Repertoire Lab line through a position: one that plays the better move there, else the longest
+  function agnLine(p, best){
+    const S = RP && RP.side[p.color==='w' ? 'white' : 'black'];
+    if(!S || !S.idx) return null;
+    const hs = rpUseful(S.idx.get(p.key) || RP_NONE).filter(h=> h.l.moves[h.ply]), nz = (t)=> String(t).replace(/[+#!?]+$/, '');
+    let b = null;
+    const sc = (h)=> (nz(h.l.moves[h.ply])===nz(best) ? 1000 : 0) + h.l.len;
+    hs.forEach(h=>{ if(!b || sc(h) > sc(b)) b = h; });
+    return b ? b.l : null;
+  }
+  function agnWhere(r){ const t = r.e && r.e.r ? rpPathLabel(r.e.r) : null; return t || (r.g.opening && r.g.opening.name ? String(r.g.opening.name) : ''); }
+  // "Mar 4", "Nov 8, 2025"; months between two times, in words
+  function agnMonths(a, b){ const m = Math.max(3, Math.round((b - a) / (30.4375*864e5))); return m < 24 ? m+' months' : Math.floor(m / 12)+' years'; }
+  function agnText(V){
+    const B = (t)=> ghEl('b', '', t), n = (v)=> v.toLocaleString('en-US');
+    if(V.live) return ['The moves you keep repeating are shown once your game is over.'];
+    if(V.wait) return ['Reading your games\u2026'];
+    const off = !OJ_ON ? 'Opening checks are off on this device' : OJ_NOENG ? 'Stockfish can\u2019t run in this copy of Chess Arcade' : '';
+    if(!V.show){
+      if(off) return [off+', so the moves you played more than once can\u2019t be checked'+(OJ_ON ? ' here. Open the Chess Arcade site to check them.' : '. Once on, they run while this tab is open.')];
+      return [V.q ? 'Looking through the moves you played more than once: '+n(V.tot - V.fail - V.q)+' of '+n(V.tot - V.fail)+'.' : 'Checking '+n(V.cand - V.d + 1)+' of '+n(V.cand)+'.'];
+    }
+    const out = [], tail = [];
+    if(V.rows.length){
+      const ids = new Set(), r = V.rows[0], c = [0, 1, 2, 3].map(k=> V.rows.filter(x=> x.grp===k).length), mix = agnMix(V.rows);
+      V.rows.forEach(x=> x.gids.forEach(y=> ids.add(y)));
+      out.push(B(V.rows.length===1 ? '1 move' : n(V.rows.length)+' moves'), ', in '+ghoN(ids.size, 'game'));
+      if(mix) out.push(': '+c.map((k, i)=> k ? n(k)+' '+['recent', 'older', 'without a date', 'stopped'][i] : '').filter(Boolean).join(', '));
+      out.push('.');
+      if(r.grp===0 || r.grp===2) out.push(mix && c[0] > 1 ? ' Costliest recent one: ' : mix && c[0] ? ' The recent one: ' : ' Costliest: ', B(rpMoveText(r.p.ply, r.p.san)), ' instead of ', B(rpMoveText(r.p.ply, r.best)), ', '+ghoN(r.n, 'game')+'.');
+    }
+    else if(V.ck && !V.left && !V.fail) out.push('None in these games: no move you played more than once cost that much.');
+    else if(V.ck) out.push('None of the '+n(V.ck)+(V.left ? ' checked so far.' : ' that could be checked.'));
+    if(V.left) tail.push(off ? n(V.left)+' more not checked yet: '+off.charAt(0).toLowerCase()+off.slice(1)+'.' : V.q ? 'Looking at '+n(V.left)+' more.' : 'Checking '+n(V.left)+' more.');
+    if(V.fail) tail.push(n(V.fail)+(V.fail===1 ? ' move' : ' moves')+' couldn\u2019t be checked this time.');
+    if(tail.length) out.push((out.length ? ' ' : '')+tail.join(' '));
+    return out;
+  }
+  // the groups are named (and counted) unless every move is in one of the plain ones
+  function agnMix(rows){ return rows.some(r=> r.grp!==rows[0].grp) || rows[0].grp===1 || rows[0].grp===3; }
+  // a game of yours that starts or ends while this is on screen (here, in another tab, on Lichess): hidden, or back, within two
+  // seconds. What Lichess lists as on is asked again every 30 s while that is why (as the automatic reviews do)
+  function agnWatch(){
+    if(AGN_T) return;
+    AGN_T = setTimeout(()=>{
+      AGN_T = 0;
+      if(currentView!=='history' || !ghoOn()) return;          // agnDraw starts it again
+      const on = hraPlaying();
+      if(on && !document.hidden && !olBusy() && nowPlayingGame && hraLiveDue(30000)) hraLive();
+      if(on!==AGN_LIVE){ agnDraw(); ojEnsure(); }
+      agnWatch();
+    }, 2000);
+  }
+  function agnDraw(model){
+    const box = document.getElementById('gho-same');
+    if(!box) return false;
+    const m = model===undefined ? (ghoOn() && currentView==='history' ? GHO_LAST : null) : model;
+    if(model===undefined && !m) return false;
+    if(m && m.rep) agnEnsure();
+    let V = null;
+    try{ V = agnView(m); }catch(e){ V = null; }
+    const on = !!V && (V.wait || V.live || V.tot > 0), wide = document.getElementById('gho-same-wide');
+    box.hidden = !on;
+    if(m){ AGN_LIVE = hraPlaying(); agnWatch(); }
+    if(!on){ AGN_ROWS = []; wide.hidden = true; return false; }
+    if(model===undefined){ const o = document.getElementById('gho-gaps'); if(o.hidden) o.hidden = false; }      // news while no list above has an entry
+    const rows = V.show ? V.rows : [];
+    AGN_ROWS = rows;
+    const sub = 'A move of yours in the first 18 moves that cost 10 or more points of winning chances, played in 2 or more games from the same position. Moves in your lines never count. Your move and the best one are each checked by Stockfish 16 on this device.';
+    const se = document.getElementById('gho-same-sub'), st = document.getElementById('gho-same-st'), ac = document.getElementById('gho-same-acts'), ul = document.getElementById('gho-same-list');
+    if(se.textContent!==sub) se.textContent = sub;
+    const parts = agnText(V), txt = parts.map(x=> typeof x==='string' ? x : x.textContent).join('');
+    if(st.textContent!==txt){ st.textContent = ''; parts.forEach(x=> st.appendChild(typeof x==='string' ? document.createTextNode(x) : x)); }
+    // Opening checks off here: its switch, in place (Repertoire Lab has no Settings field for it, so there also the way back)
+    const open = !!GH_UI.same && rows.length > 0, set = V.left > 0 ? (!OJ_ON ? 'on' : document.documentElement.classList.contains('rl-embed') && !OJ_NOENG ? 'off' : '') : '';
+    const fa = document.activeElement, fid = fa && (box.contains(fa) || wide.contains(fa)) && fa.dataset ? fa.dataset.fid || '' : '';
+    const asig = [rows.length, open ? 1 : 0, set].join('|');
+    if(ac.dataset.sig!==asig){
+      ac.dataset.sig = asig;
+      ac.textContent = '';
+      if(rows.length){
+        const b = ghEl('button', 'gho-gap-more', open ? 'Hide them' : rows.length===1 ? 'Show it' : 'Show all '+rows.length.toLocaleString('en-US'));
+        b.type = 'button'; b.dataset.agn = 'fold'; b.dataset.fid = 'same|fold';
+        b.setAttribute('aria-expanded', open ? 'true' : 'false'); b.setAttribute('aria-controls', 'gho-same-list');
+        ac.appendChild(b);
+      }
+      if(set){ const b = ghEl('button', 'gho-gap-more', 'Turn '+set+' opening checks'); b.type = 'button'; b.dataset.agn = 'checks'; b.dataset.val = set; b.dataset.fid = 'same|checks'; ac.appendChild(b); }
+    }
+    wide.hidden = !open;
+    if(AGN_PS!==PIECE_SVG){ AGN_PS = PIECE_SVG; AGN_PSN++; AGN_BD.clear(); }          // another piece set: the boards are drawn again
+    const shown = open ? rows.slice(0, Math.max(AGN_N, AGN_SHOW)) : [];
+    const sig = !open ? '' : [RP.hash, rows.length, AGN_SHOW, AGN_PSN].concat(shown.map(r=> [r.p.h, r.n, r.seen, r.W, r.D, r.from, r.to, r.w0, r.w1, r.best, r.back ? r.back[1] : 0, r.since, r.grp, r.nd, agnWhere(r)].join(','))).join('|');
+    if(ul.dataset.sig!==sig){
+      ul.dataset.sig = sig;
+      ul.textContent = '';
+      const mix = open && agnMix(rows);
+      shown.forEach((r, i)=>{ if(mix && (!i || shown[i - 1].grp!==r.grp)) ul.appendChild(agnGroupEl(r.grp, rows.filter(x=> x.grp===r.grp).length)); ul.appendChild(agnRowEl(r, i)); });
+      if(open){
+        const li = ghEl('li', 'gho-gap-mores'), mk = (t, d, l)=>{ const b = ghEl('button', 'gho-gap-more', t); b.type = 'button'; b.dataset.agn = d; b.dataset.fid = 'same|'+d; if(l) b.setAttribute('aria-label', l); li.appendChild(b); };
+        if(shown.length < rows.length){ const k = Math.min(AGN_STEP, rows.length - shown.length); mk('Show '+k+' more', 'more', 'Show '+k+' more of '+rows.length); }
+        if(shown.length > AGN_N) mk('Show fewer', 'fewer');
+        mk('Hide them', 'hide');
+        ul.appendChild(li);
+      }
+      agnFill(ul);
+    }
+    if(fid && !(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.fid===fid)){
+      const el = Array.from(document.querySelectorAll('#gho-gaps [data-fid]')).find(x=> x.dataset.fid===fid);
+      if(el) try{ el.focus({ preventScroll:true }); }catch(e){}
+    }
+    return true;
+  }
+  // a group's heading, over its moves
+  function agnGroupEl(k, n){
+    const li = ghEl('li', 'gho-same-g'), t = [['Recent', 'played in the past year'], ['Older', 'not played in the past year'], ['Without a date', ''], ['Stopped', 'the last 3 times or more that you got there, you played something else']][k];
+    li.appendChild(ghEl('b', '', t[0]));
+    li.appendChild(document.createTextNode((t[1] ? ': '+t[1] : '')+' \u00b7 '+(n===1 ? '1 move' : n.toLocaleString('en-US')+' moves')));
+    return li;
+  }
+  function agnRowEl(r, i){
+    const p = r.p, li = ghEl('li', 'gho-gap gho-same-r'), b = ghEl('button', 'gho-gap-go gho-same-go'), fid = 'same|'+p.h;
+    b.type = 'button'; b.dataset.agn = 'open'; b.dataset.agi = String(i); b.dataset.fid = fid;
+    const bd = ghEl('span', 'gho-same-bd'), tx = ghEl('span', 'gho-same-tx');
+    bd.setAttribute('aria-hidden', 'true');
+    const t = ghEl('span', 'gho-gap-t');
+    t.appendChild(ghEl('b', '', rpMoveText(p.ply, p.san)));
+    t.appendChild(document.createTextNode(' instead of '));
+    t.appendChild(ghEl('b', '', rpMoveText(p.ply, r.best)));
+    tx.appendChild(t);
+    const nz = (x)=> String(x).replace(/[+#!?]+$/, ''), bk = p.bk.length ? (p.bk.some(x=> nz(x)===nz(r.best)) ? 'your line\u2019s move' : 'your line has '+rpMovesList(p.ply, p.bk)) : '';
+    const day = (a)=> ctDay(a), same = day(r.from)===day(r.to);
+    const when = !r.to ? 'no date' : r.nd ? day(r.from)+(same ? '' : ' to '+day(r.to))+', '+r.nd+' without a date' : same ? (r.n===2 ? 'both on ' : 'all on ')+day(r.from) : 'first '+day(r.from)+', last '+day(r.to);
+    const L = [];
+    L.push('Played in '+(r.n < r.seen ? r.n+' of the '+ghoN(r.seen, 'game') : r.n===2 ? 'both games' : 'all '+ghoN(r.n, 'game'))+' that got there \u00b7 '+when+' \u00b7 you scored '+ghoPts({ W:r.W, D:r.D, n:r.n }));
+    if(r.since) L.push(r.since===1 ? 'The one time you got there since, you played something else' : 'The last '+r.since+' times you got there, you played something else');
+    L.push('Cost '+r.cost+' points of winning chances: from '+r.w0+'% to '+r.w1+'% ('+r.c0+' to '+r.c1+')');
+    const wh = agnWhere(r);
+    if(wh || bk) L.push([wh, bk].filter(Boolean).join(' \u00b7 '));
+    L.forEach(x=> tx.appendChild(ghEl('span', 'gho-gap-d', x)));
+    const back = r.back && r.grp===0 ? 'It came back: played again on '+day(r.back[1])+', '+agnMonths(r.back[0], r.back[1])+' after the time before' : '';
+    if(back) tx.appendChild(ghEl('span', 'gho-same-back', back));
+    b.appendChild(bd); b.appendChild(tx);
+    b.title = 'Show these '+r.n+' games, each on the move';
+    b.setAttribute('aria-label', [t.textContent].concat(L, back ? [back] : []).join('. ')+'. Show these '+r.n+' games, each on the move');
+    li.appendChild(b);
+    const ls = ghEl('span', 'gho-gap-ls'), px = ghEl('button', 'gho-gap-l gho-same-px', 'Play it out'), l = agnLine(p, r.best);
+    if(l){
+      const a = ghEl('a', 'gho-gap-l', 'Learn'), q = ghEl('a', 'gho-gap-l', 'Practice');
+      a.dataset.fid = fid+'|learn'; q.dataset.fid = fid+'|practice'; a.target = q.target = '_blank'; a.rel = q.rel = 'noopener';
+      rlLineLinks(l, a, q); ls.appendChild(a); ls.appendChild(q);
+    }
+    px.type = 'button'; px.dataset.agn = 'px'; px.dataset.agi = String(i); px.dataset.fid = fid+'|px';
+    px.title = 'Play this position out against Stockfish, on this device';
+    ls.appendChild(px);
+    li.appendChild(ls);
+    return li;
+  }
+  // the boards, when they come near the screen: your move (red) and the better one (green), your side at the bottom; where each
+  // lands outlined in its color with a light line inside (an arrow alone fades into a red or green board)
+  function agnFill(root){
+    const fill = (bd)=>{
+      if(bd.firstChild || !bd.isConnected) return;
+      const go = bd.closest('[data-agi]'), r = go ? AGN_ROWS[Number(go.dataset.agi)] : null, P = r ? AGN_DB.get(r.p.key) : null;
+      if(!r || !P || !P.d || go.dataset.fid!=='same|'+r.p.h) return;
+      const ar = (u, c)=> ({ f:u.slice(0, 2), t:u.slice(2, 4), c }), ou = (u, c)=> ({ s:u.slice(2, 4), c:NB_CODES[c], o:1 });
+      let mb = AGN_BD.get(r.p.h);
+      if(mb){ AGN_BD.delete(r.p.h); AGN_BD.set(r.p.h, mb); }
+      else {
+        try{ mb = nbMiniBoard({ fen:r.p.key+' 0 1', flip:r.p.color==='b', arrows:[ar(P.d[0], 'G'), ar(r.p.uci, 'R')], squares:[ou(P.d[0], 'G'), ou(r.p.uci, 'R')], label:'', ply:null, line:null, extra:[] }); }catch(e){ return; }
+        AGN_BD.set(r.p.h, mb);
+        if(AGN_BD.size > 60) AGN_BD.delete(AGN_BD.keys().next().value);
+      }
+      bd.appendChild(mb);
+    };
+    const list = root.querySelectorAll('.gho-same-bd');
+    if(!('IntersectionObserver' in window)){ list.forEach(fill); return; }
+    if(!AGN_IO){
+      const cb = (ents)=>{ ents.forEach(en=>{ if(en.isIntersecting){ AGN_IO.unobserve(en.target); fill(en.target); } }); };
+      try{ AGN_IO = new IntersectionObserver(cb, { root:document, rootMargin:'600px 0px' }); }catch(e){ AGN_IO = new IntersectionObserver(cb, { rootMargin:'600px 0px' }); }
+    }
+    list.forEach(bd=>{ if(!bd.firstChild) AGN_IO.observe(bd); });
+  }
+  // a press in the block (ghoWire): its games (each on the move), the position to play out, the fold (its button, or Hide them
+  // at the list's end, which brings the block back into view), more of them, the opening checks' switch
+  function agnClick(e){
+    const b = e.target.closest('[data-agn]');
+    if(!b) return false;
+    const a = b.dataset.agn, r = b.dataset.agi!=null ? AGN_ROWS[Number(b.dataset.agi)] : null;
+    const foc = (f)=>{ const el = Array.from(document.querySelectorAll('#gho-gaps [data-fid]')).find(x=> x.dataset.fid===f); if(el) try{ el.focus({ preventScroll:true }); }catch(err){} return !!el; };
+    if(a==='open'){ if(r) ghoApply({ rep:'m.'+r.p.h }); }
+    else if(a==='px'){
+      if(hraPlaying()) pxNote(b, 'Finish your game first.');
+      else if(r) pxNote(b, pxFromSpot({ who:'you', atPly:agnPlyOf(r.g, r.p.id), played:r.p.san }, [{ g:r.g }], r.p.color==='b' ? 'black' : 'white', 'in '+ghoN(r.n, 'game'), b.dataset.fid));
+    }
+    else if(a==='fold' || a==='hide'){
+      GH_UI.same = a==='fold' && !GH_UI.same;
+      ghSaveFilters(); agnDraw(); foc('same|fold');
+      if(a==='hide') try{ document.getElementById('gho-same').scrollIntoView({ block:'center' }); }catch(err){}
+    }
+    else if(a==='more' || a==='fewer'){
+      const was = Math.max(AGN_N, AGN_SHOW);
+      AGN_SHOW = a==='more' ? was + AGN_STEP : AGN_N;
+      agnDraw();
+      const c = document.querySelectorAll('#gho-same-list .gho-same-go')[a==='more' ? was : 0];
+      foc(document.querySelector('#gho-same-list [data-agn="'+a+'"]') ? 'same|'+a : c ? c.dataset.fid : 'same|fold');
+    }
+    else if(a==='checks'){
+      ojSet(b.dataset.val==='on');
+      if(!foc('same|checks') && !foc('same|fold')){ const h = document.getElementById('gho-same-st'); h.tabIndex = -1; try{ h.focus({ preventScroll:true }); }catch(err){} }
+    }
+    return true;
   }
   /* ---- Key moments (km*, 2026-11-01). In a game where the opening did its job and you then lost or drew: the move of
      yours that took your score out of the opening's zone (White +0.50, Black -0.30, OJ_BAR) for good, the last time it
@@ -39141,17 +39677,22 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     return me==null || opp==null ? null : { me, opp, trouble: me < kmStart(g, mine).ini/10 };
   }
 
+  // Opening checks on or off on this device: Settings' switch, and Same mistake again's own button
+  function ojSet(on){
+    OJ_ON = !!on;
+    if(OJ_ON) OJ_NOENG = false;
+    try{ localStorage.setItem(OJ_KEY, OJ_ON ? 'on' : 'off'); }catch(e2){}
+    if(!OJ_ON){ if(!OJ_JOB || OJ_JOB.kind==='oj') ojStop(); } else ojEnsure();       // a Puzzles search goes on
+    ojStatus();
+    agnDraw();
+    if(currentView==='history' && ((ghbOn() && GH_UI.bmom==='k') || gaOn())) ghRender();          // Boards at Key moment / Analytics' usual card say why some aren't scored
+  }
   (function(){
     const row = document.getElementById('oj-row');
     row.addEventListener('click', (e)=>{
       const b = e.target.closest('.toggle');
       if(!b) return;
-      OJ_ON = b.dataset.val==='on';
-      if(OJ_ON) OJ_NOENG = false;
-      try{ localStorage.setItem(OJ_KEY, OJ_ON ? 'on' : 'off'); }catch(e2){}
-      if(!OJ_ON){ if(!OJ_JOB || OJ_JOB.kind==='oj') ojStop(); } else ojEnsure();       // a Puzzles search goes on
-      ojStatus();
-      if(currentView==='history' && ((ghbOn() && GH_UI.bmom==='k') || gaOn())) ghRender();          // Boards at Key moment / Analytics' usual card say why some aren't scored
+      ojSet(b.dataset.val==='on');
     });
     document.getElementById('settings-fab').addEventListener('click', ()=> setTimeout(ojStatus, 0));
     ojStatus();
@@ -52654,7 +53195,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // ending: { lines:[{ score (White's side), ucis, depth }], nodes, ms } on a natural bestmove (the deepest depth with all
     // k exact lines, or every legal move when fewer; bound lines skipped; lines:[] when no depth has them all); null when
     // stopped (a newer think/check/multi, stop(), pxCancel), when the worker goes (quit, a failure), when a newer request
-    // wins before it starts, or when o.live() says it's no longer wanted. A terminal position is never sent: null
+    // wins before it starts, or when o.live() says it's no longer wanted. A terminal position is never sent: null.
+    // o.mv (Same mistake again): that one move's score, the best play after it (UCI's searchmoves)
     async multi(fen, o){
       o = o || {};
       const w = this.worker, my = ++this._thinkSeq;
@@ -52674,7 +53216,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const k = Math.max(1, Math.min(5, Math.floor(Number(o.k) || 1)));
       let done = false, settle = null;
       const out = new Promise(res=> settle = res);
-      const M = { k, want:Math.min(k, legal), d:[], nodes:0, ms:0, end(v){ if(done) return; done = true; settle(v); } };
+      const M = { k, want: o.mv ? 1 : Math.min(k, legal), d:[], nodes:0, ms:0, end(v){ if(done) return; done = true; settle(v); } };
       this.pendingFen = null;
       this.send('setoption name UCI_LimitStrength value false');
       this.send('setoption name MultiPV value '+k);
@@ -52683,7 +53225,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       this.kind = 'mk'; this._mk = M; this._pxCb = null; this._ck = null;
       this.currentFen = fen; this.searching = true; this._stopSent = false;
       this.send('position fen '+fen);
-      this.send('go nodes '+Math.max(1, Math.floor(Number(o.nodes) || 20000)));
+      this.send('go nodes '+Math.max(1, Math.floor(Number(o.nodes) || 20000))+(o.mv ? ' searchmoves '+o.mv : ''));
       return out;
     },
     // A fresh hash, like Repertoire Lab's new Engine for a review.
