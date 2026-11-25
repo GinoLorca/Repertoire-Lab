@@ -5644,6 +5644,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .gho-end-v{ font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--ink-soft); text-align:right; white-space:nowrap; }
   .gho-end-b.is-thin .gho-end-v{ font-style:italic; }
   .gho-end-b.is-thin .gho-bar{ opacity:.6; }
+  .gho-lev{ margin-bottom:8px; padding-bottom:10px; border-bottom:1px solid var(--line); }
+  .gho-lev[hidden]{ display:none; }
+  .gho-lev .gho-gap-sub{ margin:0 0 6px; }
+  .gho-lev-n{ font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--ink-soft); white-space:nowrap; }
+  .gho-end-b.gho-lev-t{ grid-template-columns:minmax(0,1fr) auto; }
+  .gho-lev h4 + .gho-ends-list{ margin-top:6px; }
+  .gho-lev-b:disabled{ cursor:default; }
+  .gho-lev-b:disabled .gho-end-k{ text-decoration:none; }
+  .gho-lev .btn-link, .ghb-sum .btn-link{ padding:0; color:var(--ink); text-transform:none; letter-spacing:0; font-size:12.5px; line-height:1.4; text-align:left; }
+  .gho-lev .btn-link:focus-visible, .ghb-sum .btn-link:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; border-radius:3px; }
+  @media (pointer:coarse){ .gho-lev .btn-link, .ghb-sum .btn-link{ min-height:44px; min-width:44px; display:inline-flex; align-items:center; } }
   .gho-oj-sub{ grid-column:1 / -1; margin-top:-2px; font-size:12px; line-height:1.35; color:var(--ink-soft); }
   .gho-oj-note{ margin:6px 0 0; font-size:12px; line-height:1.4; color:var(--ink-soft); }
   .gho-c-job .gho-share{ display:block; }
@@ -9536,10 +9547,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .ga-k2{ background:radial-gradient(circle, var(--c) 1.4px, color-mix(in srgb, var(--c) 35%, var(--surface)) 1.8px) 0 0 / 4px 4px; }
   .ga-k3{ background:repeating-linear-gradient(90deg, var(--c) 0 2px, color-mix(in srgb, var(--c) 35%, var(--surface)) 2px 4px); }
   .ga-acb{ display:flex; flex-direction:column; gap:4px; min-width:0; }
-  .ga-acr{ display:grid; grid-template-columns:minmax(92px,auto) 44px minmax(70px,auto) minmax(0,1fr); align-items:baseline; gap:4px 12px; font-size:13.5px; }
+  .ga-acr{ display:grid; grid-template-columns:minmax(92px,auto) 44px minmax(94px,auto) minmax(70px,auto) minmax(0,1fr); align-items:baseline; gap:4px 12px; font-size:13.5px; }
   .ga-acr.is-thin .ga-acv{ color:var(--ink-soft); }
   .ga-acv{ font-weight:700; font-variant-numeric:tabular-nums; }
-  .ga-acg{ color:var(--ink-soft); font-size:12.5px; }
+  .ga-acg, .ga-aco{ color:var(--ink-soft); font-size:12.5px; }
+  .ga-aco{ font-variant-numeric:tabular-nums; }
   .ga-bins{ display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:6px 10px; }
   .ga-bin{ display:flex; flex-direction:column; gap:1px; padding-top:4px; border-top:2px solid var(--line); min-width:0; font-size:12.5px; }
   .ga-bin .ga-acv{ font-size:18px; }
@@ -9569,6 +9581,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .ga-pcb[aria-expanded="true"] .ga-pcv, .ga-pcb[aria-expanded="true"] .ga-pcn{ color:var(--ink); }
   .ga-pcb:focus-visible, .ga-pcx:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
   .ga-pcx{ flex:0 0 auto; min-width:44px; justify-content:flex-end; text-align:right; }
+  .ga-pcb.is-o{ min-height:64px; }
+  .ga-pco{ max-width:900px; }
+  .ga-pco .ga-pcr{ grid-template-columns:minmax(120px,1.2fr) repeat(4, minmax(0,168px)); }
+  .ga-nw{ white-space:nowrap; }
+  @media (max-width:900px){ .ga-pcb.is-o .ga-pfo{ white-space:normal; text-align:center; } }          /* opponents 92% / of 5,309 */
   #ga-pc .ga-cov{ margin:4px 0 0; }
   /* the card's two views (Accuracy | How often) at the head's right, under the title when they don't fit; How often's cells have a third line */
   .ga-pchd{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 16px; }
@@ -9604,7 +9621,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     .ga-pch{ font-size:10.5px; }
     .ga-pcv{ font-size:14px; }
   }
-  @media (max-width:375px){ .ga-pfb .ga-pcn{ white-space:normal; text-align:center; } }
+  @media (max-width:375px){ .ga-pfb .ga-pcn{ white-space:normal; text-align:center; } .ga-pcb.is-o .ga-nw{ white-space:normal; } }
   .ga-cal2{ display:grid; grid-template-columns:minmax(0,1fr); gap:14px; }
   @media (min-width:760px){ .ga-cal2{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:24px; } }
   .ga-dows{ display:flex; flex-direction:column; gap:4px; min-width:0; }
@@ -9618,8 +9635,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     .ga-r4l{ grid-area:l; } .ga-r4s{ grid-area:s; } .ga-r4b{ grid-area:b; } .ga-r4n{ grid-area:n; text-align:left; } .ga-r4x{ grid-area:x; }
     .ga-endr{ grid-template-columns:minmax(0,1fr); }
     .ga-endc{ grid-column:1; }
-    .ga-acr{ grid-template-columns:minmax(0,1fr) auto; row-gap:0; padding:3px 0; }
-    .ga-acg{ grid-column:1; }
+    .ga-acr{ grid-template-columns:minmax(0,1fr) 44px 96px; row-gap:0; padding:3px 0; }
+    .ga-acg{ grid-column:1; grid-row:2; }
+    .ga-acx{ grid-column:2 / -1; grid-row:2; }
     .ga-bins{ grid-template-columns:repeat(3, minmax(0,1fr)); }
     .ga-days{ grid-template-columns:repeat(4, minmax(0,1fr)); }
   }
@@ -10499,6 +10517,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
               <option value="">Endgame: any</option>
               <option value="yes">Reached an endgame</option>
               <option value="no">No endgame</option>
+              <optgroup label="When it began">
+                <option value="ahead">Ahead by 1.5 or more</option>
+                <option value="level">Level, within 1.5</option>
+                <option value="behind">Behind by 1.5 or more</option>
+                <option value="levelq">Level, queens on</option>
+                <option value="levelo">Level, queens off</option>
+              </optgroup>
               <optgroup label="Reached a">
                 <option value="rook">Rook endgame</option>
                 <option value="pawn">Pawn endgame</option>
@@ -10761,6 +10786,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       </section>
       <section class="gho-ends" id="gho-ends" aria-labelledby="gho-ends-h" hidden>
         <h3 class="gho-gap-h" id="gho-ends-h">Where your games end up</h3>
+        <div class="gho-lev" id="gho-lev" hidden></div>
         <div class="gho-ends-cols"><div class="gho-ends-col" id="gho-ends-white"></div><div class="gho-ends-col" id="gho-ends-black"></div></div>
       </section>
       <div class="gho-tools"><div class="gho-q" role="search"><input type="search" class="text-input gho-q-in" id="gho-q" placeholder="Search openings" aria-label="Search your openings" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button type="button" class="gh-combo-clear gho-q-x" id="gho-q-x" aria-label="Clear the search" hidden>&times;</button></div><span class="gho-q-n" id="gho-q-n" role="status" aria-live="polite"></span><span class="gho-sortw"><label class="field-label" for="gho-sort">Sort by</label><select class="select-input" id="gho-sort"></select></span></div>
@@ -30610,7 +30636,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   const GH_F_DEFAULT = { speed:'', result:'', opening:'', oq:'', color:'', tc:'', rated:'', opp:'', gap:'', end:'', eg:'', oj:'', len:'', date:'', variant:'', notes:false, rep:'', ck:'', ga:'', gold:false };
   const GH_F_SETS = { speed:['ultraBullet','bullet','blitz','rapid','classical','correspondence'], result:['win','loss','draw'],
     color:['white','black'], rated:['rated','casual'], gap:['higher','even','lower'], end:['mate','resign','time','draw','other'],
-    len:['short','medium','long'], date:['3','7','15','30','90','year'], oj:['done','not','lost','away','open','below'], eg:['yes','no','pawn','rook','queen','bishopOpp','bishopSame','knight','bishopKnight','minor','rookMinor','queenMix','uneven'] };
+    len:['short','medium','long'], date:['3','7','15','30','90','year'], oj:['done','not','lost','away','open','below'], eg:['yes','no','ahead','level','behind','levelq','levelo','pawn','rook','queen','bishopOpp','bishopSame','knight','bishopKnight','minor','rookMinor','queenMix','uneven'] };
   const GH_PARAM_KEYS = ['speed','result','opening','oq','color','tc','rated','opp','gap','end','eg','oj','len','date','variant','notes','rep','ck','ga','gold'];
   var EG = new Map(), EG_JOB = null, EG_SIG = '', EG_DONE = false;       // each game's endgame (where it begins, the kinds it went through): egEnsure
   // the repertoire filter (gho*, SPEC B.7): opening / trunk / course / chapter / line, outside, or a spot
@@ -31764,6 +31790,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(typeof rpEnsure==='function') rpEnsure();     // games waiting to be sorted (a note synced for an older game) get sorted
     egEnsure();                                      // the endgames, for the Endgame filter and the Openings tab
     if(agnFilterOn()) agnEnsure();                   // a list of one repeated move's games (Same mistake again): the moves are read for it
+    if(levFilterOn()) levReady();                    // a list by how the games stood when the endgame began: the quick scores are read for it
     ojEnsure();                                      // the opening checks (Openings tab, the filter, Boards): only scores what's missing
     psEnsure();                                      // the pawn structures of the rows on screen (and of every game, once something wants them all)
     ghSyncFilterUI();
@@ -31850,6 +31877,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const rows = active ? base.filter(g=> ghMatch(g, u, GH_FILTERS)) : base;
     // with the opening's job as a filter: how many of the games it would list aren't scored yet (the footer says)
     GH_OJ_WAIT = 0; GH_OU_GAP = 0;
+    GH_LEV_WAIT = levFilterOn() ? levWaiting(base, u) : 0;
     if(GH_FILTERS.oj && ojReady()){
       const fo = Object.assign({}, GH_FILTERS, { oj:'' }), bw = GH_FILTERS.oj==='below';
       base.forEach(g=>{
@@ -31905,7 +31933,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const seq = ++GH_RENDER_SEQ;
     if(!document.hidden) try{ requestAnimationFrame(()=> setTimeout(()=>{ if(seq===GH_RENDER_SEQ && !document.hidden) GH_RENDER_MS = Math.max(GH_RENDER_MS, Math.min(1000, performance.now() - t0)); }, 0)); }catch(e){}
   }
-  var GH_DRAWN = null, GH_OJ_WAIT = 0, GH_OU_GAP = 0;
+  var GH_DRAWN = null, GH_OJ_WAIT = 0, GH_OU_GAP = 0, GH_LEV_WAIT = 0;
   // the Games list is on screen and a sorting batch gave none of its rows a new line (no repertoire filter, sorting goes on):
   // nothing to redraw. The batch that ends the sorting always redraws.
   function ghRpBatchIdle(){
@@ -32002,6 +32030,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     if(GH_UI.view==='games' && GH_FILTERS.oj==='below' && GH_OU_GAP > 0) msg = (msg ? msg+' ' : '')+ghoN(GH_OU_GAP, 'game')+(GH_OU_GAP===1 ? ' has no usual to compare yet (fewer than '+OU_MIN+' other scored games in its line, or not sorted into your lines yet).'
       : ' have no usual to compare yet (fewer than '+OU_MIN+' other scored games in their line, or not sorted into your lines yet).');
+    // how the endgame began: the games that reached one but have no score there
+    if(GH_UI.view==='games' && GH_LEV_WAIT > 0 && levFilterOn()) msg = (msg ? msg+' ' : '')+(GH_LEV_WAIT===1 ? '1 more game here reached an endgame and has' : GH_LEV_WAIT.toLocaleString('en-US')+' more games here reached an endgame and have')+' no score where it began.';
     // Analytics' drill-down key: the games it can't place yet (never a silent gap)
     if(GH_UI.view==='games' && GH_FILTERS.ga && GA_WAIT > 0) msg = (msg ? msg+' ' : '')+ghoN(GA_WAIT, 'game')+' not read yet. They join this list as Analytics reads them.';
     note.textContent = msg;
@@ -37597,6 +37627,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(sp){ const n = ghoFind(sp.dataset.key), f = n && ghoNodeFilter(n); if(f) ghoApply(Object.assign({}, f, sp.dataset.gap ? { gap:sp.dataset.gap } : sp.dataset.eg ? { eg:sp.dataset.eg } : { speed:sp.dataset.speed })); return; }
       const ob = e.target.closest('.gho-oj-b');
       if(ob){ if(ob.dataset.oj==='away') ghbDrill(true, 'k'); ghoApply({ color:ob.dataset.ojc, oj:ob.dataset.oj }); return; }     // where it got away: their key moments
+      const lb = e.target.closest('.gho-lev-b');
+      if(lb){ levGo(lb.dataset); return; }
+      if(e.target.closest('.gho-lev-x')){ levClear(); return; }
       const eb = e.target.closest('.gho-end-b');
       if(eb){ ghoApply({ color:eb.dataset.egc, eg:eb.dataset.eg }); return; }
       const more = e.target.closest('#gho-more');
@@ -38282,6 +38315,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     let mid = -1;
     const win = { a:[], b:[] };          // [position, calm, fen] in each window (up to 5 positions)
     const ac = ojMine(g), ag = [];       // your own early moves, "position move" (Same mistake again, agn*)
+    let sq = -1, ps = -1, fs = '';       // ps, fs: the position at s, after the recapture on that square when one follows (lev*); sq: that square while one may
     for(let i = 0; i < toks.length; i++){
       const mv = rpSanToMove(st, toks[i]);
       if(!mv) break;
@@ -38294,7 +38328,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const calm = !mv.captured && !mv.isEP && !mv.promotion && !pzIsInCheck(st, st.turn);
       const keep = (w, from)=>{ if(from >= 0 && p - from < 5 && !w.some(x=> x[1])){ const f = pzStateToFEN(st, p).split(' '); f[4] = String(half); w.push([p, calm, f.join(' ')]); } };
       keep(win.a, mid);
-      if(out.s < 0){ const pc = hpfPieces(B); if(!(pc <= 6 || (pc <= 8 && !hpfQueens(B)))) continue; out.s = p; }
+      if(ps >= 0 && sq >= 0){ if(p - out.s < 5 && mv.to===sq && mv.captured){ ps = p; fs = pzStateToFEN(st, p); } else sq = -1; }
+      if(out.s < 0){ const pc = hpfPieces(B); if(!(pc <= 6 || (pc <= 8 && !hpfQueens(B)))) continue; out.s = p; ps = p; fs = pzStateToFEN(st, p); sq = mv.captured || mv.isEP ? mv.to : -1; }
       keep(win.b, out.s);
       const k = egType(B);
       if(k===run) runN++; else { run = k; runN = 1; }
@@ -38307,7 +38342,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const pick = (w, at)=>{ if(at < 0 || at >= n) return null; const c = w.filter(x=> x[0] < n); return c.find(x=> x[1]) || c[0] || null; };
     const A = pick(m >= 0 ? win.a : win.b, m >= 0 ? m : out.s), Bq = m >= 0 ? pick(win.b, out.s) : null;
     out.ac = ac; out.ag = ag;
-    Object.assign(out, { m, n, h:gnFnv(toks.join(' ')), all:n===toks.length, qa: A ? A[0] : -1, fa: A ? A[2] : '', qb: Bq ? Bq[0] : -1, fb: Bq ? Bq[2] : '' });
+    Object.assign(out, { m, n, h:gnFnv(toks.join(' ')), all:n===toks.length, qa: A ? A[0] : -1, fa: A ? A[2] : '', qb: Bq ? Bq[0] : -1, fb: Bq ? Bq[2] : '', ps, fs });
     out.pf = gaPfCount(toks, out);          // how often each piece moved, both colors (Analytics, gaPf*)
     const fg = GA_F.get(g);                 // ... and where the clock went by phase (gaGoPh), when the game's clock facts are read
     if(fg && fg.go) gaGoPhOf(fg.go, out);
@@ -38317,6 +38352,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function egMatch(g, v){
     const e = EG.get(g.id);
     if(!e) return false;                                    // a game the pass doesn't read (Chess960, no moves): no endgame setting matches it
+    if(LEV_V.has(v)) return levMatch(g, v);
     return v==='yes' ? e.s >= 0 : v==='no' ? e.s < 0 : e.t.indexOf(v) >= 0;
   }
   // the first and the last game read: other games, as many of them, are other games (another player, in Repertoire Lab)
@@ -39685,8 +39721,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const ck = km ? km.clk : ghbClocks(g, e.p, mine), mat = km ? '' : ghbMaterial(e.fen, mine), first = km ? (km.tag || 'left the zone') : mat;
     const xl = ghEl('div', 'ghb-x');
     if(first) xl.appendChild(ghEl('span', km && km.tag ? 'ghb-tag is-'+km.tag : '', first));
+    if(e.was){ if(first) xl.appendChild(ghEl('span', 'ghb-sep', ' \u00b7 ')); xl.appendChild(ghEl('span', '', e.was+' when it began')); }          // (lev*) the row it counts in is by the score there
     if(ck){
-      if(first) xl.appendChild(ghEl('span', 'ghb-sep', ' \u00b7 '));
+      if(first || e.was) xl.appendChild(ghEl('span', 'ghb-sep', ' \u00b7 '));
       const cs = ghEl('span', 'ghb-clk');
       cs.appendChild(ghEl('span', ck.trouble ? 'is-low' : '', hvFmtClock(ck.me)));             // yours: time trouble marks only it
       cs.appendChild(document.createTextNode(' v '+hvFmtClock(ck.opp)));
@@ -39703,7 +39740,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       : ' Clocks: yours '+hvFmtClock(ck.me)+', your opponent\u2019s '+hvFmtClock(ck.opp)+(ck.trouble ? ' (time trouble)' : '')+'.') : '';
     const lab = km ? rw+' against '+opp+(d ? ', '+d : '')+'. '+(km.from===km.p - 1 ? 'Your move '+mv+' took your score from '+was+' to '+st : 'Your score was '+was+' after an earlier move of yours; after '+mv+' it was '+st)+', out of the opening\u2019s zone for good'
         +(km.tag ? ': '+(km.tag==='inaccuracy' ? 'an ' : 'a ')+km.tag+', '+Math.round(km.drop)+' points of winning chances' : '')+' ('+(GHB_SRC[km.src] || 'Opening checks')+').'+clk+' Open the review before that move'
-      : rw+' against '+opp+(d ? ', '+d : '')+'. After '+mv+(st ? ', '+st+' for you ('+(GHB_SRC[sc.src] || 'Opening checks')+')' : ', not scored')+(mat ? ', '+mat : '')+'.'+clk+' Open the review at this move';
+      : rw+' against '+opp+(d ? ', '+d : '')+'. After '+mv+(st ? ', '+st+' for you ('+(GHB_SRC[sc.src] || 'Opening checks')+')' : ', not scored')+(e.was ? ' ('+e.was+' when the endgame began)' : '')+(mat ? ', '+mat : '')+'.'+clk+' Open the review at this move';
     b.title = lab; b.setAttribute('aria-label', lab);
     const cell = ghEl('div', 'ghb-cell'), sh = ghEl('button', 'ghb-share');
     sh.type = 'button';
@@ -39740,6 +39777,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     let none = 0, scored = 0;
     const K = { won:0, notjob:0, open:0, unscored:0, other:0, kept:0, wait:0, trouble:0 };       // Key moment: the games without one, and why
     const sq = (i)=> 'abcdefgh'[i % 8] + (Math.floor(i / 8) + 1);
+    const lv = mom==='b' && levFilterOn();          // the games of a row of "When the endgame began": the position it began at
+    let lq = 0;                                     // ... but not those counted by a quick score (never a board from one)
     rows.forEach(g=>{
       const x = EG.get(String(g.id)), mine = ojMine(g);
       if(!x || !x.all || !mine || !ghIsStd(g) || g.initialFen){ if(mom==='k') K.other++; else none++; return; }
@@ -39760,14 +39799,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         E.push({ g, x, p:r.p - 1, fen:A.fen, color: mine==='w' ? 'white' : 'black', pw:ghbPawns(A.fen), res:ghGameResult(g, u || ''), sc:{ s:r.after, src:r.src }, st:ghbScoreText(r.after, mine), km:r, arrow:sq(mv.from)+sq(mv.to) });
         return;
       }
-      const p = mom==='a' ? x.qa : x.qb, fen = mom==='a' ? x.fa : x.fb;
+      const p = mom==='a' ? x.qa : lv ? x.ps : x.qb, fen = mom==='a' ? x.fa : lv ? x.fs : x.fb;
       if(p < 0 || !fen){ none++; return; }
-      const sc = ojEvalAt(g, x, p);
+      if(lv){ const v = gevOf(g); if(v && v.quick){ lq++; return; } }
+      const sc = lv ? levScore(g, p) : ojEvalAt(g, x, p);
       if(sc) scored++;
-      E.push({ g, x, p, fen, color: mine==='w' ? 'white' : 'black', pw:ghbPawns(fen), res:ghGameResult(g, u || ''), sc, st:ghbScoreText(sc && sc.s, mine) });
+      E.push({ g, x, p, fen, color: mine==='w' ? 'white' : 'black', pw:ghbPawns(fen), res:ghGameResult(g, u || ''), sc, st:ghbScoreText(sc && sc.s, mine), was:lv ? levWas(g, x, mine, sc) : '' });
     });
     // what's shown (each board's score included, and the piece set): the same again touches nothing
-    const sig = mom+'|'+[...GHB_OPEN].join(',')+'|'+rows.length+'|'+(mom==='k' ? JSON.stringify(K)+(OJ_NOENG ? 1 : 0)+(OJ_ON ? 1 : 0) : '')+'|'+E.map(e=> e.g.id+':'+e.st+(e.km ? ':'+e.km.p+e.km.tag : '')).join(',');
+    const sig = mom+(lv ? 'l'+lq : '')+'|'+[...GHB_OPEN].join(',')+'|'+rows.length+'|'+(mom==='k' ? JSON.stringify(K)+(OJ_NOENG ? 1 : 0)+(OJ_ON ? 1 : 0) : '')+'|'+E.map(e=> e.g.id+':'+e.st+(e.km ? ':'+e.km.p+e.km.tag : '')).join(',');
     if(sig===GHB_SIG && GHB_PS===PIECE_SVG && wrap.childNodes.length) return;
     GHB_SIG = sig; GHB_PS = PIECE_SVG;
     const where = mom==='a' ? 'out of the opening' : 'going into the endgame';
@@ -39780,6 +39820,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       ? ghoN(E.length, 'key moment')+': in games where the opening did its job and you lost or drew, your move that took your score out of the opening\u2019s zone for good (White +0.50, Black \u22120.30). '
         +'The position before it, your move as the arrow, your score after it'+(K.trouble ? '; '+K.trouble+' in time trouble (under 10% of your clock)' : '')+'. '
       : 'No key moments in these games. ')+(kmWhy ? kmWhy+'. ' : '')+(E.length ? 'Tap a board for the review at that move.' : '');
+    else if(lv) levBoardsSay(sum, rows, E, scored, none, lq);
     else sum.textContent = !rows.length ? '' : E.length
       ? ghoN(E.length, 'game')+' '+where+(none ? ' ('+ghoN(none, 'other')+' never got there)' : '')+', your side at the bottom, grouped by pawn structure: the same pawns, or within 2 pawns of them. '
         +'Scored on '+scored+' of '+E.length+' (\u2014 means not scored'+(mom==='b' ? '; an endgame is checked only for games where the opening did its job and you lost' : '')+'). Tap a board for the review at that move.'
@@ -41510,7 +41551,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         +'|opp:(?:all|hi|ev|lo)|dow:[0-6]|tod:[nmae]|eng:[yn]|(?:acc|blu):[ome1-5a]:[rl]|cca|nomark|pf:[pnbrqk][aome]:[hl](?:100|[1-9]?\\d))';
       gaValid.re = new RegExp('^(?:'+P+'|(?:'+P+'\\+)?'+A+')$');
     }
-    return gaValid.re.test(s);
+    return gaValid.re.test(s) || /^acc:[ome1-5]:[rl]b$/.test(s);          // (..b: the games that hold your number and your opponents', gaPoAcc)
   }
   // the folds you chose ({ cardId: 0 | 1 }), known cards only (self-contained, as gaValid)
   function gaFoldsValid(o){
@@ -43413,7 +43454,6 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // per-move numbers are part of the engine facts (f.pc, gaEngine), so a review that arrives, is run again or is cleared reads
   // that game again; the card only adds them up. It never starts the engine. ----
   var GA_PC_MIN = 20, GA_PC_COST = 5;        // moves for a cell to count (faint under it, never the weakest); points a costly move lost
-  var GA_PC_TIE = 2, GA_PC_GAP = 2;          // points, in the numbers as shown: cells this close aren't told apart; a weak cell is at least this far under your average in its phase
   // the rows: the piece's letter, its name, the moves' words ("Pawns in the middlegame are your weakest")
   var GA_PCT = [['P', 'Pawn', 'Pawns'], ['N', 'Knight', 'Knights'], ['B', 'Bishop', 'Bishops'], ['R', 'Rook', 'Rooks'], ['Q', 'Queen', 'Queen moves'],
     ['K', 'King', 'King moves'], ['', 'All moves', 'All moves']];
@@ -43442,9 +43482,98 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function gaPcCol(B, p){ return !B ? 0 : p - 1 < B[1] ? 1 : p - 1 < B[2] ? 2 : 3; }
   // the automatic reviews run here (the switch on, this device able to; a build without them has none of these names)
   function gaPcAutoOn(){ return typeof hraOn==='function' && typeof HRA==='object' && !!HRA && hraOn() && HRA_ON && !HRA.dead && !HRA.paused; }
+  // ---- Beside your opponents (gaPo*, 2026-11-25): their moves in the same games, from the same scores (a review, or Lichess's analysis; never a
+  // quick score), as the yardstick in Accuracy by piece and in Where does my play drop?. A piece is named as weak only beside theirs, from contested
+  // positions: 10 to 90% winning chances for the side to move, not answering a check, 2 minutes or more on its own clock before the move (a game without
+  // clocks has none). On the user's 1,687 rapid games the rows of who was losing (rook, knight, bishop) go away there and the king in the endgame stays. ----
+  var GA_PO_G = 30, GA_PO_N = 150, GA_PO_GAP = 2, GA_PO_H = 1, GA_PO_Z = 2.5, GA_PO_PH = 60;      // games on each side for their number to show; contested moves a side in each half of the games, points behind overall, in each half, standard errors; games a phase needs
+  // the mover's own clock before ply p, centiseconds; null when it isn't known
+  function gaPoClk(g, p){
+    const C = g.clocks;
+    if(!Array.isArray(C) || !C.length || !(g.clock && Number(g.clock.initial) > 0)) return null;
+    if(p <= 2) return kmStart(g, p % 2 ? 'w' : 'b').ini;
+    return typeof C[p - 3]==='number' ? C[p - 3] : null;
+  }
+  // a game's other half: f.pc.c (which of your moves were contested), f.po (theirs: ply, piece, accuracy, contested), their moves by move number,
+  // their errors and their accuracy (f.ob, f.oa, f.oacc: as yours, gaEngine)
+  function gaPoFacts(f, g, e, toks){
+    const ev = f.ev, me = f.me, op = me==='w' ? 'b' : 'w';
+    const con = (p, X)=>{
+      const w = gaPcWin(ev[p - 1], X), k = p > 1 ? toks[p - 2].slice(-1) : '';
+      if(!(w >= 10 && w <= 90) || k==='+' || k==='#') return 0;
+      const c = gaPoClk(g, p);
+      return c!=null && c >= 12000 ? 1 : 0;
+    };
+    f.pc.c = Uint8Array.from(f.pc.p, p=> con(p, me));
+    const o = gaPcFacts(ev, toks, op);
+    f.po = { p:o.p, t:o.t, a:o.a, c:Uint8Array.from(o.p, p=> con(p, op)) };
+    const bins = [0, 1, 2, 3, 4].map(()=> ({ n:0, loss:0 }));
+    let all = 0, sn = 0, sl = 0, blu = 0;
+    for(let p = op==='w' ? 1 : 2; p <= f.n; p += 2){
+      all++;
+      const a = ev[p - 1], b = ev[p];
+      if(!a || !b) continue;
+      const loss = Math.max(0, hrMoverScore(a, op) - hrMoverScore(b, op) - 15), B = bins[Math.min(4, Math.floor((Math.ceil(p/2) - 1) / 10))];
+      B.n++; B.loss += loss; sn++; sl += loss;
+      if(loss > 300) blu++;
+    }
+    f.ob = bins;
+    f.oa = { all, n:sn, loss:sl, blu };
+    const ra = f.src==='r' && e && Array.isArray(e.a) ? e.a[op==='w' ? 0 : 1] : null;
+    f.oacc = f.src==='r' ? (typeof ra==='number' ? ra : null) : sn && sn >= 0.9*all ? hrAccuracy(sl, sn) : null;
+  }
+  // their accuracy in each phase of a game (gaEngPh's, for the other side); null until the endgames pass has read it
+  function gaPoPh(f, g){
+    const x = EG.get(g.id);
+    if(!f || !f.src || !x || !x.all || x.n!==f.n) return null;
+    const k = x.m+'|'+x.s;
+    if(f.oph && f.ophk===k) return f.oph;
+    const d = { mid:x.m, end:x.s, N:x.n }, op = f.me==='w' ? 'b' : 'w';
+    f.oph = (f.src==='r' ? hpfGrade(f.ev, null, d, op) : ojGradeGaps(f.ev, null, d, op)).map(o=> o.acc);
+    f.ophk = k;
+    return f.oph;
+  }
+  // the contested moves of the window's scored games, in two halves by date: K.po = { games (with one), q: 18 cells (piece*3 + phase) }; a cell: y, o (yours,
+  // theirs) as [older, newer] of { n, s, q (squares) }, gy, go (games), d (points ahead), se, h ([older, newer] points ahead), min (the fewest moves a side has in a half)
+  function gaPoModel(K, E){
+    const Q = [];
+    E.forEach(x=>{
+      const f = x.f, B = x.B, Y = f.pc, O = f.po;
+      if(!B || !O) return;
+      for(let i = 0; i < Y.c.length; i++) if(Y.c[i]){ Q.push(x); return; }
+      for(let i = 0; i < O.c.length; i++) if(O.c[i]){ Q.push(x); return; }
+    });
+    Q.sort((a, b)=> a.e.at - b.e.at);
+    const z = ()=> [0, 1].map(()=> ({ n:0, s:0, q:0 })), cells = Array.from({ length:18 }, ()=> ({ y:z(), o:z(), gy:0, go:0 })), half = Math.floor(Q.length / 2);
+    Q.forEach((x, i)=>{
+      const h = i < half ? 0 : 1, add = (F, w)=>{
+        let seen = 0;
+        for(let j = 0; j < F.c.length; j++){
+          if(!F.c[j]) continue;
+          const c = gaPcCol(x.B, F.p[j]);
+          if(!c) continue;
+          const k = F.t[j]*3 + c - 1, t = cells[k][w][h], a = F.a[j];
+          t.n++; t.s += a; t.q += a*a;
+          if(!(seen & 1 << k)){ seen |= 1 << k; cells[k]['g'+w]++; }
+        }
+      };
+      add(x.f.pc, 'y'); add(x.f.po, 'o');
+    });
+    cells.forEach((c, i)=>{
+      const sum = (a)=> ({ n:a[0].n + a[1].n, s:a[0].s + a[1].s, q:a[0].q + a[1].q }), m = (u)=> u.n ? u.s / u.n : 0, vr = (u)=> u.n ? Math.max(0, u.q / u.n - m(u)*m(u)) / u.n : 0;
+      c.t = Math.floor(i / 3); c.c = i % 3 + 1;
+      c.Y = sum(c.y); c.O = sum(c.o);
+      c.min = Math.min(c.y[0].n, c.y[1].n, c.o[0].n, c.o[1].n);
+      c.my = m(c.Y); c.mo = m(c.O); c.d = c.my - c.mo; c.se = Math.sqrt(vr(c.Y) + vr(c.O));
+      c.h = [0, 1].map(k=> m(c.y[k]) - m(c.o[k]));
+      c.thick = c.min >= GA_PO_N && c.gy >= GA_PO_G && c.go >= GA_PO_G;
+      c.weak = c.thick && c.d <= -GA_PO_GAP + GA_EPS && c.h[0] <= -GA_PO_H + GA_EPS && c.h[1] <= -GA_PO_H + GA_EPS && c.d <= -GA_PO_Z*c.se + GA_EPS;
+    });
+    K.po = { games:Q.length, q:cells };
+  }
   function gaModelPc(md){
-    const R = ojRevs(), no = [], K = md.pc = { wait:md.eunread, ph:egReady(), games:0, nr:0, nl:0, no:0, auto:0, miss:0, thick:[], weak:[], seen:[],
-      cells:GA_PCT.map(()=> [0, 1, 2, 3].map(()=> ({ n:0, s:0, g:0 }))) };
+    const R = ojRevs(), no = [], E = [], K = md.pc = { wait:md.eunread, ph:egReady(), games:0, nr:0, nl:0, no:0, auto:0, miss:0, weak:[], po:null,
+      cells:GA_PCT.map(()=> [0, 1, 2, 3].map(()=> ({ n:0, s:0, g:0, on:0, os:0, og:0 }))) };
     md.W.forEach(e=>{
       const f = gaE(e.g, R);
       if(!f) return;
@@ -43453,6 +43582,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(f.src==='r') K.nr++; else K.nl++;
       const F = f.pc, n = F ? F.p.length : 0, B = K.ph && n ? gaPcBounds(f, e.g) : null;
       if(K.ph && n && !B) K.miss++;
+      E.push({ e, f, B });
       let seen = 0;                                          // the cells this game is in (7 rows x 4 columns: 28 bits)
       for(let i = 0; i < n; i++){
         const t = F.t[i], a = F.a[i], c = gaPcCol(B, F.p[i]);
@@ -43461,9 +43591,19 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         seen |= (1 << t*4) | (1 << 24);
         if(c){ x = K.cells[t][c]; x.n++; x.s += a; x = K.cells[6][c]; x.n++; x.s += a; seen |= (1 << t*4 + c) | (1 << 24 + c); }
       }
-      if(seen) K.seen.push(seen);
       for(let i = 0; seen; i++, seen >>>= 1) if(seen & 1) K.cells[i >> 2][i & 3].g++;
+      // their moves, the same way (on, os, og)
+      const O = f.po, m = O ? O.p.length : 0;
+      for(let i = 0; i < m; i++){
+        const t = O.t[i], a = O.a[i], c = gaPcCol(B, O.p[i]);
+        let x = K.cells[t][0]; x.on++; x.os += a;
+        x = K.cells[6][0]; x.on++; x.os += a;
+        seen |= (1 << t*4) | (1 << 24);
+        if(c){ x = K.cells[t][c]; x.on++; x.os += a; x = K.cells[6][c]; x.on++; x.os += a; seen |= (1 << t*4 + c) | (1 << 24 + c); }
+      }
+      for(let i = 0; seen; i++, seen >>>= 1) if(seen & 1) K.cells[i >> 2][i & 3].og++;
     });
+    if(K.ph) gaPoModel(K, E);
     K.no = no.length;
     if(no.length && gaPcAutoOn()){ const L = new Set(hraTodo().list.map(x=> x.id)); no.forEach(g=>{ if(L.has(String(g.id))) K.auto++; }); }
     const S = { t:'', kind:'fact', bold:false };
@@ -43473,29 +43613,24 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!K.ph){ S.t = gaPhRead(md); S.kind = 'wait'; return; }         // the sentence is all a folded card shows (gaRender moves its count in place)
     S.t = gaPcSay(K);
   }
-  // the sentence, and K.weak: the cells it names (outlined). A cell counts with GA_PC_MIN moves. The lowest is the weakest when it is under your
-  // average in its phase by GA_PC_GAP points or more; the next one is named with it when it is within GA_PC_TIE points of the lowest (so few moves
-  // don't tell them apart) and as far under its own average. Three or more that close, or none of them that far under: no piece stands out.
-  // All in the numbers as shown, so the card can be checked by eye
+  // the sentence, and K.weak: the cells it names (outlined): those where you are behind your opponents in contested positions by GA_PO_GAP points or more, by
+  // GA_PO_H or more in the older and in the newer half of the games, and by GA_PO_Z standard errors; only a cell with GA_PO_N such moves a side in each half
+  // can be named. The widest gap first, two at most. Too few moves anywhere: how many more games the first cell needs, and nothing is named
   function gaPcSay(K){
-    const L = K.thick = [], R = Math.round, N = (n)=> n.toLocaleString('en-US');
+    const Q = K.po.q, N = (n)=> n.toLocaleString('en-US'), P = (v)=> v.toFixed(1)+'%', low = (x)=> GA_PCT[x.t][2].toLowerCase()+' in '+GA_PHW[x.c - 1], G = (n)=> gaPcGames(K, n);
+    const T = Q.filter(x=> x.thick), next = Q.filter(x=> !x.thick && x.min > 0).sort((a, b)=> b.min - a.min)[0];
+    const more = next ? Math.max(1, Math.ceil(K.po.games * GA_PO_N / next.min) - K.po.games) : 0, about = more > 20 ? Math.ceil(more / 10) * 10 : more;
+    const need = next ? (T.length ? ' Next to tell: '+low(next)+', after ' : 'the first to tell ('+low(next)+') needs ')+'about '+N(about)+' more '+(about===1 ? 'game' : 'games')+(T.length ? '' : ' like these')+'.' : '';
     K.weak = [];
-    for(let t = 0; t < 6; t++) for(let c = 1; c < 4; c++){ const x = K.cells[t][c]; if(x.n >= GA_PC_MIN) L.push({ t, c, n:x.n, g:x.g, m:x.s / x.n }); }
-    const more = 'The weakest shows once two pieces have '+GA_PC_MIN+' moves in a phase.';
-    if(!L.length) return more;
-    const one = L[0], low = (t)=> GA_PCT[t][2].toLowerCase();
-    if(L.length===1) return 'Only '+(one.t===4 ? 'the queen' : one.t===5 ? 'the king' : low(one.t))+' in '+GA_PHW[one.c - 1]+(one.t > 3 ? ' has ' : ' have ')+GA_PC_MIN+' moves yet. '+more;
-    L.sort((a, b)=> a.m - b.m || b.n - a.n);
-    const lo = L[0], avg = (x)=>{ const q = K.cells[6][x.c]; return q.s / q.n; }, near = L.filter(x=> R(x.m) - R(lo.m) <= GA_PC_TIE), W = near.filter(x=> R(avg(x)) - R(x.m) >= GA_PC_GAP);
-    if(!W.length) return 'No piece stands out: your lowest is '+R(lo.m)+'%, '+low(lo.t)+' in '+GA_PHW[lo.c - 1]+' ('+ghoN(lo.n, 'move')+' in '+gaPcGames(K, lo.g)+'), and your average there is '+R(avg(lo))+'%.';
-    if(W.length > 2) return 'No piece stands out: '+low(lo.t)+' in '+GA_PHW[lo.c - 1]+' are lowest ('+R(lo.m)+'%, from '+ghoN(lo.n, 'move')+' in '+gaPcGames(K, lo.g)+'), with '+(near.length - 1)+' others within '+GA_PC_TIE+' points.';
-    K.weak = W; K.low = W.indexOf(lo) < 0;          // low: the lowest itself is level with its phase, these (as close to it as makes no difference) aren't
-    const a = W[0], b = W[1], are = K.low ? ' are low for the phase: ' : ' are your weakest: ';
-    if(!b) return gaPcWords(a.t, a.c)+are+R(a.m)+'%, from '+ghoN(a.n, 'move')+' in '+gaPcGames(K, a.g)+'; your average there is '+R(avg(a))+'%.';
-    const bits = (1 << a.t*4 + a.c) | (1 << b.t*4 + b.c), g = K.seen.reduce((s, x)=> s + (x & bits ? 1 : 0), 0);          // the games that hold a move of either
-    return (a.c===b.c ? GA_PCT[a.t][2]+' and '+low(b.t)+' in '+GA_PHW[a.c - 1] : a.t===b.t ? gaPcWords(a.t, a.c)+' and '+GA_PHW[b.c - 1] : gaPcWords(a.t, a.c)+' and '+low(b.t)+' in '+GA_PHW[b.c - 1])+are+
-      (R(a.m)===R(b.m) ? R(a.m)+'% each' : R(a.m)+'% and '+R(b.m)+'%')+', from '+N(a.n)+' and '+ghoN(b.n, 'move')+' in '+gaPcGames(K, g)+'; '+
-      (a.c===b.c ? 'your average there is '+R(avg(a))+'%.' : 'your averages there are '+R(avg(a))+'% and '+R(avg(b))+'%.');
+    if(!K.po.games) return 'No piece can be named yet beside your opponents: none of these '+G(K.games)+' has a move to compare (a contested position, 2 minutes or more on the clock).';
+    if(!T.length) return 'Too few games to name a weak piece beside your opponents ('+G(K.po.games)+'): '+(need || 'no piece has contested moves of both sides in both halves of them yet.');
+    const W = T.filter(x=> x.weak).sort((a, b)=> a.d - b.d).slice(0, 2);
+    K.weak = W;
+    if(W.length){
+      const a = W[0], b = W[1], nm = (x)=> P(x.my)+' to their '+P(x.mo)+' ('+N(x.Y.n)+' of your moves, '+N(x.O.n)+' of theirs)';
+      return gaPcWords(a.t, a.c)+' are your weak spot beside your opponents: '+nm(a)+(b ? '; then '+low(b)+': '+nm(b) : '')+', in contested positions, behind in both halves of these '+G(K.po.games)+'.';
+    }
+    return 'No piece of yours is clearly behind your opponents\u2019: '+(T.length===18 ? 'all 18 cells have' : T.length+' of the 18 cells '+(T.length===1 ? 'has' : 'have'))+' enough contested moves in these '+G(K.po.games)+' to tell.'+need;
   }
   // "31 reviewed games", "22 games analyzed on Lichess", "31 reviewed or analyzed games" (the sources the card mixes)
   function gaPcGames(K, n){ return !K.nl ? ghoN(n, 'reviewed game') : !K.nr ? ghoN(n, 'game')+' analyzed on Lichess' : ghoN(n, 'reviewed or analyzed game'); }
@@ -43574,17 +43709,27 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       x.appendChild(gaPcTable('Your accuracy by piece and phase', (cell, t, k)=>{
         const x2 = K.cells[t][k];
         if(!x2.n){ cell.appendChild(gaPcNone(k && !K.ph ? 'not read yet' : 'no moves')); return; }
-        const v = Math.round(x2.s / x2.n), weak = K.weak.some(w=> w.t===t && w.c===k), b = gaBtn('ga-pcb'+(x2.n < GA_PC_MIN ? ' is-thin' : '')+(weak ? ' is-weak' : ''), '', 'pcc', 'pc|'+t+'|'+k);
+        const v = Math.round(x2.s / x2.n), weak = K.weak.some(w=> w.t===t && w.c===k), o = x2.g >= GA_PO_G && x2.og >= GA_PO_G ? Math.round(x2.os / x2.on) : null,
+          b = gaBtn('ga-pcb'+(o!=null ? ' is-o' : '')+(x2.n < GA_PC_MIN ? ' is-thin' : '')+(weak ? ' is-weak' : ''), '', 'pcc', 'pc|'+t+'|'+k);
         b.dataset.t = String(t); b.dataset.c = String(k); b.dataset.n = String(x2.n); b.dataset.v = String(v);
-        b.setAttribute('aria-label', gaPcWords(t, k)+': '+v+'%, '+ghoN(x2.n, 'move')+(weak ? (K.low ? ', low for the phase' : K.weak.length > 1 ? ', one of the two weakest' : ', the weakest') : '')+(x2.n < GA_PC_MIN ? ', fewer than '+GA_PC_MIN : '')+'. Show the costliest');
+        b.setAttribute('aria-label', gaPcWords(t, k)+': '+v+'%, '+ghoN(x2.n, 'move')+(o!=null ? '; opponents '+o+'%, '+ghoN(x2.on, 'move') : '')+(weak ? ', behind your opponents\u2019 in contested positions' : '')+(x2.n < GA_PC_MIN ? ', fewer than '+GA_PC_MIN : '')+'. Show the costliest'+(weak ? ' of those' : ''));
         b.setAttribute('aria-expanded', open && open.t===t && open.c===k ? 'true' : 'false');
         b.setAttribute('aria-controls', 'ga-pcm');
         b.appendChild(ghEl('span', 'ga-pcv', v+'%'));
         const n = ghEl('span', 'ga-pcn', x2.n.toLocaleString('en-US'));
         n.appendChild(ghEl('span', 'ga-pcw', x2.n===1 ? ' move' : ' moves'));
         b.appendChild(n);
+        if(o!=null){
+          const q = ghEl('span', 'ga-pcn ga-pfo');
+          q.appendChild(ghEl('span', 'ga-pfl', 'opponents '));
+          q.appendChild(ghEl('span', 'ga-pfs', 'opp. '));
+          q.appendChild(document.createTextNode(o+'% '));
+          q.appendChild(ghEl('span', 'ga-nw', 'of '+x2.on.toLocaleString('en-US')));
+          b.appendChild(q);
+          b.dataset.o = String(o); b.dataset.on = String(x2.on);
+        }
         cell.appendChild(b);
-      }));
+      }, K.cells[6][0].og >= GA_PO_G ? 'ga-pft ga-pco' : ''));          // (a phone's narrower first column, as How often has, once their numbers show)
     }
     // coverage: which games have engine scores and from where; the rest as one list, and whether they are on their way
     const cv = ghEl('p', 'ct-vs ga-cov');
@@ -43609,6 +43754,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(K.miss) cv.appendChild(document.createTextNode(' The phases of '+ghoN(K.miss, 'game')+' can\u2019t be read: those moves count under All only.'));
     if(cv.firstChild) x.appendChild(cv);
     if(K.games) gaSrc(x, 'Each move by how far your winning chances fell (Lichess\u2019s accuracy of a single move). Under each number: the moves counted; numbers from fewer than '+GA_PC_MIN+' moves are faint. Castling counts as a king move, a promotion as a pawn move. '+
+      'Opponents: their moves in the same games, from the same scores, where '+GA_PO_G+' games or more hold such a move of yours and of theirs. '+
+      'A piece is named only in contested positions (10 to 90% winning chances, not answering a check, 2 minutes or more on the clock; a game without clocks has none), where each side has '+GA_PO_N+' such moves in each half of the games: '+
+      GA_PO_GAP+' points behind in all, '+GA_PO_H+' in each half, and '+GA_PO_Z+' standard errors. '+
       'The review and \u201cWhere does my play drop?\u201d turn the average score lost per move into one number, so theirs are lower; Lichess\u2019s accuracy for a whole game counts bad moves more, so it is usually lower too.'+
       (K.nl && typeof hrClear==='function' ? ' After Clear analysis, a game Lichess analyzed counts from Lichess\u2019s scores.' : ''));
     frag.appendChild(c);
@@ -43836,7 +43984,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const f = gaE(e.g, R), F = f && f.src ? f.pc : null, n = F ? F.p.length : 0, B = c && n ? gaPcBounds(f, e.g) : null;
       for(let i = 0; i < n; i++){
         if(!(F.w[i] >= GA_PC_COST) || (t < 6 && F.t[i]!==t) || (c && gaPcCol(B, F.p[i])!==c)) continue;
-        out.push({ e, f, p:F.p[i], w:F.w[i] });
+        out.push({ e, f, p:F.p[i], w:F.w[i], con:F.c ? F.c[i] : 0 });          // con: contested (gaPoFacts), the moves a weak spot is named from
       }
     });
     return out.sort((a, b)=> b.w - a.w || b.e.at - a.e.at || a.p - b.p);
@@ -43853,11 +44001,21 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const fa = document.activeElement, fid = fa && box.contains(fa) && fa.dataset ? fa.dataset.fid || '' : '';
     GA.pcsig = sig;
     box.textContent = '';
-    const L = gaPcItems(md, S.t, S.c), N = gaPhone() ? 6 : 12, shown = L.slice(0, Math.max(N, S.shown || 0));
+    // a weak spot opens the moves it is named from, those in contested positions; the rest on a press (S.all)
+    const A = gaPcItems(md, S.t, S.c), wk = K.weak.find(w=> w.t===S.t && w.c===S.c), C = wk ? A.filter(y=> y.con) : [], only = C.length > 0 && !S.all, cell = K.cells[S.t][S.c], nf = (n)=> n.toLocaleString('en-US');
+    const L = only ? C : A, N = gaPhone() ? 6 : 12, shown = L.slice(0, Math.max(N, S.shown || 0));
     const head = ghEl('div', 'ct-mom-h ga-momh ga-pcmh'), ht = ghEl('div', ''), h = ghEl('h3', 'ct-h ga-qh', gaPcWords(S.t, S.c)+': your costliest moves');
     h.id = 'ga-pcm-h';
     ht.appendChild(h);
-    if(L.length) ht.appendChild(ghEl('p', 'ct-vs ga-cov', ghoN(L.length, 'move')+' of '+K.cells[S.t][S.c].n.toLocaleString('en-US')+' cost you '+GA_PC_COST+' points of winning chances or more.'));
+    const op = cell.g >= GA_PO_G && cell.og >= GA_PO_G ? ' Your opponents there: '+Math.round(cell.os / cell.on)+'%, '+ghoN(cell.on, 'move')+'.' : '';
+    if(only) ht.appendChild(ghEl('p', 'ct-vs ga-cov', ghoN(L.length, 'move')+' of your '+nf(wk.Y.n)+' in contested positions cost you '+GA_PC_COST+' points of winning chances or more (10 to 90% before the move, not answering a check, 2 minutes or more on your clock). There you are at '+
+      wk.my.toFixed(1)+'%, your opponents at '+wk.mo.toFixed(1)+'% ('+ghoN(wk.O.n, 'move')+').'));
+    else if(L.length || op) ht.appendChild(ghEl('p', 'ct-vs ga-cov', (L.length ? ghoN(L.length, 'move')+' of '+nf(cell.n)+' cost you '+GA_PC_COST+' points of winning chances or more'+(wk ? ', '+nf(C.length)+' of them in contested positions' : '')+'.' : '')+op));
+    if(C.length && C.length < A.length){
+      const b = gaBtn('ct-l', only ? 'Show all '+nf(A.length) : 'Only the '+nf(C.length)+' in contested positions', 'pcall', 'pcall');
+      b.setAttribute('aria-label', only ? 'Show all '+nf(A.length)+' moves that cost '+GA_PC_COST+' points or more' : 'Show only the '+nf(C.length)+' moves in contested positions');
+      ht.appendChild(b);
+    }
     head.appendChild(ht);
     const x = gaBtn('ct-l ga-pcx', 'Close', 'pcx', 'pcx');
     x.setAttribute('aria-label', 'Close the moves');
@@ -43952,11 +44110,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(el) try{ el.focus({ preventScroll:true }); }catch(e){}
   };
   GA_ACTS.pcx = gaPcShut;
+  // a weak spot's moves: those in contested positions, or every one (the keyboard stays on the button)
+  GA_ACTS.pcall = ()=>{ const S = GA.pcs; if(!S) return; GA.pcs = { t:S.t, c:S.c, shown:0, all:!S.all }; gaDrawPcm(); };
   // more boards; the keyboard goes to the first new one
   GA_ACTS.pcmore = ()=>{
     const S = GA.pcs, N = gaPhone() ? 6 : 12, prev = document.querySelectorAll('#ga-pcm .ct-m').length;
     if(!S) return;
-    GA.pcs = { t:S.t, c:S.c, shown:Math.max(N, S.shown || 0, prev) + N };
+    GA.pcs = { t:S.t, c:S.c, shown:Math.max(N, S.shown || 0, prev) + N, all:!!S.all };
     gaDrawPcm();
     const el = document.querySelectorAll('#ga-pcm .ct-m')[prev] || document.querySelector('#ga-pcm .ga-pcx');
     if(el) try{ el.focus({ preventScroll:true }); }catch(e){}
@@ -44044,6 +44204,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(f.src==='l') f.acc = sn && sn >= 0.9*all ? hrAccuracy(sl, sn) : null;      // the whole game: 90% of your moves scored
       f.mates = gaMates(ev, n, g, me);
       f.pc = gaPcFacts(ev, toks, me);
+      gaPoFacts(f, g, e, toks);                          // your opponents' side of the same game and scores
     }
     GA_E.set(g, f);
     return f;
@@ -44062,20 +44223,20 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     f.phk = k;
     return f.ph;
   }
-  // the engine atoms of the drill-down key: eng:y|n, acc:<part>:<src>, blu:<part>:<src> (games of more than 10 plies)
+  // the engine atoms of the drill-down key: eng:y|n, acc:<part>:<src>, blu:<part>:<src> (games of more than 10 plies); acc:<part>:<src>b: yours and theirs (gaPoAcc)
   function gaEngAtom(g, u, t, v){
     const f = gaE(g);
     if(!f) return false;
     if(t==='eng') return v==='y' ? !!f.src : !f.src;
-    const m = /^([ome1-5a]):([rl])$/.exec(v);
+    const m = /^([ome1-5a]):([rl])(b?)$/.exec(v);
     if(!m || f.src!==m[2] || !(f.n > 10)) return false;
     const part = m[1];
     if(part==='a') return t==='acc' ? f.acc!=null : f.all.blu > 0;
-    if(part >= '1' && part <= '5'){ const B = f.bins[Number(part) - 1]; return t==='acc' ? B.n > 0 : B.blu > 0; }
-    const ph = gaEngPh(f, g);
+    if(part >= '1' && part <= '5'){ const B = f.bins[Number(part) - 1]; return t==='acc' ? B.n > 0 && (!m[3] || f.ob[Number(part) - 1].n > 0) : B.blu > 0; }
+    const ph = gaEngPh(f, g), i = 'ome'.indexOf(part);
     if(!ph) return false;
-    const o = ph['ome'.indexOf(part)];
-    return t==='acc' ? o.acc!=null : o.blu > 0;
+    const o = ph[i], op = m[3] ? gaPoPh(f, g) : null;
+    return t==='acc' ? o.acc!=null && (!m[3] || (!!op && op[i]!=null)) : o.blu > 0;
   }
   function gaEngUnread(g){ return !gaE(g); }
   // ---- forced mates (spec 6.5): Lichess's MateLost rule with its Blunder line (+7), for you and for your opponent ----
@@ -45074,6 +45235,37 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // ---- Where does my play drop? (6.9): engine numbers from ONE source per number (the main source: more games in the scope;
   // ties: Chess Arcade's review); games of more than 10 plies; the other source on its own line; chess.com's own accuracy apart ----
   function gaAccWho(src, n){ return src==='r' ? ghoN(n, 'reviewed game') : ghoN(n, 'game')+' analyzed on Lichess'; }
+  // their numbers beside yours, each pair over the same games (those that hold both): K.po = { n, mean, y (the games with both accuracies), ph:[{ n, m, y,
+  // blu (your blunders there), d, h, weak }], bins:[{ g, n, acc, yn, y }] (the games where both have a scored move there, pooled), blu (blunders a game,
+  // every game) }: m, mean, acc theirs, y yours; null under GA_PO_G games. Where theirs shows, yours is the pair's and the list it opens is the pair's (acc:..b)
+  function gaPoAcc(K, G){
+    const B = G.filter(y=> y[1].acc!=null && y[1].oacc!=null), many = (n)=> n >= GA_PO_G, W = G.filter(y=> y[1].oa);
+    const P = K.po = { n:B.length, mean:many(B.length) ? gaMean(B.map(y=> y[1].oacc)) : null, y:many(B.length) ? gaMean(B.map(y=> y[1].acc)) : null, ph:[], bins:[], blu:many(W.length) ? W.reduce((s, y)=> s + y[1].oa.blu, 0) / W.length : null };
+    K.ph.forEach(q=>{
+      const L = q.pr.slice().sort((a, b)=> a[0] - b[0]), n = L.length, D = L.map(x=> x[1] - x[2]), o = { n, m:many(n) ? gaMean(L.map(x=> x[2])) : null, y:many(n) ? gaMean(L.map(x=> x[1])) : null, blu:L.reduce((s, x)=> s + x[3], 0), weak:false };
+      if(n >= GA_PO_PH){
+        const h = Math.floor(n / 2), d = gaMean(D), se = Math.sqrt(D.reduce((s, v)=> s + (v - d)*(v - d), 0) / (n - 1) / n);
+        o.d = d; o.se = se; o.h = [gaMean(D.slice(0, h)), gaMean(D.slice(h))];
+        o.weak = d <= -GA_PO_GAP + GA_EPS && o.h[0] <= -GA_PO_H + GA_EPS && o.h[1] <= -GA_PO_H + GA_EPS && d <= -GA_PO_Z*se + GA_EPS;
+      }
+      P.ph.push(o);
+    });
+    for(let i = 0; i < 5; i++){
+      let n = 0, loss = 0, yn = 0, yl = 0, g = 0;
+      G.forEach(([, f])=>{ const a = f.bins[i], b = f.ob && f.ob[i]; if(!b || !b.n || !a.n) return; n += b.n; loss += b.loss; yn += a.n; yl += a.loss; g++; });
+      P.bins.push({ g, n, yn, acc:many(g) ? hrAccuracy(loss, n) : null, y:many(g) ? hrAccuracy(yl, yn) : null });
+    }
+  }
+  // the sentence's end: the phase you are behind in (the widest gap: GA_PO_GAP points, GA_PO_H in each half of the games, GA_PO_Z standard errors game by
+  // game, from GA_PO_PH games that reach it), or how many more games it takes; nothing without their numbers
+  function gaPoSay(K){
+    if(!K.phReady || K.po.mean==null) return '';
+    const W = ['opening', 'middlegame', 'endgame'], P = K.po.ph, ok = P.filter(o=> o.n >= GA_PO_PH), w = ok.filter(o=> o.weak).sort((a, b)=> a.d - b.d)[0];
+    if(w) return ' You are behind them in the '+W[P.indexOf(w)]+' in both halves of these games: '+w.y.toFixed(1)+' to '+w.m.toFixed(1)+' over '+ghoN(w.n, 'game')+'.';
+    if(ok.length) return ' You are not clearly behind them in '+(ok.length===3 ? 'any phase' : ok.map(o=> 'the '+W[P.indexOf(o)]).join(' or '))+'.';
+    const b = P.slice().sort((x, y)=> y.n - x.n)[0];
+    return ' Too few games to name a weak phase: it takes '+GA_PO_PH+' that reach it, '+(GA_PO_PH - b.n)+' more for the '+W[P.indexOf(b)]+'.';
+  }
   function gaModelAcc(md){
     const R = ojRevs(), K = md.acc = { wait:md.eunread > 0, S:{ r:[], l:[] }, P:{ r:[], l:[] }, waitP:0, cc:null, newL:null };
     md.eunreadP = 0;
@@ -45096,12 +45288,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // by phase (once the endgames pass has the games): the mean of each game's phase accuracy; blunders a game over the
     // games with that phase scored; bg: the games with a blunder in it (what its button opens)
     K.phReady = egReady();
-    K.ph = [0, 1, 2].map(()=> ({ acc:[], blu:0, bg:0 }));
+    K.ph = [0, 1, 2].map(()=> ({ acc:[], blu:0, bg:0, pr:[] }));
     G.forEach(([e, f])=>{
       const ph = gaEngPh(f, e.g);
       if(!ph) return;
-      ph.forEach((o, i)=>{ const q = K.ph[i]; if(o.acc!=null){ q.acc.push(o.acc); q.blu += o.blu; } if(o.blu > 0) q.bg++; });
+      const op = gaPoPh(f, e.g);
+      ph.forEach((o, i)=>{ const q = K.ph[i]; if(o.acc!=null){ q.acc.push(o.acc); q.blu += o.blu; if(op && op[i]!=null) q.pr.push([e.at, o.acc, op[i], o.blu]); } if(o.blu > 0) q.bg++; });
     });
+    gaPoAcc(K, G);
     // by move number: pooled over your scored moves in each stretch (not a mean of games)
     K.bins = [0, 1, 2, 3, 4].map(i=>{ let n = 0, loss = 0, g = 0; G.forEach(([, f])=>{ const B = f.bins[i]; if(B.n){ n += B.n; loss += B.loss; g++; } }); return { n, loss, g, acc:n ? hrAccuracy(loss, n) : null }; });
     // errors a game (Chess Arcade's cut-offs: a loss over 60, 100, 300)
@@ -45123,8 +45317,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         : 'No accuracy yet: none of these games has engine scores.', kind:'fact', bold:false };
       else if(accs.length < GHO_MIN) s = { t:'Only '+ghoN(accs.length, 'game')+' here '+(accs.length===1 ? 'has' : 'have')+' an accuracy; the numbers show from 5.', kind:'fact', bold:false };
       else {
-        const ph = K.phReady ? K.ph.map((o, i)=> o.acc.length >= GHO_MIN ? ['opening', 'middlegame', 'endgame'][i]+' '+Math.round(gaMean(o.acc)) : '').filter(Boolean) : [];
-        s = { t:'Accuracy '+Math.round(K.mean)+' over '+gaAccWho(src, accs.length)+(ph.length ? ': '+ph.join(', ') : '')+'.', kind:'fact', bold:false };
+        // beside your opponents, where enough games hold both (a phase with fewer: yours alone, as before)
+        let th = K.po.mean!=null;
+        const nx = K.phReady ? K.ph.map((o, i)=>{
+          if(o.acc.length < GHO_MIN) return '';
+          const po = K.po.ph[i], t = po.m!=null ? (th ? ' to ' : ' to your opponents\u2019 ')+Math.round(po.m) : '';
+          if(t) th = true;
+          return ['opening', 'middlegame', 'endgame'][i]+' '+Math.round(t ? po.y : gaMean(o.acc))+t;
+        }).filter(Boolean) : [];
+        s = { t:'Accuracy '+Math.round(K.po.mean!=null ? K.po.y : K.mean)+(K.po.mean!=null ? ' to your opponents\u2019 '+Math.round(K.po.mean) : '')+' over '+gaAccWho(src, K.po.mean!=null ? K.po.n : accs.length)+(nx.length ? ': '+nx.join(', ') : '')+'.'+gaPoSay(K), kind:'fact', bold:false };
       }
     }
     md.say['ga-acc'] = s;
@@ -45139,6 +45340,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const m = Math.round(K.mean);
       gaBigNum(top, String(m), { ga:'acc:a:'+src }, 'acc|big', gaOpenLab(K.accs.length, 'with an accuracy from '+SN, wds), K.accs.length, null, m, K.accs.length < 10);
       top.appendChild(ghEl('span', 'ct-what', 'accuracy over '+gaAccWho(src, K.accs.length)));
+      if(K.po.mean!=null){ const t = ghEl('span', 'ct-vs ga-acop', K.po.n===K.accs.length ? 'Your opponents '+Math.round(K.po.mean)+' in the same games' : 'In the '+ghoN(K.po.n, 'game')+' with an accuracy for both: '+Math.round(K.po.y)+' to your opponents\u2019 '+Math.round(K.po.mean)); t.dataset.v = String(Math.round(K.po.mean)); t.dataset.n = String(K.po.n); top.appendChild(t); }
       if(before && K.pacc.length){
         const vs = ghEl('span', 'ct-vs ga-accp');
         vs.appendChild(document.createTextNode((K.pacc.length >= GHO_MIN ? Math.round(K.pmean)+' in ' : 'In ')+gaBeforeWords(md.v)+' ('));
@@ -45202,14 +45404,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           const r = ghEl('div', 'ga-acr'+(o.acc.length < 10 ? ' is-thin' : ''));
           r.dataset.k = k;
           r.appendChild(ghEl('span', 'ga-acl', w));
-          const v = ghEl('span', 'ga-acv');
-          if(o.acc.length >= GHO_MIN){ const m = Math.round(gaMean(o.acc)), b = gaGo(String(m), { ga:'acc:'+k+':'+src }, 'acc|ph|'+k, gaOpenLab(o.acc.length, 'with an accuracy in '+GA_PHW[i]+' from '+SN, wds)); b.dataset.n = String(o.acc.length); b.dataset.v = String(m); v.appendChild(b); }
+          const v = ghEl('span', 'ga-acv'), po = K.po.ph[i], two = po.m!=null, n = two ? po.n : o.acc.length, bth = two && n!==o.acc.length;          // beside theirs: the games that hold both
+          if(o.acc.length >= GHO_MIN){ const m = Math.round(two ? po.y : gaMean(o.acc)), b = gaGo(String(m), { ga:'acc:'+k+':'+src+(bth ? 'b' : '') }, 'acc|ph|'+k, gaOpenLab(n, 'with an accuracy '+(bth ? 'for both of you ' : '')+'in '+GA_PHW[i]+' from '+SN, wds)); b.dataset.n = String(n); b.dataset.v = String(m); v.appendChild(b); }
           else v.textContent = '\u2014';
           r.appendChild(v);
-          r.appendChild(ghEl('span', 'ga-acg', ghoN(o.acc.length, 'game')));
+          const op = ghEl('span', 'ga-aco', two ? 'opponents '+Math.round(po.m) : '');
+          if(two){ op.dataset.v = String(Math.round(po.m)); op.dataset.n = String(po.n); }
+          r.appendChild(op);
+          r.appendChild(ghEl('span', 'ga-acg', ghoN(n, 'game')));
           const bl = ghEl('span', 'ga-acx');
           if(o.bg && o.acc.length){
-            const b = gaGo((o.blu / o.acc.length).toFixed(1), { ga:'blu:'+k+':'+src }, 'acc|blu|'+k, gaOpenLab(o.bg, 'with a blunder in '+GA_PHW[i]+', from '+SN, wds));
+            const b = gaGo((two ? po.blu / n : o.blu / o.acc.length).toFixed(1), { ga:'blu:'+k+':'+src }, 'acc|blu|'+k, gaOpenLab(o.bg, 'with a blunder in '+GA_PHW[i]+', from '+SN, wds));
             b.dataset.n = String(o.bg);
             bl.appendChild(b);
             bl.appendChild(document.createTextNode(' blunders a game'));
@@ -45233,10 +45438,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         cell.dataset.i = String(i + 1);
         cell.appendChild(ghEl('span', 'ga-binl', 'Moves '+w));
         const v = ghEl('span', 'ga-acv');
-        if(B.n >= 30){ const m = Math.round(B.acc), b = gaGo(String(m), { ga:'acc:'+(i + 1)+':'+src }, 'acc|bin|'+(i + 1), gaOpenLab(B.g, 'with a scored move of yours in moves '+w+', from '+SN, wds)); b.dataset.n = String(B.g); b.dataset.v = String(m); v.appendChild(b); }
+        const bo = K.po.bins[i], two = bo.acc!=null, bth = two && bo.g!==B.g;          // beside theirs: the games where you both have a scored move there
+        if(B.n >= 30){ const m = Math.round(two ? bo.y : B.acc), g = two ? bo.g : B.g, b = gaGo(String(m), { ga:'acc:'+(i + 1)+':'+src+(bth ? 'b' : '') }, 'acc|bin|'+(i + 1), gaOpenLab(g, 'with a scored move of '+(bth ? 'both of you' : 'yours')+' in moves '+w+', from '+SN, wds)); b.dataset.n = String(g); b.dataset.v = String(m); v.appendChild(b); }
         else v.textContent = '\u2014';
         cell.appendChild(v);
-        cell.appendChild(ghEl('span', 'ga-soft', ghoN(B.n, 'move')));
+        cell.appendChild(ghEl('span', 'ga-soft', ghoN(two ? bo.yn : B.n, 'move')));
+        if(two){ const t = ghEl('span', 'ga-soft ga-bino', 'opponents '+Math.round(bo.acc)+' '); t.appendChild(ghEl('span', 'ga-nw', 'of '+bo.n.toLocaleString('en-US'))); t.dataset.v = String(Math.round(bo.acc)); t.dataset.n = String(bo.n); cell.appendChild(t); }
         bins.appendChild(cell);
       });
       bx.appendChild(bins);
@@ -45257,6 +45464,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           p.appendChild(document.createTextNode(' blunders a game in '+gaBeforeWords(md.v)));
         }
         p.appendChild(document.createTextNode('.'));
+        if(K.po.blu!=null) p.appendChild(document.createTextNode(' Your opponents: '+K.po.blu.toFixed(1)+' blunders a game.'));
         x.appendChild(p);
       }
     }
@@ -45278,7 +45486,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       p.appendChild(document.createTextNode('.'));
       x.appendChild(p);
     }
-    gaSrc(x, 'Chess Arcade\u2019s scale, the review\u2019s own formula. Errors: a loss over 60 (inaccuracy), 100 (mistake), 300 (blunder). With Lichess connected, reviews carry over to your other devices.');
+    gaSrc(x, 'Chess Arcade\u2019s scale, the review\u2019s own formula. Errors: a loss over 60 (inaccuracy), 100 (mistake), 300 (blunder). Opponents: their moves in the same games and scores, from '+GA_PO_G+' games; beside theirs, your number is from the games that hold both. A phase is named only where you are behind them by '+GA_PO_GAP+' points over '+GA_PO_PH+' games or more, by '+GA_PO_H+' in the older and in the newer half, and by '+GA_PO_Z+' standard errors. With Lichess connected, reviews carry over to your other devices.');
     frag.appendChild(c);
   }
 
@@ -47998,7 +48206,219 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(none.length && G.reach.length) row('No endgame', 'no', none);
       col.appendChild(ul);
     });
+    levDraw(any ? model : null);
     box.hidden = !any;
+  }
+  /* ---- Level when the endgame began (lev*, 2026-11-25): in "Where your games end up", both colors together, the games by how they
+     stood for you where the phase bar starts the endgame (gevEndgame: your review's score there, else Lichess's, else the
+     quick scores): ahead or behind by 1.5 pawns or more, or level. Shares only: a percentage from 30 games on, counts under
+     that; beside the level row the par your opponents' ratings set, how the level ones were lost on time, and the score with
+     queens on and off (once the recapture, if one is due, has been made). A row opens its games as the list; Boards there shows
+     those you reviewed or had Lichess analyze, after that recapture (never a game a quick score put there). ---- */
+  const LEV_CP = 150, LEV_MIN = 30;
+  const LEV_V = new Set(['ahead', 'level', 'behind', 'levelq', 'levelo']);
+  var LEV_ON = false, LEV_WAS = false, LEV_T = 0, LEV_SIG = '';
+  // '' no endgame (or its moves can't be read), '?' no score there, else 'ahead' | 'level' | 'behind'
+  function levOf(g){
+    const me = ojMine(g), r = me ? gevEndgame(g, me) : null;
+    return !r ? '' : r.cp==null ? '?' : r.cp >= LEV_CP ? 'ahead' : r.cp <= -LEV_CP ? 'behind' : 'level';
+  }
+  function levQueens(g){ const x = EG.get(g.id); return !!x && /q/i.test(String(x.fs || '').split(' ')[0]); }
+  function levEgSet(){ return !!GH_FILTERS.eg && GH_FILTERS.eg!=='yes'; }          // the Endgame filter narrows these games to other ones than a row would open
+  function levMatch(g, v){ const k = levOf(g); return v==='levelq' || v==='levelo' ? k==='level' && levQueens(g)===(v==='levelq') : k===v; }
+  function levFilterOn(){ return LEV_V.has(GH_FILTERS.eg); }
+  function levWaiting(base, u){
+    if(!egReady()) return 0;
+    const fo = Object.assign({}, GH_FILTERS, { eg:'' });
+    let n = 0;
+    base.forEach(g=>{ if(levOf(g)==='?' && ghMatch(g, u, fo)) n++; });
+    return n;
+  }
+  // the score shown on a board there: a review's or Lichess's, never a quick one; levWas: the score the game counts by, when the board's own (the
+  // recapture made, or not) belongs in another row
+  function levScore(g, p){ const a = gevAt(g, p); return a && !a.quick ? { s:a.s, src:a.src } : null; }
+  function levWas(g, x, me, sc){
+    const a = x.ps > x.s && sc ? levScore(g, x.s) : null, k = (s)=>{ const v = gevCp(gevNum(s), me); return v >= LEV_CP ? 1 : v <= -LEV_CP ? -1 : 0; };
+    return a && k(a.s)!==k(sc.s) ? ghbScoreText(a.s, me) : '';
+  }
+  // the quick scores are read once, when this is first drawn; news redraws this part only (a filtered list keeps still while you
+  // read it: it is drawn again once, when they are in)
+  function levReady(){
+    if(!LEV_ON){ LEV_ON = true; gevOnNews(levNews); }
+    LEV_WAS = gevReady();
+    return LEV_WAS;
+  }
+  function levNews(){
+    const first = !LEV_WAS;
+    LEV_WAS = gevReady();
+    if(levFilterOn()) GA.pk = '';                        // Analytics counts other games then: its numbers are made again at its next draw
+    if(currentView!=='history') return;
+    if(first && levFilterOn()){ ghRender(); return; }
+    clearTimeout(LEV_T);
+    const go = ()=>{
+      if(currentView!=='history' || !ghoOn() || ghvOn() || !GHO_LAST || document.getElementById('gho-ends').hidden) return;
+      if(Date.now() - GHO_QAT < 900 || ghScrollBusy()){ LEV_T = setTimeout(go, 900); return; }
+      levDraw(GHO_LAST);
+    };
+    LEV_T = setTimeout(go, 0);
+  }
+  // { reach, n (with a score), src:{ review, lichess, quick }, wait (the quick pass still has them to score), other (not rapid or blitz), gap (no score
+  //   to come there), back (the oldest quick one), ahead, level, behind, lq, lo (level, queens on and off): entries }
+  function levModel(model){
+    const K = { all:0, reach:0, n:0, src:{ review:0, lichess:0, quick:0 }, wait:0, other:0, gap:0, back:0, ahead:[], level:[], behind:[], lq:[], lo:[] };
+    const todo = qkAble() ? new Set(qkTodo().list.map(x=> x.id)) : new Set();
+    ['white', 'black'].forEach(c=>{
+      const sd = model.sides[c];
+      if(!sd || sd.hidden || !sd.list) return;
+      sd.list.forEach(e=>{
+        K.all++;
+        const x = EG.get(e.g.id);
+        if(!x || x.s < 0) return;
+        K.reach++;
+        const r = gevEndgame(e.g, c==='white' ? 'w' : 'b');
+        if(!r || r.cp==null){ if(todo.has(String(e.g.id))) K.wait++; else if(e.g.speed==='rapid' || e.g.speed==='blitz') K.gap++; else K.other++; return; }
+        K.n++; K.src[r.src]++;
+        if(r.quick && (!K.back || e.at < K.back)) K.back = e.at;
+        const k = r.cp >= LEV_CP ? 'ahead' : r.cp <= -LEV_CP ? 'behind' : 'level';
+        K[k].push(e);
+        if(k==='level') K[levQueens(e.g) ? 'lq' : 'lo'].push(e);
+      });
+    });
+    return K;
+  }
+  // "32 reviewed, 4 analyzed on Lichess, 387 quick scores (newest games first, back to Mar 2025 so far)"
+  function levFrom(K){
+    const N = (n)=> n.toLocaleString('en-US'), by = [];
+    if(K.src.review) by.push(N(K.src.review)+' reviewed');
+    if(K.src.lichess) by.push(N(K.src.lichess)+' analyzed on Lichess');
+    if(K.src.quick) by.push(N(K.src.quick)+(K.src.quick===1 ? ' quick score' : ' quick scores')+(K.wait && K.back ? ' (newest games first, back to '+new Date(K.back).toLocaleDateString('en-US', { month:'short', year:'numeric' })+' so far)' : ''));
+    return by.join(', ');
+  }
+  // what becomes of the rest (Settings' own line says more: qkText)
+  function levHint(K){
+    if(!qkAble()) return K.n < K.reach ? ' Here a game counts once it is reviewed or analyzed on Lichess.' : '';
+    if(K.wait) return !QK_LOADED ? ' The quick scores kept on this device aren\u2019t read yet.' : !qkOn() ? ' Turn on Quick scores for older games in Settings to fill in the rest.'
+      : QK.paused ? ' Quick scores for the rest are paused in Settings.' : QK.dead || HRA.dead || QK.full ? ' Quick scores have stopped on this device: Settings says why.'
+      : QK.why==='game' || QK.why==='reviews' || HRA.bat || HRA.save || (!QK.cur && QK.visit >= QK_BUDGET[hraClass()].games) ? ' Quick scores for the rest are waiting: Settings says why.'
+      : ' Quick scores are filling in the rest while the app is open.';
+    return (K.other ? ' Quick scores cover rapid and blitz games.' : '')+(K.gap ? ' '+ghoN(K.gap, 'game')+' can\u2019t be scored there.' : '');
+  }
+  function levMedian(L){ const a = L.slice().sort((x, y)=> x - y), m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; }
+  // the par for a list of games: the opponents' rating edge before the game (gaOpp's, as Who do I drop points against?; the median, points) and the
+  // score Elo expects at that edge; null under 30 games with both ratings
+  function levPar(L){
+    const u = ghMe(), R = [];
+    L.forEach(e=>{ const o = gaOpp(e.g, u); if(o.ok) R.push(o.gap); });
+    if(R.length < LEV_MIN) return null;
+    const d = levMedian(R);
+    return { n:R.length, d:Math.round(d), par:100 / (1 + Math.pow(10, d / 400)) };
+  }
+  function levDraw(model){
+    const box = document.getElementById('gho-lev');
+    const K = model ? levModel(model) : null;
+    levReady();
+    // with a kind of endgame picked, a row (one setting of the same filter) would open other games than it counts
+    if(K && K.all && levEgSet()){
+      box.hidden = false;
+      if(LEV_SIG==='eg' && box.firstChild) return;
+      LEV_SIG = 'eg';
+      box.textContent = '';
+      const c = ghEl('div', 'gho-ends-col'), p = ghEl('p', 'gho-ends-sum', 'Shown without the Endgame filter. '), b = ghEl('button', 'btn-link gho-lev-x', 'Clear it');
+      b.type = 'button'; b.dataset.fid = 'lev|clear'; b.setAttribute('aria-label', 'Clear the Endgame filter');
+      p.appendChild(b);
+      c.appendChild(ghEl('h4', '', 'When the endgame began'));
+      c.appendChild(p);
+      box.appendChild(c);
+      return;
+    }
+    if(!K || !K.reach){ box.hidden = true; box.textContent = ''; LEV_SIG = ''; return; }
+    const N = (n)=> n.toLocaleString('en-US'), T = {}, where = (n)=> ' a score where '+(n===1 ? 'it' : 'they')+' began';
+    T.sum = !K.n ? (K.reach===1 ? 'The one endgame here has' : 'None of these '+N(K.reach)+' endgames has')+(K.reach===1 ? ' no' : ' a')+' score where it began.'+levHint(K)
+      : K.n===K.reach ? (K.n===1 ? 'The one endgame has' : 'All '+N(K.n)+' endgames have')+where(K.n)+': '+levFrom(K)+'.'
+      : N(K.n)+' of '+ghoN(K.reach, 'endgame')+(K.n===1 ? ' has' : ' have')+where(K.n)+': '+levFrom(K)+'.'+levHint(K);
+    T.rows = K.n ? [['ahead', 'Ahead by 1.5 or more', K.ahead], ['level', 'Level, within 1.5', K.level], ['behind', 'Behind by 1.5 or more', K.behind]] : [];
+    const P = levPar(K.level), LL = K.level.filter(e=> e.res==='loss'), LW = K.level.filter(e=> e.res==='win'), lt = LL.filter(e=> e.end==='time').length, wt = LW.filter(e=> e.end==='time').length;
+    T.par = P ? 'Par here is about '+Math.round(P.par)+'%: your opponents are rated '+(P.d ? 'a median '+ghoN(Math.abs(P.d), 'point')+(P.d > 0 ? ' higher' : ' lower') : 'as you are (median)')+' ('+ghoN(P.n, 'game')+' with both ratings).' : '';
+    T.kinds = [['levelq', 'Queens on', K.lq], ['levelo', 'Queens off', K.lo]].filter(x=> x[2].length >= LEV_MIN);
+    T.time = K.level.length ? [['loss', 'You lost on time', lt, LL.length], ['win', 'They lost on time', wt, LW.length]].filter(x=> x[3]) : [];
+    const sig = JSON.stringify([T.sum, T.rows.map(r=> [r[0], r[2].length, r[2].filter(e=> e.res==='win').length, r[2].filter(e=> e.res==='draw').length, r[2].filter(e=> e.res==='loss' && e.mv <= 25).length, r[2].filter(e=> e.res==='loss' && e.mv > 25 && e.end==='time').length]), T.par,
+      T.kinds.map(r=> [r[0], r[2].length, ghoMetrics(r[2]).score]), T.time, qkAble() ? 1 : 0]);
+    box.hidden = false;
+    if(sig===LEV_SIG && box.firstChild) return;
+    LEV_SIG = sig;
+    const fa = document.activeElement, fid = fa && box.contains(fa) ? fa.dataset.fid || '' : '';
+    box.textContent = '';
+    const cols = ghEl('div', 'gho-ends-cols'), a = ghEl('div', 'gho-ends-col'), b = ghEl('div', 'gho-ends-col');
+    const row = (ul, v, name, list, sub)=>{
+      const m = ghoMetrics(list), li = ghEl('li', ''), t = ghEl('button', 'gho-end-b gho-lev-b'), pct = m.n >= LEV_MIN;
+      t.type = 'button'; t.dataset.eg = v; t.dataset.fid = 'lev|'+v; t.dataset.n = String(m.n);
+      t.disabled = !m.n;
+      t.appendChild(ghEl('span', 'gho-end-k', name));
+      const wdl = 'W'+m.W+' D'+m.D+' L'+m.L;
+      t.appendChild(pct ? ghoBar(m) : ghEl('span', 'gho-lev-n', m.n ? wdl : ''));
+      t.appendChild(ghEl('span', 'gho-end-v', pct ? m.n+' \u00b7 '+ghoPct(m.score) : String(m.n)));
+      if(sub) t.appendChild(ghEl('span', 'gho-oj-sub', sub));
+      const lab = name+' when the endgame began: '+ghoN(m.n, 'game')+(pct ? ', score '+ghoPct(m.score) : m.n ? ', '+m.W+' won, '+m.D+' drawn, '+m.L+' lost' : '')+(sub ? '. '+sub : '.')+(m.n ? ' Show them' : '');
+      t.title = lab; t.setAttribute('aria-label', lab);
+      li.appendChild(t); ul.appendChild(li);
+    };
+    a.appendChild(ghEl('h4', '', 'When the endgame began'));
+    a.appendChild(ghEl('p', 'gho-ends-sum', T.sum));
+    if(T.rows.length){
+      const ul = ghEl('ul', 'gho-ends-list');
+      T.rows.forEach(r=> row(ul, r[0], r[1], r[2], r[0]==='level' ? T.par : ''));
+      a.appendChild(ul);
+    }
+    cols.appendChild(a);
+    if(T.time.length || T.kinds.length){
+      b.appendChild(ghEl('h4', '', 'The level ones'));
+      const ul = ghEl('ul', 'gho-ends-list');
+      T.time.forEach(([res, name, n, of])=>{
+        const li = ghEl('li', ''), t = ghEl('button', 'gho-end-b gho-lev-b gho-lev-t');
+        t.type = 'button'; t.dataset.eg = 'level'; t.dataset.res = res; t.dataset.end = 'time'; t.dataset.fid = 'lev|time|'+res; t.dataset.n = String(n);
+        t.disabled = !n;
+        t.appendChild(ghEl('span', 'gho-end-k', name));
+        const v = N(n)+' of '+(res==='loss' ? 'your ' : 'their ')+N(of)+(of===1 ? ' loss' : ' losses');
+        t.appendChild(ghEl('span', 'gho-end-v', v));
+        const lab = 'Level when the endgame began: '+name.charAt(0).toLowerCase()+name.slice(1)+' in '+v+(n ? '. Show them' : '');
+        t.title = lab; t.setAttribute('aria-label', lab);
+        li.appendChild(t); ul.appendChild(li);
+      });
+      T.kinds.forEach(r=> row(ul, r[0], r[1], r[2], ''));
+      b.appendChild(ul);
+      cols.appendChild(b);
+    }
+    box.appendChild(cols);
+    if(K.n) box.appendChild(ghEl('p', 'gho-gap-sub', 'Scored where the phase bar starts the endgame, from your side: your review\u2019s score, else Lichess\u2019s'+(qkAble() ? ', else a quick one (against a deep search, about 3 in 100 quick scores put a game in another row; of the games they call level, 4 to 10 in 100 are not, so that row can be a point or two off)' : '')
+      +'. A percentage shows from '+LEV_MIN+' games. Queens on or off: once the recapture, if one is due, is made. Par is the score ratings that far apart expect.'));
+    if(fid){ const el = Array.from(box.querySelectorAll('[data-fid]')).find(z=> z.dataset.fid===fid); if(el) try{ el.focus({ preventScroll:true }); }catch(e){} }
+  }
+  // a row: the list of its games (Openings' own rows ignore a CLAMP letter picked elsewhere: so does this list). Back in Openings, the result and the
+  // letter are as they were too (ghoApply puts the rest back)
+  function levGo(d){
+    const set = { result:d.res || '', ck:'' }, was = Object.keys(set).map(k=> [k, GH_FILTERS[k] || '', set[k]]).filter(x=> x[1]!==x[2]);
+    ghbDrill(false);
+    ghoApply(Object.assign({ eg:d.eg, ck:'' }, d.res ? { result:d.res, end:d.end } : null));
+    if(GHO_DRILL) GHO_DRILL.push(...was);
+  }
+  function levClear(){
+    ghSetFilters({ eg:'' });
+    const b = document.querySelector('#gho-lev .gho-lev-b:not(:disabled)') || document.getElementById('gh-eg');
+    if(b) try{ b.focus({ preventScroll:true }); }catch(e){}
+  }
+  // Boards of such a list: the line over them, and the way back to all the games
+  function levBoardsSay(p, rows, E, scored, none, lq){
+    p.textContent = !rows.length ? '' : (E.length
+      ? ghoN(E.length, 'game')+' where the endgame began (after the recapture, where one was due)'+(none ? ' ('+ghoN(none, 'other')+' can\u2019t be read)' : '')+', your side at the bottom, grouped by pawn structure: the same pawns, or within 2 pawns of them. '
+        +'The score is from your review or Lichess\u2019s analysis'+(scored < E.length ? ' (\u2014 means it has none there)' : '')+'. Tap a board for the review at that move.'
+      : lq ? '' : 'No endgame to show in the '+ghoN(rows.length, 'game')+' listed.')
+      +(lq ? (E.length ? ' '+lq.toLocaleString('en-US')+' more here' : lq===1 ? 'The one game here' : 'All '+lq.toLocaleString('en-US')+' games here')+(lq===1 ? ' is' : ' are')+' counted by '+(lq===1 ? 'a quick score' : 'quick scores')+', good for shares, not for judging one board: ' : '');
+    if(!lq) return;
+    const b = ghEl('button', 'btn-link', 'see them in the list');
+    b.type = 'button';
+    b.addEventListener('click', ()=>{ const t = document.querySelector('#gh-bv .toggle[data-v="list"]'); if(t){ t.click(); try{ t.focus({ preventScroll:true }); }catch(e){} } });
+    p.appendChild(b);
+    p.appendChild(document.createTextNode('.'));
   }
   // a tap that changes only what's drawn (a row opened or closed, More): the last model drawn again, its games not read
   // again (a full redraw is ~140 ms at 4x CPU with 2,300 games); a background redraw still waiting stays waiting
