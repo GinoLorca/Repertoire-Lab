@@ -9310,7 +9310,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     body:has(#view-play-puzzle.is-gz) #next-overlay .btn{ min-height:44px; }
   }
   #view-play-puzzle.is-gz .pz-meta-card .pz-meta-title{ padding-right:0; }      /* no pills to make room for */
-  #view-history .ga[hidden], .ga-rows[hidden], .ga-ct[hidden], .ga-empty[hidden]{ display:none; }
+  #view-history .ga[hidden], .ga-rows[hidden], .ga-empty[hidden]{ display:none; }
   .ct-card.ga-rows{ flex-direction:row; flex-wrap:wrap; gap:8px 28px; align-items:center; padding:10px 16px; }
   .ga-row{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; min-width:0; }
   .ga-rl{ font:700 10.5px/1.6 "JetBrains Mono",monospace; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-soft); }
@@ -9371,11 +9371,6 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .ga-r3.is-thin .gho-bar{ opacity:.6; }
   .ga-r3n{ text-align:right; white-space:nowrap; }
   .ga-r3s{ text-align:right; font-weight:700; font-variant-numeric:tabular-nums; }
-  .ga-clkt{ align-self:flex-start; }
-  .ga-ct{ display:flex; flex-direction:column; font-size:13px; }
-  .ga-ctr{ display:grid; grid-template-columns:minmax(70px,.8fr) repeat(3, minmax(0,1fr)); gap:4px 10px; padding:5px 0; border-top:1px solid var(--line); align-items:baseline; }
-  .ga-cth{ border-top:0; font:700 10.5px/1.4 "JetBrains Mono",monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); }
-  .ga-ctl{ font-weight:700; }
   @media (max-width:640px){
     .ga-wh{ display:none; }
     .ga-wr{ grid-template-columns:minmax(0,1fr) auto auto; grid-template-areas:"l s c" "b b b" "g f f"; row-gap:4px; padding:8px 4px; }
@@ -9383,10 +9378,46 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     .ga-ph{ display:inline; }
     .ga-halves .tt-half + .tt-half{ padding:0 0 0 14px; border-top:0; border-left:1px solid var(--line); }
     button.ga-big{ font-size:38px; }
-    .ga-cth{ display:none; }
-    .ga-ctr{ grid-template-columns:minmax(0,1fr); padding:8px 0; }
     .ga-r3{ grid-template-columns:70px minmax(40px,1fr) auto 34px; gap:8px; }
   }
+  /* Where your clock goes (2026-11-24): the Clock card's section in place of the move 20/30/40 table */
+  .ga-go{ display:flex; flex-direction:column; gap:8px; margin-top:2px; padding-top:10px; border-top:1px solid var(--line); min-width:0; container:gago / inline-size; }
+  .ga-gohd{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 12px; }
+  .ga-gohd .ct-k{ margin:0; }
+  .ga-gotc{ font-size:12.5px; color:var(--ink-soft); }
+  .ga-got{ display:flex; flex-direction:column; min-width:0; }
+  .ga-gor{ display:grid; grid-template-columns:minmax(0,1.25fr) repeat(2, minmax(0,1fr)); align-items:center; gap:0 6px; border-top:1px solid var(--line); }
+  .ga-gor.is-head{ border-top:0; padding-bottom:2px; }
+  .ga-goh{ font-size:12px; font-weight:700; line-height:1.25; color:var(--ink-soft); text-align:center; }
+  .ga-goh.is-l{ text-align:left; }
+  .ga-gol{ min-width:0; font-size:13px; line-height:1.3; }
+  .ga-goc{ min-width:0; }
+  .ga-gob{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; box-sizing:border-box; width:100%; min-height:48px; padding:3px 0; font:inherit; color:var(--ink); background:none; border:0; border-radius:7px; cursor:pointer; }
+  .ga-gob.is-sum{ cursor:default; }
+  .ga-gov{ font-size:16px; font-weight:700; line-height:1.2; font-variant-numeric:tabular-nums; }
+  button.ga-gob .ga-gov{ text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
+  .ga-gon{ font-size:11.5px; line-height:1.25; color:var(--ink-soft); font-variant-numeric:tabular-nums; text-align:center; }
+  @media (hover:hover){ button.ga-gob:hover{ background:var(--surface-2); } button.ga-gob:hover .ga-gon{ color:var(--ink); } }
+  .ga-gob:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  :root[data-skin="bauhaus"] .ga-gob{ border-radius:0; }
+  .ga-gosay.is-bold{ font-weight:700; }
+  .ga-gosay2{ font-weight:400; }
+  .ga-go .ga-clkt{ align-self:flex-start; font-size:13px; }
+  .ga-gobody{ display:flex; flex-direction:column; gap:8px; min-width:0; }
+  .ga-gobody[hidden]{ display:none; }
+  .ga-go25 .ct-k{ margin:4px 0 0; }
+  .ga-go25n{ font-size:12.5px; color:var(--ink-soft); }
+  /* each band's engine line under its bar: the engine's chances and your score in the same games */
+  .ga-r25{ grid-template-columns:104px minmax(50px,1fr) auto 40px; row-gap:0; }
+  .ga-r25e{ grid-column:2 / -1; font-size:12.5px; line-height:1.35; color:var(--ink-soft); text-align:left; }
+  .ga-r25e .ga-b{ color:var(--ink); }
+  .ga-r25 + .ga-r25{ margin-top:4px; }
+  /* narrower where the section is narrow (two cards side by side from 960px, phones) */
+  @container gago (max-width:500px){
+    .ga-r25{ grid-template-columns:70px minmax(40px,1fr) auto 34px; }
+  }
+  @media (max-width:640px){ .ga-gol{ font-size:12.5px; } }
+  @media (pointer:coarse){ .ga-gob{ min-height:52px; } }
   /* the seven tabs up to 640px (Positions, 2026-11-23): four and three, Games Openings Positions CLAMP / Tactics Analytics
      Puzzles, each row filling the width, where the four words stay whole at 12.5px (from 376px); on narrower phones three,
      three and one, one width each (no smaller type); in the DOM's order for the keyboard */
@@ -38363,6 +38394,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const A = pick(m >= 0 ? win.a : win.b, m >= 0 ? m : out.s), Bq = m >= 0 ? pick(win.b, out.s) : null;
     Object.assign(out, { m, n, h:gnFnv(toks.join(' ')), all:n===toks.length, qa: A ? A[0] : -1, fa: A ? A[2] : '', qb: Bq ? Bq[0] : -1, fb: Bq ? Bq[2] : '' });
     out.pf = gaPfCount(toks, out);          // how often each piece moved, both colors (Analytics, gaPf*)
+    const fg = GA_F.get(g);                 // ... and where the clock went by phase (gaGoPh), when the game's clock facts are read
+    if(fg && fg.go) gaGoPhOf(fg.go, out);
     return out;
   }
   function egReady(){ return EG_DONE; }       // from the first finished pass on; a game read later just matches no setting until then
@@ -41100,7 +41133,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
      (the Games list narrowed by the drill-down key ga, a board, or the right spot in another tab). The window is the Filters'
      own Date (one setting, the user's choice of 2026-11-20). Analytics reads only what Game History already has: it never
      starts the engine. Its one store is the mate-in-1 rules check's (wavyChessPrepMateChecks, device-only; see gaMmIdb). Spec: analytics-work/SPEC.md (sections 2-9). ---- */
-  var GA = { sig:'', model:null, y:null, back:null, ms:0, open:{ clk:false }, fold:null };
+  var GA = { sig:'', model:null, y:null, back:null, ms:0, open:{ go:false }, fold:null };
   var GA_F = new WeakMap();         // tier 1, per game object: plies, your castling move, clock facts, the material at the end (gaFacts)
   var GA_DRAW = new Map();          // tier 2: a Lichess draw's kind, by id + moves (gaDrawKind)
   var GA_E = new WeakMap();         // tier 3: engine facts per game object (the missed mates' build step fills it)
@@ -41127,6 +41160,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!gaValid.re){
       const P = 'prev:(?:3|7|15|30|90|year)';
       const A = '(?:all|how:(?:left|agree|rep|stale|insuf|tvi|fifty|cheat|other)|ph:[ome]|cs:[omen]|clkg|clk:(?:tt|b20|b30|b40|e20|a20|lta)'
+        +'|clk:(?:[me]25[abc]|[nq][yo]\\d{1,3}|s[yo][ome]\\d{1,4})'
         +'|opp:(?:all|hi|ev|lo)|dow:[0-6]|tod:[nmae]|eng:[yn]|(?:acc|blu):[ome1-5a]:[rl]|cca|nomark|pf:[pnbrqk][aome]:[hl](?:100|[1-9]?\\d))';
       gaValid.re = new RegExp('^(?:'+P+'|(?:'+P+'\\+)?'+A+')$');
     }
@@ -41215,7 +41249,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       for(let p = first; p <= n; p += 2) mine.push(p);
       for(let i = 0; i + 5 <= mine.length; i++){ const k = kmClock(g, mine[i]); if(k && k.trouble){ tt = true; break; } }
     }
-    f = { key, n, cas, clk, bz, gap, gs, tt, mat: g.status==='outoftime' ? gaMaterial(g.lastFen, me) : null };
+    f = { key, n, cas, clk, bz, gap, gs, tt, mat: g.status==='outoftime' ? gaMaterial(g.lastFen, me) : null, go:clk && !bz ? gaGoFacts(g, C, n, me) : null };
     if(g.status==='draw' && g.site!=='cc') gaDrawKind(g);          // tier 2: a Lichess draw replayed once (How games end reads it)
     f.mv = g.moves; f.st = g.status; f.cl = Array.isArray(C) ? C.length : 0;
     GA_F.set(g, f);
@@ -41279,6 +41313,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // what an atom needs read first: 'f' tier 1, 'eg' the phases, 'e' engine facts ('' nothing)
   function gaNeeds(s){
     const a = s ? gaParse(s).atom : '';
+    if(/^clk:e25/.test(a)) return 'ef';                                 // Where your clock goes: the engine's scores at move 25 too
+    if(/^clk:s/.test(a)) return 'feg';                                  // ... the phases
     if(/^clk/.test(a) || a==='cs:n') return 'f';
     if(/^cs:/.test(a)) return 'feg';
     if(/^ph:/.test(a) || /^pf:/.test(a)) return 'eg';
@@ -41297,6 +41333,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(t==='clkg') return true;
       if(v==='tt') return f.tt;
       if(v==='lta') return g.status==='outoftime' && ghGameResult(g, u)==='loss' && f.mat!=null && f.mat >= 3;
+      if(/^(?:[me]25|[nq][yo]|s[yo])/.test(v)) return gaGoAtom(g, u, f, v);
       const N = Number(v.slice(1)), x = f.gap[N];
       if(x==null) return false;
       return v[0]==='b' ? x <= -0.1 : v[0]==='a' ? x >= 0.1 : x > -0.1 && x < 0.1;
@@ -41371,6 +41408,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const m = /^dow:(\d)$/.exec(a), e = /^(acc|blu):(.):([rl])$/.exec(a);
       if(m) t = 'Started on '+D[Number(m[1])];
       else if(a.indexOf('pf:')===0) t = gaPfLabel(a.slice(3));
+      else if(a.indexOf('clk:')===0) t = gaGoLabel(a.slice(4));
       else if(e){
         const part = ({ o:'the opening', m:'the middlegame', e:'the endgame', a:'the game', 1:'moves 1-10', 2:'moves 11-20', 3:'moves 21-30', 4:'moves 31-40', 5:'moves 41+' })[e[2]];
         t = (e[1]==='acc' ? 'Accuracy in ' : 'A blunder in ')+part+', '+(e[3]==='r' ? 'Chess Arcade\u2019s review' : 'Lichess\u2019s analysis');
@@ -41545,11 +41583,6 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function gaBeforeWords(v){ return v==='year' ? 'the same stretch before it' : 'the '+v+' days before'; }
   var GA_SPEED_W = { ultraBullet:'UltraBullet', bullet:'Bullet', blitz:'Blitz', rapid:'Rapid', classical:'Classical', correspondence:'Daily' };
   function gaSpeedW(s){ return GA_SPEED_W[s] || String(s || ''); }
-  function gaMs(cs){         // centiseconds -> m:ss, U+2212 for minus; "even" under 1 s
-    const s = Math.round(Math.abs(cs) / 100);
-    if(s < 1) return 'even';
-    return (cs < 0 ? '\u2212' : '+')+Math.floor(s/60)+':'+String(s % 60).padStart(2, '0');
-  }
   function gaSign(x, dp){ const v = Number(x.toFixed(dp || 0)); return (v > 0 ? '+' : v < 0 ? '\u2212' : '')+Math.abs(v).toFixed(dp || 0); }
 
   // ---- what's loaded (spec 4.4): a window that, or whose window before, reaches past it is "partly loaded" ----
@@ -41798,6 +41831,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         if(n) K.larry = { n, slow };
       }catch(err){ K.larry = null; }
     }
+    gaModelGo(md);
   }
   // What stands out (6.1): up to 3 sentences, one per card: the missed mates first (when it fired), the card verdicts past the
   // stricter bars (highest z first), then lost on time while up material (3+) in a free slot
@@ -42142,13 +42176,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       else if(a==='settings') ghOpenSettingsAt(t.dataset.val || 'li');
       else if(a==='oj') gaToOpenings('gho-oj', t.dataset.fid);
       else if(a==='opn') gaToOpenings(t.dataset.val==='black' ? 'gho-black' : 'gho-white', t.dataset.fid);
-      else if(a==='clkt') gaClkTable(t);
       else if(a==='larry'){ GA.back = { y:window.scrollY, fid:t.dataset.fid || '' }; GA.y = null; lzvFromBrief(); }
       else if(GA_ACTS[a]) GA_ACTS[a](t);
     });
     // the chip rows: Left / Right (Home / End on a Mac) move and press, as the site tabs
     sec.addEventListener('keydown', (e)=>{
-      const row = e.target.closest && e.target.closest('#ga-win, #ga-speed, .ga-pcsw');
+      const row = e.target.closest && e.target.closest('#ga-win, #ga-speed, .ga-pcsw, .ga-gosw');
       if(!row || e.altKey || e.ctrlKey || e.metaKey) return;
       const tabs = Array.from(row.querySelectorAll('.toggle')), i = tabs.indexOf(document.activeElement);
       if(i < 0) return;
@@ -42475,47 +42508,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       });
       x.appendChild(box);
     }
-    // 4. by move 20, 30 and 40, per time control (folded; for this visit only)
-    if(K.tcs.length){
-      const b = gaBtn('ct-l ga-clkt', 'By move 20, 30 and 40', 'clkt', 'clk|tbl');
-      b.setAttribute('aria-expanded', GA.open.clk ? 'true' : 'false');
-      b.setAttribute('aria-controls', 'ga-clk-tbl');
-      x.appendChild(b);
-      const tb = ghEl('div', 'ga-ct');
-      tb.id = 'ga-clk-tbl';
-      tb.hidden = !GA.open.clk;
-      tb.setAttribute('role', 'table');
-      tb.setAttribute('aria-label', 'Behind on the clock by move 20, 30 and 40, per time control');
-      const hd = ghEl('div', 'ga-ctr ga-cth');
-      hd.setAttribute('role', 'row');
-      ['Time control', 'Move 20', 'Move 30', 'Move 40'].forEach(w=>{ const s = ghEl('span', '', w); s.setAttribute('role', 'columnheader'); hd.appendChild(s); });
-      tb.appendChild(hd);
-      K.tcs.forEach(tc=>{
-        const r = ghEl('div', 'ga-ctr');
-        r.setAttribute('role', 'row');
-        const tl = ghTcLabelKey(tc.tc), l = ghEl('span', 'ga-ctl', tl);
-        l.setAttribute('role', 'rowheader');
-        r.appendChild(l);
-        [20, 30, 40].forEach(N=>{
-          const s = ghEl('span', 'ga-ctc'), cl = tc.cell[N];
-          s.setAttribute('role', 'cell');
-          s.dataset.m = String(N);
-          if(!cl) s.textContent = '\u2014';
-          else {
-            const pct = Math.round(100*cl.behind/cl.n);
-            s.appendChild(document.createTextNode('behind in '));
-            const cb = gaGo(pct+'%', { tc:tc.tc, ga:'clk:b'+N }, 'clk|t|'+tc.tc+'|'+N, gaOpenLab(cl.behind, 'of your '+tl+' games where you were behind after '+N+' moves each'));
-            cb.dataset.n = String(cl.behind);
-            s.appendChild(cb);
-            s.appendChild(document.createTextNode(' \u00b7 median '+gaMs(cl.med)));
-            s.dataset.pct = String(pct);
-          }
-          r.appendChild(s);
-        });
-        tb.appendChild(r);
-      });
-      x.appendChild(tb);
-    }
+    // 4. where your clock goes (2026-11-24): in place of the folded move 20/30/40 table
+    gaDrawGo(md, x);
     // 5. Larry's "took too long"
     if(K.larry){
       const p = ghEl('p', 'ga-ln ga-lz');
@@ -42524,16 +42518,364 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       p.appendChild(gaBtn('ct-l', 'Larry Suggestions', 'larry', 'clk|larry'));
       x.appendChild(p);
     }
-    gaSrc(x, 'Behind = 10% of your starting clock or more below theirs after the same number of moves. Under 10% = before one of your moves, with 5 or more still to play.');
+    gaSrc(x, 'Behind = 10% of your starting clock or more below theirs after the same number of moves. Under 10% = before one of your moves, with 5 or more still to play.'+gaGoSrc(md));
     frag.appendChild(c);
   }
-  // the "By move 20, 30 and 40" table, opened or closed in place (for this visit)
-  function gaClkTable(b){
-    GA.open.clk = !GA.open.clk;
-    b.setAttribute('aria-expanded', GA.open.clk ? 'true' : 'false');
-    const tb = document.getElementById('ga-clk-tbl');
-    if(tb) tb.hidden = !GA.open.clk;
+  // ---- Where your clock goes (2026-11-24, ~/mine-work/list.md item 2): in the Clock card where the folded move 20/30/40 table was. One time
+  // control at a time, never mixed (the most played first, up to three on a switch). From your own clocks (chess.com's %clk, Lichess's clock
+  // times) with your opponents in the same games as the yardstick: the moves that took a fifteenth of the starting clock or more (1:00 in
+  // 15+10) and the share of the clock they took, the seconds a move in each phase, and your clock right after your 25th move in thirds of
+  // the starting clock (under 5:00, 5:00 to 10:00, 10:00 or more in 15+10) with your score there and, from 5 games with engine scores, the
+  // engine's winning chances at that point beside your score in those same games. The sentence: the top third against the bottom one
+  // (gaTestScore: 20 games each, 5 points, 2 standard errors), "Aim for" only when the gap holds against the engine too (gaGoSay). Every
+  // cell opens its games: a band its own; a share or a time the games where it was highest (gaPfLink's rule). The engine never runs here.
+  // Folded under its sentence (for this visit), as the table it replaced was ----
+  var GA_GO_MV = 10, GA_GO_PM = 5, GA_GO_N = 20, GA_GO_TOP = 20, GA_GO_TCS = 3, GA_GO_PLY = { w:49, b:50 };
+  // a game's facts (gaFacts, not for a berserk game): each move's time in centiseconds (your clock before it less after it, plus the
+  // increment: kmClock's rule; -1 with no reading, and for each side's first move on Lichess, where that clock neither runs nor gets the
+  // increment), your moves and theirs as [moves, long thinks, time, time in long thinks], your clock right after your own 25th move (White's
+  // after ply 49, Black's after ply 50: GA_GO_PLY; null in a game that ended sooner), the starting clock (centiseconds), your color and the
+  // time control (ghTcKey)
+  function gaGoFacts(g, C, n, me){
+    const S = kmStart(g, 'w'), li = g.site!=='cc', sp = new Int32Array(n), y = [0, 0, 0, 0], o = [0, 0, 0, 0];
+    for(let p = 1; p <= n; p++){
+      const a = p <= 2 ? (li ? null : S.ini) : C[p - 3], b = C[p - 1];
+      if(typeof a!=='number' || typeof b!=='number'){ sp[p - 1] = -1; continue; }
+      const s = Math.max(0, a - b + S.inc), t = (p % 2 ? 'w' : 'b')===me ? y : o;
+      sp[p - 1] = s;
+      t[0]++; t[2] += s;
+      if(15*s >= S.ini){ t[1]++; t[3] += s; }
+    }
+    const q = GA_GO_PLY[me], m25 = n >= q && typeof C[q - 1]==='number' ? C[q - 1] : null;
+    return { sp, y, o, m25, ini:S.ini, me, tc:ghTcKey(g) };
   }
+  // a clock's third of the starting clock (centiseconds): 0 under a third, 1 under two thirds, 2 the rest
+  function gaGoBand(m, ini){ return 3*m < ini ? 0 : 3*m < 2*ini ? 1 : 2; }
+  // a clock in words: "5:00", "1:40", "20 s" under a minute; seconds a move with one decimal; a total of time in minutes or hours
+  function gaGoClk(cs){ const s = Math.round(cs / 100); return s < 60 ? s+' s' : Math.floor(s / 60)+':'+String(s % 60).padStart(2, '0'); }
+  function gaGoSec(cs, n){ return (Math.round(cs / n / 10) / 10).toFixed(1)+' s'; }
+  function gaGoHrs(cs){
+    const m = Math.round(cs / 6000);
+    if(m < 60) return m===1 ? '1 minute' : m+' minutes';
+    return (m < 600 ? (Math.round(m / 6) / 10).toFixed(1) : String(Math.round(m / 60)))+' hours';
+  }
+  // a game's phase sums, [moves, time] for your moves in the opening, middlegame, endgame (0-5) and theirs (6-11), by the phase of the
+  // position before the move (the review's phase card); null when its phases can't be read. Kept with the game's facts while its phases stay
+  var GA_GOP = new WeakMap();
+  function gaGoPh(g, go){ return gaGoPhOf(go, EG.get(g.id)); }
+  function gaGoPhOf(go, r){
+    const n = go.sp.length;
+    if(!r || !r.all || r.n!==n) return null;
+    const c = GA_GOP.get(go);
+    if(c && c[0]===r && c[1]===r.m && c[2]===r.s) return c[3];
+    const B = hpfBounds({ mid:r.m, end:r.s, N:r.n }), b1 = B[1], b2 = B[2], mine = go.me==='w' ? 1 : 0, sp = go.sp, P = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    for(let p = 1; p <= n; p++){
+      const t = sp[p - 1];
+      if(t < 0) continue;
+      const k = (p - 1 < b1 ? 0 : p - 1 < b2 ? 1 : 2) + ((p & 1)===mine ? 0 : 3);
+      P[2*k]++; P[2*k + 1] += t;
+    }
+    GA_GOP.set(go, [r, r.m, r.s, P]);
+    return P;
+  }
+  // the model's part, per time control: T.y / T.o your moves and theirs [moves, long thinks, time, time in long thinks]; T.b the three bands
+  // at move 25 (t: the results; e: the results in the games with engine scores there, e.x the engine's chances summed, 0 to 1 each); T.E the games (the window's entries). The phase sums T.ph (over
+  // T.phG games; T.phMiss whose phases can't be read; T.P each game's), the engine's chances and the links T.L: the shown one's here, the others' when shown (gaGoFill)
+  function gaModelGo(md){
+    const K = md.clk, by = new Map(), eg = egReady();
+    md.W.forEach(e=>{
+      const x = e.x, go = x && x.clk ? x.go : null;
+      if(!go) return;
+      let T = by.get(go.tc);
+      if(!T){
+        T = { tc:go.tc, ini:go.ini, n:0, E:[], y:[0, 0, 0, 0], o:[0, 0, 0, 0], ph:[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], phG:0, phMiss:0, b25:0, eg, L:null,
+          b:[0, 1, 2].map(()=> ({ t:gaT(), e:Object.assign(gaT(), { x:0 }) })) };
+        by.set(go.tc, T);
+      }
+      const Y = T.y, O = T.o, y = go.y, o = go.o;
+      T.n++;
+      Y[0] += y[0]; Y[1] += y[1]; Y[2] += y[2]; Y[3] += y[3];
+      O[0] += o[0]; O[1] += o[1]; O[2] += o[2]; O[3] += o[3];
+      T.E.push(e);
+      if(go.m25!=null){ T.b25++; gaAdd(T.b[gaGoBand(go.m25, go.ini)].t, e.res); }
+    });
+    const tcs = Array.from(by.values()).sort((a, b)=> b.n - a.n || b.ini - a.ini).slice(0, GA_GO_TCS);
+    K.go = { tcs, on:tcs.find(T=> T.tc===GA.gotc) || tcs[0] || null, eg };
+    if(K.go.on) gaGoFill(K.go.on);              // the one shown, with the model; the others when the switch shows them
+  }
+  // a time control's phase sums and links, once (its first drawing)
+  function gaGoFill(T){
+    if(T.L) return T;
+    const R = ojRevs();
+    T.P = T.E.map(e=>{
+      const go = e.x.go;
+      if(go.m25!=null){
+        const f = gaE(e.g, R), sc = f && f.src && f.ev ? f.ev[GA_GO_PLY[go.me]] : null;     // right after your 25th move
+        if(sc){ const E = T.b[gaGoBand(go.m25, go.ini)].e; gaAdd(E, e.res); E.x += hpfWinPct(sc, go.me) / 100; }
+      }
+      if(!T.eg) return null;
+      const P = gaGoPh(e.g, go);
+      if(!P){ T.phMiss++; return null; }
+      T.phG++;
+      for(let i = 0; i < 12; i++) T.ph[i] += P[i];
+      return P;
+    });
+    gaGoLinks(T);
+    return T;
+  }
+  // what a cell opens: the games where its figure (whole numbers, floored) was highest: the top 20 at most and a quarter of the games at
+  // most, with those level with the last of them; nothing under 3 games, at or under the cell's own figure, or for more than half the games.
+  // V: the figures (an Int32Array, its first k; or an array)
+  function gaGoTop(V, avg, k){
+    const S = (V instanceof Int32Array ? V.slice(0, k==null ? V.length : k) : Int32Array.from(V)).sort(), m = S.length, want = Math.min(GA_GO_TOP, Math.floor(m / 4));
+    if(want < 3) return null;
+    const th = S[m - want];
+    let n = want;
+    while(n < m && S[m - 1 - n]===th) n++;
+    return th > avg + GA_EPS && 2*n <= m ? { th, n } : null;
+  }
+  // the keys: n / q (long thinks' share of the moves / of the time; games of 10 or more moves with a reading), s<phase> (seconds a move
+  // there; games of 5 or more moves there), each with y (yours) or o (theirs); one pass over the games
+  function gaGoLinks(T){
+    const m = T.E.length, A = [], c = new Int32Array(10), L = T.L = {};
+    for(let x = 0; x < 10; x++) A.push(new Int32Array(m));
+    for(let i = 0; i < m; i++){
+      const go = T.E[i].x.go, P = T.P[i];
+      for(let j = 0; j < 2; j++){
+        const a = j ? go.o : go.y;
+        if(a[0] >= GA_GO_MV && a[2]){ A[2*j][c[2*j]++] = Math.floor(100*a[1] / a[0]); A[2*j + 1][c[2*j + 1]++] = Math.floor(100*a[3] / a[2]); }
+        if(P) for(let k = 0; k < 3; k++){ const q = 2*(k + 3*j), x = 4 + 3*j + k; if(P[q] >= GA_GO_PM) A[x][c[x]++] = Math.floor(P[q + 1] / (100*P[q])); }
+      }
+    }
+    [['y', 0], ['o', 1]].forEach(([w, j])=>{
+      const t = j ? T.o : T.y;
+      L['n'+w] = t[0] ? gaGoTop(A[2*j], 100*t[1] / t[0], c[2*j]) : null;
+      L['q'+w] = t[2] ? gaGoTop(A[2*j + 1], 100*t[3] / t[2], c[2*j + 1]) : null;
+      for(let k = 0; k < 3; k++){ const i = 2*(k + 3*j), x = 4 + 3*j + k; L['s'+w+'ome'[k]] = T.ph[i] ? gaGoTop(A[x], T.ph[i + 1] / (100*T.ph[i]), c[x]) : null; }
+    });
+  }
+  // the drill-down atoms: clk:m25<a|b|c> (your clock after your 25th move in that third), clk:e25<a|b|c> (the same, with engine scores at
+  // that point), clk:<n|q><y|o><N> (long thinks N% or more of the moves / of the time, yours or theirs), clk:s<y|o><o|m|e><N> (N seconds a
+  // move or more in that phase, yours or theirs)
+  function gaGoAtom(g, u, f, v){
+    const go = f.go;
+    if(!go) return false;
+    let m = /^([me])25([abc])$/.exec(v);
+    if(m){
+      if(go.m25==null || gaGoBand(go.m25, go.ini)!=='abc'.indexOf(m[2])) return false;
+      if(m[1]==='m') return true;
+      const x = gaE(g);
+      return !!(x && x.src && x.ev && x.ev[GA_GO_PLY[go.me]]);
+    }
+    m = /^([nq])([yo])(\d+)$/.exec(v);
+    if(m){
+      const a = m[2]==='y' ? go.y : go.o, N = Number(m[3]);
+      if(a[0] < GA_GO_MV || !a[2]) return false;
+      return m[1]==='n' ? 100*a[1] >= N*a[0] : 100*a[3] >= N*a[2];
+    }
+    m = /^s([yo])([ome])(\d+)$/.exec(v);
+    if(m){
+      const P = gaGoPh(g, go), i = 2*('ome'.indexOf(m[2]) + (m[1]==='y' ? 0 : 3));
+      return !!P && P[i] >= GA_GO_PM && P[i + 1] >= Number(m[3])*100*P[i];
+    }
+    return false;
+  }
+  // the chip's words (the time control from the Games list's filter, which every link of the section sets)
+  function gaGoLabel(v){
+    const tc = /^(\d+)-(\d+)$/.exec(GH_FILTERS.tc || ''), ini = tc ? Number(tc[1])*100 : 0;
+    const B = ini ? ['Under '+gaGoClk(ini / 3), gaGoClk(ini / 3)+' to '+gaGoClk(2*ini / 3), gaGoClk(2*ini / 3)+' or more']
+      : ['Under a third of your starting clock', 'A third to two thirds of your starting clock', 'Two thirds of your starting clock or more'];
+    let m = /^([me])25([abc])$/.exec(v);
+    if(m) return B['abc'.indexOf(m[2])]+' on your clock after your 25th move'+(m[1]==='e' ? ', with engine scores' : '');
+    const lt = ini ? gaGoClk(ini / 15)+' or more' : 'a fifteenth of the starting clock or more';
+    m = /^([nq])([yo])(\d+)$/.exec(v);
+    if(m) return 'Moves of '+lt+': '+(m[1]==='n' ? m[3]+'% or more of '+(m[2]==='y' ? 'your' : 'your opponent\u2019s')+' moves' : 'they took '+m[3]+'% or more of '+(m[2]==='y' ? 'your' : 'your opponent\u2019s')+' time');
+    m = /^s([yo])([ome])(\d+)$/.exec(v);
+    if(m) return ['Opening', 'Middlegame', 'Endgame']['ome'.indexOf(m[2])]+': '+m[3]+' s a move or more, '+(m[1]==='y' ? 'yours' : 'your opponent\u2019s');
+    return '';
+  }
+  // the sentence: the top third against the bottom one at move 25 (10:00 or more against under 5:00 in 15+10); when one of them has fewer than
+  // 20 games, the bottom third against the rest (5 min: under 1:40 against 1:40 or more) or the top one against the rest. Hard positions are
+  // slow ones too, so a gap stays a fact ("You scored ...") until the engine can weigh it: "Aim for" only when, in 20 games with engine scores
+  // on each side, your score less the engine's chances there still differs by 5 points and twice the standard error (gaTestBand). The two
+  // groups are named in the order the sentence gives them
+  function gaGoSay(T){
+    const [a, b, c] = T.b, la = gaGoClk(T.ini / 3), lc = gaGoClk(2*T.ini / 3), ok = (x)=> x.t.n >= GA_GO_N, NF = (n)=> n.toLocaleString('en-US');
+    const P = (t)=> Math.round(gaSc(t)*100)+'%', G = (x)=> ghoN(x.t.n, 'game'), E = (x)=> Math.round(100*x.e.x / x.e.n)+'%';
+    const add = (s, u)=> ({ n:s.n + u.n, W:s.W + u.W, D:s.D + u.D, L:s.L + u.L, x:(s.x || 0) + (u.x || 0) }), M = (x, y)=> ({ t:add(x.t, y.t), e:add(x.e, y.e) });
+    if(!T.b25) return { t:'None of these '+ghoN(T.n, 'game')+' reached move 25.', bold:false };
+    let hi, lo, lh, ll;
+    if(ok(a) && ok(c)){ hi = c; lo = a; lh = lc; ll = la; }
+    else if(ok(a) && ok(M(b, c))){ hi = M(b, c); lo = a; lh = la; ll = la; }
+    else if(ok(c) && ok(M(a, b))){ hi = c; lo = M(a, b); lh = lc; ll = lc; }
+    else return { t:'Too few games to compare yet: '+G(a)+' under '+la+' at move 25 and '+ghoN(b.t.n + c.t.n, 'game')+' with '+la+' or more; the comparison needs '+GA_GO_N+' on each side.', bold:false };
+    const k = gaTestScore(hi.t, lo.t, 0, 2), en = hi.e.n >= GA_GO_N && lo.e.n >= GA_GO_N, two = (x, y)=> NF(x.e.n)+' and '+NF(y.e.n)+' games';
+    const fact = 'You scored '+P(hi.t)+' with '+lh+' or more left at move 25 ('+G(hi)+'), '+P(lo.t)+' under '+ll+' ('+G(lo)+').';
+    if(k.pass && k.d > 0){
+      if(!en) return { n:fact.length, t:fact+' Hard positions take time too: to tell how much of the gap is the clock, the engine needs scores in '+GA_GO_N+' games on each side ('+(hi.e.n || lo.e.n ? NF(hi.e.n)+' and '+NF(lo.e.n) : 'none')+' so far).', bold:true };
+      const kk = gaTestBand(hi.e, lo.e, 2), seen = ' gave you '+E(hi)+' and '+E(lo)+' there and you scored '+P(hi.e)+' and '+P(lo.e)+' ('+two(hi, lo)+')';
+      if(kk.pass && kk.diff > 0){
+        const aim = 'Aim for '+lh+' left at move 25: you scored '+P(hi.t)+' from there ('+G(hi)+'), '+P(lo.t)+' under '+ll+' ('+G(lo)+').';
+        return { n:aim.length, t:aim+' Not just better positions: where the engine scored them, it'+seen+'.', bold:true };
+      }
+      return { t:fact+' Where the engine scored them, it already'+seen+', so the gap may come from the positions, not the clock.', bold:false };
+    }
+    if(k.pass){
+      const less = 'You scored more with less time left at move 25: '+P(lo.t)+' under '+ll+' ('+G(lo)+'), '+P(hi.t)+' with '+lh+' or more ('+G(hi)+').';
+      return { n:less.length, t:less+(en ? ' Where the engine scored them, it gave you '+E(lo)+' under '+ll+' and '+E(hi)+' with '+lh+' or more ('+two(lo, hi)+').' : ''), bold:true };
+    }
+    return { t:'No clear difference at move 25: you scored '+P(hi.t)+' with '+lh+' or more ('+G(hi)+') and '+P(lo.t)+' under '+ll+' ('+G(lo)+'), a gap chance alone can make.', bold:false };
+  }
+  // the card's source line, this section's part
+  function gaGoSrc(md){
+    const G = md.clk && md.clk.go, T = G && G.on;
+    if(!T) return '';
+    return ' Where your clock goes: one time control at a time ('+ghTcLabelKey(T.tc)+' here); Lichess games where someone went berserk are left out. Move 25: your clock right after your 25th move, in thirds of the starting clock. Score = wins + half the draws. '+
+      'The sentence compares '+gaGoClk(2*T.ini / 3)+' or more with under '+gaGoClk(T.ini / 3)+' (one of them with the rest when the other has fewer than '+GA_GO_N+' games): '+GA_GO_N+' games on each side, 5 points apart and twice the standard error. It says \u201cAim for\u201d only when your score less the engine\u2019s chances passes the same test, in '+GA_GO_N+' games with engine scores on each side.';
+  }
+  // the numbers' own rules, under them in the fold
+  function gaGoSrcIn(T){
+    return 'A move\u2019s time = your clock before it less after it, plus the increment (on Lichess each side\u2019s first move isn\u2019t timed); long thinks = '+gaGoClk(T.ini / 15)+' or more (a fifteenth of the starting clock). Phases as in the review\u2019s phase card (the position before the move). '+
+      'Games that ended before your 25th move are left out of the bands. Engine = your winning chances right after your 25th move (your reviews or Lichess\u2019s analysis), beside your score in those same games, from '+GHO_MIN+' games. '+
+      'A band opens its games; a share or a time opens the games where it was highest (the top '+GA_GO_TOP+', a quarter of the games at most, more when games tie).';
+  }
+  function gaDrawGo(md, x){
+    const G = md.clk.go;
+    if(!G || !G.on) return;
+    const NF = GHO_NUM || (GHO_NUM = new Intl.NumberFormat('en-US')), T = gaGoFill(G.on), tl = ghTcLabelKey(T.tc), wds = 'in '+gaWinWords(md.v), N = (n)=> NF.format(n), q = (ga)=> ({ tc:T.tc, ga });
+    const box = ghEl('div', 'ga-go'), hd = ghEl('div', 'ga-gohd'), role = (el, r)=>{ el.setAttribute('role', r); return el; };
+    box.id = 'ga-clk-go';
+    box.dataset.tc = T.tc;
+    hd.appendChild(ghEl('p', 'ct-k', 'Where your clock goes'));
+    if(G.tcs.length > 1){
+      const sw = ghEl('div', 'toggle-row ghv-chips ga-chips ga-gosw');
+      sw.setAttribute('role', 'group'); sw.setAttribute('aria-label', 'Time control');
+      G.tcs.forEach(t=>{
+        const on = t===T, w = ghTcLabelKey(t.tc), b = gaBtn('toggle'+(on ? ' active' : ''), w, 'gotc', 'gotc|'+t.tc);
+        b.dataset.val = t.tc;
+        b.appendChild(ghEl('span', 'ghv-chip-n', N(t.n)));
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.setAttribute('aria-label', w+', '+ghoN(t.n, 'game'));
+        b.tabIndex = on ? 0 : -1;
+        sw.appendChild(b);
+      });
+      hd.appendChild(sw);
+    } else hd.appendChild(ghEl('span', 'ga-gotc', tl+' \u00b7 '+ghoN(T.n, 'game')));
+    box.appendChild(hd);
+    const s = gaGoSay(T), cut = s.bold && s.n && s.n < s.t.length, p = ghEl('p', 'ga-ln ga-gosay'+(s.bold ? ' is-bold' : ''), cut ? s.t.slice(0, s.n) : s.t);
+    if(cut) p.appendChild(ghEl('span', 'ga-gosay2', s.t.slice(s.n)));            // the bold lead, the engine's part after it in normal weight
+    p.dataset.say = s.t;
+    box.appendChild(p);
+    // the numbers behind it, folded under the sentence (for this visit)
+    const open = !!GA.open.go, fb = gaBtn('ct-l ga-clkt ga-gofold', open ? 'Hide the numbers' : 'Show the numbers', 'gofold', 'clk|gofold'), body = ghEl('div', 'ga-gobody');
+    fb.setAttribute('aria-expanded', open ? 'true' : 'false');
+    fb.setAttribute('aria-controls', 'ga-clk-gob');
+    box.appendChild(fb);
+    body.id = 'ga-clk-gob';
+    body.hidden = !open;
+    // you | your opponents, in the same games
+    const lt = gaGoClk(T.ini / 15), tb = role(ghEl('div', 'ga-got'), 'table');
+    tb.setAttribute('aria-label', 'Your time and your opponents\u2019, '+tl+' games');
+    const head = role(ghEl('div', 'ga-gor is-head'), 'row');
+    ['', 'You', 'Opponents'].forEach((w, i)=> head.appendChild(role(ghEl('span', 'ga-goh'+(i ? '' : ' is-l'), w), 'columnheader')));
+    tb.appendChild(head);
+    const row = (label, fill)=>{
+      const r = role(ghEl('div', 'ga-gor'), 'row');
+      r.appendChild(role(ghEl('span', 'ga-gol', label), 'rowheader'));
+      [0, 1].forEach(j=>{ const c = role(ghEl('span', 'ga-goc'), 'cell'); fill(c, j); r.appendChild(c); });
+      tb.appendChild(r);
+    };
+    const cell = (c, key, v, base, lab, what)=>{
+      const L = T.L[key], b = L ? gaBtn('ga-gob', '', 'go', 'go|'+key) : ghEl('span', 'ga-gob is-sum');
+      b.dataset.k = key;
+      b.appendChild(ghEl('span', 'ga-gov', v));
+      b.appendChild(ghEl('span', 'ga-gon', base));
+      if(L){
+        b.dataset.q = JSON.stringify(q('clk:'+key+L.th));
+        b.dataset.n = String(L.n);
+        b.setAttribute('aria-label', lab+'. '+gaOpenLab(L.n, what(L.th), wds));
+      }
+      c.appendChild(b);
+    };
+    const who = (j)=> j ? 'your opponents' : 'you', whose = (j)=> j ? 'their' : 'your';
+    row('Moves of '+lt+' or more', (c, j)=>{
+      const a = j ? T.o : T.y;
+      if(!a[0]){ c.appendChild(gaPcNone('no moves')); return; }
+      cell(c, 'n'+'yo'[j], gaPfPct(a[1], a[0]), N(a[1])+' of '+ghoN(a[0], 'move'), (j ? 'Opponents' : 'You')+': '+gaPfPct(a[1], a[0])+' of '+whose(j)+' moves took '+lt+' or more, '+N(a[1])+' of '+N(a[0]),
+        (th)=> 'where '+th+'% or more of '+whose(j)+' moves took '+lt+' or more');
+    });
+    row('Time those moves took', (c, j)=>{
+      const a = j ? T.o : T.y;
+      if(!a[2]){ c.appendChild(gaPcNone('no time used')); return; }
+      cell(c, 'q'+'yo'[j], gaPfPct(a[3], a[2]), 'of '+gaGoHrs(a[2]), (j ? 'Opponents' : 'You')+': those moves took '+gaPfPct(a[3], a[2])+' of '+whose(j)+' time, '+gaGoHrs(a[3])+' of '+gaGoHrs(a[2]),
+        (th)=> 'where they took '+th+'% or more of '+whose(j)+' time');
+    });
+    if(G.eg) ['Opening', 'Middlegame', 'Endgame'].forEach((w, k)=> row('Seconds a move: '+w.toLowerCase(), (c, j)=>{
+      const i = 2*(k + 3*j);
+      if(!T.ph[i]){ c.appendChild(gaPcNone('no moves')); return; }
+      cell(c, 's'+'yo'[j]+'ome'[k], gaGoSec(T.ph[i + 1], T.ph[i]), ghoN(T.ph[i], 'move'), w+', '+who(j)+': '+gaGoSec(T.ph[i + 1], T.ph[i])+' a move over '+ghoN(T.ph[i], 'move'),
+        (th)=> 'where '+whose(j)+' '+w.toLowerCase()+' moves took '+th+' s or more each on average');
+    }));
+    body.appendChild(tb);
+    if(!G.eg) body.appendChild(ghEl('p', 'ga-ln ga-soft ga-phr', gaPhRead(md)));
+    else if(T.phMiss) body.appendChild(ghEl('p', 'ga-ln ga-soft', 'The phases of '+ghoN(T.phMiss, 'game')+' can\u2019t be read: they count in the first two rows only.'));
+    // your clock after your 25th move, by thirds of the starting clock
+    const r25 = ghEl('div', 'ga-rows3 ga-go25'), la = gaGoClk(T.ini / 3), lc = gaGoClk(2*T.ini / 3), BW = ['Under '+la, la+' to '+lc, lc+' or more'];
+    r25.appendChild(ghEl('p', 'ct-k', 'Your clock after your 25th move'));
+    r25.appendChild(ghEl('p', 'ga-ln ga-soft ga-go25n', N(T.b25)+' of '+ghoN(T.n, 'game')+' got to your 25th move.'));
+    T.b.forEach((B, k)=>{
+      const t = B.t, w = BW[k], key = 'abc'[k], r = ghEl('div', 'ga-r3 ga-r25'+(t.n < GHO_MIN ? ' is-thin' : '')), lab = 'where you had '+w.toLowerCase()+' on your clock after your 25th move';
+      r.dataset.k = key;
+      r.appendChild(ghEl('span', 'ga-r3l', w));
+      r.appendChild(t.n ? gaBar(t, q('clk:m25'+key), gaBarLab(w+' at move 25', t), 'go25|'+key) : ghEl('span', 'gho-bar'));
+      const n = ghEl('span', 'ga-r3n');
+      n.dataset.n = String(t.n);
+      if(t.n){ const b = gaGo(ghoN(t.n, 'game'), q('clk:m25'+key), 'go25|'+key+'|n', gaOpenLab(t.n, lab, wds)); b.dataset.n = String(t.n); n.appendChild(b); }
+      else n.textContent = '0 games';
+      r.appendChild(n);
+      const sc = ghEl('span', 'ga-r3s', t.n >= GHO_MIN ? Math.round(gaSc(t)*100)+'%' : '');
+      if(t.n >= GHO_MIN) sc.dataset.pct = String(Math.round(gaSc(t)*100));
+      r.appendChild(sc);
+      // the games with engine scores right after your 25th move: the engine's chances and your score in those same games, from GHO_MIN of them
+      const en = ghEl('span', 'ga-r25e'), E = B.e;
+      if(E.n){
+        const fig = E.n >= GHO_MIN, v = fig ? Math.round(100*E.x / E.n) : 0, u = fig ? Math.round(gaSc(E)*100) : 0;
+        const eb = gaGo(fig ? 'engine '+v+'%, you '+u+'%' : ghoN(E.n, 'game')+' with engine scores', q('clk:e25'+key), 'go25|'+key+'|e',
+          (fig ? 'In the '+ghoN(E.n, 'game')+' with engine scores, the engine gave you '+v+'% at that point and you scored '+u+'%. ' : '')+gaOpenLab(E.n, lab+', with engine scores', wds));
+        eb.dataset.n = String(E.n);
+        en.appendChild(eb);
+        en.appendChild(document.createTextNode(fig ? ' in '+ghoN(E.n, 'game')+' with engine scores' : ' (figures from '+GHO_MIN+')'));
+      } else if(t.n) en.appendChild(ghEl('span', 'ga-soft', 'no engine scores'));
+      r.appendChild(en);
+      r25.appendChild(r);
+    });
+    body.appendChild(r25);
+    body.appendChild(ghEl('p', 'ct-src ga-src ga-gosrc', gaGoSrcIn(T)));
+    box.appendChild(body);
+    x.appendChild(box);
+  }
+  // the time control switch: the section drawn again in place (the buttons stay under your finger)
+  GA_ACTS.gotc = (b)=>{
+    const G = GA.model && GA.model.clk ? GA.model.clk.go : null, T = G ? G.tcs.find(t=> t.tc===b.dataset.val) : null;
+    if(!T || G.on===T) return;
+    const top = b.getBoundingClientRect().top;
+    GA.gotc = T.tc; G.on = T;
+    gaDrawOne(GA.model, 'ga-clk');
+    const el = Array.from(document.querySelectorAll('#ga-clk .ga-gosw .toggle')).find(x=> x.dataset.val===T.tc);
+    if(!el) return;
+    try{ el.focus({ preventScroll:true }); }catch(e){}
+    const keep = ()=>{ const dy = el.isConnected ? el.getBoundingClientRect().top - top : 0; if(Math.abs(dy) > 1) window.scrollBy(0, dy); };
+    keep();
+    requestAnimationFrame(keep);
+  };
+  // the numbers under the sentence, opened or closed in place (for this visit)
+  GA_ACTS.gofold = (b)=>{
+    GA.open.go = !GA.open.go;
+    b.setAttribute('aria-expanded', GA.open.go ? 'true' : 'false');
+    b.textContent = GA.open.go ? 'Hide the numbers' : 'Show the numbers';
+    const x = document.getElementById('ga-clk-gob');
+    if(x) x.hidden = !GA.open.go;
+  };
   GA_DRAW_CARDS.push(['ga-col', gaDrawCol], ['ga-clk', gaDrawClk], ['ga-ou', gaDrawUsual]);      // the wide card after the Color | Clock pair
   // ---- When did my opening fall short of my usual? (2026-11-22; ou*: your usual in each line where the middlegame starts) ----
   // the window's games (the Filters, the Date; the Opening's job filter left out, so the count is what "Below your usual" opens)
