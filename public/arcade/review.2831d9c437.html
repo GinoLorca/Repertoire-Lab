@@ -7532,7 +7532,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
      under 4.5:1 on Felt, Hustler and Game Boy light. Uptown keeps its own. */
   :root:not([data-skin="uptown"]) #view-play-history .hr-go{ background:var(--ink); color:var(--surface); border-color:var(--ink); }
   :root:not([data-skin="uptown"]) #view-play-history .hr-go:hover{ background:var(--ink-soft); border-color:var(--ink-soft); }
-  #hra-field .btn-row[hidden], #hra-field .btn[hidden], #hra-older-ask[hidden]{ display:none; }
+  #hra-field .btn-row[hidden], #hra-field .btn[hidden], #hra-older-ask[hidden], #qk-box[hidden]{ display:none; }
+  #qk-box{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
   #hra-field .btn{ min-height:44px; }
   @media (pointer:coarse){ #hra-field .toggle, #hra-field .btn-link{ min-height:44px; } }
   #hra-field .gn-sync{ margin-top:10px; }
@@ -10093,6 +10094,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           <button type="button" class="btn btn-ghost" id="hra-older-go">Start</button>
           <button type="button" class="btn btn-ghost" id="hra-older-no">Not now</button>
         </div>
+      </div>
+      <!-- Quick scores (qk*): older games, after the reviews; a Mac or an iPad -->
+      <div id="qk-box" hidden>
+        <div class="set-sync-sub" id="qk-label">Quick scores for older games</div>
+        <div class="toggle-row" id="qk-row" role="group" aria-labelledby="qk-label">
+          <button type="button" class="toggle" data-val="on" aria-pressed="false">On</button>
+          <button type="button" class="toggle" data-val="off" aria-pressed="false">Off</button>
+        </div>
+        <div class="bg-status" id="qk-status" aria-live="polite"></div>
+        <div class="btn-row"><button type="button" class="btn btn-ghost" id="qk-pause" hidden>Pause</button></div>
+        <div class="field-hint">A fast Stockfish 16 score at every position of your rapid and blitz games that have no review, for shares over many games. It never names a mistake: only a review does. After the reviews, while the app is open, on this device.</div>
       </div>
       <div class="saved-sync gn-sync" id="hrs-sync" data-state="off">
         <span class="saved-sync-dot" aria-hidden="true"></span>
@@ -53005,7 +53017,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const fen = at || hve.currentFen;
     const sign = (!fen || fen.split(' ')[1]==='w') ? 1 : -1;
     const score = cp ? { type:'cp', value: Number(cp[1])*sign } : { type:'mate', value: Number(mt[1])*sign };
-    return { depth: Number(dm ? dm[1] : 0), multipv: Number(mm ? mm[1] : 1), score, ucis: ucis.slice(0, 12), firstUci: ucis[0], fen };
+    return { depth: Number(dm ? dm[1] : 0), multipv: Number(mm ? mm[1] : 1), score, ucis: ucis.slice(0, 12), firstUci: ucis[0], fen, bound: / (?:lower|upper)bound\b/.test(line) };
   }
   // a Puzzles search's info line (kind 'mk'): exact lines only (a node-limited search can end on a lowerbound or upperbound
   // line, which isn't a score), kept per depth and multipv; the nodes and time of the last one
@@ -54334,12 +54346,22 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // {depth, multipv, score, firstUci, fen}. Also returns ev[0..N], the
   // scores the classifier used, for the graph.
   async function hrRun(engine, nodes, opts){
+    const hg = hrgNew(), off = engine.onInfo((x)=> hg.info(x));          // the second and third lines, as they come anyway (hrg*)
+    try{
+      const R = await hrRun1(engine, nodes, opts);
+      await pdbNap(30);                                  // the last position's other lines
+      R.gaps = nodes.map(n=> hrgChar(hg, n)).join('');          // (never throws: the review doesn't hang on them)
+      return R;
+    }finally{ off(); }
+  }
+  async function hrRun1(engine, nodes, opts){
     opts = opts || {};
     const depth = opts.depth || 15, signal = opts.signal || null;
     const N = nodes.length - 1;
-    const ev = [], b = [];
+    const ev = [], b = [], best = [];          // best[p]: the first move of the position's top line ('' when there is none)
     let lines = await hrPositionLines(engine, nodes[0], depth, signal);
     ev[0] = lines[1] ? lines[1].score : null;
+    best[0] = lines[1] && lines[1].firstUci || '';
     let whiteLoss = 0, whiteMoves = 0, blackLoss = 0, blackMoves = 0;
     for(let i = 0; i < N; i++){
       const before = nodes[i], after = nodes[i+1];
@@ -54348,6 +54370,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const moverBefore = hrMoverScore(linesBefore[1] && linesBefore[1].score, mover);
       lines = await hrPositionLines(engine, after, depth, signal);
       ev[i+1] = lines[1] ? lines[1].score : null;
+      best[i+1] = lines[1] && lines[1].firstUci || '';
       const moverAfter = hrMoverScore(lines[1] && lines[1].score, mover);
       const loss = Math.max(0, (moverBefore - moverAfter) - 15);
       // RL compares the line's first SAN with the move's; the first uci with the move's uci is the same test
@@ -54360,8 +54383,93 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(mover === 'w'){ whiteLoss += loss; whiteMoves += 1; } else { blackLoss += loss; blackMoves += 1; }
       if(opts.onProgress) opts.onProgress(i + 1, N, { ev, b });
     }
-    return { ev, b, acc:{ white: hrAccuracy(whiteLoss, whiteMoves), black: hrAccuracy(blackLoss, blackMoves) } };
+    return { ev, b, best, acc:{ white: hrAccuracy(whiteLoss, whiteMoves), black: hrAccuracy(blackLoss, blackMoves) } };
   }
+  // ---- how far behind the engine's second and third moves are (hrg*, 2026-11-25) ----
+  // The review searches three lines and stops when the first is done: the other two come in the same breath (at that depth, or
+  // the one before), so they cost nothing. A position's character: the points of winning chances (the mover's, Lichess's curve)
+  // the second and the third move are behind the first, in HRG_L's steps: HRB_A[i*(i+1)/2 + j], i the third's step and j the
+  // second's (j <= i); HRB_A[28]: one legal move; '.': not known. The badges never read them.
+  const HRG_L = [0, 5, 10, 15, 20, 30, 50];
+  function hrgStep(pts){ let i = 0; while(i < 6 && pts >= HRG_L[i + 1] - 1e-9) i++; return i; }
+  function hrgNew(){
+    const M = new Map();          // fen -> { depth: [, line 1, line 2, line 3] } (or g: the character, of a position known from before)
+    return {
+      info(x){
+        if(!x || !x.fen || !(x.multipv >= 1 && x.multipv <= 3)) return;
+        let m = M.get(x.fen);
+        if(!m) M.set(x.fen, m = { D:{}, g:'', max:0 });
+        if(x.gaps){ m.g = x.gaps; return; }
+        if(!(x.depth >= 6) || x.bound || x.depth < m.max) return;          // (a line of the depth before, printed again as the search stops: not searched at this one)
+        m.max = x.depth;
+        (m.D[x.depth] || (m.D[x.depth] = []))[x.multipv] = x.score;
+      },
+      of(fen){ return M.get(fen) || null; }
+    };
+  }
+  function hrgChar(hg, node){ try{ return hrgChar1(hg, node); }catch(e){ return '.'; } }
+  function hrgChar1(hg, node){
+    const m = hg.of(node.fen);
+    if(!m) return '.';
+    if(m.g) return m.g;
+    const mv = node.state.turn, W = (s)=> hpfWinPct(s, mv), ds = Object.keys(m.D).map(Number).sort((a, b)=> b - a);
+    let d = ds.find(k=> m.D[k][1] && m.D[k][2] && m.D[k][3]);
+    const legal = d==null ? pzAllLegalMoves(node.state).length : 3;
+    if(d==null){
+      if(legal===1) return HRB_A.charAt(28);
+      if(legal!==2) return '.';
+      d = ds.find(k=> m.D[k][1] && m.D[k][2]);
+      if(d==null) return '.';
+    }
+    const L = m.D[d], w = W(L[1]), j = hrgStep(w - W(L[2])), i = legal===2 ? 6 : Math.max(j, hrgStep(w - W(L[3])));
+    return HRB_A.charAt(i*(i + 1)/2 + j);
+  }
+  function hrgOk(t, n){ return typeof t==='string' && t.length===n + 1 && /^[A-Za-c.]+$/.test(t); }
+  // { two, three: the points behind at least (HRG_L), one: the only legal move } or null
+  function hrgRead(c){
+    const v = c ? HRB_A.indexOf(c) : -1;
+    if(v < 0 || v > 28) return null;
+    if(v===28) return { two:100, three:100, one:true };
+    let i = 0;
+    while((i + 1)*(i + 2)/2 <= v) i++;
+    return { two:HRG_L[v - i*(i + 1)/2], three:HRG_L[i], one:false };
+  }
+  // ---- the best moves of a review (hrb*, 2026-11-25), kept with it ----
+  // As text: the positions 0..n in order, each '.' (none: a finished position) or two characters, from and to (HRB_A, a1 = 'A',
+  // b1 = 'B' ... h8), a promotion as '~q' after them (also r, b, n): about 2 characters a ply. The entry's field bm.
+  const HRB_A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,-';
+  const HRB_UCI = /^([a-h])([1-8])([a-h])([1-8])([qrbn]?)$/, HRB_RE = /^(?:\.|[A-Za-z0-9,-]{2}(?:~[qrbn])?){2,3001}$/;
+  function hrbEnc(best, n){
+    if(!Array.isArray(best) || best.length!==n + 1) return '';
+    let t = '', any = 0;
+    for(let p = 0; p <= n; p++){
+      const m = HRB_UCI.exec(best[p] || '');
+      if(!m){ t += '.'; continue; }
+      any++;
+      t += HRB_A.charAt(m[1].charCodeAt(0) - 97 + 8*(Number(m[2]) - 1)) + HRB_A.charAt(m[3].charCodeAt(0) - 97 + 8*(Number(m[4]) - 1)) + (m[5] ? '~'+m[5] : '');
+    }
+    return any ? t : '';
+  }
+  // the moves again ([0..n]: a UCI move or ''), or null when the text isn't n + 1 positions of them
+  function hrbDec(t, n){
+    if(typeof t!=='string' || t.length > 4*(n + 1) || !HRB_RE.test(t)) return null;
+    const out = [], sq = (c)=>{ const i = HRB_A.indexOf(c); return 'abcdefgh'.charAt(i & 7) + ((i >> 3) + 1); };
+    for(let i = 0; i < t.length; ){
+      if(t.charAt(i)==='.'){ out.push(''); i++; continue; }
+      const pr = t.charAt(i + 2)==='~' ? t.charAt(i + 3) : '';
+      out.push(sq(t.charAt(i)) + sq(t.charAt(i + 1)) + pr);
+      i += pr ? 4 : 2;
+    }
+    return out.length===n + 1 ? out : null;
+  }
+  // an entry without them; a record's, checked before anything reads them
+  function hrbBare(e){ if(!e || (!e.bm && !e.bg)) return e; const x = Object.assign({}, e); delete x.bm; delete x.bg; return x; }
+  function hrbClean(r){
+    if(r.bm!==undefined && !hrbDec(r.bm, r.n)){ delete r.bm; delete r.bg; }
+    else if(r.bg!==undefined && !(r.bm && hrgOk(r.bg, r.n))) delete r.bg;
+  }
+  // the run a review's best moves belong to: its moves, depth and scores (never shown beside another run's scores)
+  function hrbFp(e){ return gnFnv(e.h+'|'+e.d+'|'+e.e); }
 
   // ---- the device cache (wavyChessPrepGameReviews) ----
   const HR_KEY = 'wavyChessPrepGameReviews';
@@ -54401,11 +54509,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function hrWriteStore(st){
     let ids = Object.keys(st.g).sort((a, b)=> st.g[b].at - st.g[a].at).slice(0, HR_MAX);
     const build = ()=>{ const g = {}; ids.forEach(id=>{ g[id] = st.g[id]; }); return JSON.stringify({ v:1, g }); };
+    const bare = ()=>{ ids.forEach(id=>{ st.g[id] = hrbBare(st.g[id]); }); return build(); };          // the best moves go before a review does (the archive has them)
     let json = build();
+    if(json.length > HR_MAX_CHARS) json = bare();
     while(json.length > HR_MAX_CHARS && ids.length > 1){ ids.pop(); json = build(); }
     try{ localStorage.setItem(HR_KEY, json); return true; }
     catch(e){
       if(!hrIsQuota(e)) return false;
+      const was = json.length;
+      json = bare();
+      if(json.length < was) try{ localStorage.setItem(HR_KEY, json); return true; }catch(e1){}
       ids = ids.slice(0, Math.max(1, Math.floor(ids.length / 2)));
       json = build();
       try{ localStorage.setItem(HR_KEY, json); return true; }catch(e2){ return false; }
@@ -54425,7 +54538,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
             hrsAdopt();
             // one not stored there yet (nor on Lichess) stays here, once, as long as this browser has the archive at all
             const g = HRS_NODB ? {} : hrReadLocal().g, put = [];
-            Object.keys(g).forEach(id=>{ const r = HRS_GID.test(id) ? HRS.get(id+'.'+g[id].h) : null; if(r && !r.up && !HRS_IN.has(r) && !HRS_LEFT.has(r)){ left[id] = g[id]; put.push(r); HRS_LEFT.add(r); } });
+            Object.keys(g).forEach(id=>{ const r = HRS_GID.test(id) ? HRS.get(id+'.'+g[id].h) : null; if(r && !r.up && !HRS_IN.has(r) && !HRS_LEFT.has(r)){ left[id] = hrbBare(g[id]); put.push(r); HRS_LEFT.add(r); } });
             hrsDb('r', put);
             if(put.length) setTimeout(()=>{ try{ if(gnUnsaved) gnPersist(); }catch(e){} }, 800);          // a note that had no room even so: again, now that they're stored
           }
@@ -54459,6 +54572,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       e: R.ev.map(hrEncScore).join(','),
       b: R.b.map(id=> (HR_BY_ID[id] || { code:'.' }).code).join(''),
       a: [r1(R.acc.white), r1(R.acc.black)] };
+    const bm = hrRl() ? '' : hrbEnc(R.best, entry.n);          // (not in Repertoire Lab: its copy of a review, and what it hands students, is the text as it was)
+    if(bm){ entry.bm = bm; if(hrgOk(R.gaps, entry.n)) entry.bg = R.gaps; }          // the engine's best moves (hrb*), and how close the next two are (hrg*); a review from before has none
     HR_MEM.set(gid, { sig:entry.h, n:entry.n, review:R });
     while(HR_MEM.size > 30) HR_MEM.delete(HR_MEM.keys().next().value);
     if(!hrValidEntry(gid, entry)) return false;
@@ -54483,10 +54598,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const gid = S.game && S.game.id ? String(S.game.id) : '';
     if(!HR_ID_RE.test(gid) || !S.main.length) return null;
     const x = hrFind(gid, S.main.length, hrSig(S), hrReadLocal().g[gid]), e = x && x.e;
-    if(x && x.R) return Object.assign({}, x.R, { ev:x.R.ev.slice(), b:x.R.b.slice() });
+    if(x && x.R) return Object.assign({}, x.R, { ev:x.R.ev.slice(), b:x.R.b.slice() });          // (best with it, when it has them)
     if(!e) return null;
     return { ev: e.e.split(',').map(hrDecScore), b: e.b.split('').map(c=> HR_BY_CODE[c] ? HR_BY_CODE[c].id : null),
-      acc:{ white:e.a[0], black:e.a[1] }, at:e.at, d:e.d, partial:false, other:!!e.from };
+      acc:{ white:e.a[0], black:e.a[1] }, at:e.at, d:e.d, partial:false, other:!!e.from, best:e.bm ? hrbDec(e.bm, e.n) : null, gaps:e.bm && hrgOk(e.bg, e.n) ? e.bg : '' };
   }
 
   /* ================= REVIEWS ON EVERY DEVICE (hrs*, 2026-11-23) =================
@@ -54506,6 +54621,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
      Not in Repertoire Lab's frame (it carries reviews its own way: hrsOn). HRS_ON = false turns all of it off (the kits). */
   var HRS_ON = true;
   var HRS_LISTED = false, HRS_STALE = false, HRS_ME = '', HRS_TK = '', HRS_WR = '', HRS_SENT = new Map(), HRS_SHORT = new Map(), HRS_BATCH = 4;        // this run listed the studies; another tab wrote; whose reviews are made here; the run's token; the last write's mark; chapters sent and not read back (seq -> keys); a study that came with chapters missing; chapters a request
+  var HRS_BIG = 480;          // KB in the studies (about 650 reviews): read less often from there (300 before they held the best moves)
   var HRS_IDLE_MS = 20000, HRS_CAP_MS = 60000;        // a reply that stops half-way is given up
   var HRS_DBN = 'wavyChessPrepReviews', HRS_LS = 'wavyChessPrepReviewSync', HRS_NAME = 'Chess Arcade game reviews';
   var HRS_GID = /^(?:\w{8}|cc-d?\d{1,15})$/;
@@ -54565,7 +54681,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       }catch(e){}
     });
   }
-  function hrsRec(id, e, up, from, o){ return { k:id+'.'+e.h, id, at:e.at, n:e.n, h:e.h, d:e.d, e:e.e, b:e.b, a:e.a.slice(), up:up ? 1 : 0, from:from || '', o:o==null ? hrsMe() : o }; }
+  function hrsRec(id, e, up, from, o){
+    const r = { k:id+'.'+e.h, id, at:e.at, n:e.n, h:e.h, d:e.d, e:e.e, b:e.b, a:e.a.slice(), up:up ? 1 : 0, from:from || '', o:o==null ? hrsMe() : o };
+    if(e.bm && hrbDec(e.bm, e.n)){ r.bm = e.bm; if(hrgOk(e.bg, e.n)) r.bg = e.bg; }
+    return r;
+  }
   // whose it is (o, a Lichess account's id): a review goes to its own account's study, never to another's. The account whose
   // games this page lists, else the one synced with; none known ('': made while not connected): the next that connects
   function hrsMe(){ return String(GH_STATE.loadedFor || HRS_ME || '').toLowerCase(); }
@@ -54573,7 +54693,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // a record into the Map, when there is none for these moves or it's the better one
   function hrsTake(r){
     const cur = HRS.get(r.k), x = HRX.get(r.k);
-    if((x && x.at >= r.at) || (cur && !hrsBetter(r, cur))) return false;
+    hrbClean(r);
+    if((x && x.at >= r.at) || (cur && !hrsBetter(r, cur))){ if(cur && r.bm) hrbGive(cur, hrbFull(r), hrbFp(r)); return false; }
+    if(cur && cur.bm && !r.bm && hrbFp(cur)===hrbFp(r) && hrbPut(r, hrbFull(cur))){ r.bu = cur.bu || 0; r.bw = cur.bw || 0; hrsDb('r', [r]); }          // the same run again, by an older build: its best moves stay
     HRS.set(r.k, r);
     const L = (HRS_ID.get(r.id) || []).filter(x=> x.k!==r.k), m = HR_MEM.get(r.id);
     L.push(r);
@@ -54586,7 +54708,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!hrsOn() || !HRS_GID.test(id)) return false;
     const r = hrsRec(id, e, 0, '');
     if(hand) r.m = 1;                // you ran it (on this device only: see hrxTake)
-    if(hrsTake(r)){ HRS_VER++; hrsDb('r', [r]); hrsTell([r]); }
+    if(hrsTake(r)){
+      HRS_VER++; hrsDb('r', [r]); hrsTell([r]);
+      if(r.bm) setTimeout(()=>{ if(HRS.get(r.k)===r) hrsDb('r', [r]); }, 2000);          // (an older build's tab beside this one stores its own copy of it, without them: once more after that)
+    }
     if(typeof hraKept==='function') hraKept(r.k);
     hrsSoon(HRS_AFTER_MS);
     return !HRS_NODB;
@@ -54603,6 +54728,85 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     Object.keys(loc).forEach(id=>{ if(!HRS_GID.test(id)) return; const r = hrsRec(id, loc[id], 0, ''); if(hrsTake(r)) put.push(r); });
     if(put.length){ HRS_VER++; hrsDb('r', put); }
     return put.length;
+  }
+  // ---- a review's best moves on their way to the other devices (hrb*, 2026-11-25) ----
+  // In the same chapters, beside the review's record (which keeps the form every build reads): '!b:id:run:i/k:text:checksum', the
+  // text (the moves, bm; '!' and the gaps, bg) in k pieces of up to 200 characters, run = the first 6 of hrbFp. A build that doesn't know a '!' record reads past it
+  // and keeps it as it came when it writes its chapter again. Taken only for the review of that run; one whose review isn't
+  // here (yet, or any more) is left. r.bu: they're there too (pieces seen in a read, or sent).
+  var HRB = new WeakMap(), HRB_LEN = 158;
+  function hrbFull(r){ return r.bm + (r.bg ? '!'+r.bg : ''); }
+  function hrbPut(r, t){
+    const i = t.indexOf('!'), bm = i < 0 ? t : t.slice(0, i), bg = i < 0 ? '' : t.slice(i + 1);
+    if(!hrbDec(bm, r.n)) return false;
+    r.bm = bm;
+    if(hrgOk(bg, r.n)) r.bg = bg; else delete r.bg;
+    return true;
+  }
+  function hrbGive(r, t, fp){
+    if(r.bm || hrbFp(r)!==fp || !hrbPut(r, t)) return false;
+    HRS_VER++;
+    hrsDb('r', [r]);
+    return true;
+  }
+  // its pieces, as the sync's records ({ y:1, k, id, h, t: as written, ... }): the same objects as long as r is the one kept
+  function hrbOf(r){
+    let L = HRB.get(r);
+    const full = hrbFull(r);
+    if(L && L.full===full) return L;
+    const fp = hrbFp(r).slice(0, 6), k = Math.max(1, Math.ceil(full.length / HRB_LEN));
+    L = [];
+    for(let i = 0; i < k; i++){
+      const t = 'b:'+r.id+':'+fp+':'+i+'/'+k+':'+full.slice(i*HRB_LEN, (i + 1)*HRB_LEN);
+      L.push({ y:1, k:'!b'+r.k+'.'+i, id:r.id, h:r.h, i, at:r.at, t:'!'+t+':'+gnFnv(t).slice(0, 4), up:r.bu ? 1 : 0 });
+    }
+    L.full = full;
+    HRB.set(r, L);
+    return L;
+  }
+  function hrbTok(t){
+    const m = /^!(b:(\w{8}|cc-d?\d{1,15}):([0-9a-f]{6}):(\d{1,2})\/(\d{1,2}):([A-Za-z0-9,.~!-]{1,160})):([0-9a-f]{4})$/.exec(String(t));
+    if(!m || gnFnv(m[1]).slice(0, 4)!==m[7]) return null;
+    const i = Number(m[4]), k = Number(m[5]);
+    return k >= 1 && k <= 60 && i < k ? { id:m[2], fp:m[3], i, k, s:m[6], t } : null;
+  }
+  // not sent yet: of reviews that are (or go with them)
+  // (r.bw: how often they were sent and not read back; three times in vain: not again until Sync now is pressed, as a review's)
+  function hrbPend(out){ HRS.forEach(r=>{ if(r.bm && !r.bu && !(r.bw >= 3) && hrsMine(r) && (r.up || !(r.w >= 3 || hrsEnc(r).length > HRS_CMT - 6))) hrbOf(r).forEach(c=>{ if(!c.up) out.push(c); }); }); }
+  // sent or seen: the review knows when all its pieces are there
+  function hrbUp(list){
+    const put = [];
+    list.forEach(c=>{
+      const r = HRS.get(c.id+'.'+c.h);
+      if(r && r.bm && !r.bu && hrbOf(r).every(x=> x.up)){ r.bu = 1; r.bw = (r.bw || 0) + 1; put.push(r); }
+    });
+    hrsDb('r', put);
+    hrsTell(put);
+  }
+  // what a read of the studies holds (bs: every piece): the best moves of the reviews here; all: nothing was missing in it
+  function hrbMerge(bs, all){
+    const run = new Map(), put = [];
+    let news = 0;
+    bs.forEach(x=>{ const q = x.id+'.'+x.fp; let L = run.get(q); if(!L || L.k!==x.k){ if(L && L.n===L.k) return; L = { k:x.k, p:[], n:0 }; run.set(q, L); } if(L.p[x.i]==null){ L.p[x.i] = x.s; L.n++; } });
+    const of = (r)=>{ const L = run.get(r.id+'.'+hrbFp(r).slice(0, 6)); return L && L.n===L.k ? L.p.join('') : ''; };
+    if(run.size) HRS.forEach(r=>{
+      const t = hrsMine(r) ? of(r) : '';
+      if(!t) return;
+      if(!r.bm){ if(!hrbPut(r, t)) return; r.bu = 1; news++; put.push(r); }
+      else if(!r.bu && hrbFull(r)===t){ r.bu = 1; hrbOf(r).forEach(c=>{ c.up = 1; c.w = 0; }); put.push(r); }
+    });
+    // sent, and a complete read doesn't hold them: deleted on lichess.org. Those of a review made here are filed again at once;
+    // another device's are left to that device for a day (as the reviews are)
+    const now = Date.now();
+    HRS.forEach(r=>{ if(r.bm && (r.bmiss || r.bw) && of(r)){ r.bmiss = 0; r.bw = 0; put.push(r); } });
+    if(all) HRS.forEach(r=>{
+      if(!r.bm || !r.bu || !r.up || !hrsMine(r) || of(r)) return;
+      if(r.from && !(r.bmiss > 0 && now - r.bmiss > 86400e3)){ if(!r.bmiss){ r.bmiss = now; put.push(r); } return; }
+      r.bu = 0; r.bmiss = 0; hrbOf(r).forEach(c=>{ c.up = 0; }); put.push(r);
+    });
+    hrsDb('r', put);
+    hrsTell(put);
+    return news;
   }
   function hrsTell(recs){ if(HRS_BC && recs.length) try{ HRS_BC.postMessage({ put:recs }); }catch(e){} }
   function hrsOkRec(r){ return !!r && typeof r==='object' && HRS_GID.test(String(r.id || '')) && hrValidEntry(String(r.id), r) && r.k===r.id+'.'+r.h; }
@@ -54710,6 +54914,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // ---- the records on Lichess ----
   function hrsEnc(r){
     if(r.x) return hrxEnc(r);
+    if(r.y) return r.t;
     const x = (v)=> v==null ? '-' : String(Math.round(v * 10) / 10);
     const t = [r.id, Math.floor(r.at).toString(36), r.n, r.h, r.d, x(r.a[0]), x(r.a[1]), r.b, r.e].join(':');
     return t+':'+gnFnv(t);
@@ -54740,7 +54945,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function hrsChapter(text){
     const u = /\[ChapterURL "[^"]*\/study\/(\w{8})\/(\w{8})"\]/.exec(text);
     if(!u) return null;
-    const out = { s:u[1], c:u[2], dev:'', seq:0, toks:[], recs:[], xs:[], claims:[], ours:false }, re = /\{([^}]*)\}/g;
+    const out = { s:u[1], c:u[2], dev:'', seq:0, toks:[], recs:[], xs:[], bs:[], claims:[], ours:false }, re = /\{([^}]*)\}/g;
     let m;
     while((m = re.exec(text))){
       const w = m[1].trim().split(/\s+/), i = w.indexOf('arv1');
@@ -54751,8 +54956,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         if(d){ out.dev = d[1]; out.seq = Number(d[2]); continue; }
         if(t.charAt(0)==='~'){ const c = hrsDecClaim(t); if(c) out.claims.push(c); continue; }
         if(t.charAt(0)==='!'){          // a clear; or a newer build's kind of record: kept as it came
-          const x = hrxDec(t);
+          const x = hrxDec(t), y = x ? null : hrbTok(t);
           if(x) out.xs.push(x);
+          if(y) out.bs.push(y);
           if(x || (t.length <= 200 && /^[!-z|~]+$/.test(t) && out.toks.length < 400)) out.toks.push(t);
           continue;
         }
@@ -54872,6 +55078,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const now = Date.now(), out = [];
     HRS.forEach(r=>{ if(r.up || r.w >= 3 || !hrsMine(r) || hrsEnc(r).length > HRS_CMT - 6) return; out.push(r); });       // (three times in vain: not again until Sync now is pressed)
     HRX.forEach(t=>{ if(!(t.up || !hrsMine(t) || t.fly > now || (t.u > now && t.u - now <= HRX_HOLD) || (t.w >= 3 && now - (t.wt || 0) < 86400e3))) out.push(t); });       // (a clear waits for its Undo to end)
+    hrbPend(out);                                        // (after its review's: the sort keeps their order)
     return out.sort((a, b)=> a.at - b.at);
   }
   function hrsSoon(ms, full){
@@ -54889,7 +55096,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function hrsShown(none){
     if(hrsOn() && HRS_LOADED && getLichessToken()){
       if(HRS_ST.status==='error' && HRS_ST.detail==='no connection' && HRS_RETRY > Date.now() + 3000 && navigator.onLine!==false){ HRS_RETRY = 0; hrsSoon(1500); }       // it may be back
-      if(Date.now() - HRS_READ > (!none || !HRS_READ ? HRS_OLD_MS : HRS_KB > 300 ? 4*HRS_NONE_MS : HRS_NONE_MS)) hrsSoon(none ? 300 : 2500, true);
+      if(Date.now() - HRS_READ > (!none || !HRS_READ ? HRS_OLD_MS : HRS_KB > HRS_BIG ? 4*HRS_NONE_MS : HRS_NONE_MS)) hrsSoon(none ? 300 : 2500, true);
     }
     hrsRender();
   }
@@ -54948,7 +55155,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       hrsDb('r', own);
       if(own.some(r=> r.x)) hrxPurge();
       hrsSaveState();
-      if(HRS_FULL || ((hrsPend().length || hrsClaimNew()) && (HRS_STALE || Date.now() - HRS_READ > (HRS_KB > 300 ? HRS_OLD_MS : HRS_WOLD_MS)))){
+      if(HRS_FULL || ((hrsPend().length || hrsClaimNew()) && (HRS_STALE || Date.now() - HRS_READ > (HRS_KB > HRS_BIG ? HRS_OLD_MS : HRS_WOLD_MS)))){
         HRS_FULL = false;
         try{ await hrsReadAll(uid, same); }catch(e){ HRS_FULL = true; throw e; }
       }
@@ -55075,7 +55282,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       } else if(cur.at<=t.at && hrsMine(cur) && (!cur.up || cur.w)){ cur.up = 1; cur.w = 0; put.push(cur); }
     }));
     if(news) hrxPurge();
+    const bs = [];
     chs.forEach(c=>{
+      c.bs.forEach(x=>{ if(bs.length < 4*HRS_MAX) bs.push(x); });
       const mine = c.dev===S.dev;
       if(!mine) c.claims.forEach(x=>{ if(x.until > now && x.until < now + 3600e3) HRS_CLAIMS.set(x.id+'.'+x.h, Math.max(x.until, HRS_CLAIMS.get(x.id+'.'+x.h) || 0)); });
       c.recs.forEach(r=>{
@@ -55101,6 +55310,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(all && xn <= HRS_MAX) HRX.forEach((t, key)=>{ const b = xseen.get(key); if(t.up && hrsMine(t) && (!b || b.at < t.at)){ t.up = 0; put.push(t); } });
     hrsDb('r', put);
     hrsTell(put);
+    news += hrbMerge(bs, all && count <= HRS_MAX && bs.length < 4*HRS_MAX);
     HRS_OPEN = null;
     if(all && count <= HRS_MAX){
       // chapters sent from here that are there, without what was sent: Lichess doesn't keep the records. No more of them for a day
@@ -55117,7 +55327,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(news) hrsArrived();
   }
   function hrsAlone(c){ const r = c.recs.concat(c.xs); return r.length===1 && (hrsCur(r[0]) || {}).alone===c.c; }
-  function hrsCur(r){ return r.x ? HRX.get(r.id+'.'+r.h) : HRS.get(r.k); }          // what the archive has of it
+  function hrsCur(r){
+    if(r.y){ const q = HRS.get(r.id+'.'+r.h); return q && q.bm ? hrbOf(q)[r.i] : null; }
+    return r.x ? HRX.get(r.id+'.'+r.h) : HRS.get(r.k);
+  }          // what the archive has of it
   function hrsClaimNew(){
     const c = HRS_CLAIM;
     return !!(c && c.until > Date.now() && HRS_OTHERS && HRS_OPEN && HRS_OPEN.claim!==hrsClaimTok(c));
@@ -55125,6 +55338,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function hrsMarkUp(list){
     list = list.filter(r=> hrsCur(r)===r);             // run again meanwhile: the newer one goes next
     list.forEach(r=>{ r.up = 1; r.w = (r.w || 0) + 1; r.wt = Date.now(); });
+    hrbUp(list.filter(r=> r.y));
+    list = list.filter(r=> !r.y);
     hrsDb('r', list);
     hrsTell(list);
   }
@@ -55136,7 +55351,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const claimTok = ()=> HRS_CLAIM && HRS_CLAIM.until > Date.now() ? hrsClaimTok(HRS_CLAIM) : '';
     const bad = (r, what)=>{ if(r.status===401 || r.status===403) throw new Error('Lichess refused a change ('+r.status+')'); throw new Error('couldn\u2019t '+what+' ('+r.status+')'); };
     // into this device's open chapter, as many as fit
-    const two = pend.filter(r=> (r.w || 0) >= 2), twice = two.length > 5 ? [] : two;             // filed twice and never read back: a chapter of its own (a few; many at once aren't damage to one)
+    const two = pend.filter(r=> !r.y && (r.w || 0) >= 2), twice = two.length > 5 ? [] : two;             // filed twice and never read back: a chapter of its own (a few; many at once aren't damage to one)
     pend = pend.filter(r=> !twice.includes(r));
     if(HRS_OPEN && (pend.length || hrsClaimNew())){
       const O = HRS_OPEN, add = [];
@@ -55150,7 +55365,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         if(r.status===400 || r.status===404){
           // the chapter is gone: everything it held is filed again, in a new one
           const back = [];
-          O.toks.forEach(t=>{ const x = hrsDec(t) || hrxDec(t), y = x && hrsCur(x); if(y && y.up && !(x.x ? y.at > x.at : hrsBetter(y, x))){ y.up = 0; back.push(y); } });
+          O.toks.forEach(t=>{
+            const z = hrbTok(t);
+            if(z){ (HRS_ID.get(z.id) || []).forEach(r=>{ if(r.bm && r.bu && hrbFp(r).slice(0, 6)===z.fp){ r.bu = 0; hrbOf(r).forEach(c=>{ c.up = 0; }); back.push(r); } }); return; }
+            const x = hrsDec(t) || hrxDec(t), y = x && hrsCur(x); if(y && y.up && !(x.x ? y.at > x.at : hrsBetter(y, x))){ y.up = 0; back.push(y); } });
           hrsDb('r', back);
           HRS_OPEN = null;
           HRS_TXT.delete(O.s);
@@ -55256,7 +55474,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     try{ R = hrLoad(S); }catch(e){ R = null; }
     const c = S.review, gone = !R && !!c && !c.partial && hrxAt(String(S.game.id || ''), hrSig(S)) >= c.at;       // cleared, here or on another device
     if(!R && !gone) return;
-    if(R && c && !c.partial && c.at===R.at && c.d===R.d && c.b.join()===R.b.join()) return;
+    if(R && c && !c.partial && c.at===R.at && c.d===R.d && c.b.join()===R.b.join()){ if(R.best && !c.best){ c.best = R.best; c.gaps = R.gaps; } return; }          // (its best moves came after it: nothing on the screen reads them)
     if((hvMenu && hvMenu.kind==='com') || HV_TAC_BOX || hvCalcOn()){ setTimeout(hrsRefreshOpen, 3000); return; }       // something being written or counted: after it
     if(hvMenu && hvMenu.el.id==='hv-var-pop') hvMenuClose(hvMenu.el.contains(document.activeElement));          // the move menu: its badges aren't these any more
     S.review = R;
@@ -55307,7 +55525,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(b) b.addEventListener('click', ()=>{
       HRS_RETRY = 0; HRS_ERRN = 0;
       if(HRS_S){ HRS_S.listAt = 0; HRS_S.stop = 0; }          // the studies listed again (another device may have made one)
-      [HRS, HRX].forEach(M=> M.forEach(r=>{ if(!r.up && r.w >= 3) r.w = 0; }));
+      [HRS, HRX].forEach(M=> M.forEach(r=>{ if(!r.up && r.w >= 3) r.w = 0; if(r.bw) r.bw = 0; }));
       hrsSync(true);
     });
     setTimeout(async ()=>{
@@ -55343,7 +55561,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
             }
             if(!hrsOkRec(r)) return;
             const cur = HRS.get(r.k);
-            if(cur && cur.at===r.at && cur.d===r.d && cur.e===r.e){ if(r.up && !cur.up && !r.from) HRS_STALE = true; cur.up = r.up; cur.w = r.w; cur.from = r.from; cur.o = r.o || cur.o; cur.miss = r.miss || 0; return; }       // (sent by another tab: hrsOtherTab)
+            if(cur && cur.at===r.at && cur.d===r.d && cur.e===r.e){ if(r.up && !cur.up && !r.from) HRS_STALE = true; cur.up = r.up; cur.w = r.w; cur.from = r.from; cur.o = r.o || cur.o; cur.miss = r.miss || 0;
+              if(r.bm && !cur.bm && hrbPut(cur, hrbFull(r))) n++;
+              if(cur.bm && cur.bm===r.bm){ if(!!cur.bu!==!!r.bu) hrbOf(cur).forEach(c=>{ c.up = r.bu ? 1 : 0; }); cur.bu = r.bu || 0; cur.bw = r.bw || 0; cur.bmiss = r.bmiss || 0; }
+              if(cur.bm && !r.bm) hrsDb('r', [cur]);          // an older build's tab has stored its copy, without them
+              return; }       // (sent by another tab: hrsOtherTab)
             if(hrsTake(r)) n++;
           });
           if(n) hrsArrived();
@@ -55404,7 +55626,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hvRenderControls();
     if(res && !ctrl.signal.aborted){
       const arc = hrsOn() ? HRS.get(String(S.game.id || '')+'.'+hrSig(S)) : null;          // never dated before the one it replaces (a clock that's behind)
-      job.S.review = { ev:res.ev, b:res.b, acc:res.acc, at:Math.max(Date.now(), arc ? arc.at + 1 : 0, job.prev ? (job.prev.at || 0) + 1 : 0), d:job.depth, partial:false };
+      job.S.review = { ev:res.ev, b:res.b, best:res.best, gaps:res.gaps, acc:res.acc, at:Math.max(Date.now(), arc ? arc.at + 1 : 0, job.prev ? (job.prev.at || 0) + 1 : 0), d:job.depth, partial:false };
       try{ hrSave(job.S, job.S.review); }catch(e){}
     } else {
       job.S.review = job.prev && hrxAt(String(S.game.id || ''), hrSig(S)) < job.prev.at ? job.prev : null;           // partial results are never kept (nor one cleared meanwhile)
@@ -55496,6 +55718,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(HRA.dead) return 'dead';
     if(!HRA_ON) return 'off';
     if(HRA.paused) return 'paused';
+    return hraBusy();
+  }
+  // what the background's Stockfish gives way to (the automatic reviews', the quick scores': qk*)
+  function hraBusy(){
     if(document.hidden) return 'hidden';
     if(hraPlaying()) return 'game';
     if(!hraViewOk()) return 'view';
@@ -55521,6 +55747,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // something else of the engine's starts now: at once
   function hraNudge(){
+    qkNudge();
     if(typeof HRA!=='object' || !HRA || !HRA.eng) return;
     HRA.clear = 0;
     if(HRA.cur && !HRA.held){ HRA.why = 'engine'; hraHold(); }
@@ -55562,6 +55789,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     if(HRA.eng && (!HRA.cur || HRA.held) && now - HRA.idle > (why==='off' || why==='dead' ? 0 : HRA_KEEP)) hraQuit();
     if(why==='hidden' || why==='off' || why==='paused') hraUnlead();
+    qkTick(now);
     hraStatus();
   }
   // ---- the games ----
@@ -55694,14 +55922,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(!(await hraLead())){ HRA.rest = Date.now() + 5000; return; }
       if(hraLiveDue(HRA_LIVE_MS)) await hraLive();
       if(hraBlock()) return;
-      await hrsFresh(HRS_KB > 300 ? 15*60e3 : 4*60e3);
+      await hrsFresh(HRS_KB > HRS_BIG ? 15*60e3 : 4*60e3);
       if(hraBlock()) return;
       const x = hraNext();
       if(!x) return;
       const sig = hraSigOf(x.g), k = x.id+'.'+sig.h, T = await hraTree(x.g);
       if(!T){ hraFail(k, 'moves'); return; }
       if(hraBlock() || hraTodo().list.every(y=> y.g!==x.g)) return;
-      const J = { g:x.g, id:x.id, k, h:sig.h, n:T.main.length, T, depth:hrDepth, ctrl:new AbortController(), done:0, ls:new Set(), idx:new Map(), P:{}, np:0, need:null, l2:null, t0:0, loops:0 };
+      const J = { g:x.g, id:x.id, k, h:sig.h, n:T.main.length, T, depth:hrDepth, ctrl:new AbortController(), done:0, ls:new Set(), idx:new Map(), P:{}, np:0, need:null, l2:null, t0:0, loops:0, hg:hrgNew() };
       [T.root].concat(T.main).forEach((nd, i)=> J.idx.set(nd.fen, i));
       const p = HRA_PT.get(k);
       if(p && p.d===J.depth && p.n===J.n) Object.assign(J.P, p.P);
@@ -55713,6 +55941,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         hraDrive();
         return Promise.resolve();
       };
+      qkNudge();                                         // the quick scores' Stockfish gives way first
       HRA.cur = J; HRA.held = false; HRA.why = '';
       HRS_CLAIM = { id:x.id, h:sig.h, until:Date.now() + HRA_CLAIM };
       if(hrsClaimNew()) hrsSoon(500);
@@ -55732,7 +55961,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(res && !hraSettled(J)){
       HRA.done++; HRA.visit++;
       HRA.got.delete(J.id);
-      try{ hrSave({ game:J.g, main:J.T.main, sanMoves:J.T.sanMoves }, { ev:res.ev, b:res.b, acc:res.acc, at:hraAt(J.g), d:J.depth, partial:false, auto:true }); }catch(e){}
+      try{ hrSave({ game:J.g, main:J.T.main, sanMoves:J.T.sanMoves }, { ev:res.ev, b:res.b, best:res.best, gaps:res.gaps, acc:res.acc, at:hraAt(J.g), d:J.depth, partial:false, auto:true }); }catch(e){}
       hrsDrawSoon();
     }
     HRA_PT.delete(J.k); hrsDb('p', [J.k], true);
@@ -55776,6 +56005,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   function hraEngBoot(){
     let w;
+    if(hraTouch()) qkQuit();
     if(hraTouch() && hve.state==='ready' && !hve.searching && !hvViewActive()) hve.quit();          // Game History's, idle: one Stockfish's memory on a phone or tablet
     try{ w = new Worker(hvSfUrl()); }catch(e){ HRA.dead = 'no'; hraDrop(); return null; }          // (no workers here at all)
     const E = { w, st:'loading', fen:null, searching:false, stopping:false, job:null, sync:false, uci:false, t1:0, t2:0, ts:0, dog:0 };
@@ -55833,6 +56063,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!J || E.job!==J || E.sync || !E.searching || line.indexOf('info ')!==0 || line.indexOf(' pv ') < 0) return;
     const x = hveParse(line, E.fen);
     if(!x) return;
+    J.hg.info(x);
     if(x.fen===J.need && x.depth >= J.depth){
       if(x.multipv===2) J.l2 = x.score;
       if(x.multipv===1){
@@ -55867,13 +56098,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function hraLines(fen, depth, a){
     const L = [];
     if(a[2]) L.push({ depth, multipv:2, score:hrDecScore(a[2]), ucis:[], firstUci:'', fen });
-    L.push({ depth, multipv:1, score:hrDecScore(a[0]), ucis:[a[1]], firstUci:a[1], fen });
+    L.push({ depth, multipv:1, score:hrDecScore(a[0]), ucis:[a[1]], firstUci:a[1], fen, gaps:a[3] || '' });
     return L;
   }
   function hraTell(J, fen, a){ hraLines(fen, J.depth, a).forEach(x=> J.ls.forEach(cb=>{ try{ cb(x); }catch(e){} })); }
   // ---- what a game has so far (store p): every 5 positions, when it gives way, when the page goes ----
   function hraKeepP(J){
     if(!J.np && !Object.keys(J.P).length) return;
+    const all = J.T ? [J.T.root].concat(J.T.main) : J.nodes || [];
+    Object.keys(J.P).forEach(i=>{ const a = J.P[i]; if(Array.isArray(a) && !a[3] && all[i]){ const c = hrgChar(J.hg, all[i]); if(c!=='.') J.P[i] = [a[0], a[1], a[2] || '', c]; } });          // (hrg*)
     const p = { k:J.k, at:Date.now(), d:J.depth, n:J.n, P:Object.assign({}, J.P) };
     HRA_PT.set(J.k, p);
     hrsDb('p', [p]);
@@ -55885,7 +56118,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // for the Review button: the positions of this game already known (fen -> its lines), or null
   function hraPartialFor(S, depth){
     if(!hraOn() || !S || !S.game || !S.game.id) return null;
-    const k = S.game.id+'.'+hrSig(S), J = HRA.cur && HRA.cur.k===k ? HRA.cur : null, p = J ? { d:J.depth, n:J.n, P:J.P } : HRA_PT.get(k);
+    const k = S.game.id+'.'+hrSig(S), J = HRA.cur && HRA.cur.k===k ? HRA.cur : null;
+    if(J) hraKeepP(J);          // (with the gaps it has so far)
+    const p = J ? { d:J.depth, n:J.n, P:J.P } : HRA_PT.get(k);
     if(!p || p.d!==depth || p.n!==S.main.length || !hraCount(p.P)) return null;
     const m = new Map();
     [S.root].concat(S.main).forEach((nd, i)=>{ if(p.P[i] && Array.isArray(p.P[i])) m.set(nd.fen, p.P[i]); });
@@ -55898,11 +56133,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!hraOn() || !HRS_GID.test(id)) return null;
     const k = id+'.'+hrSig(S), was = HRA_PT.get(k), idx = new Map();
     const cur = ()=> HRA.cur && HRA.cur.k===k && HRA.cur.depth===depth ? HRA.cur : null, C0 = cur();          // the automatic one's, held meanwhile
-    const J = { k, depth, n:S.main.length, P:Object.assign({}, was && was.d===depth && was.n===S.main.length ? was.P : null, C0 ? C0.P : null), np:0 };
+    const J = { k, depth, n:S.main.length, P:Object.assign({}, was && was.d===depth && was.n===S.main.length ? was.P : null, C0 ? C0.P : null), np:0, hg:hrgNew(), nodes:[S.root].concat(S.main) };
     [S.root].concat(S.main).forEach((nd, i)=> idx.set(nd.fen, i));
     let fen = '', l2 = null, over = false;
     const off = hve.onInfo((x)=>{
       const i = idx.get(x.fen);
+      if(i!=null) J.hg.info(x);
       if(i==null || x.depth < depth) return;
       if(x.fen!==fen){ fen = x.fen; l2 = null; }
       if(x.multipv===2) l2 = x.score;
@@ -56028,6 +56264,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     try{ t = hraText(); }catch(e){ t = ''; }
     if(el.textContent!==t) el.textContent = t;
     hraButtons();
+    qkStatus(now);
     hrsRender();
   }
   function hraButtons(){
@@ -56077,6 +56314,580 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     });
     window.addEventListener('pagehide', ()=>{ if(HRA.cur) hraKeepP(HRA.cur); if(hrJob && hrJob.rec) hrJob.rec.keep(); });
   })();
+
+  /* ================= QUICK SCORES (qk*, 2026-11-25) =================
+     The user approved "a quick pass that adds Stockfish scores to older games". Rapid and blitz games against people that
+     have no review (of these moves) and no analysis from Lichess get a score at every position, in the background: the built-in
+     Stockfish 16, one line, QK_NODES nodes a position, a fresh hash a game, the last position first (what it found there helps
+     with the ones before: nearer to a review than first to last), newest game first. Shares over many games
+     only: a quick score never calls a single move a mistake (gev* below gives no per-move answer for them).
+     It comes after the automatic reviews (hra*) and shares their rules: hraBusy (never in a live game, a hidden page, or
+     beside any other engine work), hraPower (battery, the engine's download), plus no puzzle on screen; never on a phone. One
+     tab at a time by a lock of its own (qkLead), so the reviews' stays free for any window that has a game to review; while
+     another window holds that one, this waits (qkOther). On a tablet, or unplugged where the browser says so, it rests as long
+     as it worked. A worker of its own, gone after a minute idle (at once on a tablet that holds).
+     One record a game and its moves in IndexedDB (QK_DBN, store g: { k: the game's id, h, n, v, nd, at, s }, about 250 bytes),
+     so nothing of it is in the app's 5 MB of localStorage; failures in store f. A game under way isn't kept: a reload starts
+     that game again. On this device only (the reviews sync; these are cheap to make and the study would have to be read whole).
+     QK_OK = false turns it off (the kits). */
+  var QK_OK = true, QK_V = 1, QK_NODES = 12000, QK_DBN = 'wavyChessPrepQuickScores', QK_KEY = 'wavyChessPrepQuickScoresOn';
+  var QK_BOOT = 60000, QK_LIVE = 120000, QK_DOG = 60000, QK_NEWS = 30000, QK_MAX = 12000, QK_DEAD = 600000, QK_OPEN = 8000, QK_WRITE = 10000, QK_OTHER = 3000, QK_RUN_KEY = 'wavyChessPrepQuickScoresRun';
+  var QK_BUDGET = { mac:{ games:Infinity, rest:200 }, tablet:{ games:150, rest:1500 }, phone:{ games:0, rest:0 } };
+  var QK_DB = new Map(), QK_F = new Map(), QK_VER = 0, QK_LOADED = false, QK_LOADP = null, QK_LOADT = 0, QK_IDBP = null, QK_BC = null, QK_LS = new Set(), QK_UNLEAD = null;
+  var QK = { cur:null, eng:null, held:true, why:'', clear:0, idle:0, rest:0, visit:0, done:0, paused:false, full:'', bad:0, dead:'', deadAt:0, deadN:0,
+    starting:false, asking:false, plain:false, slow:false, other:false, otherAt:0, hang:[], mark:false, todo:null, ms:0, msN:0, drawn:0, drawT:0, newsAt:0, newsT:0 };
+  var QK_SET = hraRead(QK_KEY);                          // 'on' | 'off' | null: as the automatic reviews
+  function qkAble(){ return !!QK_OK && hraOn() && hraClass()!=='phone'; }
+  function qkOn(){ return qkAble() && (QK_SET==='on' || (QK_SET!=='off' && HRA_ON)); }
+  // ---- one window at a time ----
+  async function qkLead(){
+    const L = navigator.locks;
+    if(!L || typeof L.request!=='function') return true;
+    if(await qkOther()) return false;
+    if(QK_UNLEAD) return true;
+    return new Promise(res=>{ L.request('wavyChessPrepQuickScores', { ifAvailable:true }, (k)=>{ if(!k){ res(false); return; } res(true); return new Promise(done=>{ QK_UNLEAD = done; }); }).catch(()=> res(false)); });
+  }
+  function qkUnlead(){ const f = QK_UNLEAD; QK_UNLEAD = null; if(f) f(); }
+  // another window runs the automatic reviews (asked while this one scores or waits for it; asking takes no lock)
+  async function qkOther(){
+    const L = navigator.locks;
+    let on = false;
+    if(!HRA.lead && L && typeof L.query==='function') try{ on = ((await L.query()).held || []).some(k=> k.name==='wavyChessPrepAutoReview') && !HRA.lead; }catch(e){ on = false; }
+    QK.other = on; QK.otherAt = Date.now();
+    return on;
+  }
+  // ---- a page that goes away each time it starts (a device out of memory reloads it): not in a circle ----
+  // how often in a row it went while its first game was under way, without being left or put in the background; three times: off
+  // until On is pressed
+  function qkMarks(){ return Number(hraRead(QK_RUN_KEY)) || 0; }
+  function qkMark(on){
+    if(QK.done || QK.mark===on) return;
+    QK.mark = on;
+    const n = qkMarks() + (on ? 1 : -1);
+    try{ if(n > 0) localStorage.setItem(QK_RUN_KEY, String(n)); else localStorage.removeItem(QK_RUN_KEY); }catch(e){}
+  }
+  function qkUnmark(){ QK.mark = false; try{ if(hraRead(QK_RUN_KEY)!=null) localStorage.removeItem(QK_RUN_KEY); }catch(e){} }
+  // ---- the store ----
+  function qkIdb(){
+    return QK_IDBP || (QK_IDBP = new Promise((res)=>{
+      try{
+        const q = indexedDB.open(QK_DBN, 1);
+        q.onupgradeneeded = ()=>{ ['g', 'f'].forEach(s=>{ try{ q.result.createObjectStore(s, { keyPath:'k' }); }catch(e){} }); };
+        q.onsuccess = ()=>{ const db = q.result; db.onversionchange = ()=>{ try{ db.close(); }catch(e){} QK_IDBP = Promise.resolve(null); }; db.onclose = ()=>{ QK_IDBP = null; }; res(db); };
+        q.onerror = ()=> res(null); q.onblocked = ()=> res(null);
+      }catch(e){ res(null); }
+    }));
+  }
+  function qkOkRec(r){ return !!r && typeof r.k==='string' && HRS_GID.test(r.k) && r.v===QK_V && typeof r.h==='string' && Number.isInteger(r.n) && r.n > 0 && typeof r.s==='string' && r.s.length===r.n + 1; }
+  function qkAll(db, n){ return new Promise(res=>{ try{ const q = db.transaction(n).objectStore(n).getAll(); q.onsuccess = ()=> res(q.result || []); q.onerror = (e)=>{ try{ e.preventDefault(); }catch(x){} res(null); }; }catch(e){ res(null); } }); }
+  // read once, when something asks for scores (a visit that never does pays nothing). An open that answers late (Safari's) is
+  // waited for: nothing counts as unscored before the store is read; a read that fails is tried again after 15 s
+  function qkLoad(){
+    if(QK_LOADP) return QK_LOADP;
+    if(Date.now() - QK_LOADT < 15000) return Promise.resolve();
+    QK_LOADT = Date.now();
+    return QK_LOADP = (async ()=>{
+      const db = await qkIdb();
+      if(db){
+        const [G, F] = await Promise.all([qkAll(db, 'g'), qkAll(db, 'f')]);
+        if(!G || !F){ QK_IDBP = null; QK_LOADP = null; QK_LOADT = Date.now(); return; }
+        G.forEach(r=>{ if(qkOkRec(r) && !QK_DB.has(r.k)) QK_DB.set(r.k, r); });
+        F.forEach(f=>{ if(f && typeof f.k==='string' && Number.isFinite(f.at)) QK_F.set(f.k, f); });
+      } else QK.full = 'db';          // this browser has nowhere to keep them: it doesn't start
+      try{
+        QK_BC = new BroadcastChannel('wavyChessPrepQuickScores');
+        QK_BC.onmessage = (e)=>{ const r = e.data && e.data.put; if(qkOkRec(r)){ QK_DB.set(r.k, r); QK.todo = null; qkNews(); } };          // another tab's
+      }catch(e){ QK_BC = null; }
+      QK_LOADED = true;
+      QK.todo = null;
+      qkNews(true);
+    })();
+  }
+  // one record (del: its key, to remove it); a full device, or a write that doesn't answer: what is stored stays, the pass stops for this visit and says so
+  function qkPut(store, rec, del){
+    const p = qkIdb().then(db=> new Promise(res=>{
+      if(!db){ res(false); return; }
+      try{
+        const t = db.transaction(store, 'readwrite');
+        t.oncomplete = ()=> res(true);
+        t.onabort = t.onerror = (e)=>{ try{ if(e && e.preventDefault) e.preventDefault(); }catch(x){} res(false); };
+        if(del) t.objectStore(store).delete(rec); else t.objectStore(store).put(rec);
+      }catch(e){ QK_IDBP = null; res(false); }
+    }));
+    return Promise.race([p, pdbNap(QK_WRITE).then(()=> false)]);
+  }
+  // a score as one character (White's side): 1 none, 1000-9000 centipawns + 5000 (held to +-4000), 9500-10500 a mate in +-n + 10000
+  function qkChr(s){
+    return String.fromCharCode(!s ? 1 : s.type==='mate' ? 10000 + Math.max(-500, Math.min(500, Math.round(s.value))) : 5000 + Math.max(-4000, Math.min(4000, Math.round(s.value))));
+  }
+  function qkScore(c){ return c >= 9500 ? { type:'mate', value:c - 10000 } : c >= 1000 ? { type:'cp', value:c - 5000 } : null; }
+  // ---- the games ----
+  function qkGameOk(g){ return (g.speed==='rapid' || g.speed==='blitz') && hraGameOk(g); }
+  function qkRec(g){
+    const r = QK_DB.get(String(g.id));
+    if(!r) return null;
+    const x = hraSigOf(g);
+    return r.n===x.n && r.h===x.h ? r : null;
+  }
+  // { list:[{ g, id, at }] to score, newest first; all: games that need a quick score (no review of their moves, no analysis
+  // from Lichess), done: those that have one, failed: couldn't be scored (kept back; tried again after a day, three times) }
+  function qkTodo(){
+    const R = ojRevs(), key = [GH_STATE.games.length, GH_STATE.gen, ghCcUp() ? ccGames().length : 0, HRS_VER, QK_LOADED ? 1 : 0, Math.floor(Date.now()/300000)].join('|');
+    if(QK.todo && QK.todo.key===key) return QK.todo;
+    const out = { key, list:[], all:0, done:0, failed:0 };
+    let base = [];
+    try{ base = ghBaseList('all'); }catch(e){ base = []; }
+    base.forEach(g=>{
+      if(!qkGameOk(g) || hraHas(g, R) || (Array.isArray(g._ev) && ojLiSeries(g, gaPlies(g)))) return;
+      out.all++;
+      if(qkRec(g)){ out.done++; return; }
+      const f = QK_F.get(String(g.id));
+      if(f && f.h===hraSigOf(g).h && (f.why==='moves' || f.tries >= 3 || Date.now() - f.at < 86400e3)){ out.failed++; return; }
+      out.list.push({ g, id:String(g.id), at:Number(g.createdAt) || 0 });
+    });
+    out.list.sort((a, b)=> b.at - a.at);
+    QK.todo = out;
+    return out;
+  }
+  function qkTook(id, failed){          // one fewer, without counting every game again
+    const T = QK.todo;
+    if(!T) return;
+    const i = T.list.findIndex(x=> x.id===id);
+    if(i >= 0) T.list.splice(i, 1);
+    if(failed) T.failed++; else T.done++;
+  }
+  // couldn't be scored. 'moves' (they don't replay): for good. Otherwise the game's fault only once another one has been scored
+  // since (qkEnd); three in a row without one: it's the engine, none of them is held against a game
+  function qkFail(g, why){
+    const id = String(g.id), h = hraSigOf(g).h, was = QK_F.get(id), f = { k:id, h, at:Date.now(), why, tries:was && was.h===h ? was.tries + 1 : 1 };
+    QK_F.set(id, f);
+    qkTook(id, true);
+    if(why==='moves'){ qkPut('f', f); return; }
+    QK.hang.push({ f, was });
+    if(QK.hang.length < 3) return;
+    QK.hang.forEach(x=>{ if(x.was) QK_F.set(x.f.k, x.was); else QK_F.delete(x.f.k); });
+    QK.hang = []; QK.todo = null;
+    QK.dead = 'run'; QK.deadAt = Date.now(); QK.deadN++;
+    qkDrop(); qkQuit();
+    qkStatus();
+  }
+  // On pressed: what the engine couldn't do is tried again
+  function qkForgive(){
+    QK.hang = [];
+    QK_F.forEach((f, k)=>{ if(f.why!=='moves'){ QK_F.delete(k); qkPut('f', k, true); } });
+    QK.todo = null;
+  }
+  // ---- when it may run: '' or why not ----
+  // an automatic review that is due and may start comes first
+  function qkReviewDue(){ return (!!HRA.cur && !HRA.paused) || HRA.starting || (HRA_ON && !HRA.paused && !HRA.dead && HRA.visit < HRA_BUDGET[hraClass()].games && !!hraNext()); }
+  function qkBlock(){
+    if(!qkOn()) return 'off';
+    if(QK.dead || HRA.dead) return 'dead';
+    if(QK.paused) return 'paused';
+    if(QK.full) return 'full';
+    const b = hraBusy();
+    if(b) return b;
+    if(currentView==='play-puzzle') return 'view';          // a puzzle
+    return qkReviewDue() || QK.other ? 'reviews' : '';
+  }
+  function qkTick(now){
+    if(QK.dead && QK.dead!=='no' && QK.dead!=='crash' && QK.deadN <= 3 && now - QK.deadAt > QK_DEAD){ QK.dead = ''; QK.plain = false; }
+    if((QK.other || (QK.cur && !QK.held)) && now - QK.otherAt >= QK_OTHER){ QK.otherAt = now; qkOther(); }
+    const why = qkBlock();
+    QK.why = why;
+    // a game noticed on Lichess: is it over? (the reviewer asks only while it has a game to review itself)
+    if(why==='game' && !olBusy() && nowPlayingGame && hraLiveDue(30000) && (QK.cur || qkTodo().list.length)) hraLive();
+    if(why){ QK.clear = 0; qkHold(); } else if(!QK.clear) QK.clear = now;
+    if(QK.cur && (why==='off' || why==='dead' || why==='full' || qkSettled(QK.cur))) qkDrop();
+    const left = QK.visit < QK_BUDGET[hraClass()].games;
+    if(!why && now - QK.clear >= HRA_CLEAR){
+      if(QK.cur){
+        if(QK.held && !QK.asking){
+          if(HRA.live || hraLiveDue(QK_LIVE)) hraLive();          // (a game started elsewhere? then it goes on with the next tick)
+          else { QK.asking = true; qkLead().then(ok=>{ QK.asking = false; if(!QK.cur) return; if(!ok){ if(!QK.other) qkDrop(); } else if(!qkBlock()){ QK.held = false; QK.idle = Date.now(); qkMark(true); qkDrive(); } else qkUnlead(); }); }
+        }
+      } else if(!QK.starting && now >= QK.rest && now - HRA.boot >= QK_BOOT && now - HRA.input >= HRA_IDLE && left) qkStart();
+    }
+    if(QK.eng && (!QK.cur || QK.held) && now - QK.idle > (why==='off' || why==='dead' || why==='full' ? 0 : HRA_KEEP)) qkQuit();
+    if(QK_UNLEAD && !QK.cur && !QK.starting && !QK.asking && (why || !left || !qkTodo().list.length)) qkUnlead();
+  }
+  // something else of the engine's starts now: at once (hraNudge, the automatic review's start)
+  function qkNudge(){
+    if(!QK.eng) return;
+    QK.clear = 0;
+    if(QK.cur && !QK.held){ QK.why = 'engine'; qkHold(); }
+    if(hraTouch()) qkQuit();
+  }
+  function qkHold(){
+    if(QK.held) return;
+    QK.held = true; QK.idle = Date.now();
+    qkUnlead(); qkMark(false);
+    const E = QK.eng;
+    if(E && E.searching) qkStop(E);
+    if(hraTouch()) qkQuit();
+  }
+  // scored (or reviewed) meanwhile: in another tab, by the Review button, from another device
+  function qkSettled(J){ const r = QK_DB.get(J.id); return (!!r && r.h===J.h && r.n===J.n) || HRS.has(J.id+'.'+J.h); }
+  function qkDrop(){
+    const J = QK.cur;
+    if(!J) return;
+    QK.cur = null; QK.idle = Date.now();
+    qkUnlead(); qkMark(false);
+    if(QK.eng && QK.eng.searching) qkStop(QK.eng);
+    if(qkSettled(J)) QK.todo = null;
+  }
+  // not plugged in, where the browser says so (Chrome; Safari doesn't)
+  async function qkUnplugged(){ try{ if(navigator.getBattery){ const x = await navigator.getBattery(); return !!x && !x.charging; } }catch(e){} return false; }
+  async function qkStart(){
+    QK.starting = true;
+    try{
+      await Promise.race([qkLoad(), pdbNap(QK_OPEN)]);
+      if(!QK_LOADED){ QK.rest = Date.now() + 15000; return; }          // the store hasn't answered: nothing is scored that may be in it
+      if(QK.full || !qkTodo().list.length){ QK.rest = Date.now() + 5000; return; }
+      if(QK_DB.size >= QK_MAX){ QK.full = 'max'; return; }
+      if(!QK.done && !QK.mark && qkMarks() >= 3){ QK.dead = 'crash'; return; }
+      if(!(await hraPower())){ QK.rest = Date.now() + 15000; return; }
+      if(!(await qkLead())){ QK.rest = Date.now() + 5000; return; }
+      if(hraLiveDue(QK_LIVE)) await hraLive();
+      QK.slow = hraClass()!=='mac' || await qkUnplugged();
+      if(qkBlock()) return;
+      const x = qkTodo().list[0];
+      if(!x) return;
+      const sig = hraSigOf(x.g);
+      let T = null;
+      try{ T = await hraTree(x.g); }catch(e){ T = null; }
+      if(!T || T.main.length!==sig.n){ qkFail(x.g, 'moves'); return; }
+      if(qkBlock()) return;
+      QK.cur = { g:x.g, id:x.id, h:sig.h, n:sig.n, P:[T.root].concat(T.main), S:new Array(sig.n + 1).fill(null), i:sig.n, loops:0, ms:0, np:0 };
+      QK.held = false; QK.idle = Date.now();
+      qkMark(true);
+      qkDrive();
+    }catch(e){ QK.rest = Date.now() + 5000; }
+    finally{ QK.starting = false; }
+  }
+  // ---- its Stockfish ----
+  function qkQuit(){
+    const E = QK.eng;
+    QK.eng = null;
+    if(!E) return;
+    E.st = 'gone';
+    clearTimeout(E.t1); clearTimeout(E.t2); clearTimeout(E.ts); clearTimeout(E.dog);
+    try{ E.w.postMessage('quit'); }catch(e){}
+    try{ E.w.terminate(); }catch(e){}
+  }
+  function qkPost(E, c){ try{ E.w.postMessage(c); }catch(e){} }
+  function qkEngDead(E){
+    if(QK.eng!==E) return;
+    const was = E.st;
+    qkQuit();
+    if(was!=='ready' && !QK.plain){ QK.plain = true; qkDrive(); return; }          // without its loader: the engine's own file
+    if(was!=='ready'){ QK.dead = 'boot'; QK.deadAt = Date.now(); QK.deadN++; qkDrop(); }          // it didn't start: tried again in 10 minutes, three times
+    else if(QK.cur){ const J = QK.cur; qkDrop(); qkFail(J.g, 'engine'); QK.rest = Date.now() + 5000; }
+    qkStatus();
+  }
+  function qkBootEng(){
+    if(hraTouch() && HRA.eng) hraQuit();                 // one Stockfish's memory on a tablet
+    if(hraTouch() && hve.state==='ready' && !hve.searching && !hvViewActive()) hve.quit();
+    let w;
+    try{ w = new Worker(QK.plain ? hvSfUrl() : new URL('stockfish/quick-1.js', document.baseURI)); }catch(e){ QK.dead = 'no'; qkDrop(); return null; }          // (a loader whose pauses cost no 4 ms: quick-1.js)
+    const E = { w, st:'loading', fen:'', searching:false, stopping:false, job:null, sync:false, uci:false, last:null, goAt:0, t1:0, t2:0, ts:0, dog:0 };
+    QK.eng = E;
+    w.onmessage = (e)=> qkMsg(E, String(e.data));
+    w.onerror = (e)=>{ try{ e.preventDefault(); }catch(x){} qkEngDead(E); };
+    w.onmessageerror = ()=> qkEngDead(E);
+    E.t1 = setTimeout(()=>{ if(!E.uci) qkEngDead(E); }, 20000);
+    E.t2 = setTimeout(()=>{ if(E.st==='loading') qkEngDead(E); }, HVE_LOAD_MS);
+    qkPost(E, 'uci');
+    return E;
+  }
+  function qkStop(E){
+    E.stopping = true;
+    qkPost(E, 'stop');
+    clearTimeout(E.ts);
+    let n = 0;
+    const again = ()=>{ if(!E.searching || E.st==='gone' || ++n > 40) return; qkPost(E, 'stop'); E.ts = setTimeout(again, 250); };
+    E.ts = setTimeout(again, 250);                       // a stop lost in the same breath as its go (hveSendStop)
+    qkDog(E, HRA_ACK);
+  }
+  // an answer that never comes: a new worker goes on from this position; three times at one position and the game waits a day
+  function qkDog(E, ms){
+    clearTimeout(E.dog);
+    E.dog = setTimeout(()=>{
+      if(QK.eng!==E || !(E.searching || E.sync)) return;
+      const J = QK.cur, held = QK.held;
+      qkQuit();
+      if(!J || held) return;
+      if(++J.loops >= 3){ qkDrop(); qkFail(J.g, 'stuck'); QK.rest = Date.now() + 5000; return; }
+      qkDrive();
+    }, ms);
+  }
+  function qkMsg(E, line){
+    if(QK.eng!==E) return;
+    if(line==='uciok'){
+      E.uci = true;
+      clearTimeout(E.t1);
+      qkPost(E, 'setoption name MultiPV value 1');
+      qkPost(E, 'setoption name Use NNUE value true');
+      qkPost(E, 'isready');
+      return;
+    }
+    if(line==='readyok'){
+      if(E.st==='loading'){ E.st = 'ready'; clearTimeout(E.t2); }
+      E.sync = false;
+      if(!E.searching) clearTimeout(E.dog);
+      qkDrive();
+      return;
+    }
+    if(line.indexOf('bestmove')===0){
+      const nat = !E.stopping, J = QK.cur;
+      E.searching = false; E.stopping = false;
+      clearTimeout(E.ts); clearTimeout(E.dog);
+      if(nat && J && E.job===J && J.P[J.i] && E.fen===J.P[J.i].fen){
+        if(E.last){ J.S[J.i--] = E.last; J.loops = 0; J.ms += Date.now() - E.goAt; J.np++; }
+        else if(++J.loops >= 3){ qkDrop(); qkFail(J.g, 'stuck'); QK.rest = Date.now() + 5000; return; }          // no score, three times
+      }
+      qkDrive();
+      return;
+    }
+    if(!E.searching || E.sync || line.indexOf('info ')!==0 || line.indexOf(' pv ') < 0 || /\b(?:lower|upper)bound\b/.test(line)) return;
+    const x = hveParse(line, E.fen);
+    if(x && x.multipv===1) E.last = x.score;
+  }
+  // the next position for the engine (one that's over is scored off the board, as a review does), or the game is done
+  function qkDrive(){
+    const J = QK.cur;
+    if(!J || QK.held) return;
+    const E = QK.eng || qkBootEng();
+    if(!E || E.st!=='ready' || E.sync || E.searching) return;
+    if(E.job!==J){ E.job = J; E.sync = true; qkPost(E, 'ucinewgame'); qkPost(E, 'isready'); qkDog(E, HRA_ACK); return; }
+    try{ for(let t; J.i >= 0 && (t = hvTerminal(J.P[J.i])); J.i--) J.S[J.i] = t.score; }catch(e){ qkDrop(); qkFail(J.g, 'moves'); return; }
+    if(J.i < 0){ qkEnd(J); return; }
+    E.fen = J.P[J.i].fen; E.last = null; E.searching = true; E.stopping = false; E.goAt = Date.now();
+    qkPost(E, 'position fen '+E.fen);
+    qkPost(E, 'go nodes '+QK_NODES);
+    qkDog(E, QK_DOG);
+  }
+  function qkEnd(J){
+    const rest = Math.max(QK_BUDGET[hraClass()].rest, QK.slow ? J.ms : 0);          // (a tablet, or unplugged: half the time)
+    QK.cur = null; QK.idle = Date.now();
+    QK.rest = Date.now() + rest;
+    QK.visit++; QK.done++; QK.deadN = 0;
+    qkUnmark();
+    QK.hang.forEach(x=> qkPut('f', x.f)); QK.hang = [];          // the engine works: those were the games'
+    const ms = J.np ? J.ms / J.np : 0;          // the engine's own time, whatever it waited for in between
+    if(ms > 5 && ms < 20000){ QK.ms = QK.msN ? (QK.ms*Math.min(QK.msN, 20) + ms) / (Math.min(QK.msN, 20) + 1) : ms; QK.msN++; }
+    const rec = { k:J.id, h:J.h, n:J.n, v:QK_V, nd:QK_NODES, at:Date.now(), s:J.S.map(qkChr).join('') };
+    if(QK_F.has(J.id)) QK_F.delete(J.id);
+    QK_DB.set(J.id, rec);
+    qkTook(J.id, false);
+    qkPut('g', rec).then(ok=>{
+      if(ok){ QK.bad = 0; if(QK_BC) try{ QK_BC.postMessage({ put:rec }); }catch(e){} return; }
+      if(QK_DB.get(J.id)===rec) QK_DB.delete(J.id);          // not kept: not counted
+      QK.todo = null;
+      QK.bad++;
+      if(QK.bad >= 2){ QK.full = 'room'; qkDrop(); qkStatus(); }          // twice in a row: no room: it stops for this visit
+    });
+    qkNews();
+    qkStatus();
+    setTimeout(()=>{ if(!QK.cur && !QK.starting && !document.hidden) qkTick(Date.now()); }, rest + 20);          // (the next one at once, not with the next tick)
+  }
+  // new scores, for the cards that read them (gevVer, gevOnNews): at most every 30 s, and once the last game is done
+  function qkNews(now){
+    const go = ()=>{ QK.newsT = 0; QK.newsAt = Date.now(); QK_VER++; QK_LS.forEach(f=>{ try{ f(); }catch(e){} }); };
+    if(now || !qkTodo().list.length){ clearTimeout(QK.newsT); go(); return; }
+    if(!QK.newsT) QK.newsT = setTimeout(go, Math.max(0, QK_NEWS - (Date.now() - QK.newsAt)));
+  }
+  // ---- Settings ----
+  function qkText(){
+    const T = qkTodo(), N = (x)=> x.toLocaleString('en-US'), J = QK.cur;
+    if(QK.dead==='crash') return 'Stopped: the page closed three times while it scored. Press On to try again.';
+    if(QK.dead || HRA.dead) return 'Stockfish can\u2019t run here.';
+    if(!QK_LOADED) return QK_LOADP ? (Date.now() - QK_LOADT > QK_OPEN ? 'Waiting for this device\u2019s storage.' : '') : !qkOn() ? 'Off.' : QK.why==='game' ? 'Waiting: a game is on.' : 'Starts after the reviews.';
+    if(!T.all) return !GH_STATE.games.length && !(ghCcUp() && ccGames().length) ? 'Open Game History to start.' : 'No rapid or blitz games without a review.';
+    const c = 'Quick scores: '+N(T.done)+' of '+N(T.all)+(T.all===1 ? ' game.' : ' games.')+(T.failed ? ' '+N(T.failed)+' couldn\u2019t be scored.' : '');
+    if(!qkOn()) return 'Off. '+c;
+    if(!T.list.length) return c;
+    if(QK.full) return c+(QK.full==='db' ? ' This browser can\u2019t keep them.' : QK.full==='max' ? ' That\u2019s all this device keeps.' : ' No room on this device for more.');
+    if(QK.paused) return 'Paused. '+c;
+    const why = QK.why;
+    if(why==='game') return c+' Waiting: a game is on.';
+    if(why==='hidden') return c+' Waits while this page is in the background.';
+    if(why==='engine') return c+' Waiting: the engine is in use.';
+    if(why==='reviews') return c+' Waiting: reviews come first.';
+    if(why==='view') return c+' Waiting: it goes on when you leave this screen.';
+    if(HRA.bat) return c+' Waiting: battery under '+Math.round(HRA.bat*100)+'%.';
+    if(HRA.save) return c+' Waiting for the engine\u2019s download.';
+    if(!J && QK.visit >= QK_BUDGET[hraClass()].games) return c+' The rest next time (to save battery).';
+    return c+' '+qkTime(T)+'.';
+  }
+  function qkTime(T){
+    let p = 0;
+    T.list.forEach(x=>{ p += gaPlies(x.g) + 1; });
+    const m = (p * (QK.ms || 130) * (QK.slow ? 2 : 1) + (QK.slow ? 0 : T.list.length * QK_BUDGET[hraClass()].rest)) / 60000;
+    if(m < 1.5) return 'About a minute left';
+    if(m < 55) return 'About '+Math.round(m)+' minutes left';
+    const h = Math.max(1, Math.round(m / 60));
+    return 'About '+(h===1 ? 'an hour' : h.toLocaleString('en-US')+' hours')+' left, while the app is open';
+  }
+  function qkStatus(now){
+    const ov = document.getElementById('settings-overlay'), el = document.getElementById('qk-status'), box = document.getElementById('qk-box');
+    if(!el || !ov || !ov.classList.contains('active')) return;
+    const able = qkAble();
+    if(box.hidden!==!able) box.hidden = !able;
+    if(!able) return;
+    if(!now && Date.now() - QK.drawn < 5000){ if(!QK.drawT) QK.drawT = setTimeout(()=>{ QK.drawT = 0; qkStatus(); }, 5000 - (Date.now() - QK.drawn)); return; }
+    QK.drawn = Date.now();
+    if(!QK_LOADED && qkOn() && !QK_LOADP) qkLoad().then(()=>{ if(QK_LOADED) qkStatus(true); });
+    let t = '';
+    try{ t = qkText(); }catch(e){ t = ''; }
+    if(el.textContent!==t) el.textContent = t;
+    const on = qkOn(), p = document.getElementById('qk-pause');
+    document.querySelectorAll('#qk-row .toggle').forEach(b=>{ const a = (b.dataset.val==='on')===on; b.classList.toggle('active', a); b.setAttribute('aria-pressed', a ? 'true' : 'false'); });
+    p.hidden = !on || QK.full || !!QK.dead || (!QK.paused && !QK.cur && (!qkTodo().list.length || QK.visit >= QK_BUDGET[hraClass()].games));
+    p.textContent = QK.paused ? 'Resume' : 'Pause';
+  }
+  (function qkInit(){
+    const row = document.getElementById('qk-row');
+    if(!row) return;
+    row.addEventListener('click', (e)=>{
+      const b = e.target.closest('.toggle');
+      if(!b) return;
+      QK_SET = b.dataset.val==='on' ? 'on' : 'off';
+      if(QK_SET==='on'){ QK.paused = false; if(QK.full!=='db') QK.full = ''; QK.bad = 0; QK.dead = ''; QK.deadN = 0; qkUnmark(); qkLoad().then(qkForgive); }
+      try{ localStorage.setItem(QK_KEY, QK_SET); }catch(x){}
+      hraTick();
+      qkStatus(true);
+    });
+    document.getElementById('qk-pause').addEventListener('click', ()=>{ QK.paused = !QK.paused; hraTick(); qkStatus(true); });
+    document.addEventListener('visibilitychange', ()=>{ if(document.hidden) qkMark(false); else if(HRA.hid && Date.now() - HRA.hid > 1800e3) QK.visit = 0; });
+    window.addEventListener('pagehide', ()=> qkMark(false));
+  })();
+
+  /* ================= A GAME'S SCORES, ONE PLACE (gev*, 2026-11-25) =================
+     For the cards. A game's scores come from ONE source, the most trusted it has: your own review (Chess Arcade's, of these very
+     moves), else Lichess's analysis, else the quick scores (qk*). Never mixed within a game. Reads only: no engine, no
+     requests, nothing is stored. Kept per game and dropped when the review, the analysis or the quick scores change.
+     Quick scores carry quick:true. They are for shares over many games: never name one of their moves as a mistake, and
+     gevMove gives null for them. (spec: ~/found-work/spec.md) */
+  var GEV_C = new Map(), GEV_NONE = -32768, GEV_MATE = 30000;
+  // a score as a number (White's side): centipawns held to +-20000; a mate in n: +-(30000 - n); none: GEV_NONE
+  function gevNum(s){ return !s ? GEV_NONE : s.type==='mate' ? (s.value < 0 ? -1 : 1) * (GEV_MATE - Math.min(999, Math.abs(Math.round(s.value)))) : Math.max(-20000, Math.min(20000, Math.round(s.value))); }
+  function gevObj(v){ return v===GEV_NONE || v==null ? null : v > 20000 ? { type:'mate', value:GEV_MATE - v } : v < -20000 ? { type:'mate', value:-(GEV_MATE + v) } : { type:'cp', value:v }; }
+  function gevText(t){
+    const s = new Int16Array(t.length);
+    for(let i = 0; i < t.length; i++){ const c = t[i]; s[i] = c.charCodeAt(0)===77 ? gevNum({ type:'mate', value:Number(c.slice(1)) }) : Math.max(-20000, Math.min(20000, Number(c) || 0)); }
+    return s;
+  }
+  // { id, h, n, src:'review'|'lichess'|'quick', quick, d: depth | null, nd: nodes | null, at, from, s: Int16Array(n + 1), known, bm } or null
+  function gevOf(g){
+    if(!g || g.id==null) return null;
+    const id = String(g.id), re = ojRevs()[id] || null, L = HRS_ID.get(id) || null, mem = HR_MEM.get(id) || null, li = Array.isArray(g._ev) ? g._ev : null, q = QK_DB.get(id) || null;
+    if(!re && !L && !mem && !li && !q) return null;
+    const c = GEV_C.get(id), bt = re ? re.bm : undefined;
+    if(c && c.mv===g.moves && c.st===g.status && c.re===re && c.bt===bt && c.L===L && c.mem===mem && c.li===li && c.q===q) return c.E;
+    const E = gevMake(g, id, re, mem, li, q);
+    if(GEV_C.size > 6000) GEV_C.clear();
+    GEV_C.set(id, { mv:g.moves, st:g.status, re, bt, L, mem, li, q, E });
+    return E;
+  }
+  function gevMake(g, id, re, mem, li, q){
+    const x = hraSigOf(g), n = x.n, h = x.h;
+    if(!n) return null;
+    const out = (src, s, o)=>{ let k = 0; for(let i = 0; i <= n; i++) if(s[i]!==GEV_NONE) k++; return Object.assign({ id, h, n, src, quick:src==='quick', d:null, nd:null, at:0, from:'', s, known:k, bm:'', bg:'', b:'' }, o); };
+    let e = re && re.n===n && re.h===h && typeof re.e==='string' ? re : null;
+    if(!e && hrsOn()){ const a = HRS.get(id+'.'+h); if(a && a.n===n) e = a; }
+    if(e){ const t = e.e.split(','); if(t.length===n + 1) return out('review', gevText(t), { d:e.d, at:e.at, from:e.from || '', bm:e.bm || '', bg:e.bm && hrgOk(e.bg, n) ? e.bg : '', b:e.b || '' }); }
+    if(mem && mem.sig===h && mem.n===n && mem.review && Array.isArray(mem.review.ev) && mem.review.ev.length===n + 1){          // this session's, not kept (no room)
+      const R = mem.review;
+      return out('review', Int16Array.from(R.ev, gevNum), { d:R.d, at:R.at, bm:hrbEnc(R.best, n), bg:hrgOk(R.gaps, n) ? R.gaps : '', b:(R.b || []).map(z=> (HR_BY_ID[z] || { code:'.' }).code).join('') });
+    }
+    if(li){ const A = ojLiSeries(g, n); if(A) return out('lichess', Int16Array.from(A, gevNum), {}); }
+    if(q && q.h===h && q.n===n){
+      const s = new Int16Array(n + 1);
+      for(let i = 0; i <= n; i++) s[i] = gevNum(qkScore(q.s.charCodeAt(i)));
+      return out('quick', s, { nd:q.nd, at:q.at });
+    }
+    return null;
+  }
+  // the score at position p (0 = the start, n = the last): { s: { type, value } White's side, src, quick, d, nd } or null
+  function gevAt(g, p){
+    const E = gevOf(g), s = E && p >= 0 && p <= E.n ? gevObj(E.s[p]) : null;
+    return s ? { s, src:E.src, quick:E.quick, d:E.d, nd:E.nd } : null;
+  }
+  // a score number from `me`'s side ('w' | 'b') in centipawns, held to +-1500, a mate +-1500; null when there is none
+  function gevCp(v, me){
+    if(v===GEV_NONE || v==null) return null;
+    const c = Math.max(-1500, Math.min(1500, v));
+    return me==='b' ? -c : c;
+  }
+  // `me`'s winning chances there, 0..100 (Lichess's curve, held to +-10.00: Accuracy by piece's); null when there is none
+  function gevWin(v, me){ const c = gevCp(v, me); return c==null ? null : 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * Math.max(-1000, Math.min(1000, c)))) - 1); }
+  // the engine's best move at position p (UCI), from a review that kept them; '' when it isn't known (or the game is over there)
+  function gevBest(g, p){
+    const E = gevOf(g);
+    if(!E || !E.bm || !(p >= 0 && p <= E.n)) return '';
+    if(E.best===undefined) E.best = hrbDec(E.bm, E.n);
+    return (E.best && E.best[p]) || '';
+  }
+  // how far the second and third moves there were behind the best, in points of winning chances: { two, three, one } (at least
+  // 0, 5, 10, 15, 20, 30 or 50; one: the only legal move), from a review that kept them; null when it isn't known
+  function gevGap(g, p){ const E = gevOf(g); return E && E.bg && p >= 0 && p <= E.n ? hrgRead(E.bg.charAt(p)) : null; }
+  // who is to move at position p ('w' | 'b')
+  function gevTurn(g, p){ const bf = !ghIsStd(g) && (/ b /.test(String(g.initialFen || '')) || !!g._bf); return (p % 2===0)!==bf ? 'w' : 'b'; }
+  // what one move did (ply 1..n), from a review or Lichess's analysis only: null for quick scores, or where a score is missing
+  function gevMove(g, ply){
+    const E = gevOf(g);
+    if(!E || E.quick || !(ply >= 1 && ply <= E.n) || E.s[ply - 1]===GEV_NONE || E.s[ply]===GEV_NONE) return null;
+    const mover = gevTurn(g, ply - 1), a = gevObj(E.s[ply - 1]), b = gevObj(E.s[ply]);
+    return { ply, mover, before:a, after:b, pts:Math.max(0, gevWin(E.s[ply - 1], mover) - gevWin(E.s[ply], mover)),
+      cp:Math.max(0, hrMoverScore(a, mover) - hrMoverScore(b, mover)), badge:E.b && HR_BY_CODE[E.b.charAt(ply - 1)] ? HR_BY_CODE[E.b.charAt(ply - 1)].id : '', best:gevBest(g, ply - 1), src:E.src };
+  }
+  // where `me` stood better by x centipawns or more over two positions in a row (150: better, 300: clearly): every stretch,
+  // [{ from, to, held, hold }] (positions; held: a pair of them starts on me's turn, so me moved and stayed better; hold: the
+  // last such position (the score held after me's move from it), -1 when there is none). null: no scores
+  function gevStand(g, me, x){
+    const E = gevOf(g);
+    if(!E) return null;
+    const out = [], bar = x || 150, odd = gevTurn(g, 0)===me ? 0 : 1;          // me is to move at the even positions, or the odd ones
+    for(let p = 0; p <= E.n; p++){
+      const c = gevCp(E.s[p], me);
+      if(c==null || c < bar) continue;
+      let q = p;
+      for(let d; q < E.n && (d = gevCp(E.s[q + 1], me))!=null && d >= bar; ) q++;
+      if(q > p){ const h = (q - 1) % 2===odd ? q - 1 : q - 2; out.push({ from:p, to:q, held:h >= p, hold:h >= p ? h : -1 }); }
+      p = q;
+    }
+    return out;
+  }
+  function gevStood(g, me, x){ const L = gevStand(g, me, x); return L && L.length ? L[0] : null; }
+  // where a phase begins by the phase bar ('m' the middlegame, 'e' the endgame), and the score there: { p, s, cp (me's side),
+  // src, quick } (s, cp null: no score there); null: the game never gets there (or its moves can't be read to the end, or the pass never
+  // reads it: a bot's, a variant's); undefined: not read yet (the endgames pass)
+  function gevPhase(g, me, k){
+    const x = EG.get(g.id);
+    if(!x) return rpCounted(g) ? undefined : null;
+    if(!x.all || x.n!==hraSigOf(g).n) return null;
+    const p = k==='m' ? x.m : x.s;
+    if(!(p >= 0)) return null;
+    const a = gevAt(g, p);
+    return a ? { p, s:a.s, cp:gevCp(gevNum(a.s), me), src:a.src, quick:a.quick } : { p, s:null, cp:null, src:'', quick:false };
+  }
+  function gevEndgame(g, me){ return gevPhase(g, me, 'e'); }
+  // games by source: { all, review, lichess, quick, none }
+  function gevCounts(list){
+    const o = { all:0, review:0, lichess:0, quick:0, none:0 };
+    list.forEach(x=>{ const E = gevOf(x && x.g ? x.g : x); o.all++; o[E ? E.src : 'none']++; });
+    return o;
+  }
+  // for a card's signature: moves when any of these may have changed (quick scores at most every 30 s); and a call when they did
+  function gevVer(){ return OJ_VER+'.'+HRS_VER+'.'+QK_VER; }
+  function gevOnNews(f){ QK_LS.add(f); return ()=> QK_LS.delete(f); }
+  // the quick scores are read from the device the first time a card asks (gevOnNews calls when they're in); true when they are
+  function gevReady(){
+    if(!QK_OK || !hrsOn() || hraClass()==='phone') return true;          // none here
+    if(!QK_LOADED) qkLoad();
+    return QK_LOADED;
+  }
 
   // ---- the review pane ----
   const HR_SVG_NS = 'http://www.w3.org/2000/svg';
