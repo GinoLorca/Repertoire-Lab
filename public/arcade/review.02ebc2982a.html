@@ -9269,6 +9269,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .gz-top > .ct-h, .gz-top > .gz-what, .gz-top > .gz-due{ grid-column:1; margin:0; }
   .gz-top > .gz-go{ grid-column:2; grid-row:1 / span 3; align-self:end; }
   .gz-due{ font-size:13px; line-height:1.4; color:var(--ink); }
+  .gz-top > .gz-base{ grid-column:1 / -1; margin:0; font-size:13px; line-height:1.4; color:var(--ink); white-space:pre-line; }
+  .gz-top > .gz-base[hidden]{ display:none; }
   .gz-need{ margin:0; font-size:13px; line-height:1.4; color:var(--ink); }
   .gz-showrow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; min-width:0; }
   /* the needs-you line and the Show row on the card surface, so they read on every wallpaper */
@@ -9282,11 +9284,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   @media (max-width:520px){ .gz-top > .gz-go{ justify-self:stretch; } }
   @media (pointer:coarse){ .gz-go, .gz-more{ min-height:44px; } }
   /* the cards: Analytics' boards (.ct-m, .ct-mbd), 4 across on a wide page, 3 from 641px, 2 from 521px; on a phone one a row,
-     a 112px board left of its four lines. Kind colors: Finish the job --bad, Missed mate --partial, Win it again --brass */
+     a 112px board left of its four lines. Kind colors: Finish the job --bad, Missed mate --partial, Win it again --brass, Find the
+     king move --loose, Punish it --good */
   .ct-mgrid.gz-grid{ grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
   .gz-m{ --c:var(--bad); }
   .gz-m.is-mate{ --c:var(--gz-mate, var(--partial)); }
   .gz-m.is-win{ --c:var(--gz-win, var(--brass)); }
+  .gz-m.is-king{ --c:var(--gz-king, var(--loose)); }
+  .gz-m.is-punish{ --c:var(--gz-punish, var(--good)); }
   .gz-m .gz-l1 b{ font-size:13px; line-height:1.3; }
   .gz-m .ct-mft{ font-size:13px; line-height:1.35; }
   .gz-m .gz-l2{ color:var(--ink); }
@@ -9296,18 +9301,18 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   /* where a skin's own token falls short on the cards (t_layout L2): Missed mate's edge 3:1, "time trouble" and "Learned" 4.5:1.
      Win it again's edge (R2): Bauhaus's yellow is Missed mate's there (and 1.6:1 in light), so its blue; Drive-Thru's light
      yellow is 1.6:1 on white, so a darker gold; Court Cards' light --brass is the red of Finish the job, so its gold */
-  :root[data-skin="bauhaus"]{ --gz-mate:#a87800; --gz-win:#1a4fa0; }
+  :root[data-skin="bauhaus"]{ --gz-mate:#a87800; --gz-win:#1a4fa0; --gz-king:#141414; --gz-punish:#5c5850; }      /* its green is its blue: black and gray */
   :root[data-skin="drivethru"]{ --gz-win:#b08000; }
   :root[data-skin="cards"]{ --gz-win:#8a6a16; }
-  :root[data-skin="gameboy"]{ --gz-tt:#a52a2a; --gz-learned:#1b5e2e; }
+  :root[data-skin="gameboy"]{ --gz-tt:#a52a2a; --gz-learned:#1b5e2e; --gz-punish:#1b5e2e; }
   @media (prefers-color-scheme:dark){
-    :root[data-skin="bauhaus"]:not([data-theme="light"]){ --gz-mate:var(--partial); --gz-tt:#f06a62; --gz-learned:#6b9be0; --gz-win:#6b9be0; }
+    :root[data-skin="bauhaus"]:not([data-theme="light"]){ --gz-mate:var(--partial); --gz-tt:#f06a62; --gz-learned:#6b9be0; --gz-win:#6b9be0; --gz-king:#f5f2ea; --gz-punish:#a8a29a; }
     :root[data-skin="drivethru"]:not([data-theme="light"]), :root[data-skin="cards"]:not([data-theme="light"]){ --gz-win:var(--brass); }
-    :root[data-skin="gameboy"]:not([data-theme="light"]){ --gz-tt:#ee7f74; --gz-learned:var(--gho-win); }
+    :root[data-skin="gameboy"]:not([data-theme="light"]){ --gz-tt:#ee7f74; --gz-learned:var(--gho-win); --gz-punish:var(--good); }
   }
-  :root[data-skin="bauhaus"][data-theme="dark"]{ --gz-mate:var(--partial); --gz-tt:#f06a62; --gz-learned:#6b9be0; --gz-win:#6b9be0; }
+  :root[data-skin="bauhaus"][data-theme="dark"]{ --gz-mate:var(--partial); --gz-tt:#f06a62; --gz-learned:#6b9be0; --gz-win:#6b9be0; --gz-king:#f5f2ea; --gz-punish:#a8a29a; }
   :root[data-skin="drivethru"][data-theme="dark"], :root[data-skin="cards"][data-theme="dark"]{ --gz-win:var(--brass); }
-  :root[data-skin="gameboy"][data-theme="dark"]{ --gz-tt:#ee7f74; --gz-learned:var(--gho-win); }
+  :root[data-skin="gameboy"][data-theme="dark"]{ --gz-tt:#ee7f74; --gz-learned:var(--gho-win); --gz-punish:var(--good); }
   @media (max-width:959px){ .ct-mgrid.gz-grid{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
   @media (max-width:640px){ .ct-mgrid.gz-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; } }
   @media (max-width:520px){
@@ -10839,6 +10844,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <h2 class="ct-h">Puzzles from your games</h2>
         <p class="ct-sub gz-what">Positions from your own games, checked by Stockfish 16 on this device.</p>
         <p class="gz-due" id="gz-due"></p>
+        <p class="gz-base" id="gz-base" hidden></p>
         <button type="button" class="btn btn-primary gz-go" id="gz-go" data-act="solve" hidden>Solve</button>
       </div>
       <p class="gz-need" id="gz-need" hidden></p>
@@ -24488,7 +24494,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // on screen.
     if(!roundPz || roundPz.done || roundPz.locked || !pzIsLiveView()) return;
     const uci = roundPz.solution[roundPz.solIndex];
-    const fromIdx = pzAlgToIdx(uci.slice(0,2));
+    const fromIdx = pzAlgToIdx(gzRoundOn() && roundPz.replay.P.kind==='king' ? uci.slice(2,4) : uci.slice(0,2));      // a king move to find: its name says the piece, so the square it goes to
     if(roundPz.replay){ roundPz.hinted = true; if(gzRoundOn()) gzRecord(); }     // help: a later solve is "solved with help"
     marksPz.squares[fromIdx] = '#e8b339';
     renderMarks(pzBoardEl, arrowSvgPz, marksPz, roundPz.state.board);
@@ -46439,7 +46445,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   var GZ_ON = (function(){ let v = null; try{ v = localStorage.getItem(GZ_ON_KEY); }catch(e){} if(v==='on' || v==='off') return v==='on'; return !gzPhone(); })();
   function gzOn(){ return GH_UI.view==='puzzles'; }
   // (ghLoadFilters runs at load, before this block's vars are set: no var here)
-  function gzValidK(k){ return k==='job' || k==='mate' || k==='win' ? k : 'all'; }
+  function gzValidK(k){ return k==='job' || k==='mate' || k==='win' || k==='king' || k==='punish' ? k : 'all'; }
   // the games Puzzles looks at: people only (ghBaseList), a real result, standard chess from the start, never a `cheat` game
   function gzInBase(g){ return gaInBase(g) && g.status!=='cheat'; }
   // ---- the list (build step 6; spec 4, 10, 13.4, 17): the model joins the found items (GZ.P), the game records (GZ.G) and the
@@ -46448,7 +46454,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   var GZ_AV = 0;                                      // the attempts' stamp (bumped on each write)
   var GZ_MB = new Map(), GZ_MBK = '', GZ_IO = null;   // the mini boards: an LRU of 60 (FEN, flip), cleared when the piece set changes
   var GZ_LEARNED = 5;                                 // the ladder's top: Learned (13.2)
-  var GZ_KW = { job:'Finish the job', mate:'Missed mate', win:'Win it again' };
+  var GZ_KW = { job:'Finish the job', mate:'Missed mate', win:'Win it again', king:'Find the king move', punish:'Punish it' };
   var GZ_WRW = { n:'Not won', q:'Stopped' };          // a Win it again record's words (10.4); w and h have their own
   var GZ_RW = { s:'Solved', h:'Solved with help', x:'Missed', v:'Solution shown' };
   var GZ_FONLY = ['opening', 'oq', 'tc', 'rated', 'gap', 'end', 'eg', 'oj', 'len', 'notes', 'gold', 'rep'];     // Filters stored facts can't answer
@@ -46483,7 +46489,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const f0 = Object.assign({}, f, { date:'' });
     const B = base.filter(gzInBase);
     const v = f.date || '', from = gaFrom(v, now), today = gzDay(ghoBriefNow());
-    const md = { pk, u, now, f, v, from, today, nBase:base.length, nB:B.length, A:[], W:[], items:[], ent:[], list:[], n:{ all:0, job:0, mate:0, win:0 },
+    const md = { pk, u, now, f, v, from, today, nBase:base.length, nB:B.length, A:[], W:[], items:[], ent:[], list:[], n:{ all:0, job:0, mate:0, win:0, king:0, punish:0 },
       looked:0, src:{ r:0, l:0, s:0 }, mm:0, due:0, nw:0, next:0, wnt:0, wnw:0, loading:!base.length && ghTabBusy() };
     B.forEach(g=>{
       if(!ghMatch(g, u, f0)) return;
@@ -46502,7 +46508,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const other = GZ_FONLY.some(k=> !!f[k]), rk = { loss:0, draw:1, win:2 };
     let loaded = null;
     GZ.P.forEach(it=>{
-      if(it.kind!=='job' && it.kind!=='mate' && it.kind!=='win') return;
+      if(!GZ_KW[it.kind] || gkHid(it)) return;
       const games = Array.isArray(it.games) ? it.games : [];
       let G = null, g = null;
       for(const x of games){ const y = inW.get(String(x.id)); if(y){ G = x; g = y; break; } }
@@ -46546,7 +46552,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const lab = ghClampLabel(q + 1, G.san || '', 0), sc = Array.isArray(it.sc) ? it.sc : [];
     const dec = (t)=> t ? hrDecScore(String(t)) : null;
     let l1, say1;
-    if(it.kind==='job'){
+    if(it.kind==='job' || gkKind(it.kind)){
       const a = dec(sc[0]), z = dec(sc[2]);
       l1 = lab+': '+ghbScoreText(a, me)+' \u2192 '+ghbScoreText(z, me);
       say1 = 'You played '+lab+', '+gzSay(a, me)+' to '+gzSay(z, me);
@@ -46577,7 +46583,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(ph!=null) bits.push(CT_PHASES[ph]);
     if(C && G.speed!=='correspondence') bits.push(gaClockW(C[0])+' left, took '+gaTookW(C[1]));
     let fact = '';
-    if(it.kind==='job' || wb==='a' || wb==='b'){
+    if(it.kind==='job' || gkKind(it.kind) || wb==='a' || wb==='b'){
       const toks = String(G.toks || '').split(' ');
       if(G.fl==='their' && q >= 1) fact = 'after their mistake '+ghClampLabel(q, toks[q - 1] || '', 0);
       // a (b) item's line 1 already names its start ("From 31...", "Winning from move 24"): "winning since" only when earlier
@@ -46662,7 +46668,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function gzDrawTop(md){
     const el = document.getElementById('gz-due'), go = document.getElementById('gz-go'), n = md.due + md.nw, N = md.items.length;
     // a chip with none in it (a link, or Filters that left none of its kind): say so, and what to press
-    const none = !md.list.length && N ? 'No '+(md.k==='mate' ? 'missed mates' : md.k==='win' ? 'Win it again puzzles' : 'Finish the job puzzles')+(md.v || ghActiveCount() > 0 ? ' in these Filters' : ' yet')
+    const none = !md.list.length && N ? 'No '+(md.k==='mate' ? 'missed mates' : (GZ_KW[md.k] || 'Finish the job')+' puzzles')+(md.v || ghActiveCount() > 0 ? ' in these Filters' : ' yet')
       +'. Press All to see '+(N===1 ? 'the 1 puzzle' : 'all '+N.toLocaleString('en-US')+' puzzles')+'.' : '';
     // the Win it again chip: what's left to play, and no button (each opens from its card); md.list holds no puzzle then, so n is 0
     const t = none || (md.k==='win' ? 'Not tried '+md.wnt.toLocaleString('en-US')+' \u00b7 Not won '+md.wnw.toLocaleString('en-US')
@@ -46671,6 +46677,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(el.textContent!==t) el.textContent = t;
     go.hidden = !n;
     go.dataset.fid = 'gz-go';
+    gkDrawBase(md);
   }
   // the grid: 12 cards (6 on a phone), then Show 12 more (6)
   function gzDrawGrid(md){
@@ -46709,7 +46716,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const el = document.getElementById('gz-src'), N = (n)=> Number(n || 0).toLocaleString('en-US'), W = md.W.length;
     const t = 'Games against people, standard chess, in these Filters. Looked at: '+N(md.looked)+' of '+N(W)+', newest first, games you didn\u2019t win first. '
       +'Found in: your reviews '+N(md.src.r)+' \u00b7 Lichess\u2019s analysis '+N(md.src.l)+' \u00b7 Stockfish 16 on this device '+N(md.src.s)+' ('+N(GZ_NODES.scan)+' nodes a position). '
-      +'Every puzzle checked by Stockfish 16 on this device ('+N(GZ_NODES.multi)+' nodes, the 2 best moves). '
+      +'Every Finish the job, Missed mate and Win it again checked by Stockfish 16 on this device ('+N(GZ_NODES.multi)+' nodes, the 2 best moves). '
       +'Mates in 1: '+N(md.mm)+' of '+N(W)+' games checked by Chess Arcade\u2019s rules. '
       +'Winning = +2.00 or better; a slip costs 15+ points of Lichess\u2019s winning chances. '+(GZ_MEM ? 'Kept for this visit only.' : 'Kept on this device.');
     if(el.textContent!==t) el.textContent = t;
@@ -46730,13 +46737,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // by spRoundEnded; nothing goes to Lichess, Saved Puzzles, Puzzle History, the Dashboard's practice log, notes or reviews ----
   var GZ_RUN = 10;                                    // a run: up to 10 puzzles
   var GZ_STEP = [0, 3, 7, 14, 30];                    // the ladder's waits in days after a clean solve at levels 1-4 (13.2)
-  var GZ_SRCW = { r:'Found in your review', l:'Found in Lichess\u2019s analysis', s:'Found by Stockfish 16 on this device', m:'Found by Chess Arcade\u2019s rules' };
+  var GZ_SRCW = { r:'Found in your review', l:'Found in Lichess\u2019s analysis', q:'Found with this device\u2019s quick scores', s:'Found by Stockfish 16 on this device', m:'Found by Chess Arcade\u2019s rules' };
   function gzRoundOn(){ return !!(roundPz && roundPz.replay && roundPz.replay.kind==='game'); }
   // an item that can be played: a puzzle with its start and its line; the game named is the card's (else its newest), the game
   // object when it is in memory
   function gzRunItem(f, e){
     const it = GZ.P.get(f);
-    if(!it || (it.kind!=='job' && it.kind!=='mate') || typeof it.fen!=='string' || !Array.isArray(it.line) || !it.line.length) return null;
+    if(!it || (it.kind!=='job' && it.kind!=='mate' && !gkKind(it.kind)) || gkHid(it) || typeof it.fen!=='string' || !Array.isArray(it.line) || !it.line.length) return null;
     const games = Array.isArray(it.games) ? it.games : [];
     const G = (e && e.G && games.some(x=> x===e.G || String(x.id)===String(e.G.id)) ? e.G : null) || games[0];
     if(!G || !(Number(G.q) > 0)) return null;
@@ -46789,11 +46796,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const P = rp.P, me = rp.G.me==='b' ? 'b' : 'w', n = Number(P.n) || 1;
     if(!val) return;
     val.textContent = '';
-    if(P.kind==='job') val.textContent = ghbScoreText(Array.isArray(P.sc) && P.sc[0] ? hrDecScore(String(P.sc[0])) : null, me) || '\u2014';
+    if(P.kind!=='mate') val.textContent = ghbScoreText(Array.isArray(P.sc) && P.sc[0] ? hrDecScore(String(P.sc[0])) : null, me) || '\u2014';
     else val.appendChild(ghEl('span', 'gz-words', n <= 2 ? 'Mate in '+n : 'A mate'));
   }
   function gzTurnWords(rp){
     if(rp.P.kind==='mate') return gzMateWords(Number(rp.P.n) || 1).find;
+    if(gkKind(rp.P.kind)) return rp.P.kind==='king' ? 'Find the king move.' : 'They just slipped. Punish it.';
     return rp.G.fl==='their' ? 'They just slipped. Find the move that wins.' : 'You were winning. Find the move that keeps it.';
   }
   // the meta card (11.2, 11.6): "From your game . move 23 . Middlegame", then the kind; once done, where it was found
@@ -46802,7 +46810,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const t = document.getElementById('pz-meta-gz'), sub = document.getElementById('pz-meta-gzsub');
     if(t) t.textContent = 'From your game \u00b7 move '+Math.ceil((q + 1) / 2)+(ph!=null ? ' \u00b7 '+CT_PHASES[ph] : '');
     const src = G.mo==='r' ? 'm' : G.src;
-    if(sub) sub.textContent = R.done ? (GZ_SRCW[src] || GZ_SRCW.s)+(src!=='m' ? ' \u00b7 checked by Stockfish 16 on this device ('+GZ_NODES.multi.toLocaleString('en-US')+' nodes)' : '') : (GZ_KW[P.kind] || '');
+    if(sub) sub.textContent = R.done ? (GZ_SRCW[src] || GZ_SRCW.s)+(src!=='m' ? ' \u00b7 checked by Stockfish 16 on this device ('+(gkKind(P.kind) ? GK_NODES : GZ_NODES).multi.toLocaleString('en-US')+' nodes)' : '') : (GZ_KW[P.kind] || '');
     const row = document.getElementById('pz-meta-game-row'), tc = gzTcW(G.tc);
     row.style.display = '';
     document.getElementById('pz-meta-game').textContent = (G.site==='c' ? 'chess.com' : 'Lichess')+' \u00b7 '+gaSpeedW(G.speed)+(tc && G.speed!=='correspondence' ? ' '+tc : '')+' \u00b7 '+ghFormatDate(G.at);
@@ -46958,7 +46966,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const mate = !!nx && pzIsInCheck(nx, nx.turn) && pzAllLegalMoves(nx).length===0;
     const step = Math.floor(R.solIndex / 2) + 1;
     const alt = (Array.isArray(rp.P.alt) ? rp.P.alt : []).some(a=> Array.isArray(a) && Number(a[0])===step && gzCastleNorm(R.state, String(a[1]))===nu);
-    if(mate || alt){ gzEndSolved(move, alt ? 'That mates too.' : ''); return; }
+    const good = mate || alt ? null : gkGood(R, nu);
+    if(mate || alt || good){ R.gkGood = good; gzEndSolved(move, alt ? 'That mates too.' : good ? 'That works too.' : ''); return; }
     if(R.tries.length < 20) R.tries.push({ at:R.solIndex, uci });
     if(!R.failed){ R.failed = true; gzRecord(); }
     pzWrongFeedback();
@@ -47048,9 +47057,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const lab = ghClampLabel(q + 1, G.san || '', 0), len = Number(G.len) || (rp.g && rp.g.moves ? gaToks(rp.g).length : 0);
     const res = { loss:'lost', draw:'drew', win:'won' }[G.res];
     const end = res ? ', '+res+(len ? ' on move '+Math.ceil(len / 2) : '') : '';
-    let t = 'In the game: '+lab+(P.kind==='job' ? ', '+ghbScoreText(dec(sc[0]), me)+' \u2192 '+ghbScoreText(dec(sc[2]), me) : '')+end+'.';
+    let t = 'In the game: '+lab+(P.kind==='job' || gkKind(P.kind) ? ', '+ghbScoreText(dec(sc[0]), me)+' \u2192 '+ghbScoreText(dec(sc[2]), me) : '')+end+'.';
     const ln = gzLineSan(P.fen, P.line || [], q);
     if(G.mo==='r' || P.games && P.games.every(x=> x.mo==='r')) t += ln ? ' The mate: '+ln+'.' : '';
+    else if(gkKind(P.kind)){ if(ln) t += gkSub(R, q, me); }
     else if(ln){
       const z = dec(sc[3]);
       t += ' Stockfish 16: '+ln+(P.kind==='job' && z ? ', '+ghbScoreText(z, me)+' after it' : '')+'.';
@@ -47131,7 +47141,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // what the tab draws from: an unchanged signature touches no DOM
   function gzSig(md, em){
     return [md.pk, md.nBase, md.nB, md.A.length, md.W.length, md.looked, md.items.length, md.k, GZ.shown, gaPhone() ? 1 : 0, gzPieceKey(),
-      GZ_ON ? 1 : 0, OJ_NOENG ? 1 : 0, GZ_MEM ? 1 : 0, em ? em.t : ''].join('|');
+      GZ_ON ? 1 : 0, OJ_NOENG ? 1 : 0, GZ_MEM ? 1 : 0, em ? em.t : '', md.k==='punish' ? gevVer()+(gevReady() ? '' : '-') : md.k==='king' ? gevVer() : ''].join('|');
   }
   function gzRender(base){
     const t0 = performance.now(), sec = document.getElementById('gz');
@@ -47160,6 +47170,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     empty.textContent = '';
     empty.hidden = !em;
     top.hidden = !!em; row.hidden = !!em; src.hidden = !!em; more.hidden = true;
+    gkDrawSrc(null);
     const nt = em ? '' : gzNeed(md);
     if(need.textContent!==nt) need.textContent = nt;
     need.hidden = !nt;
@@ -47174,11 +47185,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     gzDrawTop(md);
     gzDrawGrid(md);
     gzDrawSrc(md);
+    gkDrawSrc(md);
   }
-  // the Show chips: All, Finish the job, Missed mates, Win it again (a chip with 0 hidden, except All and the one pressed); one Tab stop
+  // the Show chips: All, Finish the job, Missed mates, Win it again, Find the king move, Punish it (a chip with 0 hidden, except All and the one pressed); one Tab stop
   function gzDrawChips(md){
     const wr = document.getElementById('gz-show'), cur = md.k;
-    const items = [['all', 'All', 'All puzzles'], ['job', 'Finish the job', 'Finish the job'], ['mate', 'Missed mates', 'Missed mates'], ['win', 'Win it again', 'Win it again']]
+    const items = [['all', 'All', 'All puzzles'], ['job', 'Finish the job', 'Finish the job'], ['mate', 'Missed mates', 'Missed mates'], ['win', 'Win it again', 'Win it again'], ['king', GZ_KW.king, GZ_KW.king], ['punish', GZ_KW.punish, GZ_KW.punish]]
       .filter(([v])=> v==='all' || v===cur || md.n[v] > 0);
     const sig = cur+'|'+items.map(([v])=> v+':'+(md.n[v] || 0)).join(',');
     if(wr.dataset.sig===sig) return;
@@ -47748,7 +47760,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       try{
         const tx = db.transaction(['g', 'p', 'a', 'm']);
         const all = (n, f)=>{ const q = tx.objectStore(n).getAll(); q.onsuccess = ()=>{ (q.result || []).forEach(r=>{ try{ f(r); }catch(e){} }); }; };
-        all('g', r=>{ if(r && r.id && typeof r.h==='string' && !GZ.G.has(String(r.id))) GZ.G.set(String(r.id), r); });
+        all('g', r=>{ if(!r || !r.id || typeof r.h!=='string') return; const k = /^k:/.test(r.id), M = k ? GK.G : GZ.G, id = String(r.id).slice(k ? 2 : 0); if(!M.has(id)) M.set(id, r); });      // 'k:': the two newer kinds
         all('p', r=>{ if(r && typeof r.f==='string' && Array.isArray(r.games) && !GZ.P.has(r.f)) GZ.P.set(r.f, r); });
         all('a', r=>{ if(r && typeof r.f==='string' && !GZ.A.has(r.f)) GZ.A.set(r.f, r); });
         all('m', r=>{ if(r && r.k) GZ.M[r.k] = r; });
@@ -47837,9 +47849,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function gzHasWork(){
     const u = ghMe();
     if(GZ.cur && gzWorkOf(GZ.cur.g, u)) return true;
-    const k = gzQKey()+'|'+GZ_FV+'|'+GZ_FAIL.size+'|'+GZ_V+'|'+GZ_SV;
+    if(GK.cur && gkWorkOf(GK.cur.g, u)) return true;
+    const k = gzQKey()+'|'+GZ_FV+'|'+GZ_FAIL.size+'|'+GZ_V+'|'+GZ_SV+'|'+GK_FAIL.size+'|'+GK_V+'|'+(gkReady() ? 1 : 0)+'|'+gevVer();
     if(GZ.hw && GZ.hw[0]===k) return GZ.hw[1];
-    const has = ghBaseList('all').some(g=> gzInBase(g) && !!gzWorkOf(g, u));
+    const has = ghBaseList('all').some(g=> gzInBase(g) && (!!gzWorkOf(g, u) || !!gkWorkOf(g, u)));
     GZ.hw = [k, has];
     return has;
   }
@@ -47885,11 +47898,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // null (nothing left)
   function gzNext(job){
     const u = ghMe();
+    job.gk = null;
     let R = GZ.cur;
     if(R && !gzWorkOf(R.g, u)){ GZ.run.delete(R.key); R = GZ.cur = null; }
     if(!R){
+      const k = gkNext(job, false);               // Find the king move, Punish it: a game of theirs between two of these, in fair share
+      if(k) return k;
       R = GZ.cur = gzPick(job);
-      if(!R) return null;
+      if(!R) return gkNext(job, true);
       gzStatus(); gzCountLine();
       return 'cpu';                               // the pick (the queue, the status) in its own task; the replay in the next
     }
@@ -47909,6 +47925,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // asks the same request again and isn't a failure; the watchdog or an answer with no line is, and twice leaves the game
   // for another visit (GZ_FAIL)
   function gzTake(job, a){
+    if(job.gk) return gkTake(job, a);
+    gkCredit(a);
     const R = GZ.cur;
     if(!R || !R.gen || !R.res || R.res.done) return;
     if(a && typeof a==='object' && Array.isArray(a.lines) && a.lines.length){
@@ -48051,7 +48069,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     let looked = 0, n = 0;
     all.forEach(g=>{ if(gzLookedG(g, u)) looked++; });
     const ids = new Set(all.map(g=> String(g.id))), lu = String(u || '').toLowerCase();      // this account's puzzles only
-    GZ.P.forEach(it=>{ if((it.kind==='job' || it.kind==='mate' || it.kind==='win') && Array.isArray(it.games) && it.games.some(G=> ids.has(String(G.id)) || (!!G.u && G.u===lu))) n++; });
+    GZ.P.forEach(it=>{ if(GZ_KW[it.kind] && !gkHid(it) && Array.isArray(it.games) && it.games.some(G=> ids.has(String(G.id)) || (!!G.u && G.u===lu))) n++; });
     const N = ghoN(all.length, 'game'), P = ghoN(n, 'puzzle');
     const J = OJ_JOB && OJ_JOB.kind==='z' ? OJ_JOB : null;
     if(J){
@@ -48060,10 +48078,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(hve.state==='loading') return 'Looking: '+at+F+'. '+hvLoadingText()+mem;
       return 'Looking: '+at+F+(sp ? ' \u00b7 Stockfish 16 at '+sp.toLocaleString('en-US')+' nodes a second on this device' : '')+'.'+mem;
     }
-    if(looked >= all.length) return 'All '+N+' looked at \u00b7 '+P+'.'+mem;
+    const k2 = gkStatus(all, looked);
+    if(looked >= all.length) return 'All '+N+' looked at \u00b7 '+P+'.'+k2+mem;
     const of = looked.toLocaleString('en-US')+' of '+N+' looked at \u00b7 '+P;
-    if(!GZ_ON) return 'Off: '+of+'.'+mem;
-    return of+'. The search runs while the Puzzles tab is open.'+mem;
+    if(!GZ_ON) return 'Off: '+of+'.'+k2+mem;
+    return of+'.'+k2+' The search runs while the Puzzles tab is open.'+mem;
   }
   (function(){
     const row = document.getElementById('gz-row');
@@ -48107,6 +48126,460 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       W.lock = null;
       try{ Promise.resolve(l.release()).catch(()=>{}); }catch(e){}
     }
+  }
+  /* ---- Puzzles: two more kinds (2026-11-25; the user's list, ~/mine-work/list.md item 7), in the tab's own store, runner, ladder
+     and search, under the search above.
+     Find the king move: Stockfish's best move is a king move (you aren't in check, it takes nothing; castling is left out: a
+       habit of its own), you stood at 35% or better, played something else and it cost 10+ points of winning chances.
+     Punish it: their move cost 15+ points, you stood at 35% or better after it, and your reply gave 15+ back.
+     Where to look: one source a game, the best it has (its review, Lichess's analysis, the quick scores, else the scores the
+     search above kept). Those scores are only a hint: a puzzle exists once Stockfish 16 on this device has searched the position
+     (the 4 best moves), the one after your move and the one after the best move (Punish it: the one before their move too), and
+     every number shown is its own. Right: every move whose own position after it is within 0.25 of the one after the best
+     (gkSame); four moves within half a pawn: no puzzle. A king move to find has no other piece's move as good.
+     One position, one kind: Finish the job, Missed mate and Win it again first (a game is looked at here only after them, and a
+     position they list is never listed here), then Find the king move, then Punish it. At most 2 a game.
+     Fair share: while the kinds above have games left, these get 1 part of the engine's nodes to their 3, a game at a time
+     between theirs. In the store (the same one, the same version, so a build without this reads on as before): items under
+     'k:' + fen4 (kind 'king' | 'punish'), game records under 'k:' + id, attempts under the item's own key; a build without
+     this lists, changes and deletes none of them ---- */
+  var GK = { G:new Map(), run:new Map(), cur:null, cr:0, t0:0, on:false, n:[0, 0], b:new WeakMap(), w:null, kb:new Map(), kq:[], kt:0 }, GK_FAIL = new Set();
+  var GK_V = 1;                                                       // these kinds' rules' version
+  var GK_LIM = { king:10, pun:15, sure:2, stand:35, same:25, gray:65, many:50, kd:7, pd:12, sd:32, soft:4, near:50 };      // points (same, gray, many, near: centipawns at 0.00); kd, pd, sd: the hints' looser lines
+  var GK_CAP = { items:2, checks:5, looks:10, lines:4 };              // per game
+  var GK_NODES = { look:20000, multi:400000, one:150000 };
+  var GK_ROUGH = 'rough: about a fifth too many of both';          // 134 of the user's games against 200,000 nodes a position: 550 mistakes for 467 (1.11 to 1.25 times as
+                                                                      // many, 95%), 164 given back for 135 (1.07 to 1.39); the share 29.8% for 28.9% (-1.9 to +3.8 points)
+  var GK_SHARE = 3, GK_CREDIT = 3000000;                              // 1 part of the nodes to the other kinds' 3, saved up to a few games' worth
+  function gkKind(k){ return k==='king' || k==='punish'; }
+  // an item of these kinds whose position one of the other kinds lists: never listed (one position, one kind)
+  function gkHid(it){ const o = gkKind(it.kind) ? GZ.P.get(String(it.f).slice(2)) : null; return !!o && !gkKind(o.kind) && !!GZ_KW[o.kind]; }
+  // ---- the rules, over an engine interface (as gzGame): a generator of requests ----
+  // as good as the best: within 0.25 of it, or (where a pawn's quarter means less: clearly won or lost) within the 2.3 points of
+  // winning chances a quarter is worth at 0.00
+  function gkSame(a, b, me){
+    if(!a || !b) return false;
+    const x = gzWin(a, me), y = gzWin(b, me);
+    if(x==null || y==null) return false;
+    if(a.type==='cp' && b.type==='cp' && Math.abs(a.value - b.value) <= GK_LIM.same) return true;
+    return x - y <= gzW(GK_LIM.same) - 50;
+  }
+  // a king move that isn't castling and takes nothing (x: a position of gzPositions or gzNodeOf)
+  function gkKing(x, uci){
+    if(!x || !/^[a-h][1-8][a-h][1-8]$/.test(uci || '')) return false;
+    const st = x.st || hvStateFromFen(x.fen), from = pzAlgToIdx(uci.slice(0, 2)), to = pzAlgToIdx(uci.slice(2, 4)), p = st.board[from];
+    return !!p && p.type==='k' && p.color===st.turn && !st.board[to] && Math.abs(uci.charCodeAt(0) - uci.charCodeAt(2)) < 2;
+  }
+  // the piece letter on a square, read off the FEN (no board built: most best moves aren't the king's)
+  function gkAt(fen, sq){
+    const r = fen.split('/', 8)[8 - Number(sq.charAt(1))] || '';
+    let f = sq.charCodeAt(0) - 97;
+    for(let i = 0; i < r.length; i++){ const c = r.charCodeAt(i); if(c===32) break; if(c > 48 && c < 57){ f -= c - 48; if(f < 0) return ''; } else if(f--===0) return r.charAt(i); }
+    return '';
+  }
+  function gkCheckd(x){ const st = x.st || hvStateFromFen(x.fen); return pzIsInCheck(st, st.turn); }
+  // a game's scores for the hints: { src:'r'|'l'|'q'|'s', full (every position; else your turns only), w:[your winning chances], bm }
+  function gkSeries(g, me, A, rec){
+    const n = A.n, P = A.P, E = gevOf(g), ok = !!E && E.n===n, out = (src, full, f)=>{
+      const w = new Array(n + 1).fill(null);
+      for(let p = 0; p <= n; p++) w[p] = P[p].term ? gzWin(gzOff(P[p]), me) : f(p);
+      return { src, full, w, bm:src==='r' && !!(E && E.bm) };
+    };
+    if(ok && !E.quick) return out(E.src==='review' ? 'r' : 'l', true, (p)=> gevWin(E.s[p], me));
+    const S = rec && !rec.r && typeof rec.s==='string' && rec.s ? gzDecS(rec.s) : null, kept = !!S && S.length===n + 1;
+    if(kept && rec.src!=='s') return out(rec.src, true, (p)=> gzWin(S[p], me));
+    if(ok) return out('q', true, (p)=> gevWin(E.s[p], me));
+    return kept ? out('s', false, (p)=> gzWin(S[p], me)) : null;
+  }
+  // where to look: [{ q, king, best, pun, loss, w }]: your move at q lost 7+ (a king move to find; `best`: the review's own best
+  // move, a king move) or 12+ after their move lost 12+ (Punish it). Half a series: your next turn and your last one
+  function gkCands(J){
+    const P = J.P, me = J.me, n = J.n, w = J.w, out = [];
+    for(let q = 1; q < n; q++){
+      const x = P[q];
+      if(x.turn!==me || x.legal < 2 || x.term || J.skip.has(q) || J.held(x.f)) continue;
+      const a = J.full || q + 1===n ? w[q + 1] : w[q + 2], b = J.full ? w[q - 1] : q >= 2 ? w[q - 2] : null, W = w[q];
+      if(W==null || a==null) continue;
+      const loss = W - a, best = J.best ? J.best(q) : '';
+      let king = loss >= GK_LIM.kd && W >= GK_LIM.sd && !J.kskip.has(q);
+      if(king && best) king = best!==J.ucis[q] && gkKing(x, best) && !gkCheckd(x);      // the review knows its best move: no look needed
+      else if(king) king = !gkCheckd(x);
+      const pun = b!=null && W - b >= GK_LIM.pd && W >= GK_LIM.sd && loss >= GK_LIM.pd;
+      if(king || pun) out.push({ q, king, best:king ? best : '', pun, loss, w:W });
+    }
+    const top = new Map();                               // a position that comes up again: at its biggest drop
+    out.forEach(c=>{ const f = P[c.q].f, b = top.get(f); if(!b || c.loss > b.loss) top.set(f, c); });
+    const L = out.filter(c=> top.get(P[c.q].f)===c).sort((a, b)=> b.loss - a.loss || a.q - b.q);
+    return L.filter(c=> c.best).concat(L.filter(c=> !c.best));
+  }
+  // one position checked: what the cheap look and the two 150,000-node searches rule out first, then the 4 best moves, then the
+  // position after the best one (the same search as the one after your move): the loss must hold from both
+  function* gkCheck(J, c, out){
+    const P = J.P, me = J.me, q = c.q, x = P[q], gm = J.ucis[q], no = (t)=>{ J.why.push('q'+q+': '+t); return null; };
+    let king = c.king, pun = c.pun;
+    if(king && !c.best){
+      if(out.looks >= GK_CAP.looks && !pun) return undefined;
+      if(out.looks >= GK_CAP.looks) king = false;
+      else {
+        out.looks++;
+        const a = yield { fen:x.fen, k:2, nodes:GK_NODES.look, why:'look' };
+        king = (a.lines || []).slice(0, 2).some((l, i)=> gkKing(x, l.ucis && l.ucis[0]) && (!i || Math.abs(gzWin(a.lines[0].score, me) - gzWin(l.score, me)) <= gzW(GK_LIM.near) - 50));
+      }
+    }
+    if(!king && !pun) return no('no king move near the best');
+    if(out.checks >= GK_CAP.checks) return undefined;      // not settled: the game's checks are used up
+    out.checks++;
+    const sp = P[q + 1].term ? gzOff(P[q + 1]) : gzFirst(yield { fen:P[q + 1].fen, k:1, nodes:GK_NODES.one, why:'after yours' }), Wp = gzWin(sp, me);
+    if(Wp==null) return no('no score after your move');
+    if(c.w - Wp < (king ? GK_LIM.king : GK_LIM.pun) - GK_LIM.soft) return no('your move lost little');
+    let sb = null, Wb = null;
+    if(pun){
+      sb = P[q - 1].term ? null : gzFirst(yield { fen:P[q - 1].fen, k:1, nodes:GK_NODES.one, why:'before theirs' });
+      Wb = gzWin(sb, me);
+      if(Wb==null || c.w - Wb < GK_LIM.pun - GK_LIM.soft) pun = false;
+      if(!king && !pun) return no('their move lost little');
+    }
+    const A = yield { fen:x.fen, k:GK_CAP.lines, nodes:GK_NODES.multi, why:'the 4 best' };
+    const L = A.lines || [], L1 = L[0], b1 = L1 && L1.ucis ? L1.ucis[0] : '', W1 = L1 ? gzWin(L1.score, me) : null;
+    if(!b1 || W1==null) return no('no line');
+    if(gm===b1) return no('the engine\u2019s move');
+    if(L1.score.type==='mate') return no('a mate');
+    const pl = GK_LIM.pun + GK_LIM.sure;                 // your reply's cost, two points over the line (what sits on it is wrong one time in four)
+    king = king && gkKing(x, b1) && W1 - Wp >= GK_LIM.king && W1 >= GK_LIM.stand;
+    pun = pun && W1 - Wp >= pl && W1 - Wb >= GK_LIM.pun && W1 >= GK_LIM.stand;
+    if(!king && !pun) return no('not at the check ('+[W1, Wp, Wb].map(v=> v==null ? '' : Math.round(v)).join(' ')+' '+b1+')');
+    // with all four within half a pawn there are too many right moves to name
+    const D = L.slice(1).filter(l=> l.ucis && l.ucis[0]).map(l=> ({ u:l.ucis[0], d:W1 - gzWin(l.score, me), near:gkSame(L1.score, l.score, me), ok:false, s:null })), pts = (cp)=> gzW(cp) - 50;
+    if(D.filter(y=> y.near || y.d <= pts(GK_LIM.many)).length >= GK_CAP.lines - 1) return no('four or more right moves');
+    if(D.some(y=> y.near && y.u===gm)) return no('your move is as good');
+    const nx = gzPlay(gzStateAt(x.fen, q), b1);
+    if(!nx) return no('no move');
+    const sg = nx.term ? gzOff(nx) : gzFirst(yield { fen:nx.fen, k:1, nodes:GK_NODES.one, why:'after the best' }), Wg = gzWin(sg, me), W = Wg==null ? -1 : Math.min(W1, Wg);
+    king = king && W - Wp >= GK_LIM.king && W >= GK_LIM.stand;
+    pun = pun && W - Wp >= pl && W - Wb >= GK_LIM.pun && W >= GK_LIM.stand;
+    if(!king && !pun) return no('the best move did not hold up ('+[W1, Wg, Wp, Wb].map(v=> v==null ? '' : Math.round(v)).join(' ')+' '+b1+')');
+    // what is right too: a near move (within 0.65 by the 4 best) when the position after it, searched by itself, is within 0.25 of
+    // the one after the best (the 4 best share their nodes: alone they called six moves right that are 0.5+ worse, in 158 finds)
+    for(const y of D){
+      if(y.d > pts(GK_LIM.gray)) continue;
+      const ny = gzPlay(gzStateAt(x.fen, q), y.u);
+      if(!ny) continue;
+      y.s = ny.term ? gzOff(ny) : gzFirst(yield { fen:ny.fen, k:1, nodes:GK_NODES.one, why:'as good?' });
+      y.ok = gkSame(sg, y.s, me);
+    }
+    king = king && D.every(y=> !(y.near || y.ok) || gkKing(x, y.u));      // another piece's move as good by either search: not a king move to find
+    if(!king && !pun) return no('another piece\u2019s move is as good');
+    return { q, f:x.f, fen:x.fen, gm, kind:king ? 'king' : 'punish', line:[b1], ok:D.filter(y=> y.ok).map(y=> [y.u, hrEncScore(y.s)]), w1:L1.score, w2:L[1] ? L[1].score : null, wp:sp, wg:sg,
+      sb:king && !pun ? null : sb, fl:pun ? 'their' : '', d:[A.nodes || 0, L1.depth || 0] };
+  }
+  // one game. o: { me, pos (gzPositions, done), ser (gkSeries), skip (positions an earlier look settled), kskip (settled as a king
+  // move only), have (items this game has), held(fen4): another kind lists it }
+  function* gkGame(g, o){
+    const A = o.pos, ser = o.ser, J = { g, me:o.me, P:A.P, n:A.n, ucis:A.ucis, w:ser.w, full:ser.full, skip:o.skip || new Set(), kskip:o.kskip || new Set(), held:o.held || (()=> false), why:[] };
+    const out = { id:String(g.id), me:o.me, n:A.n, ucis:A.ucis, src:ser.src, checks:0, looks:0, c:[], ck:[], items:[], why:J.why, res:ghGameResult(g, ghMe()) };
+    J.best = ser.bm ? (q)=> gevBest(g, q) : null;
+    const have = Number(o.have) || 0;
+    for(const c of gkCands(J)){
+      if(have + out.items.length >= GK_CAP.items) break;
+      const it = yield* gkCheck(J, c, out);
+      if(it===undefined) continue;                       // a cap: left for a later look
+      // your turns' scores alone often can't tell that their move was the mistake: no king move there settles only that half, and
+      // full scores may still ask about Punish it
+      (it || J.full || c.pun ? out.c : out.ck).push(c.q);
+      if(it){ it.src = ser.src; out.items.push(it); }
+    }
+    return out;
+  }
+  // ---- the search's turn (gzNext, gzTake, gzHasWork call these) ----
+  // the quick scores are read in first (or ten seconds have passed): a game is never looked at from less than the device has
+  function gkReady(){
+    if(!GK.on){
+      GK.on = true;
+      const kick = ()=>{ if(currentView!=='history' || !gzOn()) return; ojEnsure(); if(GZ.model && GZ.model.k==='punish') gzSoon(); };
+      try{ gevOnNews(kick); }catch(e){}
+      setTimeout(kick, 10500);
+    }
+    if(gevReady()) return true;
+    if(!GK.t0) GK.t0 = Date.now();
+    return Date.now() - GK.t0 > 10000;
+  }
+  // what a game needs here: '' (nothing, or the other kinds look first), 'look', or 'more' (looked at from your turns' scores
+  // only; a full set of scores has come since: what that look didn't settle)
+  function gkWorkOf(g, u){
+    const id = String(g.id), r0 = GZ.G.get(id);
+    if(!r0 || r0.r || r0.bad || r0.sv!==GZ_SV || GK_FAIL.has(id) || GZ_FAIL.has(id)) return '';
+    const r = GK.G.get(id), done = !!r && r.v===GK_V && r.h===r0.h;
+    if(done && r.src!=='s') return '';
+    if(r0.h!==gzH(g, gzMeOf(g, u)) || !gkReady()) return '';
+    if(!done) return 'look';
+    const E = gevOf(g);
+    return E && E.n===hraSigOf(g).n ? 'more' : '';
+  }
+  function gkLooked(g){ const r = GK.G.get(String(g.id)), r0 = GZ.G.get(String(g.id)); return r && r.v===GK_V && r0 && r.h===r0.h ? r : null; }
+  function gkPick(job){
+    const k = gzQKey(), u = ghMe();
+    if(!job.Q || job.qk!==k){ job.Q = gzQueue(); job.qk = k; job.qi = 0; }
+    const x = job.Q.find(y=> !!gkWorkOf(y.g, u));
+    if(!x) return null;
+    const me = gzMeOf(x.g, u), id = String(x.g.id), h = gzH(x.g, me), key = id+'|'+h, nd = gkWorkOf(x.g, u);
+    let R = GK.run.get(key);
+    if(!R || R.nd!==nd){
+      const old = GK.G.get(id), more = nd==='more' && !!old;
+      const set = (t)=> more ? new Set(String(t || '').split(',').filter(Boolean).map(Number)) : null;
+      R = { key, id, me, h, nd, A:null, gen:null, res:null, fails:0, nulls:0, skip:more ? set(old.c) : null, kskip:more ? set(old.ck) : null, have:more ? (old.k || []).length : 0 };
+      GK.run.set(key, R);
+      if(GK.run.size > 6) GK.run.delete(GK.run.keys().next().value);
+    }
+    R.g = x.g; R.at = x;
+    return R;
+  }
+  // the next step (gzNext's words: 'cpu', a request, or null). alone: the other kinds have nothing left; else a game is begun
+  // only with credit
+  function gkNext(job, alone){
+    try{ return gkStep(job, alone); }
+    catch(e){ if(!GK.cur) return null; gkFail(GK.cur); return 'cpu'; }
+  }
+  function gkStep(job, alone){
+    const u = ghMe();
+    let R = GK.cur;
+    if(R && !gkWorkOf(R.g, u)){ GK.run.delete(R.key); R = GK.cur = null; }
+    if(!R){
+      if(!alone && GK.cr <= 0) return null;
+      R = GK.cur = gkPick(job);
+      if(!R){ GK.cr = Math.min(GK.cr, GK_CREDIT / 3); return null; }
+      R.alone = alone;
+      if(alone || !job.at) job.at = R.at;
+      gzStatus(); gzCountLine();
+      return 'cpu';
+    }
+    if(!R.A || !R.A.done){ R.A = gzPositions(R.g, R.A, performance.now() + 8); return 'cpu'; }
+    if(!R.gen){
+      const ser = R.A.ok ? gkSeries(R.g, R.me, R.A, GZ.G.get(R.id)) : null;
+      if(!ser){ gkFail(R); return 'cpu'; }
+      R.gen = gkGame(R.g, { me:R.me, pos:R.A, ser, skip:R.skip, kskip:R.kskip, have:R.have, held:(f)=>{ const o = GZ.P.get(f); return !!o && !gkKind(o.kind) && !!GZ_KW[o.kind]; } });
+      R.res = R.gen.next();
+      return 'cpu';
+    }
+    if(R.res.done){ gkFinish(job, R); return 'cpu'; }
+    job.gk = R;
+    return R.res.value;
+  }
+  // the engine's answer to the request gkNext gave (job.gk): as gzTake
+  function gkTake(job, a){
+    const R = job.gk;
+    job.gk = null;
+    if(!R || GK.cur!==R || !R.gen || !R.res || R.res.done) return;
+    if(a && typeof a==='object' && Array.isArray(a.lines) && a.lines.length){
+      R.fails = 0; R.nulls = 0;
+      gzSpeed(a);
+      if(!R.alone) GK.cr -= Number(a.nodes) || 0;          // a game begun while the others had nothing left costs no credit
+      GK.n[1] += Number(a.nodes) || 0;
+      try{ R.res = R.gen.next(a); }catch(e){ gkFail(R); return; }
+      if(R.res.done) gkFinish(job, R);
+      return;
+    }
+    if(a==null && ++R.nulls < 6) return;
+    R.nulls = 0;
+    if(++R.fails >= 2) gkFail(R);
+  }
+  // the other kinds' nodes: a third of them is credit here
+  function gkCredit(a){ const n = a && typeof a==='object' ? Number(a.nodes) || 0 : 0; GK.n[0] += n; GK.cr = Math.min(GK_CREDIT, GK.cr + n / GK_SHARE); }
+  function gkFail(R){ GK_FAIL.add(R.id); GK.run.delete(R.key); if(GK.cur===R) GK.cur = null; gzStatus(); }
+  function gkFinish(job, R){
+    const out = R.res.value;
+    GK.run.delete(R.key);
+    if(GK.cur===R) GK.cur = null;
+    job.found += gkStore(R.g, out, ghMe(), R.nd==='more');
+    job.games++;
+    gzStatus(); gzCountLine(); gzSoon();
+  }
+  // a looked-at game into the store: its record ('k:' + id) and its items ('k:' + fen4), one transaction; only this kind's own
+  // records and items are ever written or deleted here. more: what an earlier look settled stays, this one adds
+  function gkStore(g, out, u, more){
+    const id = out.id, old = GK.G.get(id), toks = gaToks(g), enc = (s)=> s ? hrEncScore(s) : '', touched = new Set(), del = new Set();
+    const keep = more && old ? old : null;
+    const rec = { id:'k:'+id, h:gzH(g, out.me), v:GK_V, src:out.src, at:ghoBriefNow(), n:out.checks + (keep ? Number(keep.n) || 0 : 0),
+      c:(keep && keep.c ? [String(keep.c)] : []).concat(out.c.length ? [out.c.join(',')] : []).join(','), k:keep ? (keep.k || []).slice() : [] };
+    if(out.ck.length) rec.ck = out.ck.join(',');          // settled as a king move only (a look from your turns' scores)
+    if(!keep) ((old && old.k) || []).forEach(f=>{
+      const it = GZ.P.get(f);
+      if(!it || !gkKind(it.kind) || !Array.isArray(it.games)) return;
+      const games = it.games.filter(G=> String(G.id)!==id);
+      if(games.length===it.games.length) return;
+      if(!games.length){ GZ.P.delete(f); del.add(f); return; }
+      GZ.P.set(f, Object.assign({}, it, { games }));
+      touched.add(f);
+    });
+    out.items.forEach(it=>{
+      const G = Object.assign({ id, q:it.q, san:toks[it.q] || '', toks:toks.slice(0, it.q).join(' '), gm:it.gm || '', pm:out.ucis[it.q - 1] || '', src:it.src, res:out.res, fl:it.fl, len:toks.length },
+        gzCardFacts(g, out.me, it.q, u), { u:String(u || '').toLowerCase() });
+      const p = { f:'k:'+it.f, fen:it.fen, v:GK_V, kind:it.kind, line:it.line, ok:it.ok, sc:[enc(it.w1), enc(it.w2), enc(it.wp), enc(it.wg)], d:it.d, games:[G] };
+      if(it.sb) p.sb = enc(it.sb);
+      gzMergeInto(GZ.P, p);
+      touched.add(p.f); del.delete(p.f);
+      if(rec.k.indexOf(p.f) < 0) rec.k.push(p.f);
+    });
+    GK.G.set(id, rec);
+    GZ_FV++;
+    gzPut({ g:[rec], p:Array.from(touched).map(f=> GZ.P.get(f)).filter(Boolean), del:Array.from(del) });
+    return out.items.length;
+  }
+  // ---- the tab's words ----
+  function gkDraw(md){
+    const L = { n:0, r:0, l:0, q:0, s:0 };
+    md.W.forEach(g=>{ const r = gkLooked(g); if(r){ L.n++; if(L[r.src]!=null) L[r.src]++; } });
+    return L;
+  }
+  // the two kinds' own source cards: how far they got and from what (it stays on the card), and their rules
+  function gkSrc(md){
+    const N = (n)=> Number(n || 0).toLocaleString('en-US'), L = gkDraw(md);
+    return ['Find the king move and Punish it: '+N(L.n)+' of '+N(md.W.length)+' games looked at, each after the kinds above. Where to look came from: your reviews '+N(L.r)+' \u00b7 Lichess\u2019s analysis '+N(L.l)+' \u00b7 quick scores '+N(L.q)+' \u00b7 the search above '+N(L.s)+'.',
+      'Find the king move: the best move is a king move (you aren\u2019t in check, it takes nothing, castling left out), no other piece\u2019s move is as good, you stood at '+GK_LIM.stand+'% or better and yours cost '+GK_LIM.king+'+ points of winning chances. '
+      +'Punish it: their move cost '+GK_LIM.pun+'+ points, you stood at '+GK_LIM.stand+'% or better after it, and your reply gave '+(GK_LIM.pun + GK_LIM.sure)+'+ back. '
+      +'Each checked by Stockfish 16 on this device ('+N(GK_NODES.multi)+' nodes, the 4 best moves; '+N(GK_NODES.one)+' after your move, after the best one and, for Punish it, before theirs). '
+      +'Right: a move within 0.65 of the best there that is within 0.25 of it by its own '+N(GK_NODES.one)+' nodes (or within 2.3 points of winning chances, where the game is clearly won or lost). '
+      +'At most '+GK_CAP.items+' a game; no mates, nothing where four moves are within half a pawn, and no position the kinds above list. '
+      +'The lines at the top count their mistakes of '+GK_LIM.pun+'+ points that left you at '+GK_LIM.stand+'% or better, and the answers that gave '+GK_LIM.pun+'+ back: the games with a full analysis (your reviews, Lichess\u2019s) and the quick scores apart. '
+      +'A quick score that is too high makes a false mistake and a false answer at once: measured on 134 games, about a fifth too many of both, the share within 2 points.'];
+  }
+  function gkDrawSrc(md){
+    const t = md ? gkSrc(md) : ['', ''];
+    let at = document.getElementById('gz-src');
+    [['gz-src2', 'ct-src info-stay'], ['gz-src3', 'ct-src']].forEach(([id, cls], i)=>{
+      let el = document.getElementById(id);
+      if(!el){ if(!at || !t[i]) return; el = ghEl('p', cls); el.id = id; at.after(el); }
+      at = el;
+      if(el.textContent!==t[i]) el.textContent = t[i];
+      el.hidden = !t[i];
+    });
+  }
+  // their moves that cost 15+ points with the mover's opponent at 35% or better after it, and replies that gave 15+ back, in one
+  // scored game: [yours: chances, given back, theirs: chances, given back]. Shares over many games: quick scores count
+  function gkChances(E, g, me){
+    const c = GK.b.get(E);
+    if(c) return c;
+    if(!GK.w){ GK.w = new Float64Array(2001); for(let i = 0; i <= 2000; i++) GK.w[i] = gzW(i - 1000); }
+    const t = [0, 0, 0, 0], s = E.s, T = GK.w, white = (v)=> T[Math.max(0, Math.min(2000, v + 1000))], w0 = gevTurn(g, 0)==='w';
+    for(let p = 1; p < E.n; p++){
+      const a = s[p - 1], b = s[p], d = s[p + 1];
+      if(a===GEV_NONE || b===GEV_NONE || d===GEV_NONE) continue;
+      const w = ((p % 2===0)===w0), x = white(a), y = white(b), z = white(d), Y = w ? y : 100 - y;
+      if((w ? y - x : x - y) < GK_LIM.pun || Y < GK_LIM.stand) continue;
+      const i = (w ? 'w' : 'b')===me ? 0 : 2;
+      t[i]++;
+      if((w ? y - z : z - y) >= GK_LIM.pun) t[i + 1]++;
+    }
+    GK.b.set(E, t);
+    return t;
+  }
+  // a reviewed game's king moves (its best moves kept): [your turns where the best was one, you played it, theirs, they played it]
+  function gkKings(A, me, best){
+    const t = [0, 0, 0, 0];
+    for(let p = 1; p < A.n; p++){
+      const x = A.P[p], b = x.term || x.legal < 2 ? '' : best(p);
+      if(!b || !/^k$/i.test(gkAt(x.fen, b)) || !gkKing(x, b) || gkCheckd(x)) continue;
+      const i = x.turn===me ? 0 : 2;
+      t[i]++;
+      if(A.ucis[p]===b) t[i + 1]++;
+    }
+    return t;
+  }
+  // GK.kq: the reviewed games of the king chip's line not counted yet, [[g, me, E, replay]]: in 8 ms slices while the chip is up, once
+  // for each review (a new one of the same game counts again); then the line
+  function gkKingsRun(){
+    if(GK.kt || !GK.kq.length) return;
+    const step = ()=>{
+      GK.kt = 0;
+      if(currentView!=='history' || !gzOn() || !GZ.model || GZ.model.k!=='king') return;
+      const until = performance.now() + 8;
+      while(GK.kq.length && performance.now() < until){
+        const x = GK.kq[0], A = x[3] = gzPositions(x[0], x[3], until);
+        if(A.ok && !A.done) break;
+        GK.kb.set(x[2].id, { h:x[2].h, bm:x[2].bm, me:x[1], t:A.ok && A.n===x[2].n ? gkKings(A, x[1], (p)=> gevBest(x[0], p)) : null });
+        GK.kq.shift();
+      }
+      if(GK.kq.length) GK.kt = setTimeout(step, 0);
+      else gkDrawBase(GZ.model);
+    };
+    GK.kt = setTimeout(step, 0);
+  }
+  // the pressed chip's base, under the due line: how often it comes up and what came of it, beside your opponents in the same
+  // games; counts only while either side has under 30 (a share of a few says nothing).
+  // Find the king move: the reviews that kept best moves. Punish it: the games with a full analysis (your reviews, Lichess's), and
+  // the quick scores on a line of their own, never added together. A quick score that is too high makes both swings around it at
+  // once, so they find too many (GK_ROUGH); they arrive newest first: said while older games wait
+  function gkBase(md){
+    const N = (n)=> Number(n || 0).toLocaleString('en-US'), of = (a, b, share)=> N(a)+' of '+N(b)+(share ? ' ('+Math.round(100*a/b)+'%)' : '');
+    if(md.k==='king'){
+      const t = [0, 0, 0, 0], q = [];
+      let n = 0, rv = 0;
+      md.W.forEach(g=>{
+        const E = gevOf(g);
+        if(!E || E.src!=='review') return;
+        rv++;
+        if(!E.bm) return;
+        const me = gzMeOf(g, md.u), kb = GK.kb.get(E.id);
+        if(!kb || kb.h!==E.h || kb.bm!==E.bm || kb.me!==me){ q.push([g, me, E, null]); return; }
+        if(!kb.t) return;
+        n++;
+        for(let i = 0; i < 4; i++) t[i] += kb.t[i];
+      });
+      GK.kq = q;
+      if(!n || !(t[0] + t[2])) return '';
+      const sh = n >= 30 && t[0] >= 30 && t[2] >= 30;
+      return 'In '+(n===rv ? 'the '+N(n) : N(n)+' of '+N(rv))+(rv===1 ? ' reviewed game' : ' reviewed games')+(n===rv ? '' : ' (those that kept Stockfish\u2019s best moves)')+(q.length ? ', still counting' : '')
+        +', the best move was a king move on '+N(t[0])+' of your turns. You played it: '+of(t[1], t[0], sh)+'. Your opponents, on theirs: '+of(t[3], t[2], sh)+'.';
+    }
+    if(md.k!=='punish') return '';
+    const ready = gevReady(), F = [0, 0, 0, 0], Q = [0, 0, 0, 0], c = { review:0, lichess:0, quick:0 }, out = [];
+    let old = Infinity, rv = Infinity, later = 0;
+    md.W.forEach(g=>{
+      const E = gevOf(g);
+      if(!E) return;
+      const x = gkChances(E, g, gzMeOf(g, md.u)), t = E.quick ? Q : F, at = Number(g.createdAt) || 0;
+      c[E.src]++;
+      for(let i = 0; i < 4; i++) t[i] += x[i];
+      if(E.quick) old = Math.min(old, at);
+      else if(E.src==='review') rv = Math.min(rv, at);
+    });
+    if(c.quick) md.W.forEach(g=>{ if((Number(g.createdAt) || 0) < old && qkGameOk(g) && !gevOf(g)) later++; });
+    const W = N(md.W.length), nf = c.review + c.lichess, sh = nf >= 30 && F[0] >= 30 && F[2] >= 30, bits = [];
+    if(c.review) bits.push(N(c.review)+' reviewed, played since '+ctDay(rv));
+    if(c.lichess) bits.push(N(c.lichess)+' by Lichess');
+    const pc = (a, b, z)=> z ? ' ('+Math.round(100*a/b)+'%)' : '';
+    const say = (t, z)=> 'you gave '+GK_LIM.pun+'+ points back after '+N(t[1])+' of their '+N(t[0])+' mistakes'+pc(t[1], t[0], z)+', your opponents after '+N(t[3])+' of your '+N(t[2])+pc(t[3], t[2], z)+'.';
+    if(F[0] + F[2]) out.push('In '+N(nf)+' of '+W+' games with a full analysis ('+bits.join('; ')+'), '+say(F, sh));
+    const qs = c.quick >= 30 && Q[0] >= 30 && Q[2] >= 30;
+    if(Q[0] + Q[2]) out.push('Quick scores, '+N(c.quick)+(out.length ? ' more games' : ' of '+W+' games')+(later ? ', newest first' : '')+(ready ? '' : ', still reading')+' ('+GK_ROUGH+'): '
+      +(out.length ? N(Q[1])+' of '+N(Q[0])+pc(Q[1], Q[0], qs)+', your opponents '+N(Q[3])+' of '+N(Q[2])+pc(Q[3], Q[2], qs)+'.' : say(Q, qs)));
+    return out.join('\n');
+  }
+  function gkDrawBase(md){
+    const el = document.getElementById('gz-base'), t = gkBase(md);
+    if(!el) return;
+    if(el.textContent!==t) el.textContent = t;
+    el.hidden = !t;
+    gkKingsRun();
+  }
+  // a right move that isn't the line's own: one within 0.25 of the best ([uci, the score after it]), kept with the puzzle
+  function gkGood(R, nu){
+    const ok = R.solIndex===0 && Array.isArray(R.replay.P.ok) ? R.replay.P.ok : [];
+    return ok.find(a=> Array.isArray(a) && gzCastleNorm(R.state, String(a[0]))===nu) || null;
+  }
+  // the result's Stockfish words: the best move and the score after it, then yours when it was another right one, else the others
+  // (the scores after them: what made them right)
+  function gkSub(R, q, me){
+    const P = R.replay.P, sc = (t)=> ghbScoreText(t ? hrDecScore(String(t)) : null, me), good = R.gkGood || null, ok = (Array.isArray(P.ok) ? P.ok : []).filter(a=> Array.isArray(a) && a[0] && (!good || a[0]!==good[0]));
+    let t = ' Stockfish 16: '+gzLineSan(P.fen, P.line, q)+', '+sc(P.sc[3])+' after it.';
+    if(good) t += ' Yours, '+gzLineSan(P.fen, [String(good[0])], q)+', '+sc(good[1])+', is right too.';
+    else if(ok.length) t += ' Also right: '+ok.slice(0, 2).map(a=> gzLineSan(P.fen, [String(a[0])], q)+' ('+sc(a[1])+')').join(', ')+'.';
+    return t;
+  }
+  // Settings: how far these two kinds are behind the others
+  function gkStatus(all, looked){
+    let n = 0;
+    all.forEach(g=>{ if(gkLooked(g)) n++; });
+    return n < looked ? ' Find the king move and Punish it: '+n.toLocaleString('en-US')+' of '+looked.toLocaleString('en-US')+' looked at.' : '';
   }
   // { reach: entries that reached an endgame, kinds: [[kind, entries], ...] most first } over entries L
   function egGroups(L){
