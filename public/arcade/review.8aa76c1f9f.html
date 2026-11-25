@@ -24,6 +24,12 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<script id="dn-boot">
+// Settings > Appearance: Day or Night goes on the page here, before its first paint. The rest is dnApply, in the app's script.
+// (Before the fonts' stylesheet: a script after one waits for it, and the page with it.)
+(function(){ try{ var r = document.documentElement, v = (JSON.parse(localStorage.getItem('wavyChessPrepLookPrefs') || '{}') || {}).dayNight, t = v==='day' ? 'light' : v==='night' ? 'dark' : '';
+  if(t){ window.__dnHost = [r.getAttribute('data-theme'), t]; r.setAttribute('data-theme', t); r.style.colorScheme = t; } }catch(e){} })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Libre+Franklin:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Jost:wght@400;500;600;700&family=Press+Start+2P&family=Bebas+Neue&family=Lilita+One&family=Bodoni+Moda:ital,wght@1,500;1,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Doto:wght@900&display=swap" rel="stylesheet">
@@ -404,7 +410,6 @@
     --glass-spec:rgba(255,255,255,.45);
     --glass-shade:rgba(0,0,0,.55);
     --bg-scrim:rgba(10,13,9,.66);
-    --felt-weave:rgba(255,255,255,.022);
   }
   /* Jost is the closest Google-hosted face to the geometric sans the Bauhaus
      school actually printed with. */
@@ -4642,7 +4647,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   #ghp-palette .ghp-tool[data-tool$="K"], #ghp-palette .ghp-tool[data-tool$="Q"], #ghp-palette .ghp-tool[data-tool$="R"], #ghp-palette .ghp-tool[data-tool$="B"],
   #ghp-palette .ghp-tool[data-tool$="N"], #ghp-palette .ghp-tool[data-tool$="P"]{ touch-action:none; cursor:grab; }      /* a tray piece can be dragged */
   .ghp-board.ghp-drop-off{ outline:2px dashed var(--ink-soft); outline-offset:3px; }      /* let go here: the piece comes off */
-  .ghp-board .ghp-coord{ position:absolute; font:700 9px/1 "JetBrains Mono",monospace; opacity:.6; pointer-events:none; }
+  .ghp-board .ghp-coord{ position:absolute; font:700 9px/1 "JetBrains Mono",monospace; opacity:.8; pointer-events:none; }      /* their colors: with .ps-board's */
   .ghp-board .ghp-coord.f{ right:2px; bottom:1px; } .ghp-board .ghp-coord.r{ left:2px; top:2px; }
   .ghp-palette{ display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:4px; }
   .ghp-tool{ aspect-ratio:1 / 1; display:flex; align-items:center; justify-content:center; padding:2px; background:var(--surface-2); border:1px solid var(--line);
@@ -4727,8 +4732,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .ps-board{ width:100%; max-width:380px; }
   .ps-board .sq{ position:relative; }
   .ps-board .ghp-coord{ position:absolute; font:700 9px/1 "JetBrains Mono",monospace; opacity:.8; pointer-events:none; }
-  .ps-board .sq.light .ghp-coord{ color:#1a1a1a; } .ps-board .sq.dark .ghp-coord{ color:#fff; text-shadow:0 0 2px rgba(0,0,0,.75); }
-  :root[data-skin="chessbook"] .ps-board .sq.dark .ghp-coord{ color:#1a1a1a; text-shadow:0 0 2px #fff, 0 0 2px #fff; }      /* its dark squares are hatched paper */
+  :is(.ps-board, .ghp-board) .sq.light .ghp-coord{ color:#1a1a1a; } :is(.ps-board, .ghp-board) .sq.dark .ghp-coord{ color:#fff; text-shadow:0 0 2px rgba(0,0,0,.75); }
+  :root[data-skin="chessbook"] :is(.ps-board, .ghp-board) .sq.dark .ghp-coord{ color:#1a1a1a; text-shadow:0 0 2px #fff, 0 0 2px #fff; }      /* its dark squares are hatched paper */
   .ps-board .ghp-coord.f{ right:2px; bottom:1px; } .ps-board .ghp-coord.r{ left:2px; top:2px; }
   .ps-ctl{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px; }
   .btn.ps-flip, .btn.ps-px-b{ padding:7px 14px; font-size:12.5px; }
@@ -6298,6 +6303,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     border-color:var(--brass);
     color:var(--brass-ink);
   }
+  #dn-field{ margin-bottom:8px; }      /* Appearance, above Theme in the same field */
+  @media (pointer:coarse){ #dn-row .toggle{ min-height:44px; min-width:44px; } }
   .btn-row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
   .btn{
     font-weight:700;
@@ -8899,6 +8906,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     :root[data-skin="gameboy"]:not([data-theme="light"]) :is(.btn-primary, .toggle.active, .chip.arcade-chip, .pz-save-btn.is-saved, .phase-step.is-live i, .wl-dot.is-live){ color:var(--brass-ink); }
     :root[data-skin="gameboy"]:not([data-theme="light"]) .btn-primary:hover{ background:var(--brass-soft); box-shadow:none; }
   }
+  :root[data-skin="gameboy"][data-theme="dark"] :is(.btn-primary, .toggle.active, .chip.arcade-chip, .pz-save-btn.is-saved, .phase-step.is-live i, .wl-dot.is-live){ color:var(--brass-ink); }
+  :root[data-skin="gameboy"][data-theme="dark"] .btn-primary:hover{ background:var(--brass-soft); box-shadow:none; }
 
   /* ---- Uptown: each door rides its line (the same as on the Play page); the count is the amber LED board ---- */
   :root[data-skin="uptown"] .drill-grid > .play-home{ box-shadow:var(--ux-band), var(--shadow); border-color:var(--ux-sign-edge); }
@@ -9961,6 +9970,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     </div>
 
     <div class="field">
+      <div class="field" id="dn-field">
+        <div class="field-label" id="dn-label">Appearance</div>
+        <div class="toggle-row" id="dn-row" role="group" aria-labelledby="dn-label" aria-describedby="dn-hint">
+          <button type="button" class="toggle" data-val="day" aria-pressed="false">Day</button>
+          <button type="button" class="toggle" data-val="night" aria-pressed="false">Night</button>
+          <button type="button" class="toggle active" data-val="system" aria-pressed="true">System</button>
+        </div>
+        <div class="field-hint" id="dn-hint">Follows this device&#8217;s light or dark setting.</div>
+      </div>
       <div class="field-label">Theme</div>
       <div class="toggle-row" id="skin-row">
         <button class="toggle active" data-val="felt">Tournament Felt</button>
@@ -16823,7 +16841,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   const BG_KEY = 'wavyChessPrepBackground';
   // annoProfile: the arrow color profile, one for the whole app, not per
   // theme ('default' | 'sequential' | 'strategic'; see ANNO_PROFILES).
-  let lookPrefs = { skin:'felt', sqStroke:'none', glass:'on', glassAlpha:50, intro:'on', annoProfile:'default', bauhausBgCleared:false,
+  // dayNight: Settings > Appearance, 'day' | 'night' | 'system' (the device's own; dnApply).
+  let lookPrefs = { skin:'felt', dayNight:'system', sqStroke:'none', glass:'on', glassAlpha:50, intro:'on', annoProfile:'default', bauhausBgCleared:false,
     gameboyBgCleared:false,
     pieceStyleBySkin:{},
     // pieceStrokeEnabled is Custom-theme-only, same as customColors itself --
@@ -17096,10 +17115,73 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!LOGO_IMG){ LOGO_IMG = new Image(); LOGO_IMG.src = img.dataset.src; }
     if(LOGO_IMG.complete && LOGO_IMG.naturalWidth) draw(); else LOGO_IMG.onload = draw;
   }
-  // Custom's colours can change with the system's light/dark mode
-  try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=> paintThemeLogo()); }catch(e){}
+  /* Day | Night | System (Settings, Appearance; the user, 2026-11-23).
+     System is the page as it always was: the CSS's prefers-color-scheme blocks follow the device, and a page that holds this
+     one may put data-theme on <html> itself (the hosted Artifact's own switch; Repertoire Lab's look(), in its frame, where
+     this setting is hidden). Day and Night put data-theme there for the same reason it was made: every prefers-color-scheme
+     block has a [data-theme] twin, so no rule, picture or drawing needs to know. A NEW prefers-color-scheme rule needs its
+     twin too (the daynight kit, t_daynight A, compares them), and code asks dnNight(), never matchMedia.
+     color-scheme (the browser's own scrollbars and menus) goes with a pick; System leaves it as it was, unset.
+     Kept on this device (lookPrefs.dayNight). #dn-boot, in <head>, puts a pick on before the first paint and leaves what
+     data-theme was in __dnHost. */
+  const DN_ROOT = document.documentElement, DN_BOOT = Array.isArray(window.__dnHost) ? window.__dnHost : null;
+  let DN_MQ = null, DN_OBS = null;
+  try{ DN_MQ = matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
+  const DN = { t:DN_BOOT ? DN_BOOT[1] : '', host:DN_BOOT ? DN_BOOT[0] : null, back:[], print:false };      // t: what the pick put there ('' with System); host: whatever else did
+  let dnShow = function(){};      // Settings' row (wireLookSettings)
+  // (in Repertoire Lab's frame, rl-embed: always its own day or night, whatever is saved there)
+  function dnChoice(){ const v = DN_ROOT.classList.contains('rl-embed') ? '' : lookPrefs.dayNight; return v==='day' || v==='night' ? v : 'system'; }
+  function dnWant(){ const c = dnChoice(); return c==='day' || (c==='night' && DN.print) ? 'light' : c==='night' ? 'dark' : ''; }
+  // is the page in its night colors now, whoever decided
+  function dnNight(){ const t = DN_ROOT.getAttribute('data-theme'); return t==='dark' || (t!=='light' && !!DN_MQ && DN_MQ.matches); }
+  function dnApply(){
+    const want = dnWant(), t = DN_ROOT.getAttribute('data-theme');
+    if(!want && !DN.t) return;
+    // anything waiting in DN_OBS is the host's (what's written here is taken out of it, below): even the pick's own value
+    const moved = !!DN_OBS && DN_OBS.takeRecords().length > 0;
+    if(moved || t!==DN.t) DN.host = t;
+    DN.t = want;
+    if(want){
+      if(t!==want) DN_ROOT.setAttribute('data-theme', want);
+      if(DN_ROOT.style.colorScheme!==want) DN_ROOT.style.colorScheme = want;
+    } else {
+      if(DN.host==null) DN_ROOT.removeAttribute('data-theme'); else DN_ROOT.setAttribute('data-theme', DN.host);
+      DN_ROOT.style.removeProperty('color-scheme');
+    }
+    if(DN_OBS) DN_OBS.takeRecords();
+  }
+  function dnPick(v){
+    lookPrefs.dayNight = v==='day' || v==='night' ? v : 'system';
+    DN.back = [];
+    dnApply(); saveLookPrefs();
+    dnChanged();
+  }
+  // day turned to night or back: Custom's logo is drawn from its tokens, and Settings says which it is
+  function dnChanged(){ try{ paintThemeLogo(); }catch(e){} dnShow(); }
+  try{ DN_MQ.addEventListener('change', dnChanged); }catch(e){}
+  // picked in another tab: this one follows (and its next save of the look keeps the pick)
+  window.addEventListener('storage', (e)=>{
+    if(e.key!==LOOK_PREFS_KEY) return;
+    let v = null; try{ v = (JSON.parse(e.newValue) || {}).dayNight; }catch(x){}
+    if(!v || v===lookPrefs.dayNight) return;
+    lookPrefs.dayNight = v; dnApply(); dnChanged();
+  });
+  // paper is always day, as the browser makes it for System
+  window.addEventListener('beforeprint', ()=>{ DN.print = true; dnApply(); });
+  window.addEventListener('afterprint', ()=>{ DN.print = false; dnApply(); });
+  // the page holding this one moved its own switch: kept for System (DN.host), and a pick stays on (three times a second at
+  // most, so two that disagree can't go round and round)
+  DN_OBS = new MutationObserver(()=>{
+    const now = Date.now();
+    if(DN.t) DN.host = DN_ROOT.getAttribute('data-theme');
+    DN.back = DN.back.filter(x=> now - x < 1000);
+    if(DN.t && DN_ROOT.getAttribute('data-theme')!==DN.t && DN.back.length < 3){ DN.back.push(now); dnApply(); }
+    dnChanged();
+  });
+  DN_OBS.observe(DN_ROOT, { attributes:true, attributeFilter:['data-theme'] });
   function applyLookPrefs(){
     const root = document.documentElement;
+    dnApply();
     // Tournament Felt is the bare root; every other skin names itself.
     if(lookPrefs.skin && lookPrefs.skin!=='felt') root.setAttribute('data-skin', lookPrefs.skin);
     else root.removeAttribute('data-skin');
@@ -17254,6 +17336,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       custom: 'Pick your own accent, background, surface and board colors below.'
     };
     const skinRow = document.getElementById('skin-row');
+    const dnRow = document.getElementById('dn-row');
+    const dnHint = document.getElementById('dn-hint');
     const strokeRow = document.getElementById('sq-stroke-row');
     const glassRow = document.getElementById('glass-row');
     const introRow = document.getElementById('intro-row');
@@ -17374,6 +17458,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     syncButtons(); syncBgStatus();
 
+    // Appearance: the row, its line, and Custom's swatches (an unset one shows the color painted now)
+    dnShow = function(){
+      const c = dnChoice(), now = dnNight() ? 'night' : 'day';
+      dnRow.querySelectorAll('.toggle').forEach(b=>{ const on = b.dataset.val===c; b.classList.toggle('active', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+      const t = c==='day' ? 'Always the day colors, on this device.' : c==='night' ? 'Always the night colors, on this device.'
+        : 'Follows this device\u2019s light or dark setting ('+now+' now).';
+      if(dnHint.textContent!==t) dnHint.textContent = t;
+      if(lookPrefs.skin==='custom') syncCustomColorInputs();
+    };
+    dnShow();
+    dnRow.querySelectorAll('.toggle').forEach(btn=> btn.addEventListener('click', ()=> dnPick(btn.dataset.val)));
     skinRow.querySelectorAll('.toggle').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         lookPrefs.skin = btn.dataset.val;
