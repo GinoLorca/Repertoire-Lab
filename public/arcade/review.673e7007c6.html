@@ -3257,6 +3257,132 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   .settings-fab:hover{ color:var(--brass-text); border-color:var(--brass-soft); }
 
+  /* ---- Info box (ib*, 2026-11-25; the user: "all this fine print ... can we move this somewhere else?", "a box where you can
+     close it, and if you want some context onto something, you open up the box and hover over it"; their pick: one box) ----
+     What is said in the box instead of on the card: .ct-src and .ps-src lines (gaSrc), Openings' .gho-gap-sub (but the two lists', .gho-gap-col), .info-only (a whole element) and .info-part
+     (some of a paragraph's words: the box shows the paragraph); .info-stay keeps a .ct-src on its card (one with a button in it has
+     to have it). They keep their place for a screen reader, and on paper, where they print under the numbers as before. */
+  @media screen{
+    :is(#ga, #ct, #tt, #gz, #ghp, #gho, #view-play-history, #view-puzzle-dash) .ct-src:not(.info-stay), #gho :not(.gho-gap-col) > .gho-gap-sub:not(.info-stay), .ps-src, .info-only, .info-part{
+      position:absolute !important; width:1px !important; height:1px !important; min-height:0 !important; margin:-1px !important; padding:0 !important; border:0 !important;
+      contain:strict !important; clip-path:inset(50%) !important; white-space:nowrap !important;
+    }
+    @supports not (contain:strict){ :is(.ct-src, #gho :not(.gho-gap-col) > .gho-gap-sub, .ps-src, .info-only, .info-part):not(.info-stay){ overflow:hidden !important; } }
+  }
+  /* the icon: beside the gear. Its hit area is 44px, as the gear's */
+  .ib-fab{ position:fixed; top:16px; right:68px; z-index:40; width:40px; height:40px; padding:0; border-radius:50%; background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow); color:var(--ink-soft);
+    cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .ib-fab[hidden], .ib-rvw[hidden], .ib[hidden]{ display:none; }
+  .ib-fab::before{ content:""; position:absolute; inset:-3px; border-radius:inherit; }
+  .ib-fab svg{ width:20px; height:20px; display:block; pointer-events:none; }
+  .ib-fab:hover{ color:var(--brass-text); border-color:var(--brass-soft); }
+  .ib-fab:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  .ib-fab[aria-expanded="true"]{ background:var(--ink); color:var(--surface); border-color:var(--ink); }
+  :root[data-skin="bauhaus"] .ib-fab{ border-radius:0; border-width:2px; }
+  body.tx-marking-phone :is(.ib-fab, .ib-rvw, .ib){ display:none !important; }
+  @media (min-width:768px) and (max-width:899.98px), (min-width:1260px) and (max-width:1363.98px){ .ib-fab:not(.in-rv){ top:66px; right:16px; } }      /* the logo's rook, or the page, is to the gear's left: under it */
+  @media (min-width:900px) and (max-width:1259.98px){ .ib-fab:not(.in-rv){ top:14px; width:36px; height:36px; } .ib-fab:not(.in-rv)::before{ inset:-5px; } }      /* (the rook is under it too: a little smaller, over it) */
+  @media (max-width:1259.98px){
+    /* the page runs under the corner buttons: gone while you scroll down, back when you scroll up */
+    .ib-fab{ transition:opacity .16s ease, visibility .16s; }
+    .ib-fab.is-away:not(:focus-visible){ opacity:0; visibility:hidden; pointer-events:none; }
+  }
+  html.rl-history .ib-fab{ transition:opacity .16s ease, visibility .16s; }
+  html.rl-history .ib-fab.is-away:not(:focus-visible){ opacity:0; visibility:hidden; pointer-events:none; }
+  html.rl-history .ib-fab{ top:6px; right:calc(max(0px, (100vw - 880px) / 2) + 6px); }      /* Repertoire Lab's player page: on the corner of its first card */
+  @media (min-width:960px){ html.rl-history .ib-fab.is-wide{ right:calc(max(0px, (100vw - 1180px) / 2) + 6px); } }
+  /* the review from 900px: on the line of the way back, at the board's right edge (a line of no height: the board stays where it was) */
+  .ib-rvw{ display:none; }
+  @media (min-width:900px){
+    #ib-fab.in-rv{ display:none; }          /* (a class, not :has: a rule on the root with :has made a press in a long list 2 to 3 times slower) */
+    .ib-rvw:not([hidden]){ display:block; position:relative; flex:0 0 auto; align-self:flex-end; width:30px; height:0; margin:-6px 0 0; }
+    .ib-rvw .ib-fab{ position:absolute; top:auto; right:0; bottom:-1px; width:28px; height:28px; z-index:auto; }
+    .ib-rvw .ib-fab::before{ inset:-9px; }
+    .ib-rvw .ib-fab svg{ width:15px; height:15px; }
+    html.rl-embed:not(.rl-chrome):not(.rl-history) .ib-rvw:not([hidden]){ height:28px; margin:0; }      /* Repertoire Lab's bars on show: no way back above the board, so the line takes its place */
+    html.rl-embed:not(.rl-chrome):not(.rl-history) .ib-rvw .ib-fab{ bottom:0; }
+  }
+  @media (max-width:899.98px){
+    html.rl-embed:not(.rl-chrome):not(.rl-history) #ib-fab.in-rv{ display:none; }
+    html.rl-embed:not(.rl-chrome):not(.rl-history) .ib-rvw:not([hidden]){ display:block; order:1; position:relative; flex:0 0 auto; align-self:flex-end; width:40px; height:40px; margin:4px 52px 0 0; }
+    html.rl-embed:not(.rl-chrome):not(.rl-history) .ib-rvw .ib-fab{ position:absolute; top:0; right:0; }
+  }
+  @media (min-width:1440px) and (min-height:561px){
+    .hv-boardcol > .ib-rvw:not([hidden]){ grid-row:1; justify-self:end; align-self:center; margin:0; }
+    .ib-rvw .ib-fab{ bottom:-14px; }
+  }
+  /* what is being explained: a ring on its card's own edge, never through its words */
+  .ib-on{ outline:2px solid color-mix(in srgb, var(--brass-text) 80%, var(--ink)) !important; outline-offset:-2px !important; }
+  .ib-on.ib-on-out{ outline-offset:6px !important; border-radius:4px; }
+#gho-lev.ib-on.ib-on-out{ outline-offset:2px !important; }      /* (6px under "Where your games end up": the ring clear of it) */
+  /* the box */
+  :root{ --ib-h:min(136px, 34vh); --ib-h:min(136px, 34dvh); }
+  @media (max-width:1024px){ :root{ --ib-h:min(168px, 34vh); --ib-h:min(168px, 34dvh); } }
+  @media (max-width:700px){ :root{ --ib-h:min(206px, 34vh); --ib-h:min(206px, 34dvh); } }
+  .ib{ box-sizing:border-box; z-index:28; display:grid; grid-template-columns:minmax(170px, 250px) minmax(0, 1fr) 44px; gap:0 22px; align-items:start; background:var(--surface); color:var(--ink);
+    border:1px solid color-mix(in srgb, var(--line), var(--ink) 25%); padding:12px 6px 10px 18px; overflow:hidden; text-align:left; }
+  .ib.is-strip{ position:fixed; left:50%; bottom:var(--ib-lift, 0px); transform:translateX(-50%); width:min(1140px, 100vw); height:calc(var(--ib-h) + env(safe-area-inset-bottom)); padding-bottom:calc(10px + env(safe-area-inset-bottom));
+    border-radius:12px 12px 0 0; border-bottom:0; box-shadow:0 -6px 22px rgba(0,0,0,.16); transition:opacity .14s ease, visibility .14s; }
+  html.rl-history .ib.is-strip{ bottom:calc(var(--ib-lift, 0px) + 6px); width:min(1140px, 100vw - 8px); height:var(--ib-h); padding-bottom:10px; border-radius:12px; border-bottom:1px solid color-mix(in srgb, var(--line), var(--ink) 25%); box-shadow:0 2px 22px rgba(0,0,0,.28); }
+  .ib.is-strip::before{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:var(--brass); }
+  .ib.is-off{ opacity:0; visibility:hidden; }
+  .ib.is-strip.is-slim{ height:calc(48px + env(safe-area-inset-bottom)); padding-top:3px; padding-bottom:env(safe-area-inset-bottom); }
+  .ib.is-strip.is-slim .ib-m, .ib.is-strip.is-slim .ib-k{ display:none; }
+  .ib.is-strip.is-slim .ib-t{ padding-top:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ib.is-strip.is-slim .ib-close{ margin:0; }
+  :root[data-skin="bauhaus"] .ib{ border-radius:0; border-width:2px; }
+  .ib-k{ margin:0 0 3px; font-family:"JetBrains Mono",monospace; font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; line-height:1.35; color:var(--ink-soft); }
+  .ib-t{ margin:0; font-family:inherit; font-size:15px; font-weight:800; line-height:1.3; letter-spacing:0; text-transform:none; color:var(--ink); overflow-wrap:anywhere; }
+  .ib-hd{ min-width:0; max-height:100%; overflow:hidden; }
+  .ib-m{ min-width:0; height:100%; max-height:100%; overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; padding-right:6px; box-sizing:border-box; }
+  .ib-m:focus-visible, .ib-close:focus-visible{ outline:2px solid var(--focus); outline-offset:-2px; border-radius:6px; }
+  .ib-m p{ margin:0 0 3px; max-width:96ch; font-size:14px; line-height:1.42; color:var(--ink); }
+  .ib-m p.is-1:not(:first-child), .ib-m .ib-src:not(:first-child){ margin-top:8px; }          /* another paragraph */
+  .ib-m b{ font-weight:700; }
+  .ib-m p:last-child{ margin-bottom:0; }
+  .ib-m.is-more{ -webkit-mask-image:linear-gradient(#000 calc(100% - 20px), rgba(0,0,0,.12)); mask-image:linear-gradient(#000 calc(100% - 20px), rgba(0,0,0,.12)); }      /* there is more below */
+  .ib-m .ib-more, .ib-m .ib-src{ font-size:13px; line-height:1.4; color:color-mix(in srgb, var(--ink-soft) 70%, var(--ink)); }
+  .ib-close{ width:44px; height:44px; margin:-6px 0 0; padding:0; border:0; background:none; color:var(--ink-soft); font-size:22px; line-height:1; cursor:pointer; border-radius:8px; }
+  .ib-close:hover{ color:var(--ink); background:var(--surface-2); }
+  .ib.is-in .ib-m, .ib.is-in .ib-hd{ animation:ibIn .18s ease both; }
+  @keyframes ibIn{ from{ opacity:.25; } to{ opacity:1; } }
+  @media (max-width:700px){
+    .ib.is-strip{ grid-template-columns:minmax(0,1fr) 44px; grid-template-rows:auto minmax(0,1fr); padding:9px 4px calc(8px + env(safe-area-inset-bottom)) 16px; gap:0 8px; }
+    .ib.is-strip .ib-hd{ grid-column:1; grid-row:1; max-height:none; padding-bottom:3px; }
+    .ib.is-strip .ib-m{ grid-column:1 / -1; grid-row:2; padding-right:12px; }
+    .ib.is-strip .ib-close{ grid-column:2; grid-row:1; margin:-5px 0 -8px; }
+  }
+  /* the review beside the board: under the left column on a Mac, else at the foot of the side column */
+  .ib.is-col{ position:fixed; box-shadow:var(--shadow); }
+  .ib.is-flow{ position:relative; flex:0 0 auto; height:150px; box-shadow:var(--shadow); }
+  .ib.is-col, .ib.is-flow{ grid-template-columns:minmax(0,1fr) 40px; grid-template-rows:auto minmax(0,1fr); gap:0; padding:8px 4px 5px 14px; border-radius:10px; }
+  :root[data-skin="bauhaus"] :is(.ib.is-col, .ib.is-flow){ border-radius:0; }
+  .ib:is(.is-col, .is-flow) .ib-m{ grid-column:1 / -1; grid-row:2; padding-right:8px; margin-top:2px; }
+  .ib:is(.is-col, .is-flow) .ib-close{ grid-column:2; grid-row:1; width:40px; height:40px; margin:-8px 0 -10px; position:relative; }
+  .ib:is(.is-col, .is-flow) .ib-close::before{ content:""; position:absolute; inset:-2px; }
+  .ib:is(.is-col, .is-flow) .ib-k{ display:none; }
+  .ib:is(.is-col, .is-flow) .ib-t{ font-size:13.5px; }
+  .ib:is(.is-col, .is-flow) .ib-m p{ font-size:12px; line-height:1.38; margin-bottom:3px; }
+  .ib:is(.is-col, .is-flow) .ib-m :is(.ib-more, .ib-src){ font-size:12px; }
+  /* room to scroll the page's last numbers, and the corner pills, past the strip */
+  html.ib-strip{ scroll-padding-bottom:calc(var(--ib-h) + 14px); }
+  html.ib-strip :is(#view-history, #view-puzzle-dash, .wrap.play-mode #view-play-history).active{ padding-bottom:calc(var(--ib-h) + 14px + env(safe-area-inset-bottom)); }
+  html.ib-strip.rl-history #view-history.active{ padding-bottom:0; }
+  html.ib-strip.rl-history #view-history.active::after{ content:""; display:block; flex:0 0 auto; height:calc(var(--ib-h) + 20px); }      /* (a box of its own, not padding: Repertoire Lab's frame follows the view's content height) */
+  html.ib-strip :is(.friends-widget, #rl-menu){ bottom:calc(var(--ib-now, 0px) + 16px); }
+  html.ib-strip .spotify-widget:not([style*="top"]){ bottom:calc(var(--ib-now, 0px) + 16px); }
+  /* where the page runs under them they step aside meanwhile (as they do for the review in one column) */
+  @media (max-width:1259.98px){ html.ib-strip #friends-widget{ visibility:hidden; } }
+  @media (max-width:767.98px){ html.ib-strip #lichess-activity-widget{ visibility:hidden; } }
+  @media (prefers-reduced-motion:reduce){ .ib, .ib-fab{ transition:none !important; } .ib.is-in .ib-m, .ib.is-in .ib-hd{ animation:none; } }
+  @media print{
+    .ib, .ib-fab, .ib-rvw{ display:none !important; }
+    html.ib-strip :is(#view-history, #view-puzzle-dash, .wrap.play-mode #view-play-history).active{ padding-bottom:0; }
+    html.ib-strip.rl-history #view-history.active::after{ display:none; }
+    .ib-on{ outline:none !important; }
+  }
+
+
   /* Installed (standalone/home-screen) mode has no browser chrome, so the
      OS's own pull-to-refresh -- tied to dragging past the address bar --
      never fires once the app is added to the home screen. This recreates
@@ -7347,7 +7473,6 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     #view-play-history .hpf-ph{ padding-top:8px; padding-bottom:8px; }
     #view-play-history .hpf-mark{ height:24px; min-width:24px; padding:0 5px; border-radius:12px; line-height:21px; }
     #view-play-history .hpf-mark[data-row="1"]{ top:calc(24% + 26px); }
-    #view-play-history .hpf-info{ padding:8px 0; }
     :is(#view-play-history, #gn-overlay) :is(.nb-dg-go, .nb-dg-open){ padding:8px 0; }
     :is(#view-play-history, #gn-overlay) .nb-dg-x{ width:34px; height:34px; }
   }
@@ -7571,7 +7696,6 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .hpf-mini{ display:none; width:100%; height:26px; border-radius:5px; overflow:hidden; box-shadow:inset 0 0 0 1px rgba(0,0,0,.2); }      /* the folded card's */
   .hpf-more{ display:flex; flex-direction:column; gap:6px; }
   .hpf-dot{ display:inline-block; width:9px; height:9px; margin-right:6px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.25); vertical-align:0; }
-  .hpf-info{ align-self:flex-start; font-size:12px; }
   .hpf-how{ margin:0; font-size:12px; line-height:1.45; color:var(--ink-soft); }
   .hpf-now{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:var(--ink-soft); font-variant-numeric:tabular-nums; }
   .hpf-field{ position:relative; width:100%; aspect-ratio:4 / 1; border-radius:6px; overflow:hidden; box-shadow:inset 0 0 0 1px rgba(0,0,0,.2); }
@@ -9271,12 +9395,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .gz-due{ font-size:13px; line-height:1.4; color:var(--ink); }
   .gz-top > .gz-base{ grid-column:1 / -1; margin:0; font-size:13px; line-height:1.4; color:var(--ink); white-space:pre-line; }
   .gz-top > .gz-base[hidden]{ display:none; }
+  .gz-top > .ct-src{ grid-column:1 / -1; margin:0; }      /* (the rule of its lines: in the Info box; on paper under them) */
   .gz-need{ margin:0; font-size:13px; line-height:1.4; color:var(--ink); }
   .gz-showrow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; min-width:0; }
   /* the needs-you line and the Show row on the card surface, so they read on every wallpaper */
   .gz-need, .gz-showrow{ align-self:flex-start; max-width:100%; box-sizing:border-box; padding:6px 12px; background:var(--surface); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
   :root[data-skin="bauhaus"] .gz-need, :root[data-skin="bauhaus"] .gz-showrow{ border-radius:0; }
   .gz-more{ align-self:center; }
+  .gz-list{ display:flex; flex-direction:column; gap:14px; min-width:0; }      /* Show, the cards, the foot: one explanation in the Info box, in the tab's own column */
   #gz .gz-more{ background-color:var(--surface); }      /* on the wallpaper (Felt, Game Boy): its words on the card color */
   :root:not([data-skin="cards"]) #gz .gz-more{ box-shadow:var(--shadow); }
   :root[data-skin="bauhaus"] #gz .gz-more{ border-radius:0; }
@@ -10691,7 +10817,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       </section>
       <section class="panel ps-panel" id="ps-you" aria-labelledby="ps-you-h" hidden>
         <h2 class="ct-h" id="ps-you-h">Your structures</h2>
-        <p class="ct-sub ps-lib-sub">The structures your games reach, and how you score on each side of them.</p>
+        <p class="ct-sub ps-lib-sub info-only">The structures your games reach, and how you score on each side of them.</p>
         <div class="ps-jump" id="ps-jump" role="group" aria-label="Further down"><span aria-hidden="true">Further down:</span> <button type="button" class="btn-link ps-lk" data-to="ps-lib" data-h="#ps-lib-h" data-fid="ps-jump-lib">The library</button> <button type="button" class="btn-link ps-lk" data-to="ghp-setup" data-h="#ghp-h" data-fid="ps-jump-find">Find games by pawns</button></div>
         <div class="ps-body" id="ps-you-body">
           <div class="gh-sub ps-view" id="ps-view" role="group" aria-label="Your structures: how to list them"><button type="button" class="gh-sub-b is-on" data-val="s" aria-pressed="true">By structure</button><button type="button" class="gh-sub-b" data-val="o" aria-pressed="false">By opening</button></div>
@@ -10709,7 +10835,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       </section>
       <section class="panel ps-panel" id="ps-lib" aria-labelledby="ps-lib-h" hidden>
         <h2 class="ct-h" id="ps-lib-h" tabindex="-1">The library</h2>
-        <p class="ct-sub ps-lib-sub">Each structure&rsquo;s own page: the pawn breaks to look for, what each side wants, and master games.</p>
+        <p class="ct-sub ps-lib-sub info-only">Each structure&rsquo;s own page: the pawn breaks to look for, what each side wants, and master games.</p>
         <div class="ps-body" id="ps-lib-body"></div>
       </section>
       <div class="panel ghp-setup" id="ghp-setup">
@@ -10816,7 +10942,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       </section>
       <section class="gho-ends" id="gho-ends" aria-labelledby="gho-ends-h" hidden>
         <h3 class="gho-gap-h" id="gho-ends-h">Where your games end up</h3>
-        <div class="gho-lev" id="gho-lev" hidden></div>
+        <div class="gho-lev" id="gho-lev" data-info="When the endgame began" hidden></div>
         <div class="gho-ends-cols"><div class="gho-ends-col" id="gho-ends-white"></div><div class="gho-ends-col" id="gho-ends-black"></div></div>
       </section>
       <div class="gho-tools"><div class="gho-q" role="search"><input type="search" class="text-input gho-q-in" id="gho-q" placeholder="Search openings" aria-label="Search your openings" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button type="button" class="gh-combo-clear gho-q-x" id="gho-q-x" aria-label="Clear the search" hidden>&times;</button></div><span class="gho-q-n" id="gho-q-n" role="status" aria-live="polite"></span><span class="gho-sortw"><label class="field-label" for="gho-sort">Sort by</label><select class="select-input" id="gho-sort"></select></span></div>
@@ -10847,7 +10973,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       <section class="ct-card tt-by" id="tt-by" aria-labelledby="tt-by-h" hidden></section>
       <section class="ct-card tt-when" id="tt-when" aria-labelledby="tt-when-h" hidden></section>
       <section class="ct-card tt-mom" id="tt-mom" aria-labelledby="tt-mom-h" hidden></section>
-      <p class="ct-src" id="tt-src" hidden></p>
+      <p class="ct-src info-stay" id="tt-src" hidden></p>
     </section>
     <!-- Analytics (ga*, 2026-11-20, the user: "wins over the last 90, 30, 15, 7 and 3 days" ... "am I losing more with Black?
          winning more with White? down a lot on my time?"): a short list of questions, each with a number, one sentence and
@@ -10867,17 +10993,19 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     <section class="ct gz" id="gz" role="tabpanel" aria-labelledby="gh-site-all" hidden>
       <div class="ct-card gz-top" id="gz-top" hidden>
         <h2 class="ct-h">Puzzles from your games</h2>
-        <p class="ct-sub gz-what">Positions from your own games, checked by Stockfish 16 on this device.</p>
+        <p class="ct-sub gz-what info-only">Positions from your own games, checked by Stockfish 16 on this device.</p>
         <p class="gz-due" id="gz-due"></p>
         <p class="gz-base" id="gz-base" hidden></p>
         <button type="button" class="btn btn-primary gz-go" id="gz-go" data-act="solve" hidden>Solve</button>
       </div>
       <p class="gz-need" id="gz-need" hidden></p>
       <div class="ct-card ct-empty gz-empty" id="gz-empty" hidden></div>
+      <div class="gz-list" id="gz-list" data-info="Puzzles by kind">
       <div class="gz-showrow" id="gz-showrow" hidden><span class="ga-rl" aria-hidden="true">Show</span><div class="toggle-row ghv-chips ga-chips gz-show" id="gz-show" role="group" aria-label="Show"></div></div>
       <div class="ct-mgrid gz-grid" id="gz-grid"></div>
       <button type="button" class="btn btn-ghost gz-more" id="gz-more" data-act="more" hidden>Show 12 more</button>
-      <p class="ct-src" id="gz-src" hidden></p>
+      <p class="ct-src info-stay" id="gz-src" hidden></p>
+      </div>
     </section>
     <div class="history-footer">
       <div class="history-loading" id="history-loading" style="display:none;">Loading&#8230;</div>
@@ -11159,8 +11287,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
               <button type="button" class="btn-link hpf-go" id="hpf-go" hidden>Analyze game to grade each phase</button>
               <div class="hpf-src" id="hpf-src" hidden></div>
               <div class="hpf-season" id="hpf-season" hidden></div>
-              <button type="button" class="btn-link hpf-info" id="hpf-info" aria-expanded="false" aria-controls="hpf-how">How the phases are split</button>
-              <p class="hpf-how" id="hpf-how" hidden>The phases follow the pieces, as on Lichess: the middlegame starts once the pieces are developed or traded, the endgame with 6 or fewer pieces left (not counting pawns and kings), or 8 or fewer once both queens are off. A move counts in the phase it was played in; the averages are your other reviewed games.</p>
+              <p class="hpf-how info-only" id="hpf-how">The phases follow the pieces, as on Lichess: the middlegame starts once the pieces are developed or traded, the endgame with 6 or fewer pieces left (not counting pawns and kings), or 8 or fewer once both queens are off. A move counts in the phase it was played in; the averages are your other reviewed games.</p>
             </div>
           </div>
         </div>
@@ -30282,7 +30409,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         if(rr > l && b > t && rr > 0 && b > 0 && l < vw && t < vh) out.push({ l:l - pad, t:t - pad, r:rr + pad, b:b + pad });
       }
     };
-    ['home-fab', 'settings-fab', 'friends-widget', 'spotify-widget', 'lichess-activity-widget', 'plaque-logo-wrap', 'pull-refresh-indicator'].forEach(id=> add(document.getElementById(id), 8));
+    ['home-fab', 'settings-fab', 'ib-fab', 'ib', 'friends-widget', 'spotify-widget', 'lichess-activity-widget', 'plaque-logo-wrap', 'pull-refresh-indicator'].forEach(id=> add(document.getElementById(id), 8));
     const v = views[currentView];
     if(v){
       v.querySelectorAll('.board, .board-col').forEach(el=> add(el, 8));
@@ -36376,6 +36503,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       note = (big ? 'Recurring: a structure in 25% or more of an opening\u2019s games, with '+PSN_REC+' games or more.' : '')+(R.wait ? (big ? ' ' : '')+'Still sorting '+ghoN(R.wait, 'game')+' by your repertoire.' : '');
     }
     put('ps-sum', sum); put('ps-note', note);
+    { const m = /^Recurring: .*? or more\./.exec(note), at = m ? m[0].length : 0; ibWords(document.getElementById('ps-note'), [[note.slice(0, at), 1], [note.slice(at), 0]]); }      // the rule is in the Info box
     const ph = !!window.matchMedia && matchMedia('(max-width:640px)').matches, lim = view==='s' ? (ph ? 5 : 10) : (ph ? 4 : 6), rows = view==='s' ? R.on.length + R.thin.length : R.list.length, want = Math.min(rows, Math.max(lim, PSN.rows));
     // into an empty list: the first few rows, the rest in the next task (a slow device paints them apart)
     const few = !list.firstChild && want > 4 ? (view==='s' ? 4 : 2) : 0, shown = few || want;
@@ -36483,7 +36611,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         });
         bd.appendChild(ul);
         if(ops.length > 5){ const b = psBtn('btn-link ps-lk ps-op-m', P.more ? 'Fewer openings' : (ops.length - 5)+' more opening'+(ops.length===6 ? '' : 's')); b.dataset.act = 'ops'; b.dataset.fid = 'mine|ops'; b.setAttribute('aria-expanded', P.more ? 'true' : 'false'); bd.appendChild(b); }
-        if(few.some(y=> psnRecurring(y.o, y.L.length))) bd.appendChild(ghEl('p', 'ghv-note', 'Recurring: in 25% or more of an opening\u2019s games, with '+PSN_REC+' games or more.'));
+        if(few.some(y=> psnRecurring(y.o, y.L.length))) bd.appendChild(ghEl('p', 'ghv-note info-only', 'Recurring: in 25% or more of an opening\u2019s games, with '+PSN_REC+' games or more.'));
         if(O.wait) bd.appendChild(ghEl('p', 'ghv-note', 'Still sorting '+ghoN(O.wait, 'game')+' by your repertoire.'));
       }
       const o = P.f.slice(0, 2)==='o|' ? ops.find(y=> 'o|'+y.o.k===P.f).o : null;
@@ -37524,18 +37652,18 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(qi.placeholder!==qp) qi.placeholder = qp;
     ghoQShow(qn);
     const foot = document.getElementById('gho-foot');
-    let ft = '';
+    const ft = [], fadd = (t, box)=> ft.push([(ft.length ? ' ' : '')+t, box]);          // [words, in the Info box]
     if(!loading){
-      ft = 'Games against the computer aren\u2019t counted.';
-      if(model.other) ft += ' '+(model.other===1 ? '1 game in another variant isn\u2019t' : model.other+' games in other variants aren\u2019t')+' counted either.';
+      fadd('Games against the computer aren\u2019t counted.', 1);
+      if(model.other) fadd((model.other===1 ? '1 game in another variant isn\u2019t' : model.other+' games in other variants aren\u2019t')+' counted either.', 1);
       const ccMore = named && ghCcUp() && !!ccUser() && (ghCcBusy() || ccState()==='waiting');
-      if(site!=='chesscom' && !GH_STATE.exhausted && (!mix || GH_STATE.games.length)) ft += mix ? ' Built from the '+GH_STATE.games.length.toLocaleString('en-US')+' Lichess games loaded so far: load more for a longer view.'
-        : ' Built from the '+GH_STATE.games.length.toLocaleString('en-US')+' games loaded so far: load more games for a longer view.';
-      if(ccMore) ft += ' Chess.com games are still loading ('+(GH_STATE.ccHumans || 0).toLocaleString('en-US')+' so far).';
-      if(mix) ft += ' Lichess and chess.com ratings are on different scales, so performance is shown per site and never averaged.';
+      if(site!=='chesscom' && !GH_STATE.exhausted && (!mix || GH_STATE.games.length)) fadd(mix ? 'Built from the '+GH_STATE.games.length.toLocaleString('en-US')+' Lichess games loaded so far: load more for a longer view.'
+        : 'Built from the '+GH_STATE.games.length.toLocaleString('en-US')+' games loaded so far: load more games for a longer view.', 0);
+      if(ccMore) fadd('Chess.com games are still loading ('+(GH_STATE.ccHumans || 0).toLocaleString('en-US')+' so far).', 0);
+      if(mix) fadd('Lichess and chess.com ratings are on different scales, so performance is shown per site and never averaged.', 1);
     }
-    foot.textContent = ft;
-    foot.hidden = !ft;
+    ibWords(foot, ft);
+    foot.hidden = !ft.length;
     const cnt = document.getElementById('gh-count');
     cnt.textContent = loading && ghTabBusy() ? '' : 'Built from '+ghoN(model.counted, 'game')+' against people';
     if(model.rep && cnt.textContent){
@@ -40267,7 +40395,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     return b;
   }
   function blWhen(X){ return X.days ? 'last '+CT_DAYS+' days' : X.W.length===1 ? 'the last one' : 'the last '+X.W.length; }
-  function blBarNote(md){ return ghEl('p', 'ct-sub ct-blnote', 'Blunders: games with one, of those with a review or a badge ('+blWhen(md.BW)+').'); }
+  function blBarNote(md){ return ghEl('p', 'ct-sub ct-blnote info-only', 'Blunders: games with one, of those with a review or a badge ('+blWhen(md.BW)+').'); }
   // the why, over every blunder here: how many also carry a letter and which, those with none yet (a press opens them, to be
   // marked), and where the numbers come from
   function blStrip(md){
@@ -40288,7 +40416,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const own = L.filter(x=> x.own).length, rv = n - own, src = [];
     if(own) src.push(own+' from your badges');
     if(rv) src.push(rv+' from game reviews');
-    box.appendChild(ghEl('span', 'ct-blsrc', (n ? ghoN(n, 'blunder')+' in '+base+': '+src.join(', ')+'. ' : '')+'Games with no review and no badge aren\u2019t counted.'));
+    box.appendChild(ibWords(ghEl('span', 'ct-blsrc'), [[n ? ghoN(n, 'blunder')+' in '+base+': '+src.join(', ')+'.' : '', 0], [(n ? ' ' : '')+'Games with no review and no badge aren\u2019t counted.', 1]]));
     return box;
   }
   // no letters here, only blunders: the card is theirs
@@ -40441,6 +40569,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     h.id = 'ct-grid-h';
     box.append(h, ghEl('p', 'ct-sub', T ? 'One column per game, oldest on the left. A ringed letter: you marked that kind of slip of theirs in the game. A column opens the game at its first marked move.'
       : 'One column per game, oldest on the left. A filled letter: you marked that kind of mistake in the game. A column opens the game at its first marked move.'));
+    { const p = box.lastChild, t = p.textContent, i = t.indexOf(' in the game. '); ibWords(p, [[t.slice(0, i), 0], [' in the game', 1], ['.', 0], [t.slice(i + 13), 1]]); }      // what a column and a letter are stay on the card; what a press does is in the Info box
     const sc = ghEl('div', 'ct-scroll'), g = ghEl('div', 'ct-g');
     g.style.gridTemplateColumns = 'var(--ct-lw) repeat('+n+', minmax(var(--ct-cw), 1fr)) 46px'+(H ? ' 76px' : '')+' 52px';
     g.style.minWidth = 'calc(var(--ct-lw) + '+n+' * (var(--ct-cw) + 2px) + '+(H ? 174 : 98)+'px)';
@@ -40514,9 +40643,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     dt(''); if(H) dt(''); dt('');
     sc.appendChild(g);
     box.appendChild(sc);
-    box.appendChild(ghEl('p', 'ct-sub ct-foot', (H ? 'Last '+H.n+': your newest '+H.n+' marked games against the '+H.n+' before them. ' : '')+'Scored: your points in the games with that letter'+(hasB ? ', or with a blunder' : '')+'. '
-      +(hasB ? 'Blunders: in '+bn(GG).length+' of the '+(bs(GG).length===1 ? '1 game here that has' : bs(GG).length+' games here that have')+' a review or a badge; an empty cell has neither'+(H && bs(H.a).length!==bs(H.b).length ? ' (a dash: the two halves don\u2019t have as many of those games)' : '')+'. ' : '')
-      +'Result: a solid bar won, a thin line drew, an outline lost.'));
+    // (which games each total counts stays on the card; the rest of the key is in the Info box)
+    box.appendChild(ibWords(ghEl('p', 'ct-sub ct-foot'), [[H ? 'Last '+H.n+': your newest '+H.n+' marked games against the '+H.n+' before them. ' : '', 0], ['Scored: your points in the games with that letter'+(hasB ? ', or with a blunder' : '')+'. ', 1],
+      [hasB ? 'Blunders: in '+bn(GG).length+' of the '+(bs(GG).length===1 ? '1 game here that has' : bs(GG).length+' games here that have')+' a review or a badge' : '', 0], [hasB ? '; an empty cell has neither' : '', 1],
+      [hasB ? (H && bs(H.a).length!==bs(H.b).length ? ' (a dash: the two halves don\u2019t have as many of those games)' : '')+'. ' : '', 0], ['Result: a solid bar won, a thin line drew, an outline lost.', 1]]));
     // a narrow screen: opened at the newest games and the totals (the letters stay at the left); drawn again, where you had it
     sc.addEventListener('scroll', ()=>{ CT.gx = { x:sc.scrollLeft, end:sc.scrollLeft >= sc.scrollWidth - sc.clientWidth - 1 }; ctGridDates(sc); }, { passive:true });
     requestAnimationFrame(()=>{
@@ -40541,11 +40671,18 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     h.id = 'ct-where-h';
     const off = M.length - md.phN, BN = md.BM.length, boff = BN - md.BM.filter(m=> m.ph!=null).length;
     const nclk = [md.clkN ? md.clkN+' of '+ghoN(M.length, 'move') : '', md.bClkN && !M.length ? md.bClkN+' of '+ghoN(BN, 'blunder') : ''].filter(Boolean).join('');
-    box.append(h, ghEl('p', 'ct-sub', (!M.length ? (md.T ? 'Their' : 'Your')+' blunders, counted.' : md.T ? 'Their slips you marked, counted.' : 'Your marked moves, counted.')+(M.length ? ' An outlined count is where a letter shows up most in its group.' : ' An outlined count is the most in its group.')+' Phase: as the review\u2019s phase card divides the game.'
-      +(md.clkN || md.bClkN ? ' Low on time: under 10% of '+(md.T ? 'their' : 'your')+' starting time left before the move'+(nclk ? ' ('+nclk+' had clocks)' : '')+'.' : '')
-      +(off ? ' '+(off===1 ? '1 move' : off+' moves')+' from Chess960, other variants or set-up games '+(off===1 ? 'isn\u2019t' : 'aren\u2019t')+' in Phase'+(md.clkN ? ' or Clock' : '')+'.' : '')
-      +(M.length && BN ? ' Blunders: every ?? of '+(md.T ? 'theirs' : 'yours')+', with a letter or not'+(md.bClkN ? ' ('+md.bClkN+' of '+BN+' had clocks)' : '')+'.' : '')
-      +(boff ? ' '+(boff===1 ? '1 blunder' : boff+' blunders')+' from Chess960, other variants or set-up games '+(boff===1 ? 'isn\u2019t' : 'aren\u2019t')+' in Phase'+(md.bClkN ? ' or Clock' : '')+'.' : '')));
+    // (how many had clocks, and what isn't in it, stay on the card; the rules are in the Info box)
+    const wp = [], wadd = (t, b)=>{ if(t) wp.push([t, b]); };
+    wadd((!M.length ? (md.T ? 'Their' : 'Your')+' blunders, counted.' : md.T ? 'Their slips you marked, counted.' : 'Your marked moves, counted.')+(M.length ? ' An outlined count is where a letter shows up most in its group.' : ' An outlined count is the most in its group.')+' Phase: as the review\u2019s phase card divides the game.'
+      +(md.clkN || md.bClkN ? ' Low on time: under 10% of '+(md.T ? 'their' : 'your')+' starting time left before the move' : ''), 1);
+    if(md.clkN || md.bClkN){
+      wadd('.', 1);
+      wadd(md.clkN ? ' '+nclk+' had clocks'+(md.bClkN && M.length && BN ? '; blunders: '+md.bClkN+' of '+BN : '')+'.' : !M.length ? ' '+nclk+' had clocks.' : BN ? ' Blunders: '+md.bClkN+' of '+BN+' had clocks.' : '', 0);
+    }
+    wadd(off ? ' '+(off===1 ? '1 move' : off+' moves')+' from Chess960, other variants or set-up games '+(off===1 ? 'isn\u2019t' : 'aren\u2019t')+' in Phase'+(md.clkN ? ' or Clock' : '')+'.' : '', 0);
+    if(M.length && BN) wadd(' Blunders: every ?? of '+(md.T ? 'theirs' : 'yours')+', with a letter or not.', 1);
+    wadd(boff ? ' '+(boff===1 ? '1 blunder' : boff+' blunders')+' from Chess960, other variants or set-up games '+(boff===1 ? 'isn\u2019t' : 'aren\u2019t')+' in Phase'+(md.bClkN ? ' or Clock' : '')+'.' : '', 0);
+    box.append(h, ibWords(ghEl('p', 'ct-sub'), wp));
     const groups = [['phase', 'Phase', ['0', '1', '2']], ['color', 'Color', ['white', 'black']], ['speed', 'Speed', md.sp]];
     if(md.clkN || md.bClkN) groups.push(['clock', 'Clock', ['low']]);
     const T = ghEl('table', 'ct-w'), hd = ghEl('thead'), r1 = ghEl('tr'), r2 = ghEl('tr'), bd = ghEl('tbody');
@@ -40658,7 +40795,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     box.textContent = '';
     const head = ghEl('div', 'ct-mom-h'), ht = ghEl('div', ''), h = ghEl('h3', 'ct-h', 'Moments');
     h.id = 'ct-mom-h';
-    ht.append(h, ghEl('p', 'ct-sub', m.ch===BL_CH ? (md.T ? 'Every blunder of theirs' : 'Every blunder of yours')+' (your ?? badge, or the game review\u2019s where you have none), newest first: the position before it, the move drawn in the badge\u2019s color, its letters beside it. A card opens the review at that move.'
+    ht.append(h, ghEl('p', 'ct-sub info-only', m.ch===BL_CH ? (md.T ? 'Every blunder of theirs' : 'Every blunder of yours')+' (your ?? badge, or the game review\u2019s where you have none), newest first: the position before it, the move drawn in the badge\u2019s color, its letters beside it. A card opens the review at that move.'
       : md.T ? 'Every slip of theirs you marked, newest first: the position before their move, the move drawn in its letter\u2019s color, punished or missed as you said it. A card opens the review at that move.'
       : 'Every move you marked, newest first: the position before it, the move drawn in its letter\u2019s color. A card opens the review at that move.'));
     head.appendChild(ht);
@@ -41102,7 +41239,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     ttDrawHero(md);
     ttDrawBy(md);
     ttDrawWhen(md);
-    document.getElementById('tt-src').textContent = 'From the tactics you marked by hand in '+ghoN(md.G.length, 'game')+' (of '+ghoN(md.scope.length, 'game')+' against people). Nothing here is guessed by the engine. The Filters above apply.';
+    ibWords(document.getElementById('tt-src'), [['From the tactics you marked by hand in '+ghoN(md.G.length, 'game')+' (of '+ghoN(md.scope.length, 'game')+' against people).', 0], [' Nothing here is guessed by the engine. The Filters above apply.', 1]]);
   }
   // a trend chip: an arrow and a color only when each half has 10+ chances (else grey)
   function ttTrend(text, delta, enough, lowerIsBetter){
@@ -41277,7 +41414,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     box.textContent = '';
     const head = ttEl('div', 'ct-head'), h = ttEl('h3', 'ct-h', 'When they happen');
     h.id = 'tt-when-h';
-    head.append(h, ttEl('span', 'ct-n', 'Phase of the position after the move, as the review\u2019s Phase card divides the game'+(md.phN < md.M.length ? '. Standard games only' : '')+'.'));
+    head.append(h, ttEl('span', 'ct-n info-only', 'Phase of the position after the move, as the review\u2019s Phase card divides the game'+(md.phN < md.M.length ? '. Standard games only' : '')+'.'));
     box.appendChild(head);
     const grid = ttEl('div', 'tt-phs');
     md.phs.forEach(x=>{
@@ -41331,7 +41468,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     box.textContent = '';
     const head = ttEl('div', 'ct-mom-h'), ht = ttEl('div', ''), h = ttEl('h3', 'ct-h', 'Moments');
     h.id = 'tt-mom-h';
-    ht.append(h, ttEl('p', 'ct-sub', 'Every chance you marked, newest first: the position after the move that allowed it. A card opens the review there.'));
+    ht.append(h, ttEl('p', 'ct-sub info-only', 'Every chance you marked, newest first: the position after the move that allowed it. A card opens the review there.'));
     head.appendChild(ht);
     const chips = ttEl('div', 'ct-chips');
     chips.setAttribute('role', 'group');
@@ -42521,13 +42658,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(at) card.insertBefore(p, at); else card.appendChild(p);
     return p;
   }
-  // a card's source line; in a partly loaded window the card's first one starts with that (GA.pd: set for each card drawn, spec 4.4)
+  // a card's source line: words in the Info box (ib*), not on the card. In a partly loaded window the card's first one has that
+  // before it, as its own line on the card (GA.pd: set for each card drawn, spec 4.4)
   function gaSrc(box, t){
-    const p = ghEl('p', 'ct-src ga-src');
-    if(GA.pd){ GA.pd = false; p.appendChild(ghEl('span', 'ga-soft ga-part', 'Partly loaded: games not loaded yet are left out. ')); }
-    p.appendChild(document.createTextNode(t));
-    box.appendChild(p);
+    gaPart(box);
+    box.appendChild(ghEl('p', 'ct-src ga-src', t));
   }
+  function gaPart(box){ if(GA.pd){ GA.pd = false; box.appendChild(ghEl('p', 'ct-vs ga-part', 'Partly loaded: games not loaded yet are left out.')); } }
   // ---- every card, into one fragment, swapped in at once ----
   var GA_DRAW_CARDS = [];           // [[id, fn(md, frag)]] in the page's order (the later steps add theirs)
   function gaDrawAll(md, em){
@@ -42851,7 +42988,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     gaSay(c, md.say['ga-clk']);
     const x = gaX(c);
-    if(!K.G.length){ gaSrc(x, 'Games with full clocks only: daily and correspondence games have none.'); frag.appendChild(c); return; }
+    if(!K.G.length){ gaPart(x); x.appendChild(ghEl('p', 'ct-vs ga-cov', 'Games with full clocks only: daily and correspondence games have none.')); frag.appendChild(c); return; }
     // coverage: the games left out of this card
     if(K.corr || K.inc){
       const p = ghEl('p', 'ct-vs ga-cov');
@@ -43379,7 +43516,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       x.appendChild(lk);
     }
     gaSrc(x, 'Your usual: the middle score of your other games in the same line and color where the middlegame starts (all dates and speeds, '+OU_MIN+
-      ' games at least). Below: '+OU_DROP+'+ points of winning chances under it, or lost before a middlegame. Scores: your review, else Lichess\u2019s analysis, else Opening checks. Your better games: the ones at your usual or better. The board: the move where this game left them (red) and their move there (green).');
+      ' games at least). Below: '+OU_DROP+'+ points of winning chances under it, or lost before a middlegame. Scores: your review, else Lichess\u2019s analysis, else Opening checks. Your better games: the ones at your usual or better.');
+    if(U.rows.length) x.appendChild(ghEl('p', 'ct-vs ga-cov', 'The board: the move where this game left them (red) and their move there (green).'));
     frag.appendChild(c);
   }
   // the words for where the game left your better games
@@ -44446,7 +44584,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const by = [];
       if(K.nr) by.push(K.nr+' reviewed by Chess Arcade');
       if(K.nl) by.push(K.nl+' analyzed on Lichess');
-      cv.appendChild(document.createTextNode(' of '+ghoN(md.W.length, 'game')+' with engine scores: '+by.join(', ')+'. Chances start at mate in 5 or fewer.'));
+      cv.appendChild(document.createTextNode(' of '+ghoN(md.W.length, 'game')+' with engine scores: '+by.join(', ')+'.'));
+      cv.appendChild(ghEl('span', 'info-only', ' Chances start at mate in 5 or fewer.'));
     }
     if(no){
       if(K.games.length) cv.appendChild(document.createTextNode(' '));
@@ -46131,9 +46270,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     gaDrawAh(md, x, wds);          // How you got ahead, the other half of "advantage leakage": the same games' first times up by 3
     gaSrc(x, 'Ahead = 1.5 pawns or more better on your turn and still after your move, or when the game ended. Never ahead = that never came, nor 1.5 or better on your turn. A chance not taken = 1.5 or better on your turn, gone with your move each time. '+
-      'While better = 1.5 or better in the last position, whatever came before (before the claim, in a draw by repetition or 50 moves); these games are in no other row. '+
       'Gone in one move = after the last time you were ahead, the first move of yours that took you from 1.5 or better to under it and cost 15 points of winning chances or more. Slid away = ahead, then under 1.5 with no such move. '+
       'A tactic at once = after that move the engine\u2019s best reply (or the reply played, when it cost them '+GA_WY_R+' points at most) wins 2 points of material or more against any answer, counted over the captures that follow, or it is mate in '+GA_WY_MATE+' or fewer. No tactic at once = only that. '+
+      'While better = 1.5 or better in the last position, whatever came before (before the claim, in a draw by repetition or 50 moves); these games are in no other row. '+
       'Score once up by 3 = wins and half the draws in every game, won or not, where you (or they) stood 3 pawns or more better for two positions in a row. Opponents = the games they didn\u2019t win among these same games, by the same rule. '+
       'Scores = your review, else Lichess\u2019s analysis, else quick scores (a quick look of 12,000 positions a move; rapid and blitz only). Quick scores = in the shares only: boards and tactics come from reviews and Lichess\u2019s analysis. Percentages from '+GA_WY_N+' games. Games of 5 moves or fewer are left out.');
     gaAhSrc(md, x);          // (How you got ahead's own rules, after the card's)
@@ -47107,12 +47246,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // the source card, in the spec's exact form (10.5)
   function gzDrawSrc(md){
     const el = document.getElementById('gz-src'), N = (n)=> Number(n || 0).toLocaleString('en-US'), W = md.W.length;
-    const t = 'Games against people, standard chess, in these Filters. Looked at: '+N(md.looked)+' of '+N(W)+', newest first, games you didn\u2019t win first. '
-      +'Found in: your reviews '+N(md.src.r)+' \u00b7 Lichess\u2019s analysis '+N(md.src.l)+' \u00b7 Stockfish 16 on this device '+N(md.src.s)+' ('+N(GZ_NODES.scan)+' nodes a position). '
-      +'Every Finish the job, Missed mate and Win it again checked by Stockfish 16 on this device ('+N(GZ_NODES.multi)+' nodes, the 2 best moves). '
-      +'Mates in 1: '+N(md.mm)+' of '+N(W)+' games checked by Chess Arcade\u2019s rules. '
-      +'Winning = +2.00 or better; a slip costs 15+ points of Lichess\u2019s winning chances. '+(GZ_MEM ? 'Kept for this visit only.' : 'Kept on this device.');
-    if(el.textContent!==t) el.textContent = t;
+    const p1 = 'Games against people, standard chess, in these Filters. ', p2 = 'Looked at: '+N(md.looked)+' of '+N(W)+', newest first, games you didn\u2019t win first. ', p3 =
+      'Found in: your reviews '+N(md.src.r)+' \u00b7 Lichess\u2019s analysis '+N(md.src.l)+' \u00b7 Stockfish 16 on this device '+N(md.src.s)+' ('+N(GZ_NODES.scan)+' nodes a position). '
+      +'Every Finish the job, Missed mate and Win it again checked by Stockfish 16 on this device ('+N(GZ_NODES.multi)+' nodes, the 2 best moves). ',
+      p4 = 'Mates in 1: '+N(md.mm)+' of '+N(W)+' games checked by Chess Arcade\u2019s rules. ', p5 = 'Winning = +2.00 or better; a slip costs 15+ points of Lichess\u2019s winning chances. ';
+    ibWords(el, [[p1, 1], [p2, 0], [p3, 1], [p4, 0], [p5, 1], GZ_MEM ? ['Kept for this visit only.', 0] : ['Kept on this device.', 1]]);          // how far it got (looked at, mates in 1 checked) stays here; the rules are in the Info box
   }
   // Show 12 more: the keyboard goes to the first new card
   function gzMore(){
@@ -48831,12 +48969,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       +'Punish it: their move cost '+GK_LIM.pun+'+ points, you stood at '+GK_LIM.stand+'% or better after it, and your reply gave '+(GK_LIM.pun + GK_LIM.sure)+'+ back. '
       +'Each checked by Stockfish 16 on this device ('+N(GK_NODES.multi)+' nodes, the 4 best moves; '+N(GK_NODES.one)+' after your move, after the best one and, for Punish it, before theirs). '
       +'Right: a move within 0.65 of the best there that is within 0.25 of it by its own '+N(GK_NODES.one)+' nodes (or within 2.3 points of winning chances, where the game is clearly won or lost). '
-      +'At most '+GK_CAP.items+' a game; no mates, nothing where four moves are within half a pawn, and no position the kinds above list. '
-      +'The lines at the top count their mistakes of '+GK_LIM.pun+'+ points that left you at '+GK_LIM.stand+'% or better, and the answers that gave '+GK_LIM.pun+'+ back: the games with a full analysis (your reviews, Lichess\u2019s) and the quick scores apart. '
+      +'At most '+GK_CAP.items+' a game; no mates, nothing where four moves are within half a pawn, and no position the kinds above list.',
+      'The lines at the top count their mistakes of '+GK_LIM.pun+'+ points that left you at '+GK_LIM.stand+'% or better, and the answers that gave '+GK_LIM.pun+'+ back: the games with a full analysis (your reviews, Lichess\u2019s) and the quick scores apart. '
       +'A quick score that is too high makes a false mistake and a false answer at once: measured on 134 games, about a fifth too many of both, the share within 2 points.'];
   }
   function gkDrawSrc(md){
-    const t = md ? gkSrc(md) : ['', ''];
+    const t = md ? gkSrc(md) : ['', '', ''];
     let at = document.getElementById('gz-src');
     [['gz-src2', 'ct-src info-stay'], ['gz-src3', 'ct-src']].forEach(([id, cls], i)=>{
       let el = document.getElementById(id);
@@ -48845,6 +48983,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(el.textContent!==t[i]) el.textContent = t[i];
       el.hidden = !t[i];
     });
+    // the top card's lines: their rule in the top card (the Info box says it when you point there), hidden with them
+    const base = document.getElementById('gz-base');
+    let r = document.getElementById('gz-src4');
+    if(!r && base && t[2]){ r = ghEl('p', 'ct-src'); r.id = 'gz-src4'; base.after(r); }
+    if(r){ if(r.textContent!==t[2]) r.textContent = t[2]; r.hidden = !t[2] || base.hidden; }
   }
   // their moves that cost 15+ points with the mover's opponent at 35% or better after it, and replies that gave 15+ back, in one
   // scored game: [yours: chances, given back, theirs: chances, given back]. Shares over many games: quick scores count
@@ -48952,6 +49095,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!el) return;
     if(el.textContent!==t) el.textContent = t;
     el.hidden = !t;
+    const r = document.getElementById('gz-src4');
+    if(r) r.hidden = el.hidden || !r.textContent;          // (the rule of these lines: hidden with them)
     gkKingsRun();
   }
   // a right move that isn't the line's own: one within 0.25 of the best ([uci, the score after it]), kept with the puzzle
@@ -59629,7 +59774,6 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     svg: document.getElementById('hpf-svg'), marks: document.getElementById('hpf-marks'), queens: document.getElementById('hpf-queens'),
     phases: document.getElementById('hpf-phases'), go: document.getElementById('hpf-go'), season: document.getElementById('hpf-season'), cells: [],
     src: document.getElementById('hpf-src'),
-    info: document.getElementById('hpf-info'), how: document.getElementById('hpf-how'),
     mini: document.getElementById('hpf-mini'), none: document.getElementById('hpf-none')
   };
   // ---- the phases ----
@@ -59977,12 +60121,6 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     E.hidden = !(lead || rest);
   }
   hpfEl.go.addEventListener('click', ()=> hrStart());
-  // how the phases are split, shown on demand (a tooltip alone reaches neither touch nor keys)
-  hpfEl.info.addEventListener('click', ()=>{
-    const open = hpfEl.how.hidden;
-    hpfEl.how.hidden = !open;
-    hpfEl.info.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
   // The small strip, the folded card's: the zones (the one you're in at full colour, the others faded), the
   // evaluation for you once graded (up is good for you, the middle even), the move shown.
   function hpfWinPct(score, mine){
@@ -60410,7 +60548,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       tbody.appendChild(tr);
     });
     // the Game rating row, and what it is
-    const tfoot = hvEl('tfoot'), gr = hvEl('tr', 'hr-gr'), gth = hvEl('th', 'hr-cls', 'Game rating'), nr = hvEl('tr', 'hr-gr-note'), nt = hvEl('td', '', 'An estimate from the average centipawn loss in this review. One game can be off by about 400. Not chess.com\u2019s number.');
+    const tfoot = hvEl('tfoot'), gr = hvEl('tr', 'hr-gr'), gth = hvEl('th', 'hr-cls', 'Game rating'), nr = hvEl('tr', 'hr-gr-note'), nt = ibWords(hvEl('td', ''), [['An estimate', 0], [' from the average centipawn loss in this review', 1], ['. One game can be off by about 400.', 0], [' Not chess.com\u2019s number.', 1]]);
+    tfoot.dataset.info = 'Game rating';
     gth.scope = 'row';
     gr.appendChild(gth);
     order.forEach(c=>{
@@ -68702,7 +68841,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       body = '<ol class="pzd-list">'+shown.map(r=> pdbThemeRow(r, kind, days)).join('')+'</ol>'
         +(rows.length > max ? '<button type="button" class="pzd-more" data-act="more" data-kind="'+kind+'" aria-expanded="'+open+'">'+(open ? 'Show '+max : 'Show all '+rows.length)+'</button>' : '');
     }
-    return '<div class="pzd-col"><h2 class="ch-box-title" id="pzd-h-'+kind+'">'+title+'</h2><p class="pzd-sub">'+sub+'</p>'+body+'</div>';
+    return '<div class="pzd-col"><h2 class="ch-box-title" id="pzd-h-'+kind+'">'+title+'</h2><p class="pzd-sub info-only">'+sub+'</p>'+body+'</div>';
   }
   function pdbThemesCard(d, days){
     const g = d.global, lists = pdbThemeLists(d), sure = pdbClear(g);
@@ -68724,7 +68863,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     rows.push([f.missedAny ? '<b>'+f.missedAny+'</b> missed, viewed or skipped here in the last '+days+' days' : 'Nothing missed here in the last '+days+' days', f.missedAny ? btn('ph', 'missed', 'History &middot; Missed') : '']);
     rows.push(['<b>'+f.saved+'</b> saved'+(f.savedMissed ? ', <b>'+f.savedMissed+'</b> missed the first time' : ''), f.saved ? btn('saved', 'missed', 'Saved &middot; Missed first') : '']);
     return '<section class="pzd-card" aria-labelledby="pzd-h-dev"><h2 class="ch-box-title" id="pzd-h-dev">On this device</h2>'
-      +'<p class="pzd-sub">From this device&rsquo;s puzzle log (its last 200 puzzles) and your saved puzzles.</p><ul class="pzd-list">'
+      +'<p class="pzd-sub info-only">From this device&rsquo;s puzzle log (its last 200 puzzles) and your saved puzzles.</p><ul class="pzd-list">'
       +rows.map(x=> '<li class="pzd-drow"><div class="pzd-dtext">'+x[0]+'</div>'+x[1]+'</li>').join('')+'</ul></section>';
   }
   function pdbTokenBox(){
@@ -68776,7 +68915,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         +(text ? '<div class="pzd-acts"><button type="button" class="btn pzd-ink pzd-btn" data-act="replay" data-theme="mix"'+(off || pdb.lock ? ' disabled' : '')+' aria-label="'+text+', '+(off ? 'needs Lichess' : 'practice')+'">'+text+pdbTag(off ? 'Needs Lichess' : 'Practice')+'</button></div>' : '')
         +practiced+'</div>';
     }
-    const src = '<div class="pzd-src"><span>From Lichess: your puzzle rating, and your puzzle dashboard for puzzles first played '+pdbDay(at - days * PDB_DAY)+' &ndash; '+pdbDay(at)+'.</span>'
+    const src = '<div class="pzd-src"><span><span class="info-part">From Lichess: your puzzle rating, and your puzzle dashboard for puzzles first played </span>'+pdbDay(at - days * PDB_DAY)+' &ndash; '+pdbDay(at)+'.</span>'
       +'<a href="https://lichess.org/training/dashboard/'+days+'" target="_blank" rel="noopener">lichess.org/training/dashboard/'+days+'</a>'
       +(off ? '<div class="pzd-src-down"><span class="warn">Lichess didn&rsquo;t answer at '+pdbWhen(pdb.down.at)+'. These numbers are from '+pdbWhen(at)+'.</span>'
         +(pdbRetryWhen() ? '<span>'+pdbRetryWhen()+'</span>' : '')+pdbRetryBtn()+'</div>' : '')
@@ -68856,6 +68995,470 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   });
   pdbReady = true;
   pdbSyncHeads();
+
+  /* ================= INFO BOX (ib*, 2026-11-25) =================
+     One box for the app's data screens that says how what you point at is counted and where it comes from, in place of the fine
+     print on the cards. Closed until you open it (the "i" beside the gear, or the key I), open or closed kept on this device only.
+     Mouse and trackpad: what you point at, or reach with Tab. A finger: the card you are looking at as you scroll, or the one you
+     tap (a tap does what it always did). It reads the page: every .ct-src / .ps-src line, the lines under Openings' headings
+     (.gho-gap-sub), .info-only and .info-part (the CSS at "Info box"), the ones in a card for that card, the ones outside every card
+     for the whole screen. A new card needs nothing here. */
+  // a paragraph some of whose words are in the Info box: [[words, 1 in the box | 0 on the card], ...]; every word in it as before
+  // for a screen reader and on paper
+  function ibWords(el, parts){
+    const P = parts.filter(p=> p[0]), sig = JSON.stringify(P), t = P.map(p=> p[0]).join('');
+    if(el._ib!==sig || el.textContent!==t || (P.some(p=> p[1]) && !el.querySelector('.info-part'))){
+      el._ib = sig;
+      el.textContent = '';
+      P.forEach(p=> el.appendChild(p[1] ? ghEl('span', 'info-part', p[0]) : document.createTextNode(p[0])));
+    }
+    const all = P.length > 0 && P.every(p=> p[1]);
+    if(el.classList.contains('info-only')!==all) el.classList.toggle('info-only', all);
+    return el;
+  }
+  (function ibBoot(){
+    const KEY = 'wavyChessPrepInfoBox', root = document.documentElement, $ = (id)=> document.getElementById(id);
+    const mq = (q)=> !!window.matchMedia && matchMedia(q).matches;
+    // the screens that have it: Game History's tabs (GH_UI.view: the tab's section, its name), the Puzzle Dashboard, the review of a game
+    const TABS = { analytics:['ga', 'Analytics'], openings:['gho', 'Openings'], positions:['ghp', 'Positions'], clamp:['ct', 'CLAMP'], tactics:['tt', 'Tactics'], puzzles:['gz', 'Puzzles'] };
+    const FP = ':is(#ga, #ct, #tt, #gz, #ghp, #gho, #view-play-history, #view-puzzle-dash) .ct-src:not(.info-stay), #gho :not(.gho-gap-col) > .gho-gap-sub:not(.info-stay), .ps-src, .info-only, .info-part';
+    // a card: what one explanation is about ([data-info="Title"] makes one anywhere)
+    const SCOPE = '[data-info], .ct-card, .pzd-brief, .pzd-card, .pzd-col, #view-history section section, .hct-pane, #gho > :is(.gho-top, .gho-facts, .gho-side), .gho-same, #ghp > .panel';
+    // the longest paragraphs, sentence by sentence: pointing at a part of these cards puts its own sentences first. [the part, the
+    // sentences' first words]; a sentence that no longer starts that way is simply not put first
+    const LIT = {
+      'ga-clk':[['.ga-num, .ga-say, .ga-rows3:not(.ga-go25):not(.ga-up)', /^Behind = /], ['.ga-up', /^(Up by 3 = |Scores as in )/], ['.ga-wyfl', /^(Flag fell while better: |Scores as in )/], ['.ga-tt', /^Under 10% = /], ['.ga-gohd', /^Where your clock goes: /], ['.ga-gosay', /^(The sentence compares |It says \u201cAim for)/],
+        ['.ga-r25e', /^Engine = /], ['.ga-go25', /^(Move 25: |Score = |Games that ended before|Engine = |A band opens)/], ['.ga-got', /^(A move\u2019s time = |Phases as in|A band opens)/]],
+      'ga-pc':[['.ga-say', /^(The sentence names|A king\u2019s answers)/], ['.ga-pcb:not(.is-o)', /^(Each move by how far|Under each number|Each piece\u2019s share|A share opens)/], ['.ga-pcr:is([data-t="0"], [data-t="5"])', /^Castling counts/], ['.ga-pcb.is-o', /^(Opponents: |A piece is named only )/]],
+      'ga-acc':[['.ga-acop, .ga-aco, .ga-bino', /^(Opponents: |A phase is named only )/]],
+      'ga-why':[['.ga-num', /^Ahead = /], ['.ga-wyr[data-k="n"]', /^Never ahead = /], ['.ga-wyr[data-k="c"]', /^A chance not taken = /],
+        ['.ga-wyr[data-k="o"]', /^(Gone in one move = |A tactic at once = |No tactic at once = )/], ['.ga-wyr[data-k="s"]', /^Slid away = /],
+        ['.ga-wyr:is([data-k="t"], [data-k="e"], [data-k="r"], [data-k="d"], [data-k="x"], [data-k="z"])', /^While better = /], ['.ga-wyr[data-k="3"]', /^(Score once up by 3 = |Opponents = the games )/],
+        ['.ga-wyr.is-head > :nth-child(3), .ga-wyr:not(.is-head) > .ga-goc:nth-child(3)', /^Opponents = the games /], ['.ga-wysrc', /^(Scores = |Quick scores = )/], ['.ga-wybd', /^(Gone in one move = |A tactic at once = |No tactic at once = |Quick scores = )/],
+        ['.ga-ahh, .ga-ahr.is-head > :first-child', /^(Up by 3 = |The climb = |Their move = )/], ['.ga-ahr[data-k="ho"]', /^(Built in the opening = |Ahead when the opening ended = )/],
+        ['.ga-ahlit', /^Ahead when the opening ended = /], ['.ga-ahr[data-k="hc"]', /^Combination = /], ['.ga-ahr[data-k="hp"]', /^Under pressure = /], ['.ga-ahr[data-k="hg"]', /^A gift = /],
+        ['.ga-ahr[data-k="ht"]', /^Time trouble = /], ['.ga-ahr[data-k="hb"]', /^Bit by bit = /],
+        ['.ga-ahr.is-head > :nth-child(3), .ga-ahr:not(.is-head) > .ga-goc:nth-child(3)', /^Opponents = the same rule /], ['.ga-ahcov', /^(Up by 3 = |Checked = )/], ['.ga-ahbd', /^(Their move = |Boards from )/]],
+      'ga-ou':[['.ga-say, .ga-num', /^(Your usual: |Below: )/]],
+      'ga-mate':[['.ga-num, .ga-mb, .ga-mopp', /^(Missed = |Chances start)/]],
+      'gz-list':[['.gz-m.is-job, .gz-m.is-win, #gz-show :is([data-val="job"], [data-val="win"])', /^(Found in: |Every Finish the job|Winning = )/], ['.gz-m.is-mate, #gz-show [data-val="mate"]', /^(Found in: |Every Finish the job|Mates in 1: )/],
+        ['.gz-m.is-king, #gz-show [data-val="king"]', /^(Find the king move: |Each checked by |Right: |At most )/], ['.gz-m.is-punish, #gz-show [data-val="punish"]', /^(Punish it: |Each checked by |Right: |At most )/]]
+    };
+    const get = ()=>{ try{ return localStorage.getItem(KEY)==='1'; }catch(e){ return false; } }, put = (v)=>{ try{ localStorage.setItem(KEY, v ? '1' : '0'); }catch(e){} };
+    const SVG = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 10.5v7.2M9.6 10.5H12M9.4 17.7h5.2"/><circle cx="12" cy="6.1" r=".9" fill="currentColor" stroke-width="1.1"/></svg>';
+    const mk = (id)=>{ const b = ghEl('button', 'ib-fab'); b.type = 'button'; b.id = id; b.innerHTML = SVG; b.title = 'Info box (I)'; b.setAttribute('aria-label', 'Info box'); b.setAttribute('aria-keyshortcuts', 'I'); b.setAttribute('aria-controls', 'ib'); b.setAttribute('aria-expanded', 'false'); return b; };
+    const fab = mk('ib-fab'), rv = mk('ib-rv'), rvw = ghEl('div', 'ib-rvw'), gear = $('settings-fab'), bk = document.querySelector('#view-play-history .hv-boardcol > .back-link');
+    fab.hidden = rvw.hidden = true;
+    rvw.appendChild(rv);
+    if(!gear || !bk) return;
+    gear.insertAdjacentElement('beforebegin', fab);
+    bk.insertAdjacentElement('afterend', rvw);
+    const box = ghEl('section', 'ib'), hd = ghEl('div', 'ib-hd'), k = ghEl('p', 'ib-k'), t = ghEl('h2', 'ib-t'), m = ghEl('div', 'ib-m'), cl = ghEl('button', 'ib-close', '\u00d7');
+    box.id = 'ib'; box.hidden = true;
+    box.setAttribute('role', 'region'); box.setAttribute('aria-label', 'Info box');
+    // (a screen reader hears which card it is, once; the words it reads in their place on the card)
+    const say = ghEl('span', 'ph-sr');
+    say.setAttribute('role', 'status');
+    t.id = 'ib-t'; m.setAttribute('role', 'group'); m.setAttribute('aria-labelledby', 'ib-t');
+    cl.type = 'button'; cl.title = 'Close (I)'; cl.setAttribute('aria-label', 'Close the Info box');
+    hd.append(k, t); box.append(hd, m, cl, say);
+    document.body.appendChild(box);
+
+    let open = get(), touch = mq('(hover:none)'), cur = null, scr = '', sig = '', onEl = null, pend = null, pendT = 0, lastT = 0, px = -1, py = -1, trail = [], byKey = false, due = 0;
+    // ---- which screen: { el, name, key }, or null where there is no Info box (never over a live game or a position played out) ----
+    function screen(){
+      if(currentView==='history'){
+        const x = TABS[GH_UI.view], el = x && $(x[0]);
+        if(GH_UI.view==='positions' && !GH_UI.pcard && GH_UI.psub==='find') return null;          // a board to set up: nothing there is counted
+        return el && !el.hidden ? { el, name:x[1], key:GH_UI.view+(GH_UI.view==='positions' ? '|'+(GH_UI.pcard || '')+'|'+(GH_UI.psub || '') : '') } : null;
+      }
+      if(currentView==='puzzle-dash') return { el:$('view-puzzle-dash'), name:'Puzzle Dashboard', key:'pzd' };
+      if(currentView==='play-history'){
+        const g = HV_STATE && HV_STATE.game;
+        return g && !g._practice && !g._puzzle ? { el:$('view-play-history'), name:'Game review', key:'rv|'+g.id, rv:true } : null;
+      }
+      return null;
+    }
+    // ---- what a card says ----
+    const clean = (s)=> s.replace(/\s+/g, ' ').trim();
+    const scopeOf = (n, S)=>{ const c = n && n.closest ? n.closest(SCOPE) : null; return c && S.el.contains(c) ? c : null; };
+    function blocks(S, c){          // the moved words of card c (null: of the screen, outside every card), in order
+      const out = [], seen = [];
+      (c || S.el).querySelectorAll(FP).forEach(e=>{
+        if(e.hidden || !e.parentElement || e.parentElement.closest('.info-only')) return;
+        if(scopeOf(e.parentElement, S)!==c) return;
+        const b = e.classList.contains('info-part') ? e.parentElement : e;
+        if(b.hidden || seen.indexOf(b) >= 0) return;
+        seen.push(b);
+        const x = clean(b.textContent);
+        if(x) out.push({ n:b, t:x });
+      });
+      const rank = (b)=> !shown(b.n) ? 2 : c && !ownLine(b.n.parentElement, c) ? 1 : 0;          // the card's own lines, then its parts', a closed fold's last
+      return [0, 1, 2].reduce((L, r)=> L.concat(out.filter(b=> rank(b)===r)), []);
+    }
+    // a line of the card's own: in the card itself, its .ga-x, or around its heading
+    function ownLine(p, c){ if(p===c || p.matches('.ga-x')) return true; const h = head(c); return !!h && p.contains(h); }
+    const head = (c)=>{ const l = c.getAttribute('aria-labelledby'); return (l && $(l)) || Array.prototype.find.call(c.querySelectorAll('h2, h3, h4, .ct-k'), h=> h.closest(SCOPE)===c) || null; };
+    const shown = (n)=> n.parentElement.getClientRects().length > 0;
+    function titleOf(c){
+      if(c.dataset.info) return c.dataset.info;
+      const h = head(c);
+      if(!h) return c.getAttribute('aria-label') || '';
+      if(h.getAttribute('aria-label')) return h.getAttribute('aria-label');
+      let x = '';
+      h.childNodes.forEach(n=>{ if(n.nodeType===3) x += n.data; else if(n.nodeType===1 && !n.matches('.ct-chip, .ct-tag')) x += n.textContent; });
+      return clean(x);
+    }
+    const sents = (x)=> x.replace(/\. +(?=[A-Z0-9\u201c]|chess\.com)/g, '.\u0001').split('\u0001');
+    // n: what is pointed at -> { c, key, title, lit:[..], more:[..] }; null when it is in no card, or the card has nothing to say
+    function explain(S, n){
+      const c = scopeOf(n, S);
+      if(!c) return null;
+      let B = blocks(S, c);
+      if(!B.length){ const o = scopeOf(head(c), S); if(o && o!==c) B = blocks(S, o); }          // a part that goes by another card's heading: that card's words
+      const src = blocks(S, null), title = titleOf(c);
+      if(!title || (!B.length && !src.length)) return null;          // (the chips over the cards have no name)
+      let lit = [], more = [];
+      const tab = LIT[c.id], up = (e)=>{ let k = 0; for(let x = n; x && x!==e; x = x.parentElement) k++; return k; };          // (how far up the part is)
+      const hit = tab ? tab.map(x=> [x[1], n.closest(x[0])]).filter(x=> x[1] && c.contains(x[1])).sort((a, b)=> up(a[1]) - up(b[1])).map(x=> x[0]) : [];          // the nearest part's first
+      const inner = (b)=>{ const p = b.n.parentElement; return p!==c && !p.matches('.ga-x') && p.contains(n) && n!==c; };       // a part of the card with words of its own
+      if(hit.length){ B.forEach(b=> sents(b.t).forEach(s=> (hit.some(r=> r.test(s)) ? lit : more).push({ s, b }))); const at = (s)=> hit.findIndex(r=> r.test(s)); lit.sort((a, b)=> at(a.s) - at(b.s)); }
+      if(!lit.length){ more = []; B.forEach(b=> (inner(b) ? lit : more).push({ s:b.t, b })); }
+      if(!lit.length || !more.length){ lit = B.map(b=> ({ s:b.t, b })); more = []; }
+      const join = (L)=>{ const out = []; L.forEach((x, i)=>{ if(i && L[i - 1].b===x.b) out[out.length - 1] += ' '+x.s; else out.push(x.s); }); return out; };
+      return { c, title, lit:join(lit), more:join(more), src:src.map(b=> b.t).join(' ') };
+    }
+    // ---- drawn ----
+    function ring(c){
+      if(onEl===c) return;
+      if(onEl) onEl.classList.remove('ib-on', 'ib-on-out');
+      onEl = null;
+      if(!c || /^T/.test(c.tagName)) return;          // (a table's part: its name in the box says it)
+      onEl = c;
+      c.classList.add('ib-on');
+      const g = getComputedStyle(c);
+      if(Math.min(parseFloat(g.paddingTop), parseFloat(g.paddingLeft), parseFloat(g.paddingRight)) < 8) c.classList.add('ib-on-out');
+    }
+    function draw(S, title, lit, more, src, c){
+      const s = JSON.stringify([S.name, title, lit, more, src]), turn = !cur || cur.title!==title;
+      cur = c ? { c, id:c.id, title } : null;
+      ring(c);
+      if(s===sig) return;
+      sig = s;
+      k.textContent = S.name; t.textContent = title;
+      m.textContent = '';
+      lit.forEach(x=>{ if(c) lines(x, 'ib-lit'); else m.appendChild(ghEl('p', 'ib-lit', x)); });
+      more.forEach(x=> lines(x, 'ib-more'));
+      if(src){ const p = ghEl('p', 'ib-src'); p.append(ghEl('b', '', 'Everywhere on this screen: '), document.createTextNode(src)); m.appendChild(p); }
+      m.scrollTop = 0;
+      if(c && !touch && say.textContent!==title) say.textContent = title;
+      if(turn){ box.classList.remove('is-in'); void box.offsetWidth; box.classList.add('is-in'); }
+      if(S.rv && box.classList.contains('is-strip')) stand(S, 'is-strip');
+      reach();
+    }
+    // one sentence a line: "Behind = ...", "Move 25: ..."
+    function lines(x, cls){
+      sents(x).forEach((y, i)=>{
+        const p = ghEl('p', cls+(i ? '' : ' is-1')), z = /^(?:chess\.com)?[^.,;:=]{2,36}?(?=( =|:) )/.exec(y);
+        if(z) p.appendChild(ghEl('b', '', z[0]));
+        p.appendChild(document.createTextNode(y.slice(z ? z[0].length : 0)));
+        m.appendChild(p);
+      });
+    }
+    // words past the box's height: reached with Tab, then the arrow keys
+    function reach(){ if(box.hidden) return; const o = m.scrollHeight > m.clientHeight + 1; if(o!==(m.tabIndex===0)) m.tabIndex = o ? 0 : -1; more(); }
+    function more(){ m.classList.toggle('is-more', m.scrollHeight - m.clientHeight - m.scrollTop > 3); }
+    m.addEventListener('scroll', more, { passive:true });
+    m.addEventListener('keydown', (e)=>{ if(m.tabIndex===0 && /^(Arrow(Up|Down)|Page(Up|Down)|Home|End| )$/.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) e.stopPropagation(); });      // the arrows scroll the words, never the review's moves
+    function rest(S){
+      cur = null;
+      draw(S, 'Info box', [touch ? 'Scroll: the rule or source of the card you are looking at shows here, if it has one.' : 'Point at a number or a card, or reach it with Tab: its rule or source shows here, if it has one.'], [], blocks(S, null).map(b=> b.t).join(' '), null);
+    }
+    function show(S, x){ draw(S, x.title, x.lit, x.more, x.src, x.c); }
+    // ---- where it stands ----
+    // In Repertoire Lab this page is a frame that can be taller than the window (its player page) or partly scrolled out of it: then
+    // what of it is on screen there counts, not the frame's own edges
+    function tall(){
+      try{
+        const fe = window.frameElement, P = window.parent;
+        if(!fe || P===window || !root.classList.contains('rl-embed')) return null;
+        const r = fe.getBoundingClientRect();
+        return r.height > 0 && (r.top < -2 || r.bottom > P.innerHeight + 2) ? { fe, P } : null;
+      }catch(e){ return null; }
+    }
+    function seen(T){
+      const r = T.fe.getBoundingClientRect(), D = T.P.document, x = r.left + r.width/2, H = T.P.innerHeight;
+      let b = Math.min(H, r.bottom), a = Math.max(0, r.top);
+      for(let i = 0; i < 24 && b > a && D.elementFromPoint(x, b - 1)!==T.fe; i++) b -= 8;          // under the page's own bars
+      for(let i = 0; i < 24 && b > a && D.elementFromPoint(x, a + 1)!==T.fe; i++) a += 8;
+      return { top:a - r.top, bottom:b - r.top };
+    }
+    function view(){ const T = tall(), top = T ? seen(T) : { top:0, bottom:window.innerHeight }; return { top:top.top, bottom:top.bottom - (box.hidden || box.classList.contains('is-off') || !box.classList.contains('is-strip') ? 0 : box.offsetHeight) }; }
+    function place(){
+      const S = screen(), on = !!S && open;
+      fab.hidden = !S; rvw.hidden = !(S && S.rv);
+      const vh = $('view-history').classList;
+      fab.classList.toggle('in-rv', !!(S && S.rv)); fab.classList.toggle('is-wide', vh.contains('is-gho') || vh.contains('is-gha') || vh.contains('is-ghz'));
+      [fab, rv].forEach(b=>{ const x = on ? 'true' : 'false'; if(b.getAttribute('aria-expanded')!==x) b.setAttribute('aria-expanded', x); });
+      if(!on){ box.hidden = true; root.classList.remove('ib-strip'); root.style.removeProperty('--ib-lift'); ring(null); return; }
+      let mode = 'is-strip', host = document.body, css = null;
+      if(S.rv && mq('(min-width:900px)')){
+        const three = mq('(min-width:1440px) and (min-height:561px)'), side = document.querySelector('#view-play-history .hv-side'), L = document.querySelector('#view-play-history .hv-sidecol-review');
+        const r = three ? L.getBoundingClientRect() : null;
+        mode = 'is-flow'; host = three ? L : side;
+        const T = three && tall(), foot = T ? Math.min(window.innerHeight, seen(T).bottom) : window.innerHeight;
+        if(three && foot - r.bottom >= 130){ mode = 'is-col'; host = document.body; css = { left:r.left+'px', width:r.width+'px', top:(r.bottom + 6)+'px', height:Math.min(230, foot - r.bottom - 12)+'px' }; }
+      }
+      if(box.parentNode!==host) host.appendChild(box);
+      ['left', 'width', 'top', 'height'].forEach(p=>{ box.style[p] = css ? css[p] : ''; });
+      ['is-strip', 'is-col', 'is-flow'].forEach(c=> box.classList.toggle(c, c===mode));
+      box.hidden = false;
+      root.classList.toggle('ib-strip', mode==='is-strip');
+      stand(S, mode);
+      reach();
+    }
+    // the strip: never over the board and its controls (one column), in Repertoire Lab's player page at the foot of what is on screen
+    function stand(S, mode){
+      let off = false, slim = false;
+      if(mode==='is-strip'){
+        const T = tall(), v = T ? seen(T) : null;
+        if(v){ off = v.bottom - v.top < 220; root.style.setProperty('--ib-lift', Math.max(0, Math.round(window.innerHeight - v.bottom))+'px'); }
+        else root.style.removeProperty('--ib-lift');
+        const ed = S.rv ? null : editor(S);
+        if(ed && !off){ const H = v ? v.bottom : window.innerHeight, h = strip(); off = ed.some(e=>{ const r = e && e.getClientRects().length ? e.getBoundingClientRect() : null; return !!r && r.height > 0 && r.bottom > H - h && r.top < H; }); }
+        if(S.rv){
+          const H = v ? v.bottom : window.innerHeight;
+          const h = strip(), low = ['hv-row-top', 'hv-row-bottom', 'hv-controls', 'hv-cd', 'hv-sq-ask'].map($).concat(document.querySelector('#view-play-history .hv-frame'))
+            .reduce((a, e)=>{ const r = e && e.getClientRects().length ? e.getBoundingClientRect() : null; return r && r.top < H ? Math.max(a, r.bottom) : a; }, 0);
+          slim = !cur || low > H - h; off = off || low > H - 48;          // (nothing to say yet: one line of it)
+        }
+      }
+      box.classList.toggle('is-slim', slim); box.classList.toggle('is-off', off);
+      if(mode==='is-strip'){ const now = (off ? 0 : box.offsetHeight)+'px'; if(root.style.getPropertyValue('--ib-now')!==now) root.style.setProperty('--ib-now', now); }          // the corner pills stand on it
+      const x = cur ? cur.title : slim ? (touch ? 'Info box: scroll to a card' : 'Info box: point at a card') : 'Info box';
+      if(t.textContent!==x) t.textContent = x;
+    }
+    // the board to set up, on Positions: its pieces and buttons
+    const editor = (S)=> S.key.slice(0, 9)==='positions' && $('ghp-setup').getClientRects().length ? [$('ghp-board'), $('ghp-palette')].concat(Array.from($('ghp-setup').querySelectorAll('button, input'))) : null;
+    // the strip's whole height, slim or not
+    function strip(){ const was = box.classList.contains('is-slim'); if(was) box.classList.remove('is-slim'); const h = box.offsetHeight; if(was) box.classList.add('is-slim'); return h; }
+    // ---- opened, closed ----
+    function under(S){          // what the pointer is on right now, else what the keyboard is on
+      let x = null;
+      const n = mx < 0 ? null : document.elementFromPoint(mx, my);
+      if(n && !box.contains(n)) x = explain(S, n);
+      if(!x){ const a = document.activeElement; if(a && a!==document.body && a.matches(':focus-visible')) x = explain(S, a); }
+      return x;
+    }
+    function set(v, why){
+      open = v; put(v);
+      const S = screen();
+      if(v) listen(); else unlisten();
+      place();
+      if(!v){ cur = null; sig = ''; return; }
+      if(!S) return;
+      const x = why==='key' || !touch ? under(S) : null;
+      if(x) show(S, x); else if(touch) read(true); else rest(S);
+    }
+    const toggle = (why)=> set(!open, why);
+    [fab, rv].forEach(b=> b.addEventListener('click', (e)=>{ if(e.pointerType) touch = e.pointerType==='touch'; toggle('icon'); }));
+    cl.addEventListener('click', (e)=>{ set(false); if(e.detail===0){ const b = [rv, fab].find(x=> x.getClientRects().length); if(b) try{ b.focus({ preventScroll:true }); }catch(err){} } });
+    const typing = (T)=> !!T && (/^(INPUT|TEXTAREA|SELECT)$/.test(T.tagName) || T.isContentEditable);
+    const free = (e)=> (e.key==='i' || e.key==='I') && !e.metaKey && !e.ctrlKey && !e.altKey && !e.isComposing && !e.defaultPrevented;
+    document.addEventListener('keydown', (e)=>{
+      if(!free(e) || !screen() || typing(e.target) || typing(document.activeElement) || document.querySelector('.modal-overlay.active')) return;
+      if((typeof HV_TAC_BOX!=='undefined' && HV_TAC_BOX) || (e.target.closest && e.target.closest('[role="menu"], [role="dialog"]')) || document.querySelector('.hv-pop, #gh-clamp-pop, #nb-wl')) return;
+      e.preventDefault();
+      if(!e.repeat) toggle('key');
+    });
+    // ---- pointing ----
+    const NONE = { none:true };          // (nothing to say about what is pointed at)
+    function later(x, ms){ pend = x; clearTimeout(pendT); pendT = setTimeout(()=>{ const y = pend; pend = null; const S = screen(); if(!y || !S || box.hidden) return; if(y===NONE){ if(cur) rest(S); } else if(y.c.isConnected) show(S, y); }, ms); }
+    // the page between and behind the cards (what holds cards is no card): the box holds still there
+    const gap = (S, n)=> !S.el.contains(n) ? n.contains(S.el) : !!n.querySelector(SCOPE);
+    const drop = ()=>{ pend = null; clearTimeout(pendT); };
+    const same = (x)=> !!cur && cur.c===x.c && sig===JSON.stringify([screen().name, x.title, x.lit, x.more, x.src]);
+    // on its way to the box: the line of the pointer's last moves ends in it
+    function heading(x, y){
+      const a = trail[0], r = box.getBoundingClientRect();
+      if(!a || r.width===0) return false;
+      const dx = x - a[0], dy = y - a[1];
+      if(Math.abs(dx) + Math.abs(dy) < 6) return false;
+      for(let i = 1; i <= 24; i++){ const q = i*i*.35, X = x + dx*q, Y = y + dy*q; if(X >= r.left - 20 && X <= r.right + 20 && Y >= r.top && Y <= r.bottom + 40) return true; if(X < -50 || Y < -50 || X > window.innerWidth + 50 || Y > window.innerHeight + 50) break; }
+      return false;
+    }
+    let memoN = null, memoX = null;
+    function onMove(e){
+      if(e.pointerType==='touch') return;
+      if(e.clientX===px && e.clientY===py) return;          // the page moved, not the pointer
+      const now = performance.now(), first = px < 0;
+      px = e.clientX; py = e.clientY;
+      trail.push([px, py, now]);
+      while(trail.length > 1 && now - trail[0][2] > 110) trail.shift();
+      if(first || now - lastT < 130) return;                // (scrolling)
+      hand(false);
+      const S = screen();
+      if(!S || box.hidden) return;
+      if(box.contains(e.target)){ drop(); return; }
+      if(e.target!==memoN){ memoN = e.target; memoX = explain(S, memoN); }          // (worked out once for each thing the pointer comes to)
+      const x = memoX;
+      if(!x){
+        if(!cur || gap(S, memoN)) drop();
+        else if(heading(px, py)) later(NONE, 600);
+        else if(pend!==NONE) later(NONE, 350);
+        return;
+      }
+      if(same(x)){ drop(); return; }
+      if(heading(px, py)) later(x, 340);
+      else if(!pend || pend===NONE || pend.c!==x.c || pend.title!==x.title) later(x, 70);
+      else pend = x;
+    }
+    // ---- a finger: the card at the reading line, or the one tapped ----
+    let cand = null, readT = 0, idleT = 0;
+    function atLine(S){
+      const v = view(), line = v.top + (v.bottom - v.top)*.4;
+      let best = null, bd = 1e9;
+      S.el.querySelectorAll(SCOPE).forEach(c=>{
+        if(!c.getClientRects().length) return;
+        const r = c.getBoundingClientRect();
+        if(r.height < 2 || r.bottom < v.top + 40 || r.top > v.bottom - 20) return;
+        const d = line < r.top ? r.top - line : line > r.bottom ? line - r.bottom : 0;
+        if(d < bd - .5 || (d < bd + .5 && best && (best.contains(c) || (cur && cur.c===c)))){ best = c; bd = d; }
+      });
+      return best && bd < (v.bottom - v.top)*.35 ? best : null;
+    }
+    function read(now){
+      const S = screen();
+      if(!S || !open) return;
+      const c = atLine(S);
+      if(now || c===cand){ if(!c){ if(now) rest(S); } else if(!(cur && cur.c===c)){ const x = explain(S, c); if(x) show(S, x); else rest(S); } }
+      cand = c;
+    }
+    function onScroll(e){
+      const T = e && e.target;
+      if(T && T!==document && T!==root && T!==document.body) return;
+      lastT = performance.now();
+      drop();
+      if(box.hidden && !open) return;
+      if(!e){          // the page around this frame scrolled: out of the way, then back at the foot of what is on screen
+        if(!box.hidden) box.classList.add('is-off');
+        clearTimeout(idleT);
+        idleT = setTimeout(()=>{ const S = screen(); if(S && open){ place(); if(touch) read(true); } }, 170);
+        return;
+      }
+      if(!readT) readT = setTimeout(()=>{ readT = 0; const S = screen(); if(!S || box.hidden) return; if((S.rv || /^positions/.test(S.key)) && box.classList.contains('is-strip')) stand(S, 'is-strip'); if(touch) read(false); }, 130);
+      clearTimeout(idleT);
+      idleT = setTimeout(()=>{ const S = screen(); if(!S || box.hidden) return; if((S.rv || /^positions/.test(S.key)) && box.classList.contains('is-strip')) stand(S, 'is-strip'); if(touch) read(true); }, 170);
+    }
+    function hand(v){ if(touch===v) return; touch = v; if(!cur){ const S = screen(); if(S && !box.hidden) rest(S); } }          // a finger, or a mouse or trackpad: the words at rest are its own
+    function onDown(e){ byKey = false; hand(e.pointerType==='touch'); }
+    function onClick(e){
+      if(e.pointerType!=='touch' && !(touch && e.detail)) { soon(); return; }
+      const S = screen(), n = e.target;
+      if(!S || box.hidden || box.contains(n)) return;
+      requestAnimationFrame(()=>{ const S2 = screen(); if(!S2 || S2.key!==scr || !n.isConnected){ soon(); return; } const x = explain(S2, n); if(x) show(S2, x); else if(cur && !gap(S2, n)) rest(S2); soon(); });
+    }
+    function onKey(e){ byKey = e.key==='Tab'; if(byKey) hand(false); soon(); }
+    function onFocus(e){
+      const S = screen();
+      if(!S || box.hidden || box.contains(e.target) || !byKey) return;
+      drop();
+      const x = explain(S, e.target);
+      if(x) show(S, x); else if(cur) later(NONE, 350);
+      clear(e.target);
+    }
+    // what the keyboard reached is never under the strip
+    function clear(n){
+      if(!box.classList.contains('is-strip') || box.classList.contains('is-off') || box.contains(n)) return;
+      const r = n.getBoundingClientRect(), b = box.getBoundingClientRect(), T = tall();
+      if(r.bottom > b.top - 8 && r.top < b.bottom) try{ (T ? T.P : window).scrollBy({ top:r.bottom - b.top + 24, behavior:'instant' }); }catch(e){}
+    }
+    // ---- another screen, another game, a card drawn again ----
+    function sync(){
+      due = 0; memoN = memoX = null;
+      const S = screen(), key = S ? S.key : '';
+      if(key!==scr){ scr = key; cur = null; cand = null; sig = ''; drop(); place(); if(S && open){ rest(S); if(touch) read(true); } return; }
+      place();
+      if(!S || !open || !cur) { if(S && open && !cur && touch) read(true); else if(S && open && !cur) rest(S); return; }
+      let c = cur.c;
+      if(!c.isConnected){ const id = cur.id; ring(null); c = id ? $(id) : null; }
+      if(!c || !S.el.contains(c) || !c.getClientRects().length){ cur = null; rest(S); if(touch) read(true); return; }
+      if(c!==cur.c){ const x = explain(S, c); if(x) show(S, x); else { cur = null; rest(S); } }
+      else if(!c.classList.contains('ib-on')){ onEl = null; ring(c); }
+    }
+    function soon(){ if(!due) due = requestAnimationFrame(sync); }
+    // the screens themselves: shown, hidden, another tab (cheap: these attributes change when you go somewhere)
+    const mo = new MutationObserver(soon);
+    document.querySelectorAll('section.view').forEach(v=> mo.observe(v, { attributes:true, attributeFilter:['class'] }));
+    Object.keys(TABS).forEach(x=>{ const e = $(TABS[x][0]); if(e) mo.observe(e, { attributes:true, attributeFilter:['hidden'] }); });
+    ['ps-page', 'ps-you', 'ghp-setup'].forEach(id=>{ const e = $(id); if(e) mo.observe(e, { attributes:true, attributeFilter:['hidden'] }); });
+    hvOnGame(soon);
+    onLeavePlay(soon);
+    // only while it is open
+    const mo2 = new MutationObserver((L)=>{ if(L.some(x=> !box.contains(x.target))) soon(); });
+    let heard = false, par = null, mx = -1, my = -1;
+    // all it does while it is closed: where the mouse is, for the key I
+    document.addEventListener('pointermove', (e)=>{ if(e.pointerType!=='touch'){ mx = e.clientX; my = e.clientY; } }, { passive:true });
+    root.addEventListener('pointerleave', (e)=>{ if(e.pointerType!=='touch') mx = my = -1; });
+    document.addEventListener('pointerdown', (e)=>{ if(e.pointerType==='touch') mx = my = -1; }, { passive:true, capture:true });
+    function listen(){
+      if(heard) return;
+      heard = true; px = py = -1; trail = [];
+      document.addEventListener('pointermove', onMove, { passive:true });
+      document.addEventListener('pointerdown', onDown, { passive:true, capture:true });
+      document.addEventListener('click', onClick, true);
+      document.addEventListener('focusin', onFocus);
+      document.addEventListener('keydown', onKey, true);
+      window.addEventListener('scroll', onScroll, { passive:true });
+      Object.keys(TABS).forEach(x=>{ const e = $(TABS[x][0]); if(e) mo2.observe(e, { childList:true, subtree:true }); });
+      const z = $('pzd-body'); if(z) mo2.observe(z, { childList:true });
+    }
+    function unlisten(){
+      if(!heard) return;
+      heard = false; drop(); clearTimeout(readT); clearTimeout(idleT); readT = 0;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerdown', onDown, true);
+      document.removeEventListener('click', onClick, true);
+      document.removeEventListener('focusin', onFocus);
+      document.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('scroll', onScroll);
+      mo2.disconnect();
+    }
+    // Repertoire Lab: its page's scroll moves this frame; on its player page the key I reaches it when the keyboard is on that page
+    function frame(){
+      if(par || window.parent===window || !root.classList.contains('rl-embed')) return;
+      let P = null;
+      try{ P = window.parent; if(P.location.origin!==location.origin || !window.frameElement) return; }catch(e){ return; }
+      const gone = ()=>{ if(!par) return; try{ P.removeEventListener('scroll', onP, true); P.removeEventListener('resize', onP); P.document.removeEventListener('keydown', onPK); }catch(e){} par = null; };
+      const live = ()=>{ if(window.frameElement && window.frameElement.isConnected) return true; gone(); return false; };
+      const onP = ()=>{ if(live() && open && screen()) onScroll(null); };
+      const onPK = (e)=>{
+        if(!live() || !root.classList.contains('rl-history') || !free(e) || e.repeat || !screen() || typing(e.target) || typing(P.document.activeElement) || P.document.querySelector('[role="dialog"], dialog[open]') || !window.frameElement.getClientRects().length) return;
+        e.preventDefault(); toggle('key');
+      };
+      par = gone;
+      P.addEventListener('scroll', onP, { passive:true, capture:true });
+      P.addEventListener('resize', onP);
+      P.document.addEventListener('keydown', onPK);
+      window.addEventListener('pagehide', gone);
+    }
+    new MutationObserver(()=>{ frame(); soon(); }).observe(root, { attributes:true, attributeFilter:['class'] });
+    frame();
+    // the icon where the page runs under it: gone while you scroll down
+    let wy = window.scrollY;
+    window.addEventListener('scroll', ()=>{
+      if(fab.hidden) return;
+      const y = window.scrollY, d = y - wy;
+      if(Math.abs(d) < 8 && y > 8) return;
+      wy = y;
+      const away = d > 0 && y > 60;
+      if(fab.classList.contains('is-away')!==away) fab.classList.toggle('is-away', away);
+    }, { passive:true });
+    let rz = 0;
+    window.addEventListener('resize', ()=>{ soon(); clearTimeout(rz); rz = setTimeout(soon, 180); });          // (and once the review has laid itself out again)
+    if(open) listen();
+    soon();
+  })();
 
   /* ================= ANALYZE A FINISHED PUZZLE =================
      A finished puzzle (solved, missed, or its solution shown) opens on the
