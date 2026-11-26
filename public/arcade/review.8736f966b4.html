@@ -9677,6 +9677,109 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .hr-why{ margin:0; font-size:13px; line-height:1.45; color:var(--ink); overflow-wrap:anywhere; }
   .hr-why[hidden]{ display:none; }
   @media (pointer:coarse){ #view-play-history .hr-why .hr-link{ display:inline-flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; padding:0 2px; margin:-12.5px -2px; } }
+  /* Blunder Forensics (2026-11-26): Analytics' second view and the Overview's card How often do I blunder? (bf*) */
+  .ga-bfc{ gap:8px; }
+  .ga-bfh{ font-size:16px; }
+  .ga-bfh:focus{ outline:none; }
+  .ga-bfh:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  .ga-bfnum{ gap:3px; }
+  .ga-bfbase{ display:block; }
+  .ga-bftyp b, .ga-bfchg{ font-weight:700; }
+  .ga-bfprev{ color:var(--ink); }
+  .ga-bfbars{ display:grid; grid-template-columns:repeat(8, minmax(0,1fr)); gap:6px; align-items:start; margin-top:2px; }
+  .ga-bfbar{ display:flex; flex-direction:column; align-items:center; gap:2px; min-width:0; }
+  .ga-bfbv{ font-size:13px; font-weight:700; line-height:1.2; font-variant-numeric:tabular-nums; color:var(--ink); }
+  .ga-bfbc{ display:flex; align-items:flex-end; width:100%; max-width:46px; height:64px; border-bottom:1px solid var(--ink-soft); }
+  .ga-bfbf{ display:block; width:100%; background:var(--ink-soft); border-radius:3px 3px 0 0; }
+  .ga-bfbar.is-thin .ga-bfbf{ background:transparent; border:1.5px dashed var(--ink-soft); border-bottom:0; box-sizing:border-box; }
+  .ga-bfbd, .ga-bfbn{ font-size:11.5px; line-height:1.25; text-align:center; color:var(--ink-soft); overflow-wrap:break-word; }
+  .ga-bfbd{ color:var(--ink); font-weight:600; }
+  .ga-bfthin{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; font-size:13px; color:var(--ink-soft); }
+  .ga-bfold{ min-height:36px; padding:6px 12px; font-size:13px; }
+  .ga-bft .ga-ahr{ grid-template-columns:minmax(0,1.5fr) repeat(2, minmax(0,1fr)); }
+  .ga-bflk .ct-l, .ga-bfgt{ font-size:13px; }
+  .ga-bfkhd{ align-items:center; }
+  .ga-bfg{ display:flex; flex-direction:column; min-width:0; }
+  .ga-bfgr{ display:grid; grid-template-columns:minmax(0,1.15fr) repeat(5, minmax(0,1fr)); align-items:center; gap:0 4px; border-top:1px solid var(--line); }
+  .ga-bfgr.is-head{ border-top:0; align-items:end; padding-bottom:2px; }
+  .ga-bfgr.is-foot{ border-top:2px solid var(--line); }
+  .ga-bfgl{ min-width:0; font-size:12.5px; font-weight:700; line-height:1.25; }
+  .ga-bfg .is-tot .ga-gov{ font-weight:800; }
+  .ga-bfg .ga-gov{ font-size:15px; }
+  .ga-bfg .ga-gon{ font-size:11px; }
+  .ga-bfgcap{ margin:0; font-size:12.5px; color:var(--ink-soft); }
+  .ga-bfm{ display:flex; flex-direction:column; gap:2px; }
+  .ga-bfm .ct-k{ margin:4px 0 0; }
+  .ga-bfmh, .ga-bfmv{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:0 4px; align-items:end; }
+  .ga-bfmv{ border-top:1px solid var(--line); }
+  .ga-bfchips{ margin-bottom:2px; }
+  .ga-bflist{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; }
+  .ga-bfli{ border-top:1px solid var(--line); }
+  .ga-bfli:first-child{ border-top:0; }
+  .ga-bfrow{ display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"a c" "b c"; align-items:center; gap:1px 10px; width:100%; min-height:48px; padding:6px 4px; font:inherit; color:var(--ink); text-align:left; background:none; border:0; border-radius:7px; cursor:pointer; }
+  .ga-bfr1{ grid-area:a; display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 10px; font-size:14px; line-height:1.35; min-width:0; }
+  .ga-bfr2{ grid-area:b; font-size:12.5px; line-height:1.35; color:var(--ink-soft); min-width:0; overflow-wrap:anywhere; }
+  .ga-bfrd{ color:var(--ink-soft); font-variant-numeric:tabular-nums; }
+  .ga-bfrm{ font-weight:700; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
+  .ga-bfrs{ font-variant-numeric:tabular-nums; }
+  .ga-bfrc{ grid-area:c; display:flex; gap:3px; }
+  @media (hover:hover){ .ga-bfrow:hover{ background:var(--surface-2); } .ga-bfrow:hover .ga-bfr2{ color:var(--ink); } }
+  .ga-bfrow:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  :root[data-skin="bauhaus"] .ga-bfrow{ border-radius:0; }
+  .ga-bfmore, .ga-bfend, .ga-bfopen{ min-height:40px; }
+  .ga-bfxl{ font:700 10.5px/1.6 "JetBrains Mono",monospace; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-soft); }
+  .ga-bfxin{ width:100%; max-width:640px; box-sizing:border-box; min-height:44px; font-size:16px; }
+  .ga-bfxrow{ gap:6px 10px; }
+  .ga-bfgo{ min-height:44px; min-width:96px; }
+  .ga-bfgo:disabled{ opacity:.55; cursor:default; }
+  .ga-bfxo, .ga-bfxe{ display:flex; flex-direction:column; gap:4px; }
+  .ga-bfxe{ padding-top:8px; border-top:1px solid var(--line); }
+  .ga-bfxh.is-bold{ font-weight:700; overflow-wrap:anywhere; }
+  .ga-bfxd{ margin:0; overflow-wrap:anywhere; }
+  .ga-bfxs, .ga-bfxpw.ct-vs{ margin:0; }
+  .ga-bfgo2{ margin:0; }
+  @media (max-width:640px){
+    .ga-bfbars{ grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px 6px; }
+    .ga-bfbv{ font-size:12px; }
+    .ga-bfbd, .ga-bfbn{ font-size:10.5px; }
+    .ga-bfbc{ height:48px; }
+    .ga-bfr1{ font-size:13.5px; }
+  }
+  @media (pointer:coarse){ .ga-bfsw .toggle{ min-height:44px; } .ga-bfrow{ min-height:52px; } .ga-bfold, .ga-bfmore, .ga-bfend, .ga-bfopen{ min-height:44px; } .ga-bfxend, .ga-bfdel, .ga-bfgt{ min-height:44px; } }
+  /* Blunder Forensics, part 2 (2026-11-26): What fell, Moves that held, and the ?? move's facts in the review's comment card */
+  .ga-bffk{ margin:0; }
+  .ga-bffl{ display:flex; flex-direction:column; }
+  .ga-bffr{ border-top:1px solid var(--line); }
+  .ga-bffr:first-child{ border-top:0; }
+  .ga-bffb{ display:grid; grid-template-columns:minmax(0,1fr) auto 3.2em; align-items:center; gap:0 10px; width:100%; min-height:40px; padding:4px 4px; font:inherit; font-size:14px; line-height:1.3; color:var(--ink); text-align:left; background:none; border:0; border-radius:6px; cursor:pointer; }
+  .ga-bffw{ min-width:0; overflow-wrap:anywhere; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; }
+  .ga-bffn{ font-weight:800; font-size:15px; font-variant-numeric:tabular-nums; }
+  .ga-bffp{ font-size:12.5px; color:var(--ink-soft); font-variant-numeric:tabular-nums; text-align:right; }
+  .ga-bffr.is-other .ga-bffw{ color:var(--ink-soft); }
+  @media (hover:hover){ .ga-bffb:hover{ background:var(--surface-2); } }
+  .ga-bffb:focus-visible, .ga-bfdl:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  :root[data-skin="bauhaus"] .ga-bffb{ border-radius:0; }
+  .ga-bffc{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 6px; }
+  .ga-bffl1{ display:inline-flex; align-items:center; gap:3px; font-weight:700; }
+  .ga-bfdt .ga-ahr{ grid-template-columns:minmax(0,1.5fr) repeat(2, minmax(0,1fr)); }
+  .ga-bfdx, .ga-bfdt2{ font-weight:600; }
+  .ga-bfdb .ga-bfdl{ font-size:inherit; }
+  @media (pointer:coarse){ .ga-bffb{ min-height:44px; } .ga-bfdl{ min-height:44px; } }
+  /* the ?? move's facts (the review's floating comment card): above the move's comment, one fact a line */
+  .hv-cc-bf{ display:flex; flex-direction:column; gap:3px; margin:0 0 6px; padding:0 0 6px; border-bottom:1px solid color-mix(in srgb, var(--brass-text) 30%, var(--line)); }
+  .hv-cc-bf:last-child{ margin-bottom:0; padding-bottom:0; border-bottom:0; }
+  .hv-cc-bfl{ margin:0; font-size:13px; line-height:1.45; color:var(--ink); overflow-wrap:anywhere; }
+  .hv-cc-bfl.is-score{ font-weight:700; font-variant-numeric:tabular-nums; }
+  .hv-cc-bfe{ display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 3px; box-sizing:border-box; border-radius:50%; border:1.5px dashed var(--ink-soft); font:800 9px/1 "JetBrains Mono",monospace; color:var(--ink); vertical-align:1px; }
+  .hv-cc-bfb{ display:inline; padding:0; margin:0; font:inherit; font-weight:700; color:var(--ink); background:none; border:0; cursor:pointer; text-decoration:underline; text-decoration-color:var(--link, var(--brass-text)); text-decoration-thickness:1.5px; text-underline-offset:3px; }
+  .hv-cc-bfb:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; border-radius:2px; }
+  @media (pointer:coarse){ .hv-cc-bfb{ display:inline-flex; align-items:center; min-height:44px; } }
+  /* (fix round) Something else as a line under the names; the way to good; the habit's bad-stretch line; the review's "not counted" line */
+  .ga-bffo{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; color:var(--ink); }
+  .ga-bffob, .ga-errbf{ font-size:13px; }
+  .ga-bfadv{ font-weight:600; }
+  .ga-bfxq{ font-weight:600; }
+  @media (pointer:coarse){ .ga-bffob, .ga-errbf{ min-height:44px; } }
   /* More questions (6.7-6.11): the heading strip, result rows, how games end, the engine card's rows, the calendar */
   .ct-card.ga-mqc{ padding:8px 16px; }
   .ga-mqh{ font-family:"JetBrains Mono",monospace; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); }
@@ -10568,6 +10671,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       <div class="gh-sub" id="gh-sub" role="group" aria-label="Games: what to show"><button type="button" class="gh-sub-b is-on" data-val="games" aria-pressed="true">All games</button><button type="button" class="gh-sub-b" data-val="groups" aria-pressed="false">Groups</button></div>
       <div class="gh-sub" id="gho-sub" role="group" aria-label="Openings: what to show" hidden><button type="button" class="gh-sub-b is-on" data-val="overview" aria-pressed="true">Overview</button><button type="button" class="gh-sub-b" data-val="variations" aria-pressed="false">Variations</button></div>
       <div class="gh-sub" id="ghp-sub" role="group" aria-label="Positions: what to show" hidden><button type="button" class="gh-sub-b is-on" data-val="structures" aria-pressed="true">Pawn structures</button><button type="button" class="gh-sub-b" data-val="find" aria-pressed="false">Find a position</button></div>
+      <div class="gh-sub" id="ga-sub" role="group" aria-label="Analytics: what to show" hidden><button type="button" class="gh-sub-b is-on" data-val="overview" aria-pressed="true">Overview</button><button type="button" class="gh-sub-b" data-val="blunders" aria-pressed="false">Blunder Forensics</button></div>
       <div class="cc-progress" id="cc-progress" hidden>
         <span class="cc-progress-t" id="cc-progress-t" aria-hidden="true"></span>
         <button type="button" class="btn-link cc-progress-retry" id="cc-progress-retry" hidden>Try again</button>
@@ -30801,7 +30905,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   const GH_REP_RE = /^(?:w\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}\.(?:[0-9a-f]{32}|n)\.[0-9a-z]{1,12}|[ot]\.[A-Za-z0-9_-]{1,64}|[kc]\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}|l(?:\.[A-Za-z0-9_-]{1,64}){3}|x\.[wb](?:\.(?:none|[a-z0-9]+(?:-[a-z0-9]+)*))?|s\.[0-9a-f]{8}(?:\.(?:t\.[A-Za-z0-9_-]{1,64}|c\.[A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64}|x\.[wb]))?|m\.[0-9a-f]{16})$/;
   const GH_SECONDARY = ['rated','gap','end','eg','oj','len','date','opp','variant','gold'];
   let GH_FILTERS = Object.assign({}, GH_F_DEFAULT);
-  const GH_UI = { more:false, open:false, view:'games', osort:'games', site:'all', osub:'overview', vrank:'played', vlvl:'c', gaf:{}, gzk:'all', psub:'structures', pcard:'', pm:0, pc:'' };   // site: the All | Lichess | Chess.com tab (chesscom SPEC B.1); psub: Positions' sub-tab; pcard, pm: the pawn structure whose page is open (links only)
+  const GH_UI = { more:false, open:false, view:'games', osort:'games', site:'all', osub:'overview', asub:'overview', vrank:'played', vlvl:'c', gaf:{}, gzk:'all', psub:'structures', pcard:'', pm:0, pc:'' };   // site: the All | Lichess | Chess.com tab (chesscom SPEC B.1); psub: Positions' sub-tab; pcard, pm: the pawn structure whose page is open (links only)
   // Typed text: what a link can carry safely (the hash is decoded twice).
   function ghCleanText(s){ return ghFold(s).replace(/[^A-Za-z0-9 _.:'-]/g, '').replace(/\s{2,}/g, ' ').replace(/^\s+/, '').slice(0, 40); }
   function ghValidFilters(f){
@@ -30834,6 +30938,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         if(d.ui && /^(all|lichess|chesscom)$/.test(String(d.ui.site))) GH_UI.site = d.ui.site;
         GH_UI.boards = !!(d.ui && d.ui.boards); GH_UI.bmom = d.ui && (d.ui.bmom==='b' || d.ui.bmom==='k') ? d.ui.bmom : 'a';
         GH_UI.osub = d.ui && d.ui.osub==='variations' ? 'variations' : 'overview';     // Openings: Overview | Variations
+        GH_UI.asub = d.ui && d.ui.asub==='blunders' ? 'blunders' : 'overview';         // Analytics: Overview | Blunder Forensics
         GH_UI.same = !!(d.ui && d.ui.same);                                            // Openings: Same mistake again opened
         GH_UI.psub = d.ui && d.ui.psub==='find' ? 'find' : 'structures';               // Positions: Pawn structures | Find a position
         if(d.ui && /^(played|best|worst|job)$/.test(String(d.ui.vrank))) GH_UI.vrank = d.ui.vrank;
@@ -30843,7 +30948,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }catch(e){}
   })();
   function ghSaveFilters(){
-    try{ localStorage.setItem(GH_FILTERS_KEY, JSON.stringify({ v:1, f:Object.assign({}, GH_FILTERS, { ga:'' }), ui:{ more:!!GH_UI.more, view:GH_UI.view, osort:GH_UI.osort, site:GH_UI.site, boards:!!GH_UI.boards, bmom:GH_UI.bmom==='b' || GH_UI.bmom==='k' ? GH_UI.bmom : 'a', osub:GH_UI.osub==='variations' ? 'variations' : 'overview', same:!!GH_UI.same, psub:GH_UI.psub==='find' ? 'find' : 'structures', vrank:GH_UI.vrank, vlvl:GH_UI.vlvl==='l' ? 'l' : 'c', gaf:gaFoldsValid(GH_UI.gaf), gzk:gzValidK(GH_UI.gzk) } })); }catch(e){}
+    try{ localStorage.setItem(GH_FILTERS_KEY, JSON.stringify({ v:1, f:Object.assign({}, GH_FILTERS, { ga:'' }), ui:{ more:!!GH_UI.more, view:GH_UI.view, osort:GH_UI.osort, site:GH_UI.site, boards:!!GH_UI.boards, bmom:GH_UI.bmom==='b' || GH_UI.bmom==='k' ? GH_UI.bmom : 'a', osub:GH_UI.osub==='variations' ? 'variations' : 'overview', asub:GH_UI.asub==='blunders' ? 'blunders' : 'overview', same:!!GH_UI.same, psub:GH_UI.psub==='find' ? 'find' : 'structures', vrank:GH_UI.vrank, vlvl:GH_UI.vlvl==='l' ? 'l' : 'c', gaf:gaFoldsValid(GH_UI.gaf), gzk:gzValidK(GH_UI.gzk) } })); }catch(e){}
   }
   function ghIsOn(k){ return k==='oq' ? (!GH_FILTERS.opening && !!GH_FILTERS.oq) : !!GH_FILTERS[k]; }
   function ghActiveCount(){ return GH_PARAM_KEYS.filter(ghIsOn).length; }
@@ -34281,6 +34386,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   (function ghvWire(){
     document.getElementById('gho-sub').addEventListener('click', e=>{ const b = e.target.closest('.gh-sub-b'); if(b) ghvSetSub(b.dataset.val); });
+    document.getElementById('ga-sub').addEventListener('click', e=>{ const b = e.target.closest('.gh-sub-b'); if(b) bfSetSub(b.dataset.val); });
     document.getElementById('ghv-speed').addEventListener('click', e=>{ const t = e.target.closest('.toggle'); if(t && (GH_FILTERS.speed || '')!==(t.dataset.val || '')) ghSetFilters({ speed:t.dataset.val || '' }); });
     const sec = document.getElementById('ghv');
     sec.addEventListener('click', e=>{
@@ -36850,7 +36956,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(ghoOn()) p.set('view', 'openings');
     else if(ctOn()) p.set('view', 'clamp');
     else if(ttOn()) p.set('view', 'tactics');
-    else if(gaOn()){ p.set('view', 'analytics'); p.delete('ga'); }
+    else if(gaOn()){ p.set('view', 'analytics'); p.delete('ga'); if(GH_UI.asub==='blunders') p.set('sub', 'blunders'); }
     else if(gzOn()){ p.set('view', 'puzzles'); p.delete('ga'); if(GH_UI.gzk!=='all') p.set('gzk', gzValidK(GH_UI.gzk)); }
     else if(ghgOn()){ p.set('view', 'groups'); if(GH_UI.group) p.set('group', GH_UI.group); }
     else if(GH_UI.view==='positions'){
@@ -36891,11 +36997,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const grp = want==='groups' && p && /^gp-[0-9a-f]{8}$/.test(p.get('group') || '') ? p.get('group') : (want==='groups' && v==='groups' ? '' : GH_UI.group || '');
     // Puzzles' Show chip: a link naming the view says it (none: All); a link without the view keeps the one you're on
     const gzk = want!=='puzzles' ? GH_UI.gzk : p && p.has('gzk') ? gzValidK(p.get('gzk')) : v==='puzzles' ? 'all' : GH_UI.gzk;
-    const changed = want!==GH_UI.view || grp!==(GH_UI.group || '') || gzk!==GH_UI.gzk || subSet;
+    // Analytics' switch: a link naming the view says it (sub=blunders: Blunder Forensics, else the Overview); one without the view keeps it
+    const asub = want==='analytics' && p && v==='analytics' ? (p.get('sub')==='blunders' ? 'blunders' : 'overview') : (GH_UI.asub==='blunders' ? 'blunders' : 'overview');
+    const changed = want!==GH_UI.view || grp!==(GH_UI.group || '') || gzk!==GH_UI.gzk || subSet || asub!==(GH_UI.asub==='blunders' ? 'blunders' : 'overview');
     if(GH_UI.view==='groups' && (want!=='groups' || grp!==GH_UI.group)) ghgLeave();
     GH_UI.view = want;
     GH_UI.group = want==='groups' ? grp : '';
     GH_UI.gzk = gzk;
+    GH_UI.asub = asub;
     if(OJ_JOB && OJ_JOB.kind!==(want==='puzzles' ? 'z' : 'oj')) ojStop();      // ghoSetView's rule: the other kind's job ends
     if(changed || siteChanged) ghSaveFilters();
     const applied = ghApplyFilterParams(p);
@@ -36992,6 +37101,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         b.classList.toggle('is-on', a);
         b.setAttribute('aria-pressed', a ? 'true' : 'false');
       });
+    }
+    // and in the Analytics view: Overview | Blunder Forensics
+    const as = document.getElementById('ga-sub');
+    if(as){
+      as.hidden = !av;
+      const asv = GH_UI.asub==='blunders' ? 'blunders' : 'overview';
+      as.querySelectorAll('.gh-sub-b').forEach(b=>{ const a = av && b.dataset.val===asv; b.classList.toggle('is-on', a); b.setAttribute('aria-pressed', a ? 'true' : 'false'); });
     }
     const off = (el, wrap)=>{
       if(!el) return;
@@ -40417,6 +40533,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(own) src.push(own+' from your badges');
     if(rv) src.push(rv+' from game reviews');
     box.appendChild(ibWords(ghEl('span', 'ct-blsrc'), [[n ? ghoN(n, 'blunder')+' in '+base+': '+src.join(', ')+'.' : '', 0], [(n ? ' ' : '')+'Games with no review and no badge aren\u2019t counted.', 1]]));
+    if(!T && !hrRl()){ const o = ghEl('button', 'ct-l ct-blbf', 'Rates, and your ?? in the balance: Blunder Forensics'); o.type = 'button'; o.dataset.act = 'blbf'; o.dataset.fid = 'blbf'; box.appendChild(o); }      // (2026-11-26) Analytics' view of every ??
     return box;
   }
   // no letters here, only blunders: the card is theirs
@@ -40980,6 +41097,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       else if(a==='todo') ctApply({ result:'loss', date:md.lossDate, ck:'none' });
       else if(a==='bucket') ctSetMoments(t.dataset.ch, { g:t.dataset.g, v:t.dataset.v }, true);
       else if(a==='nolet') ctSetMoments(BL_CH, { g:'none', v:'1' }, true);
+      else if(a==='blbf') bfOpen('');
       else if(a==='chip') ctSetMoments(t.dataset.ch || '', null, false, t.dataset.ch && t.dataset.ch!==BL_CH ? CT.m.out : '');
       else if(a==='out') ctSetMoments(CT.m.ch===BL_CH ? '' : CT.m.ch, null, false, CT.m.out===t.dataset.out ? '' : t.dataset.out);
       else if(a==='momo') ctSetMoments('', null, true, t.dataset.out);
@@ -41030,6 +41148,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const go = X.find(x=> x.can), acts = [{ t:'See them in CLAMP', go:()=>{ ctFromBrief(BL_CH); } }];
     // Go to move: the newest one (the newest game's last)
     if(go){ const G = X.filter(x=> x.g===go.g && x.can), y = G[G.length - 1]; acts.unshift({ t:'Go to move', go:()=>{ ghOpenGame(y.g, { at:{ ply:y.p - 1 }, clamp:{ ply:y.p, ch:BL_CH } }); } }); }
+    if(!hrRl()) acts.push({ t:'Blunder Forensics', go:()=>{ bfOpen(''); } });          // (2026-11-26) every ?? and the rates
     return { tag:'Blunders', cls:'is-bl', bg:BL_K.color, text, acts };
   }
   // "Loose pieces again: 3 of your 5 marked games this week. Your note on 9. Bg6: ..." when the letter is in 2+ of them
@@ -41697,8 +41816,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   var GA_WINS = [['3', '3d', 'Last 3 days', 3], ['7', '7d', 'Last 7 days', 7], ['15', '15d', 'Last 15 days', 15], ['30', '30d', 'Last 30 days', 30],
     ['90', '90d', 'Last 90 days', 90], ['', 'All', 'All dates', 0]];
   // the cards, in the page's order (their folds are kept per card in GH_UI.gaf; the list is also in gaFoldsValid)
-  var GA_CARDS = ['ga-out', 'ga-res', 'ga-col', 'ga-clk', 'ga-ou', 'ga-pc', 'ga-mate', 'ga-marks', 'ga-opp', 'ga-end', 'ga-why', 'ga-acc', 'ga-cas', 'ga-cal'];
-  var GA_MORE = ['ga-opp', 'ga-end', 'ga-why', 'ga-acc', 'ga-cas', 'ga-cal'];       // "More questions": folded by default below 960px
+  var GA_CARDS = ['ga-out', 'ga-res', 'ga-col', 'ga-clk', 'ga-ou', 'ga-pc', 'ga-mate', 'ga-marks', 'ga-opp', 'ga-end', 'ga-why', 'ga-acc', 'ga-cas', 'ga-blu', 'ga-cal'];
+  var GA_MORE = ['ga-opp', 'ga-end', 'ga-why', 'ga-acc', 'ga-cas', 'ga-blu', 'ga-cal'];       // "More questions": folded by default below 960px
   var GA_NOFOLD = ['ga-out', 'ga-res'];                                     // never folded (the first screen's answers)
   function gaOn(){ return GH_UI.view==='analytics'; }
   // "now" for Analytics and its drill-downs, floored to the hour: a number and the list it opens count the same games
@@ -41726,7 +41845,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const out = {};
     if(!o || typeof o!=='object') return out;
     if(o['ga-pcf']===1) out['ga-pcf'] = 1;                              // ... and Accuracy by piece's other view, How often (gaPfOn)
-    ['ga-col', 'ga-clk', 'ga-ou', 'ga-pc', 'ga-mate', 'ga-marks', 'ga-opp', 'ga-end', 'ga-why', 'ga-acc', 'ga-cas', 'ga-cal'].forEach(k=>{ if(o[k]===0 || o[k]===1) out[k] = o[k]; });
+    ['ga-col', 'ga-clk', 'ga-ou', 'ga-pc', 'ga-mate', 'ga-marks', 'ga-opp', 'ga-end', 'ga-why', 'ga-acc', 'ga-cas', 'ga-blu', 'ga-cal'].forEach(k=>{ if(o[k]===0 || o[k]===1) out[k] = o[k]; });
     return out;
   }
   // { prev:'30' | 'year' | '', atom } (a bare prev:N is the window before, all its games)
@@ -42219,6 +42338,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     gaModelMarks(md, base);
     gaModelMore(md);
     gaModelWhy(md);
+    gaModelBf(md, base);
     gaModelOut(md);
     md.countText = gaCountWords(md);
     return md;
@@ -42395,7 +42515,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function gaSigB(md){
     return [GH_UI.site, JSON.stringify(md.f), Math.floor(ghoBriefNow()/36e5), md.nBase, md.nB, md.A.length, md.W.length, md.P.length, md.hash, md.unread,
       md.loading ? 1 : 0, EG_DONE ? 1 : 0, EG_DONE ? EG.size : -1, GA_FV, OJ_VER, ghMe() || '', gaMarksStamp(md),
-      JSON.stringify(md.L), gaPhone() ? 1 : 0, md.ou ? md.ou.stamp : '', md.ou && md.ou.wait ? (OJ_ON ? 1 : 0)+':'+(OJ_NOENG ? 1 : 0) : '', md.pc ? md.pc.auto : ''].join('|');
+      JSON.stringify(md.L), gaPhone() ? 1 : 0, md.ou ? md.ou.stamp : '', md.ou && md.ou.wait ? (OJ_ON ? 1 : 0)+':'+(OJ_NOENG ? 1 : 0) : '', md.pc ? md.pc.auto : '', GH_UI.asub==='blunders' ? 'bf' : '', md.bf ? (GH_UI.asub==='blunders' ? md.bf.sig : md.bf.sigO) : ''].join('|');
   }
   // your marks on the scope's games (spec 9.2): each marked game's id and record, hashed (gaModelMarks)
   function gaMarksStamp(md){ return md.marks ? md.marks.stamp : ''; }
@@ -42426,7 +42546,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     for(let i = 0; i < base.length; i++) h = (h*31 + gaGameKey(base[i])) | 0;
     return [gevVer(), gevReady() ? 1 : 0,          // the scores the cards read (gev*)
       GH_UI.site, JSON.stringify(GH_FILTERS), gaNow(), h, GA_FV, MM_V, EG_DONE ? EG.size : -1, EG_DONE ? 1 : 0, OJ_VER, gaRevStamp(),
-      ghMe() || '', gaNotesStamp(), gaPhone() ? 1 : 0, JSON.stringify(gaLoaded()), ghTabBusy() ? 1 : 0, GA_DRAW.size,
+      ghMe() || '', gaNotesStamp(), bfExStamp(), gaPhone() ? 1 : 0, JSON.stringify(gaLoaded()), ghTabBusy() ? 1 : 0, GA_DRAW.size,
       // the usual card's own inputs the terms above don't cover (the endgames and scores are: EG gated, OJ_VER): which repertoire,
       // how far the games are sorted into it, the other site's games and noted ones (the usual reads every game you have)
       RP ? RP.hash : '', RP_RES.size, GH_STATE.games.length, ghCcUp() ? ccGames().length : 0, typeof GN==='object' && GN && GN.notes ? Object.keys(GN.notes).length : 0, gaPcAutoOn() ? 1+':'+(HRA_OLD ? 1 : 0)+':'+HRA_FV : ''].join('|');
@@ -42439,6 +42559,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const pk = GA_JOB || !GA.pm ? '' : gaPreKey(base);
     const md = pk && pk===GA.pk && GA.pm ? GA.pm : gaModel(base);       // GA.pm: the model last computed (GA.model: the one drawn)
     GA.pk = pk; GA.pm = md;
+    if(md.bf && bfOn() && md.bfS!==bfLive()) gaModelBf(md, base);          // (Blunder Forensics' own part: bf*)
     const cnt = document.getElementById('gh-count'), ct = md.countText;
     if(cnt.textContent!==ct) cnt.textContent = ct;
     const em = gaEmpty(md);
@@ -42681,7 +42802,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       return;
     }
     const frag = document.createDocumentFragment();
-    GA_DRAW_CARDS.forEach(([id, fn])=>{ GA.pd = !!md.partial; try{ fn(md, frag); }catch(e){ try{ console.warn('Analytics card '+id, e); }catch(e2){} } });
+    if(bfOn()){ GA.pd = false; try{ bfDraw(md, frag); }catch(e){ try{ console.warn('Blunder Forensics', e); }catch(e2){} } }          // Blunder Forensics: its blocks in place of the cards
+    else GA_DRAW_CARDS.forEach(([id, fn])=>{ GA.pd = !!md.partial; try{ fn(md, frag); }catch(e){ try{ console.warn('Analytics card '+id, e); }catch(e2){} } });
     GA.pd = false;
     frag.querySelectorAll('.ga-q').forEach(gaApplyFold);
     body.textContent = '';
@@ -42689,6 +42811,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // one card drawn again in place (its fold kept), the rest untouched
   function gaDrawOne(md, id){
+    if(bfOn()) return;            // Blunder Forensics shows none of the cards: a card's own news waits for the Overview (drawn whole when it's back)
     const old = document.getElementById(id), D = GA_DRAW_CARDS.find(x=> x[0]===id);
     if(!old || !D){ gaDrawAll(md, null); return; }
     const frag = document.createDocumentFragment();
@@ -42723,7 +42846,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     });
     // the chip rows: Left / Right (Home / End on a Mac) move and press, as the site tabs
     sec.addEventListener('keydown', (e)=>{
-      const row = e.target.closest && e.target.closest('#ga-win, #ga-speed, .ga-pcsw, .ga-gosw');
+      const row = e.target.closest && e.target.closest('#ga-win, #ga-speed, .ga-pcsw, .ga-gosw, .ga-bfsw');
       if(!row || e.altKey || e.ctrlKey || e.metaKey) return;
       const tabs = Array.from(row.querySelectorAll('.toggle')), i = tabs.indexOf(document.activeElement);
       if(i < 0) return;
@@ -43054,6 +43177,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     gaDrawUp(md, x);                        // up by 3, then the clock
     // 4. where your clock goes (2026-11-24): in place of the folded move 20/30/40 table
     gaDrawGo(md, x);
+    if(!hrRl()){ const d = ghEl('p', 'ga-ln ga-bfclk'), b = gaBtn('ct-l', 'Blunders by clock: Blunder Forensics', 'bfat', 'clk|bf'); b.dataset.val = 'ga-bfk'; d.appendChild(b); x.appendChild(d); }      // (2026-11-26)
     gaSrc(x, 'Behind = 10% of your starting clock or more below theirs after the same number of moves. Under 10% = before one of your moves, with 5 or more still to play.'+gaGoSrc(md)+gaUpSrc(md));
     frag.appendChild(c);
   }
@@ -45622,19 +45746,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const E = K.err;
       if(E.n){
         const p = ghEl('p', 'ga-ln ga-err'), f1 = (v)=> (v / E.n).toFixed(1);
-        p.appendChild(document.createTextNode(f1(E.ina)+' inaccuracies, '+f1(E.mis)+' mistakes, '));
-        if(E.bg){ const b = gaGo(f1(E.blu), { ga:'blu:a:'+src }, 'acc|blu|a', gaOpenLab(E.bg, 'with a blunder, from '+SN, wds)); b.dataset.n = String(E.bg); p.appendChild(b); }
-        else p.appendChild(document.createTextNode(f1(E.blu)));
-        p.appendChild(document.createTextNode(' blunders a game'));
-        const PE = K.perr;
-        if(before && PE.n >= GHO_MIN){
-          p.appendChild(document.createTextNode(' \u00b7 '));
-          if(PE.bg){ const b = gaGo((PE.blu / PE.n).toFixed(1), { date:'', ga:pre+'blu:a:'+src }, 'acc|blu|prev', gaOpenLab(PE.bg, 'with a blunder, from '+SN, pw)); b.dataset.n = String(PE.bg); p.appendChild(b); }
-          else p.appendChild(document.createTextNode((PE.blu / PE.n).toFixed(1)));
-          p.appendChild(document.createTextNode(' blunders a game in '+gaBeforeWords(md.v)));
-        }
-        p.appendChild(document.createTextNode('.'));
-        if(K.po.blu!=null) p.appendChild(document.createTextNode(' Your opponents: '+K.po.blu.toFixed(1)+' blunders a game.'));
+        p.appendChild(document.createTextNode(f1(E.ina)+' inaccuracies and '+f1(E.mis)+' mistakes a game. '));
+        // (2026-11-26) its blunders a game, before and beside your opponents', moved to How often do I blunder? (one count of your ?? on the
+        // Overview: Blunder Forensics' rule, per 100 moves in the balance); the phases keep theirs
+        { const b = gaBtn('ct-l ga-errbf', 'Your ?? rate: How often do I blunder?', 'bfcard', 'acc|blu'); b.dataset.val = 'ga-blu'; p.appendChild(b); }
         x.appendChild(p);
       }
     }
@@ -46961,6 +47076,1509 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       el.appendChild(line);
     });
   }
+  /* ---- Blunder Forensics (bf*, 2026-11-26; the user, 2026-11-25: "a blundering card ... a blunder percentage for the week, and
+     a good blunder rate for the week per rating", then 2026-11-26: "Blunder Forensics ... tucking it in somewhere ... a subsection"):
+     Analytics' second view (the switch Overview | Blunder Forensics under the site tabs, link #blunders) and its summary on the
+     Overview, the card How often do I blunder? (ga-blu). Part 1 (spec ~/blunder-work/spec.md, Blunder Forensics v1): This week,
+     Where you stood (with the move right after their mistake), Your clock, Your ?? moves, Try one habit. Every rate is per 100 of
+     your moves made when you were not already lost. The week, the typical and good lines and the habit read reviews only; Where you
+     stood and the list, reviews and Lichess's analysis (they name moves); the clock grid every game's one source (gev*: quick scores
+     too, a share over many moves). The ?? are the rows' (blOf: your own badge, else the review's); Lichess's analysis and quick
+     scores by the review's own rule. Nothing here starts the engine. A habit is one ex-<hex> record of the Game notes (synced in
+     the notes' study; an older build's gnIdOk refuses the id and leaves its chapter alone; its copy GN_EX_KEY). ---- */
+  var BF_IN = 15, BF_WON = 85, BF_SLIP = 15, BF_MIN = 30, BF_CELL = 300, BF_TYP_N = 20, BF_TYP_R = 100, BF_TYP_D = 90, BF_GOOD = 0.75;
+  var BF_DAY = 864e5, BF_PAGE = 20, BF_HAB = 140, BF_BEF = 60, BF_BEF_MIN = 30;
+  // (fix round, 2026-11-26) the clock grid: the last 12 months, whatever the Date setting (all dates mixed a past player in: 78% of
+  // the rapid grid's moves were from before 2026); the advice to good: your last 30 reviewed games, words only past a test
+  var BF_GRID_D = 365, BF_ADV_N = 30;
+  function bfPage(){ return gaPhone() ? 10 : BF_PAGE; }          // the list: 10 rows at a time on a phone
+  var BF_ST = ['Behind', 'Level', 'Ahead', 'Winning'];
+  var BF_CLW = ['2/3 or more', '1/3 to 2/3', '10% to 1/3', 'Under 10%'];
+  var BF_SPW = ['Under 5 s', '5 to 15 s', '15 s to a long think', 'A long think'];
+  var BF_CHIPS = [['all', 'All'], ['slip', 'Right after their mistake'], ['ahead', 'Ahead or winning'], ['clock', 'Under 1/3 of your clock'], ['one', 'Only one move held'], ['mid', '2 to 9 held'], ['ten', '10 or more held'], ['nomark', 'Not marked yet']];
+  var BF_EXM = [['all', 'Every move'], ['slip', 'Right after their mistake'], ['ahead', 'Ahead or winning'], ['clock', 'With 1/3 of your clock or more']];
+  // the view's own state (memory only): the list's chip and length, the clock grid's side, the grid opened on a phone, the
+  // ended habits opened, the habit being written
+  var BF = { chip:'all', more:0, who:'y', grid:false, ended:false, form:{ habit:'', moves:'all', last:false, sel:null }, by:new Map() };
+  var BF_G = new WeakMap();          // per game object: its facts while its scores, badges, moves and clocks stay the same
+  function bfOn(){ return gaOn() && GH_UI.asub==='blunders'; }
+  // X: the review's own ?? marks in the balance (no badge of yours: the habit's count, the same on both sides of a start); mB: your ??
+  // right after their mistake that gave it back (your chances after it at or under where they were before their mistake)
+  function bfSide(){ return { O:0, K:0, X:0, s:[0, 0, 0, 0], ks:[0, 0, 0, 0], mO:0, mK:0, mB:0, cO:new Array(16).fill(0), cK:new Array(16).fill(0), tO:0, tK:0, bal:0, won:0, lost:0, uns:0, g:0, h1O:0, h1K:0, h2O:0, h2K:0 }; }
+  function bfAdd(T, S){
+    T.O += S.O; T.K += S.K; T.X += S.X; T.mO += S.mO; T.mK += S.mK; T.mB += S.mB; T.tO += S.tO; T.tK += S.tK; T.h1O += S.h1O; T.h1K += S.h1K; T.h2O += S.h2O; T.h2K += S.h2K;
+    for(let i = 0; i < 4; i++){ T.s[i] += S.s[i]; T.ks[i] += S.ks[i]; }
+    for(let i = 0; i < 16; i++){ T.cO[i] += S.cO[i]; T.cK[i] += S.cK[i]; }
+    T.bal += S.bal; T.won += S.won; T.lost += S.lost; T.uns += S.uns; T.g++;
+    return T;
+  }
+  function bfSum(L, who){ const T = bfSide(); L.forEach(e=>{ if(e.b) bfAdd(T, e.b[who]); }); return T; }
+  // one game's facts, both sides: { me, src, rv, named, clk, y, o, L (your ?? in the balance), rat, my } or null (no scores)
+  function bfGame(g, u){
+    const E = gevOf(g);
+    if(!E) return null;
+    const rv = E.src==='review', bl = rv ? blOf(g) : null, own = gnBadgesOf(String(g.id)), cl = Array.isArray(g.clocks) ? g.clocks.length : 0, c = BF_G.get(g);
+    if(c && c.E===E && c.bl===bl && c.own===own && c.mv===g.moves && c.st===g.status && c.u===u && c.cl===cl) return c.v;
+    let v = null;
+    try{ v = bfMake(g, u, E, bl, own); }catch(e){ v = null; }
+    BF_G.set(g, { E, bl, own, mv:g.moves, st:g.status, u, cl, v });
+    return v;
+  }
+  function bfMake(g, u, E, bl, own){
+    const me = ghMyColor(g, u)==='white' ? 'w' : 'b', n = E.n, s = E.s, rv = E.src==='review', gaps = rv && !!E.bg;
+    // the ?? of each move: the rows' (blOf) where the game has its review; else your own badge, then the review's rule on the scores
+    // (bfMarks: the same marks the check at each ?? reads)
+    const F = bfMarks(g, E);
+    // the clocks (gaGoFacts' rule): a clock game, no berserk, readings to the last move or the one before; a side's first move
+    // on Lichess has no reading
+    const C = g.clocks, P = g.players || {}, bz = !!((P.white && P.white.berserk) || (P.black && P.black.berserk));
+    const clk = !!(g.clock && Number(g.clock.initial) > 0) && !gaCorr(g) && !bz && Array.isArray(C) && C.length > 0 && C.length >= n - 1;
+    const S0 = clk ? kmStart(g, 'w') : null, li = g.site!=='cc', y = bfSide(), o = bfSide(), L = [], Lo = [];
+    for(let p = 1; p <= n; p++){
+      const mv = p % 2 ? 'w' : 'b', T = mv===me ? y : o, a = gevWin(s[p - 1], mv), b = gevWin(s[p], mv), f = F[p];
+      if(a==null || b==null){ if(f) T.uns++; continue; }
+      const won = a >= BF_WON && b >= BF_WON;
+      if(f){ if(a <= BF_IN) T.lost++; else if(won) T.won++; else T.bal++; }
+      if(a <= BF_IN) continue;                                         // already lost: not counted in the base
+      const k = f && !won ? 1 : 0, st = a <= 36.5 ? 0 : a < 63.5 ? 1 : a < BF_WON ? 2 : 3;
+      T.O++; T.K += k; T.s[st]++; T.ks[st] += k;
+      if(rv && !won && E.b && E.b.charAt(p - 1)==='x') T.X++;          // the review's own mark (the habit's count)
+      // right after their mistake: their move before this one lost 15 points of winning chances or more (the same scores)
+      let sl = 0, a0 = null;
+      if(p >= 2){ a0 = gevWin(s[p - 2], mv); if(a0!=null && a - a0 >= BF_SLIP) sl = 1; }
+      if(sl){ T.mO++; T.mK += k; if(k && b <= a0) T.mB++; }
+      // moves that held before it, from the review's three lines (only one: the second move 15 points or more behind the best)
+      if(gaps){ const gp = gevGap(g, p - 1); if(gp && !gp.one){ if(gp.two >= AHC_HOLD){ T.h1O++; T.h1K += k; } else { T.h2O++; T.h2K += k; } } }
+      let cl = -1, tk = -1;
+      if(clk){ const l0 = p <= 2 ? (li ? null : S0.ini) : C[p - 3], l1 = C[p - 1]; if(typeof l0==='number' && typeof l1==='number'){ cl = l0; tk = Math.max(0, l0 - l1 + S0.inc); } }
+      if(cl >= 0){
+        const ini = S0.ini, r = 3*cl >= 2*ini ? 0 : 3*cl >= ini ? 1 : 10*cl >= ini ? 2 : 3, q = 15*tk >= ini ? 3 : tk < 500 ? 0 : tk < 1500 ? 1 : 2, i = r*4 + q;
+        T.cO[i]++; T.cK[i] += k;
+        if(r < 2){ T.tO++; T.tK += k; }
+      }
+      if(k) (mv===me ? L : Lo).push({ p, a, b, sl, cl, tk, ini:S0 ? S0.ini : 0 });
+    }
+    const ra = gaOpp(g, u);
+    return { me, src:E.src, rv, gaps, named:rv || E.src==='lichess', clk, y, o, L, Lo, rat:ra && ra.ok ? ra : null };
+  }
+  // your rating after a rated game (chess.com sends it; Lichess: before it plus the change); 0 when there's none
+  function bfNowRating(g, u){
+    if(!g || !g.rated) return 0;
+    const P = ghPlayers(g, u);
+    if(g.site==='cc'){ const a = g.ccAfter && g.ccAfter[ghMyColor(g, u)]; return typeof a==='number' && a > 0 ? a : 0; }
+    const r = Number(P.mine.rating);
+    return isFinite(r) && r > 0 ? r + (typeof P.mine.ratingDiff==='number' ? P.mine.ratingDiff : 0) : 0;
+  }
+  function bfF(n){ return Number(n || 0).toLocaleString('en-US'); }
+  // a rate per 100 moves, one decimal, from 30 moves ('' under that: the count says it)
+  function bfR(k, n, min){ return n >= (min || BF_MIN) ? (Math.round(1000*k/n)/10).toFixed(1) : ''; }
+  function bfKN(k, n){ return bfF(k)+' in '+ghoN(n, 'move'); }
+  // two rates, the first against the second: k1 given k1 + k2 (a Poisson test); 0 when there's nothing to test
+  function bfZ(k1, n1, k2, n2){ const t = k1 + k2; if(!t || !n1 || !n2) return 0; const q = n1/(n1 + n2); return (k1 - t*q)/Math.sqrt(t*q*(1 - q)); }
+  function bfPct(k, n){ return n >= BF_MIN ? gaPfPct(k, n) : ''; }
+  // a score from your side: "+1.2", "-2.8" (a real minus), "mate for you" / "mate for them"
+  function bfCp(v, me){
+    const a = gevObj(v);
+    if(!a) return '?';
+    if(a.type==='mate') return (a.value > 0)===(me==='w') ? 'mate for you' : 'mate for them';
+    const x = (me==='w' ? a.value : -a.value)/100;
+    return (x >= 0 ? '+' : '\u2212')+Math.abs(x).toFixed(1);
+  }
+  // ---- the model (in gaModel, from cached facts: no replay, no engine) ----
+  function gaModelBf(md, base){
+    const u = md.u, now = md.now, K = md.bf = { sig:'' }, cnt = {}, rc = {};
+    md.A.forEach(e=>{ const s = e.g.speed || ''; if(!s) return; cnt[s] = (cnt[s] || 0) + 1; const E = gevOf(e.g); if(E && E.src==='review') rc[s] = (rc[s] || 0) + 1; });
+    // one speed at a time (rapid and blitz ratings are different scales): Analytics' own, else the one with the most reviewed games
+    let sp = md.f.speed || '';
+    if(!sp){ const S = Object.keys(cnt).filter(s=> s!=='correspondence'); S.sort((a, b)=> (rc[b] || 0) - (rc[a] || 0) || cnt[b] - cnt[a] || (b==='rapid' ? 1 : 0) - (a==='rapid' ? 1 : 0)); sp = S[0] || ''; }
+    K.sp = sp; K.auto = !md.f.speed;
+    if(!sp){ K.sig = K.sigO = 'none'; K.ex = bfExModel(base, u, now, ''); md.bfS = bfOn() ? bfLive() : 'o'; return; }
+    const G = md.A.filter(e=> e.g.speed===sp);
+    G.forEach(e=>{ e.b = bfGame(e.g, u); });
+    const R = G.filter(e=> e.b && e.b.rv).sort((a, b)=> b.at - a.at);
+    K.nG = G.length; K.nR = R.length; K.R = R;
+    // 1. the last 7 days (rolling, to the hour); under 5 reviewed games there, your last 10 reviewed games
+    const w0 = now - 7*BF_DAY, in7 = G.filter(e=> e.at >= w0), r7 = in7.filter(e=> e.b && e.b.rv);
+    const H = K.head = { m:in7.length, r:r7.length, L:r7, fb:false };
+    if(r7.length < 5 && R.length > r7.length){ H.fb = true; H.L = R.slice(0, 10); }
+    H.n = H.L.length; H.y = bfSum(H.L, 'y'); H.o = bfSum(H.L, 'o');
+    H.since = H.L.reduce((m, e)=> Math.min(m, e.at), Infinity);
+    const win = (from, to)=>{ const L = G.filter(e=> e.at >= from && e.at < to), Rv = L.filter(e=> e.b && e.b.rv); return { from, to, m:L.length, r:Rv.length, y:bfSum(Rv, 'y'), L:Rv }; };
+    K.prev = win(now - 35*BF_DAY, w0);
+    // the week against the 4 weeks before: a test with the spread of those games over chance (Poisson alone fired in 9 to 10% of
+    // weeks with no change, the review found); phi from both windows' reviewed games together (the rate they share under no change)
+    K.prev.phi = bfSpread(H.L.concat(K.prev.L), 'K').phi;
+    // the way to good: your last 30 reviewed games of the speed (the week's when it has more), steadier than one week
+    const A30 = H.n >= BF_ADV_N ? H.L : R.slice(0, BF_ADV_N);
+    K.adv = { n:A30.length, y:bfSum(A30, 'y'), phi:bfSpread(A30, 'K').phi };
+    K.bars = [];
+    for(let i = 0; i < 8; i++) K.bars.push(win(now - (i + 1)*7*BF_DAY, now - i*7*BF_DAY));
+    // typical at your rating: your opponents within 100 of your rating now, reviewed games of the last 90 days; good = typical x 0.75
+    // (your rating now = after your newest rated game of the speed; its site's opponents only: Lichess and chess.com ratings differ)
+    let my = 0, ms = '';
+    G.slice().sort((a, b)=> b.at - a.at).some(e=>{ const r = bfNowRating(e.g, u); if(r > 0){ my = r; ms = e.site; return true; } return false; });
+    const TL = my ? R.filter(e=> e.site===ms && e.at >= now - BF_TYP_D*BF_DAY && e.b.rat && Math.abs(e.b.rat.opp - my) <= BF_TYP_R) : [];
+    K.typ = { r:my, n:TL.length, o:bfSum(TL, 'o'), site:ms, phi:bfSpread(TL, 'K', 'o').phi };
+    // 2. where you stood, and 6. the list: the Date setting's window, games whose scores can name a move
+    const D = G.filter(e=> e.at >= md.from && e.b && e.b.named);
+    K.st = { n:D.length, nr:D.filter(e=> e.b.rv).length, ng:D.filter(e=> e.b.gaps).length, y:bfSum(D, 'y'), o:bfSum(D, 'o') };
+    // the list, What fell and Moves that held: only while the section shows (the Overview's card reads none of them, so a check of a
+    // ?? landing never recomputes the Overview: gaRender recomputes this part alone when the section shows and its stamp moved)
+    const full = bfOn();
+    md.bfS = full ? bfLive() : 'o';
+    if(full && !BFC.loaded && !hrRl()) bfcLoad();          // this device's checks of the ?? (kept in IndexedDB), read once
+    const I = [], fell = K.fell = { y:{}, o:{}, yb:0, src:{ check:0, review:0, score:0 } }, held = K.held = { one:0, mid:0, ten:0, two:0, unk:0 }, pend = K.pend = [];
+    if(full) D.forEach(e=>{
+      if(!e.b.L.length && !e.b.Lo.length) return;
+      const ck = gnClampOf(String(e.g.id)), E = gevOf(e.g);
+      e.b.L.forEach(x=>{
+        const f = E ? bfFactsOf(e.g, E, x.p, false) : { how:{ k:'u' }, hb:'', cnt:null, thr:'' };
+        if(f.pend) pend.push([e.g, x.p]);
+        I.push(Object.assign({ e, one:f.hb==='1', how:f.how, hb:f.hb, cnt:f.cnt, thr:f.thr, ch:CLAMP_K.filter(Q=> ck.some(z=> z[0]===x.p && z[1]===Q.ch)).map(Q=> Q.ch) }, x));
+        const k = f.how.k;
+        fell.y[k] = (fell.y[k] || 0) + 1;
+        if(k==='mate' && f.how.sub==='back') fell.yb++;
+        if(f.how.src) fell.src[f.how.src]++;
+        if(f.hb==='1') held.one++; else if(f.hb==='2-9') held.mid++; else if(f.hb==='10+') held.ten++; else if(f.hb==='2+') held.two++; else held.unk++;
+      });
+      if(E) e.b.Lo.forEach(x=>{ const f = bfFactsOf(e.g, E, x.p, false), k = f.how.k; fell.o[k] = (fell.o[k] || 0) + 1; if(f.pend) pend.push([e.g, x.p]); });
+    });
+    I.sort((a, b)=> b.e.at - a.e.at || b.p - a.p);
+    K.items = I;
+    K.chips = { all:I.length, slip:0, ahead:0, clock:0, one:0, mid:0, ten:0, nomark:0 };
+    I.forEach(x=>{ if(x.sl) K.chips.slip++; if(x.a >= 63.5) K.chips.ahead++; if(x.cl >= 0 && 3*x.cl < x.ini) K.chips.clock++; if(x.one) K.chips.one++; if(x.hb==='2-9') K.chips.mid++; if(x.hb==='10+') K.chips.ten++; if(!x.ch.length) K.chips.nomark++;
+      const k = x.how && x.how.k; if(k && BF_HK.indexOf(k) >= 0) K.chips['f:'+k] = (K.chips['f:'+k] || 0) + 1; });
+    // 3. the clock: every game of the speed of the last 12 months (whatever the Date setting), by its one source
+    const Gc = G.filter(e=> e.at >= now - BF_GRID_D*BF_DAY && e.b && e.b.clk);
+    K.gr = { n:Gc.length, c:{ review:0, lichess:0, quick:0 }, y:bfSum(Gc, 'y'), o:bfSum(Gc, 'o') };
+    Gc.forEach(e=>{ K.gr.c[e.b.src] = (K.gr.c[e.b.src] || 0) + 1; });
+    K.ex = bfExModel(base, u, now, sp);
+    const nums = (T)=> [T.O, T.K, T.X, T.s.join(), T.ks.join(), T.mO, T.mK, T.mB, T.cO.join(), T.cK.join(), T.bal, T.won, T.lost, T.uns];
+    const adv = [K.adv.n, nums(K.adv.y), K.adv.phi.toFixed(3), K.typ.phi.toFixed(3)];
+    // the Overview's card shows the week, the typical and good lines and the split (reviews only): its own signature, so quick scores
+    // arriving redraw only the cards that read them
+    K.sigO = gnFnv(JSON.stringify([sp, K.auto, G.length, R.length, H.m, H.r, H.fb, H.n, nums(H.y), K.typ.r, K.typ.n, nums(K.typ.o), adv]));
+    K.sig = gnFnv(JSON.stringify([sp, K.auto, G.length, R.length, H.m, H.r, H.fb, H.n, nums(H.y), adv, K.prev.m, K.prev.r, nums(K.prev.y), K.prev.phi.toFixed(3), K.bars.map(B=> [B.m, B.r, B.y.O, B.y.K]),
+      K.typ.r, K.typ.n, nums(K.typ.o), K.st.n, K.st.nr, nums(K.st.y), nums(K.st.o), K.gr.n, K.gr.c, nums(K.gr.y), nums(K.gr.o),
+      I.map(x=> [x.e.g.id, x.p, x.sl, x.one, x.ch.join(''), x.cl, x.how ? x.how.k+(x.how.sub || '') : '', x.hb, x.thr]), fell, held, K.st.ng, K.ex.sig]));
+  }
+  // ---- the habit (spec F3.7, F6; fix round 2026-11-26): one ex-<hex> record of the Game notes. Both sides of a start count the same
+  // way: the review's own ?? marks (no badge of yours, no Lichess, no quick score) per 100 of your moves not already lost, reviewed
+  // games only. The before (your last 60 reviewed games of the speed before the start, 30 at least) is kept in the record at Start (b),
+  // so a later badge, review or Clear analysis never moves it. The answer is read ONCE, after the games it takes to tell a halving
+  // from chance 4 times in 5 (b.plan, fixed at Start): a change read as soon as the range left 1, at every redraw, showed one with no
+  // change at all in 9 to 21% of habits (the review's simulation), against 2.5% a side ----
+  function bfIsEx(id){ return /^ex-[0-9a-f]{8}$/.test(String(id || '')); }
+  function bfHabit(t){ return typeof t==='string' ? t.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, BF_HAB) : ''; }
+  // the kept before: { n games, O moves, K ??, phi spread, lam ?? a game, plan games, q share of your stretches of n reviewed games with
+  // a lower rate (-1: too few to tell), w stretches } or null
+  function bfExB(d){
+    if(!d || typeof d!=='object' || Array.isArray(d)) return null;
+    const n = Number(d.n), O = Number(d.O), K = Number(d.K), phi = Number(d.phi), lam = Number(d.lam), plan = Number(d.plan), q = d.q==null ? -1 : Number(d.q), w = Number(d.w) || 0;
+    if(!(Number.isInteger(n) && n >= 0 && n <= BF_BEF && Number.isInteger(O) && O >= 0 && Number.isInteger(K) && K >= 0 && K <= O && phi >= 1 && phi < 100 && lam >= 0 && lam < 100
+      && Number.isInteger(plan) && plan >= 0 && plan < 100000 && q >= -1 && q <= 1 && Number.isInteger(w) && w >= 0)) return null;
+    return { n, O, K, phi, lam, plan, q, w };
+  }
+  function bfExParse(id, t){
+    let d = null;
+    try{ d = JSON.parse(t); }catch(e){ d = null; }
+    if(!d || typeof d!=='object' || Array.isArray(d)) return null;
+    const start = Number(d.start), end = d.end==null ? null : Number(d.end), habit = bfHabit(d.habit);
+    if(!(start > 0) || !habit) return null;
+    return { id, habit, speed:/^(?:ultraBullet|bullet|blitz|rapid|classical|correspondence)$/.test(String(d.speed)) ? String(d.speed) : 'rapid',
+      moves:BF_EXM.some(m=> m[0]===d.moves) ? d.moves : 'all', start, end:end > 0 ? end : null, at:Number(d.at) || 0,
+      was:Array.isArray(d.was) ? d.was.map(bfHabit).filter(Boolean).slice(0, 5) : [], b:bfExB(d.b), raw:d };
+  }
+  // saved through the notes' one door (gnSetNote: kept here and in its copy, synced); fields a newer build wrote are kept
+  function bfExSave(X, raw, at){
+    let keep = raw && typeof raw==='object' && !Array.isArray(raw) ? raw : null;
+    if(!keep){ try{ const n = GN.notes[X.id], o = n && n.text ? JSON.parse(n.text) : null; keep = o && typeof o==='object' && !Array.isArray(o) ? o : {}; }catch(e){ keep = {}; } }
+    const rec = Object.assign({}, keep, { v:1, habit:X.habit, speed:X.speed, moves:X.moves, start:X.start, end:X.end==null ? null : X.end, at:at || Date.now() });
+    if(X.was && X.was.length) rec.was = X.was.slice(0, 5); else delete rec.was;
+    if(X.b) rec.b = Object.assign({}, X.b);
+    return gnSetNote(X.id, JSON.stringify(rec), { id:X.id, _op:gnCleanG({ opening:X.habit, variant:'standard' }) });
+  }
+  // every habit, newest start first; two devices' versions of one are settled (the newer edit's fields, the other's habit kept in
+  // was); two open ones (each device started one): the newest start is the open one, the other shows as ended there
+  function bfExAll(){
+    if(typeof GN!=='object' || !GN) return [];
+    const out = [];
+    Object.values(GN.notes).forEach(n=>{
+      if(!n || !bfIsEx(n.id)) return;
+      if(n.conflict && n.text && !hrRl()){
+        const a = bfExParse(n.id, n.text), c = bfExParse(n.id, n.conflict.text);
+        if(a && c){
+          const W = a.at >= c.at ? a : c, Lo = W===a ? c : a, was = [];
+          W.was.concat(Lo.was, [Lo.habit]).forEach(h=>{ if(h && h!==W.habit && was.indexOf(h) < 0) was.push(h); });
+          n.conflict = null;
+          if(!bfExSave(Object.assign({}, W, { was, b:W.b || Lo.b }), W.raw, Math.max(a.at, c.at))) gnPersist();
+        }
+      }
+      const X = n.text ? bfExParse(n.id, n.text) : n.conflict ? bfExParse(n.id, n.conflict.text) : null;
+      if(X) out.push(X);
+    });
+    out.sort((a, b)=> b.start - a.start || b.at - a.at);
+    let open = null;
+    out.forEach(X=>{ if(X.end==null){ if(!open) open = X; else X.endShown = open.start; } });
+    return out;
+  }
+  // the habits' records (Analytics' memo key; the checks of the ?? are not in it: they never move the Overview, gaRender recomputes the
+  // section's part alone, bfLive)
+  function bfExStamp(){
+    const N = typeof GN==='object' && GN ? GN.notes : null;
+    if(!N) return '';
+    let s = '';
+    for(const id in N){ if(id.charCodeAt(0)===101 && id.charCodeAt(1)===120 && id.charCodeAt(2)===45){ const n = N[id]; s += id+':'+(n.updatedAt || 0)+':'+(n.text ? n.text.length : 0)+':'+(n.conflict ? 1 : 0)+','; } }
+    return s ? gnFnv(s) : '';
+  }
+  function bfLive(){ return 'f|'+BFC.ver+'|'+BF_NV; }
+  // games it takes, 80% of the time at the 5% level: equal halves, or the games after a fixed baseline of nb (0: never)
+  var BF_Z2 = Math.pow(1.959964 + 0.841621, 2);
+  function bfNeedEq(lam, phi, rr){ return lam > 0 ? Math.ceil(BF_Z2*phi*(1/lam + 1/(lam*rr))/(Math.log(rr)*Math.log(rr))) : 0; }
+  function bfNeed(lam, phi, nb, rr){ const den = Math.log(rr)*Math.log(rr)/(BF_Z2*phi) - 1/(lam*nb); return lam > 0 && nb > 0 && den > 0 ? Math.ceil(1/(lam*rr*den)) : 0; }
+  // ?? a game and their spread over games (1 = chance alone; Pearson's over the games' own moves): f the count (K: the section's, X: the
+  // review's own marks), who 'y' / 'o'
+  function bfSpread(L, f, who){
+    f = f || 'K'; who = who || 'y';
+    let O = 0, Kk = 0;
+    L.forEach(e=>{ const T = e.b[who]; O += T.O; Kk += T[f]; });
+    const p = O ? Kk/O : 0;
+    let chi = 0, m = 0;
+    L.forEach(e=>{ const T = e.b[who], n = T.O; if(n > 0 && p > 0){ const d = T[f] - p*n; chi += d*d/(p*n); m++; } });
+    return { lam:L.length ? Kk/L.length : 0, phi:Math.max(1, m > 1 ? chi/(m - 1) : 1), p, K:Kk, O, n:L.length };
+  }
+  var bfR3 = (x)=> Math.round(1000*x)/1000;
+  // the before of a start, from A (your reviewed games of the speed, newest first): the last 60 before it (30 at least), its spread, the
+  // games its answer needs, and whether it was a bad stretch: its rate against every stretch of as many games among your last 300
+  // reviewed games before the start (once there are twice as many; your own level of these months, not of years ago: against all your
+  // history every recent stretch looked good, you have improved). A start right after a bad stretch reads a drop by itself (x0.87 in
+  // your own games with no habit)
+  var BF_HIST = 300;
+  function bfExFreeze(A, start){
+    const H = A.filter(e=> e.at < start).slice(0, BF_HIST), B = H.slice(0, BF_BEF), n = B.length;
+    if(n < BF_BEF_MIN) return { n, O:0, K:0, phi:1, lam:0, plan:0, q:-1, w:0 };
+    const S = bfSpread(B, 'X'), phi = bfR3(S.phi), lam = bfR3(S.lam);
+    let q = -1, w = 0;
+    if(H.length >= 2*n && S.O > 0){
+      const r0 = S.K / S.O;
+      let O = 0, Kk = 0, lower = 0;
+      for(let i = 0; i < H.length; i++){
+        O += H[i].b.y.O; Kk += H[i].b.y.X;
+        if(i >= n){ O -= H[i - n].b.y.O; Kk -= H[i - n].b.y.X; }
+        if(i >= n - 1){ w++; if(O > 0 && Kk/O < r0) lower++; }
+      }
+      q = bfR3(lower / w);
+    }
+    return { n, O:S.O, K:S.K, phi, lam, plan:bfNeed(lam, phi, n, 0.5), q, w };
+  }
+  // the ratio of the after's rate to the before's, and the range chance alone gives it: the after's share of all the ?? of both, given
+  // that total and both sides' moves, with the before's own spread over games (the two-rate test; on the user's games with no change it
+  // read "fewer" in 2.4 to 4.0% of habits and "more" in 0.4 to 4.4%; the log-ratio band it replaces read "fewer" in up to 5.8%)
+  function bfExRatio(b, a){
+    const p = b.O ? b.K / b.O : 0;
+    if(!(p > 0 && b.K > 0 && a.O > 0)) return null;
+    const t = a.K + b.K, q = a.O / (a.O + b.O), sd = Math.sqrt(b.phi * t * q * (1 - q)), r = (k)=>{ k = Math.max(0, Math.min(t - 0.5, k)); return (k / a.O) / ((t - k) / b.O); };
+    return { ratio:(a.K / a.O) / p, band:[r(t*q - 1.96*sd), r(t*q + 1.96*sd)] };
+  }
+  // one habit: A its speed's reviewed games (newest first), M the games of the speed played since its start (reviewed or not)
+  function bfExCalc(X, A, M){
+    const end = X.end!=null ? X.end : X.endShown!=null ? X.endShown : Infinity;
+    const b = X.b || bfExFreeze(A, X.start), Af = A.filter(e=> e.at >= X.start && e.at < end).sort((x, y)=> x.at - y.at);
+    const sum = (L)=>{ let O = 0, Kk = 0; L.forEach(e=>{ O += e.b.y.O; Kk += e.b.y.X; }); return { O, K:Kk }; };
+    const r = { b, kept:!!X.b, nb:b.n, na:Af.length, m:M, a:sum(Af), ok:b.n >= BF_BEF_MIN, plan:b.plan };
+    if(!r.ok) return r;
+    const now = bfExRatio(b, r.a);
+    if(now){ r.ratio = now.ratio; r.band = now.band; }
+    // the answer: once, on the first plan games after the start
+    if(b.plan > 0 && Af.length >= b.plan){
+      const z = bfExRatio(b, sum(Af.slice(0, b.plan)));
+      if(z) r.ans = { n:b.plan, ratio:z.ratio, band:z.band, v:z.ratio < z.band[0] ? '-' : z.ratio > z.band[1] ? '+' : '0' };
+    }
+    return r;
+  }
+  // the habits, their numbers, and what a new one takes (sp: the section's speed)
+  function bfExModel(base, u, now, sp){
+    const L = bfExAll(), open = L.find(X=> X.end==null && X.endShown==null) || null, per = new Map();
+    const games = (s)=>{
+      if(per.has(s)) return per.get(s);
+      const A = [], T = [];
+      (base || []).forEach(g=>{ if(!gaInBase(g) || g.speed!==s) return; const at = Number(g.createdAt) || 0; T.push(at); const v = bfGame(g, u); if(v && v.rv) A.push({ g, at, b:v }); });
+      A.sort((a, b)=> b.at - a.at);
+      const o = { A, T };
+      per.set(s, o);
+      return o;
+    };
+    const since = (X)=>{ const G = games(X.speed), end = X.end!=null ? X.end : X.endShown!=null ? X.endShown : Infinity; return G.T.filter(t=> t >= X.start && t < end).length; };
+    const out = { L, open, games, R:open ? bfExCalc(open, games(open.speed).A, since(open)) : null, ended:L.filter(X=> X!==open).map(X=> ({ X, R:bfExCalc(X, games(X.speed).A, since(X)) })) };
+    // before one starts: what it takes against the before it would have now (your last 60 reviewed games of the speed, at least 30)
+    if(sp){ const b = bfExFreeze(games(sp).A, Infinity); out.pw = { n:b.n, lam:b.lam, phi:b.phi, half:b.plan, qtr:b.n >= BF_BEF_MIN ? bfNeed(b.lam, b.phi, b.n, 0.75) : 0, q:b.q }; }
+    else out.pw = { n:0 };
+    const rs = (r)=> r ? [r.nb, r.na, r.m, r.b.O, r.b.K, r.b.phi, r.b.plan, r.b.q, r.a.O, r.a.K, r.kept ? 1 : 0, r.ans ? [r.ans.v, bfR3(r.ans.ratio)] : 0] : [];
+    out.sig = gnFnv(JSON.stringify([L.map(X=> [X.id, X.habit, X.speed, X.moves, X.start, X.end, X.endShown || 0, X.was]), rs(out.R), out.ended.map(z=> rs(z.R)), out.pw]));
+    return out;
+  }
+  // ---- drawing (one fragment; gaDrawAll swaps it in) ----
+  function bfCard(id, title, wide){
+    const c = ghEl('section', 'ct-card ga-bfc'+(wide ? ' ga-wide' : ''));
+    c.id = id;
+    const h = ghEl('h3', 'ct-h ga-bfh', title);
+    h.id = id+'-h';
+    h.tabIndex = -1; h.dataset.fid = 'bf|h|'+id;          // (a link that lands here keeps the keyboard on it through the next redraw)
+    c.setAttribute('aria-labelledby', id+'-h');
+    c.appendChild(h);
+    return c;
+  }
+  function bfLink(text, act, fid, val){ const b = gaBtn('ct-l', text, act, fid); if(val!=null) b.dataset.val = val; return b; }
+  function bfOlder(){ const b = gaBtn('btn btn-ghost ga-bfold', 'Review older games', 'settings', 'bf|older'); b.dataset.val = 'hra-field'; return b; }
+  function bfDraw(md, frag){
+    const K = md.bf;
+    BF.by = new Map();
+    if(!K || !K.sp){
+      const c = bfCard('ga-bfw', 'This week', true);
+      c.appendChild(ghEl('p', 'ga-say', 'No games with a clock speed here yet.'));
+      frag.appendChild(c);
+      return;
+    }
+    if(K.pend && K.pend.length){ K.pend.forEach(z=> bfNmQ(z[0], z[1])); bfNmGo(); }          // the names the review's best moves give: named now, in slices
+    [bfDrawWeek, bfDrawStood, bfDrawClock, bfDrawFell, bfDrawHeld, bfDrawList, bfDrawEx].forEach(f=>{ try{ f(md, K, frag); }catch(e){ try{ console.warn('Blunder Forensics', e); }catch(e2){} } });
+  }
+  // the headline: the rate (or the count under 30 moves) and its base, for the week card and the Overview's card
+  function bfHead(K, top){
+    const H = K.head, sw = gaSpeedW(K.sp).toLowerCase(), r = bfR(H.y.K, H.y.O);
+    if(!H.n){
+      top.appendChild(ghEl('p', 'ga-say is-bold', H.m ? 'None of your '+ghoN(H.m, sw+' game')+' of the last 7 days has a review yet.' : 'No reviewed '+sw+' games yet.'));
+      return false;
+    }
+    const big = ghEl('span', 'ct-big ga-big ga-bfbig', r || bfF(H.y.K));
+    big.dataset.k = String(H.y.K); big.dataset.o = String(H.y.O);
+    top.appendChild(big);
+    top.appendChild(ghEl('span', 'ct-what', r ? 'of every 100 of your moves were ?? while the game was in the balance' : '?? while the game was in the balance, in '+ghoN(H.y.O, 'move')));
+    const games = H.fb ? ghoN(H.n, 'game') : H.r===H.m ? ghoN(H.m, 'game')+', all reviewed' : H.r+' of '+ghoN(H.m, 'game')+' reviewed so far';
+    const per = H.n ? (Math.round(10*H.y.K/H.n)/10).toFixed(1)+' a game' : '';
+    const when = H.fb ? 'Your last '+ghoN(H.n, 'reviewed game')+', since '+ctDay(H.since)+' (the last 7 days have '+(H.m ? H.r+' of '+H.m+' reviewed' : 'no '+sw+' games')+')' : 'Last 7 days, '+sw;
+    const b = ghEl('span', 'ct-vs ga-bfbase', when+': '+bfKN(H.y.K, H.y.O)+' \u00b7 '+games+(per ? ' \u00b7 '+per : ''));
+    top.appendChild(b);
+    return true;
+  }
+  // the typical and good lines (a sentence, its base after it, with the range chance alone allows), and the way to good: your last 30
+  // reviewed games (steadier than one week) against good, in words only past a test (both rates' own spread over games; a week of 5 to
+  // 20 games said "you are there now" for a steady player above good in 13 to 33% of weeks, the review found)
+  function bfAdvice(K){
+    const T = K.typ, A = K.adv;
+    if(!T.r || T.n < BF_TYP_N || T.o.O < BF_MIN || !A || A.n < 5 || A.y.O < BF_MIN) return null;
+    const good = BF_GOOD * T.o.K / T.o.O, r = A.y.K / A.y.O, out = { n:A.n, wk:A.n===K.head.n && K.head.n >= BF_ADV_N && !K.head.fb, r, good, k:'close', d:0 };
+    const lr = Math.log((A.y.K + 0.5)/A.y.O) - Math.log(BF_GOOD * (T.o.K + 0.5)/T.o.O), se = Math.sqrt(A.phi/(A.y.K + 0.5) + T.phi/(T.o.K + 0.5)), z = lr/se;
+    out.z = z;
+    if(z >= 1.96){ out.k = 'more'; out.d = Math.max(1, Math.round((r - good) * (A.y.O / A.n) * 10)); }
+    else if(z <= -1.96) out.k = 'under';
+    return out;
+  }
+  function bfRange(k, n, phi){ if(!(n > 0)) return null; if(!k) return [0, 300/n]; const r = 100*k/n, e = 1.96*Math.sqrt((phi || 1)/k); return [r*Math.exp(-e), r*Math.exp(e)]; }
+  function bfTypical(K, box){
+    const T = K.typ, p = ghEl('p', 'ga-ln ga-bftyp');
+    if(!T.r){ p.textContent = 'Typical at your rating: no rating in your '+gaSpeedW(K.sp).toLowerCase()+' games.'; box.appendChild(p); return; }
+    const tr = T.n >= BF_TYP_N ? bfR(T.o.K, T.o.O) : '';
+    if(!tr){
+      p.textContent = 'Typical at your rating: needs '+BF_TYP_N+' reviewed games against players within '+BF_TYP_R+' of '+bfF(T.r)+' ('+T.n+' so far, last '+BF_TYP_D+' days).';
+      box.appendChild(p);
+      return;
+    }
+    const t = T.o.K / T.o.O, good = t*BF_GOOD, gd = (Math.round(1000*good)/10).toFixed(1);
+    p.appendChild(ghEl('b', '', 'Typical at your rating: '+tr+'. Good for your rating: '+gd+'.'));
+    p.dataset.typ = tr; p.dataset.good = gd;
+    box.appendChild(p);
+    const V = bfAdvice(K);
+    if(V){
+      const who = V.wk ? 'This week' : V.n===BF_ADV_N ? 'Your last '+BF_ADV_N+' reviewed games' : 'Your '+ghoN(V.n, 'reviewed game'), rr = (Math.round(1000*V.r)/10).toFixed(1);
+      const q = ghEl('p', 'ga-ln ga-bfadv', V.k==='more' ? who+': '+rr+'. To be at good: about '+V.d+' fewer every 10 games.' : V.k==='under' ? who+': '+rr+', under good.' : who+': '+rr+', too close to good to tell apart yet.');
+      q.dataset.k = V.k;
+      box.appendChild(q);
+    }
+    const rg = bfRange(T.o.K, T.o.O, T.phi), f1 = (x)=> (Math.round(10*x)/10).toFixed(1);
+    box.appendChild(ghEl('p', 'ct-vs ga-cov ga-bftypb', 'Typical: your opponents within '+BF_TYP_R+' of '+bfF(T.r)+' in your reviewed games of the last '+BF_TYP_D+' days, '+bfKN(T.o.K, T.o.O)+', '+ghoN(T.n, 'game')+(rg ? ' (chance alone allows '+f1(rg[0])+' to '+f1(rg[1])+')' : '')+'.'));
+  }
+  function bfDrawWeek(md, K, frag){
+    const c = bfCard('ga-bfw', 'This week', true), top = ghEl('div', 'ga-num ga-bfnum'), H = K.head, P = K.prev;
+    c.appendChild(top);
+    const has = bfHead(K, top);
+    if(K.auto) c.appendChild(ghEl('p', 'ct-vs ga-cov ga-bfsp', gaSpeedW(K.sp)+' games: your speed with the most reviews here (Speed above picks another).'));
+    bfTypical(K, c);
+    // the 4 weeks before (days 8 to 35), and words of change only past the test
+    const pl = ghEl('p', 'ga-ln ga-bfprev'), pr = bfR(P.y.K, P.y.O);
+    if(!P.m) pl.textContent = 'The 4 weeks before: no '+gaSpeedW(K.sp).toLowerCase()+' games.';
+    else if(!P.r) pl.textContent = 'The 4 weeks before: '+ghoN(P.m, 'game')+', none reviewed.';
+    else {
+      pl.textContent = 'The 4 weeks before: '+(pr || bfF(P.y.K)+' ??')+' ('+bfKN(P.y.K, P.y.O)+', '+(P.r===P.m ? ghoN(P.m, 'game')+', all reviewed' : P.r+' of '+ghoN(P.m, 'game')+' reviewed')+').';
+      if(has && !H.fb && H.y.O >= BF_MIN && P.y.O >= BF_MIN){
+        const z = bfZ(H.y.K, H.y.O, P.y.K, P.y.O) / Math.sqrt(P.phi || 1);          // (over the games' own spread)
+        if(z <= -2 || z >= 2){ const s = ghEl('b', 'ga-bfchg', z < 0 ? ' Fewer than the 4 weeks before.' : ' More than the 4 weeks before.'); pl.appendChild(s); pl.dataset.z = z < 0 ? '-' : '+'; }
+      }
+    }
+    c.appendChild(pl);
+    // the stretches of 7 days, oldest first, from the oldest one with a reviewed game (8 at most; none while only the last 7 days have
+    // one: the headline says it); one under 90% reviewed is drawn faint and says so
+    let old = -1;
+    K.bars.forEach((B, i)=>{ if(B.r) old = i; });
+    const bars = ghEl('div', 'ga-bfbars');
+    bars.setAttribute('role', 'list');
+    bars.setAttribute('aria-label', 'Your ?? rate in the last 8 stretches of 7 days, oldest first');
+    let mx = 0;
+    K.bars.forEach(B=>{ if(B.y.O >= BF_MIN) mx = Math.max(mx, B.y.K/B.y.O); });
+    let thin = !!P.m && P.r < 0.9*P.m;
+    K.bars.slice(0, old + 1).reverse().forEach((B, j)=>{
+      const i = old - j, rr = bfR(B.y.K, B.y.O), part = B.m && B.r < 0.9*B.m;
+      if(part) thin = true;
+      const it = ghEl('div', 'ga-bfbar'+(part ? ' is-thin' : '')+(B.m ? '' : ' is-none'));
+      it.setAttribute('role', 'listitem');
+      it.dataset.i = String(i);
+      it.appendChild(ghEl('span', 'ga-bfbv', !B.m ? '\u2013' : rr || (B.r ? bfF(B.y.K)+' ??' : '\u2013')));
+      const col = ghEl('span', 'ga-bfbc'), fill = ghEl('span', 'ga-bfbf');
+      fill.style.height = rr && mx > 0 ? Math.max(4, Math.round(100*(B.y.K/B.y.O)/mx))+'%' : '0';
+      col.appendChild(fill);
+      col.setAttribute('aria-hidden', 'true');
+      it.appendChild(col);
+      it.appendChild(ghEl('span', 'ga-bfbd', i===0 ? 'Last 7 days' : ctDay(B.from)));
+      it.appendChild(ghEl('span', 'ga-bfbn', !B.m ? 'no games' : B.r===B.m ? ghoN(B.m, 'game') : B.r+' of '+B.m+' reviewed'));
+      it.setAttribute('aria-label', (i===0 ? 'Last 7 days' : 'From '+ctDay(B.from))+': '+(!B.m ? 'no games' : (rr ? rr+' per 100 moves, ' : '')+bfKN(B.y.K, B.y.O)+', '+(B.r===B.m ? ghoN(B.m, 'game') : B.r+' of '+ghoN(B.m, 'game')+' reviewed')));
+      bars.appendChild(it);
+    });
+    if(old >= 1) c.appendChild(bars);
+    if(thin && !hrRl()){ const p = ghEl('p', 'ga-ln ga-bfthin'); p.appendChild(document.createTextNode(old >= 1 ? 'Faint stretches have games with no review yet: they count only what is reviewed. ' : 'Your older games have no review yet: only reviewed games count here. ')); p.appendChild(bfOlder()); c.appendChild(p); }
+    gaSrc(c, '?? = the review\u2019s mark: a move that lost more than 3.15 pawns by its scores (a mate counts as 10), or your own ?? badge. In the balance = not keeping a won game (85% winning chances or more before and after the move) and not already lost (15% or less before it): a ?? that took a won game down to only ahead counts. Per 100 moves = of your moves when you were not already lost. Last 7 days = to this hour; under 5 reviewed games there, your last 10 reviewed games. Typical = your opponents rated within 100 of your rating now (after your newest rated game of the speed; that site\u2019s games only), in your reviewed games of the last 90 days, by the same rule, from 20 games. Good = typical x 0.75: in your own games the rate falls by about a quarter every 200 rating points. Chance alone allows = the range a rate from that many ?? can take by chance, from the spread of those games. To be at good = your last 30 reviewed games (this week\u2019s when it has more) against good, said only when the gap is beyond chance for both rates. The stretches start at the oldest one with a reviewed game. Reviews only: a game with no review isn\u2019t counted, and quick scores never fill a gap. Words of change only past a test (2 standard errors, with the spread of your own games).');
+    frag.appendChild(c);
+  }
+  // a cell of the tables: the rate and its base (a button when the list has a chip for it)
+  function bfCell(k, n, lab, chip, min){
+    const c = ghEl('span', 'ga-goc'), r = bfR(k, n, min);
+    c.setAttribute('role', 'cell');
+    if(!n){ c.appendChild(gaPcNone('no moves')); return c; }
+    const b = chip && k ? gaBtn('ga-gob', '', 'bfchip', 'bf|'+lab.replace(/\W+/g, '').toLowerCase()) : ghEl('span', 'ga-gob is-sum');
+    if(chip && k) b.dataset.val = chip;
+    b.appendChild(ghEl('span', 'ga-gov', r || bfF(k)));
+    b.appendChild(ghEl('span', 'ga-gon', r ? bfF(k)+' in '+bfF(n) : 'of '+bfF(n)));
+    b.dataset.k = String(k); b.dataset.n = String(n);
+    if(chip && k) b.setAttribute('aria-label', lab+': '+(r ? r+' per 100 moves, ' : '')+bfKN(k, n)+'. Show them in the list');
+    c.appendChild(b);
+    return c;
+  }
+  function bfDrawStood(md, K, frag){
+    const S = K.st, c = bfCard('ga-bfs', 'Where you stood', false), wds = gaWinWords(md.v), sw = gaSpeedW(K.sp).toLowerCase(), role = (el, r)=>{ el.setAttribute('role', r); return el; };
+    if(!S.n){ c.appendChild(ghEl('p', 'ga-say', 'No '+sw+' games of '+wds+' with a review or Lichess\u2019s analysis.')); frag.appendChild(c); return; }
+    const tb = role(ghEl('div', 'ga-aht ga-bft'), 'table');
+    tb.setAttribute('aria-label', 'Your ?? and your opponents\u2019 by where each stood before the move, per 100 moves');
+    const hd = role(ghEl('div', 'ga-ahr is-head'), 'row');
+    [['Before the move', ''], ['You', bfF(S.y.O)+' moves'], ['Opponents', bfF(S.o.O)+' moves']].forEach(([w, n], i)=>{
+      const h = role(ghEl('span', 'ga-goh'+(i ? '' : ' is-l'), w), 'columnheader');
+      if(n) h.appendChild(ghEl('span', 'ga-ahhn', n));
+      hd.appendChild(h);
+    });
+    tb.appendChild(hd);
+    const row = (w, ky, ny, ko, no, chip, k)=>{
+      const r = role(ghEl('div', 'ga-ahr'), 'row'), l = role(ghEl('span', 'ga-ahn'), 'rowheader');
+      r.dataset.k = k;
+      l.appendChild(ghEl('span', 'ga-ahw', w));
+      r.appendChild(l);
+      r.appendChild(bfCell(ky, ny, w, chip));
+      r.appendChild(bfCell(ko, no, w+', opponents', ''));
+      tb.appendChild(r);
+    };
+    BF_ST.forEach((w, i)=> row(w, S.y.ks[i], S.y.s[i], S.o.ks[i], S.o.s[i], i >= 2 ? 'ahead' : '', 's'+i));
+    row('Right after their mistake', S.y.mK, S.y.mO, S.o.mK, S.o.mO, 'slip', 'm');
+    row('Your other moves', S.y.K - S.y.mK, S.y.O - S.y.mO, S.o.K - S.o.mK, S.o.O - S.o.mO, '', 'r');
+    c.appendChild(tb);
+    const ya = S.y.s[2] + S.y.s[3], oa = S.o.s[2] + S.o.s[3];
+    if(S.y.O >= BF_MIN && S.o.O >= BF_MIN) c.appendChild(ghEl('p', 'ga-ln ga-bfmix', 'Ahead or winning before '+bfPct(ya, S.y.O)+' of your moves \u00b7 your opponents '+bfPct(oa, S.o.O)+'.'));
+    if(S.y.K){
+      const pc = bfPct(S.y.mK, S.y.K), pm = bfPct(S.y.mO, S.y.O);
+      const sl = ghEl('p', 'ga-ln ga-bfslip', 'Right after their mistake: '+bfF(S.y.mK)+' of your '+bfF(S.y.K)+' ??'+(pc ? ' ('+pc+')' : '')+', on '+bfF(S.y.mO)+' of your '+ghoN(S.y.O, 'move')+(pm ? ' ('+pm+')' : '')+'.');
+      // most of them hand their mistake straight back: chess.com files a move that fails to punish the opponent's mistake as a Miss
+      if(S.y.mK) sl.appendChild(document.createTextNode(' In '+bfF(S.y.mB)+' of the '+bfF(S.y.mK)+' you gave their mistake straight back: chess.com calls that a Miss, not a blunder.'));
+      sl.dataset.b = String(S.y.mB);
+      c.appendChild(sl);
+    }
+    const lk = ghEl('p', 'ga-ln ga-bflk');
+    const b = bfLink('How they got ahead on your mistakes: Why didn\u2019t I win?', 'bfcard', 'bf|why', 'ga-why');
+    lk.appendChild(b);
+    c.appendChild(lk);
+    c.appendChild(ghEl('p', 'ct-vs ga-cov ga-bfstb', 'From '+ghoN(S.n, sw+' game')+' of '+wds+': '+S.nr+' reviewed'+(S.n > S.nr ? ', '+(S.n - S.nr)+' with Lichess\u2019s analysis' : '')+'.'));
+    gaSrc(c, 'Where you stood = your winning chances before the move: behind 36.5% or less, level under 63.5%, ahead under 85%, winning 85% or more. Right after their mistake = your move after a move of theirs that lost 15 points of winning chances or more, by the same scores. Gave it back = your chances after the ?? at or under where they were before their mistake. Opponents = the other side of the same games, by the same rule. A rate from 30 moves; under that, the count. Reviews and Lichess\u2019s analysis only.');
+    frag.appendChild(c);
+  }
+  function bfDrawClock(md, K, frag){
+    const Gr = K.gr, c = bfCard('ga-bfk', 'Your clock', false), sw = gaSpeedW(K.sp).toLowerCase(), who = BF.who==='o' ? 'o' : 'y', T = Gr[who], role = (el, r)=>{ el.setAttribute('role', r); return el; };
+    const hd = ghEl('div', 'ga-gohd ga-bfkhd'), swb = ghEl('div', 'toggle-row ghv-chips ga-chips ga-bfsw');
+    swb.setAttribute('role', 'group'); swb.setAttribute('aria-label', 'Whose moves');
+    [['y', 'You'], ['o', 'Opponents']].forEach(([v, w])=>{ const on = v===who, b = gaBtn('toggle'+(on ? ' active' : ''), w, 'bfwho', 'bf|who|'+v); b.dataset.val = v; b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; swb.appendChild(b); });
+    hd.appendChild(ghEl('p', 'ct-k', (who==='o' ? 'Your opponents\u2019 ?? per 100 moves' : 'Your ?? per 100 moves')+', last 12 months'));
+    hd.appendChild(swb);
+    c.appendChild(hd);
+    if(!Gr.n){ c.appendChild(ghEl('p', 'ga-say', 'No '+sw+' games with clocks and scores in the last 12 months.')); frag.appendChild(c); return; }
+    const sum = (ix)=>{ let O = 0, Kk = 0; ix.forEach(i=>{ O += T.cO[i]; Kk += T.cK[i]; }); return [Kk, O]; };
+    const rows = [0, 1, 2, 3].map(r=> sum([0, 1, 2, 3].map(q=> r*4 + q))), cols = [0, 1, 2, 3].map(q=> sum([0, 1, 2, 3].map(r=> r*4 + q)));
+    const tot = sum(Array.from({ length:16 }, (x, i)=> i));
+    const full = !gaPhone() || BF.grid;
+    if(full){
+      const tb = role(ghEl('div', 'ga-bfg'), 'table');
+      tb.setAttribute('aria-label', (who==='o' ? 'Your opponents\u2019' : 'Your')+' ?? per 100 moves by clock left (rows) and time on the move (columns)');
+      c.appendChild(ghEl('p', 'ga-bfgcap', 'Rows: your clock before the move. Columns: the time the move took.'));
+      const hr = role(ghEl('div', 'ga-bfgr is-head'), 'row');
+      hr.appendChild(role(ghEl('span', 'ga-goh is-l', 'Clock left'), 'columnheader'));
+      BF_SPW.concat(['All']).forEach(w=> hr.appendChild(role(ghEl('span', 'ga-goh', w), 'columnheader')));
+      tb.appendChild(hr);
+      [0, 1, 2, 3].forEach(r=>{
+        const rw = role(ghEl('div', 'ga-bfgr'), 'row');
+        rw.dataset.r = String(r);
+        rw.appendChild(role(ghEl('span', 'ga-bfgl', BF_CLW[r]), 'rowheader'));
+        [0, 1, 2, 3].forEach(q=>{ const x = bfCell(T.cK[r*4 + q], T.cO[r*4 + q], BF_CLW[r]+', '+BF_SPW[q], '', BF_CELL); x.dataset.i = String(r*4 + q); rw.appendChild(x); });
+        const x = bfCell(rows[r][0], rows[r][1], BF_CLW[r], '', BF_CELL); x.classList.add('is-tot'); rw.appendChild(x);
+        tb.appendChild(rw);
+      });
+      const fr = role(ghEl('div', 'ga-bfgr is-foot'), 'row');
+      fr.appendChild(role(ghEl('span', 'ga-bfgl', 'All'), 'rowheader'));
+      [0, 1, 2, 3].forEach(q=>{ const x = bfCell(cols[q][0], cols[q][1], BF_SPW[q], '', BF_CELL); x.classList.add('is-tot'); fr.appendChild(x); });
+      const x = bfCell(tot[0], tot[1], 'All', '', BF_CELL); x.classList.add('is-tot'); fr.appendChild(x);
+      tb.appendChild(fr);
+      c.appendChild(tb);
+    } else {
+      // a phone: the two margins only
+      const m = (title, lab, L, k)=>{
+        const box = ghEl('div', 'ga-bfm'), tb = role(ghEl('div', 'ga-bfmr'), 'table');
+        tb.setAttribute('aria-label', title);
+        box.appendChild(ghEl('p', 'ct-k', title));
+        const hr = role(ghEl('div', 'ga-bfmh'), 'row'), vr = role(ghEl('div', 'ga-bfmv'), 'row');
+        L.forEach((z, i)=>{ hr.appendChild(role(ghEl('span', 'ga-goh', lab[i]), 'columnheader')); const x = bfCell(z[0], z[1], title+', '+lab[i], '', BF_CELL); x.dataset.i = k+i; vr.appendChild(x); });
+        tb.appendChild(hr); tb.appendChild(vr);
+        box.appendChild(tb);
+        c.appendChild(box);
+      };
+      m('Time on the move', BF_SPW, cols, 'q');
+      m('Clock left', BF_CLW, rows, 'r');
+    }
+    if(gaPhone()){ const b = gaBtn('ct-l ga-bfgt', BF.grid ? 'Show the margins only' : 'Show the grid', 'bfgrid', 'bf|grid'); b.setAttribute('aria-expanded', BF.grid ? 'true' : 'false'); const p = ghEl('p', 'ga-ln'); p.appendChild(b); c.appendChild(p); }
+    const u3 = (S)=>{ let a = 0, n = 0; for(let i = 0; i < 16; i++){ n += S.cO[i]; if(i >= 8) a += S.cO[i]; } return [a, n]; };
+    const yu = u3(Gr.y), ou = u3(Gr.o);
+    if(yu[1] >= BF_MIN && ou[1] >= BF_MIN) c.appendChild(ghEl('p', 'ga-ln ga-bfu3', 'Under 1/3 of your clock: '+bfPct(yu[0], yu[1])+' of your moves \u00b7 your opponents '+bfPct(ou[0], ou[1])+'.'));
+    const lk = ghEl('p', 'ga-ln ga-bflk');
+    lk.appendChild(bfLink('Where your clock goes: Am I down a lot on the clock?', 'bfcard', 'bf|clk', 'ga-clk'));
+    c.appendChild(lk);
+    const cc = Gr.c, bits = [];
+    if(cc.review) bits.push(cc.review+' reviewed');
+    if(cc.lichess) bits.push(cc.lichess+' with Lichess\u2019s analysis');
+    if(cc.quick) bits.push(cc.quick+' with quick scores');
+    c.appendChild(ghEl('p', 'ct-vs ga-cov ga-bfkb', 'All your '+sw+' games of the last 12 months with clocks and scores: '+bfF(Gr.n)+(bits.length ? ' ('+bits.join(', ')+')' : '')+'; '+bfKN(tot[0], tot[1])+(who==='o' ? ' of your opponents' : '')+' with a clock reading.'));
+    gaSrc(c, 'Last 12 months = your games of the speed from the last 365 days, whatever the Date setting: older games were another player. Clock left = the mover\u2019s clock before the move, as a share of the starting clock (in 15+10: 10:00, 5:00 and 1:30). A long think = a fifteenth of the starting clock or more (1:00 in 15+10, 20 s in 5+0). In games of 3 minutes or less a long think starts under 15 s (12 s in 3+2): there 5 to 15 s ends where a long think begins, and 15 s to a long think is empty. A cell shows its rate from 300 moves; under that, its count. Every game counts once, by its one source: your review, else Lichess\u2019s analysis, else this device\u2019s quick scores (a share over many moves; quick scores never name a move); ?? there by the review\u2019s own rule. Lichess games have no clock reading for each side\u2019s first move.');
+    frag.appendChild(c);
+  }
+  function bfMatch(x, k){ return k==='slip' ? !!x.sl : k==='ahead' ? x.a >= 63.5 : k==='clock' ? x.cl >= 0 && 3*x.cl < x.ini : k==='one' ? x.one : k==='mid' ? x.hb==='2-9' : k==='ten' ? x.hb==='10+' : k==='nomark' ? !x.ch.length : k.indexOf('f:')===0 ? !!x.how && x.how.k===k.slice(2) : true; }
+  function bfPhase(g, me, p){
+    const m = gevPhase(g, me, 'm'), e = gevPhase(g, me, 'e');
+    if(m===undefined || e===undefined) return '';
+    return e && e.p <= p - 1 ? 'endgame' : m && m.p <= p - 1 ? 'middlegame' : 'opening';
+  }
+  function bfDrawList(md, K, frag){
+    const I = K.items, c = bfCard('ga-bfl', 'Your ?? moves', true), wds = gaWinWords(md.v), sw = gaSpeedW(K.sp).toLowerCase();
+    const k = (BF_CHIPS.some(z=> z[0]===BF.chip) || /^f:\w+$/.test(BF.chip)) && (BF.chip==='all' || K.chips[BF.chip]) ? BF.chip : 'all';
+    const chips = ghEl('div', 'toggle-row ghv-chips ga-chips ga-bfsw ga-bfchips');
+    chips.setAttribute('role', 'group'); chips.setAttribute('aria-label', 'Show');
+    BF_CHIPS.forEach(([v, w])=>{
+      const n = K.chips[v] || 0;
+      if(v!=='all' && !n) return;
+      if(v==='nomark' && n===K.chips.all) return;          // nothing marked yet: the chip would be All again
+      const on = v===k, b = gaBtn('toggle'+(on ? ' active' : ''), w, 'bfchip', 'bf|chip|'+v);
+      b.dataset.val = v;
+      b.appendChild(ghEl('span', 'ghv-chip-n', bfF(n)));
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.setAttribute('aria-label', w+', '+bfF(n));
+      b.tabIndex = on ? 0 : -1;
+      chips.appendChild(b);
+    });
+    if(k.indexOf('f:')===0){          // a name of What fell: its chip, pressed (All takes it off)
+      const n = K.chips[k] || 0, w = BF_HOW[k.slice(2)] || '', b = gaBtn('toggle active', w, 'bfchip', 'bf|chip|'+k);
+      b.dataset.val = k;
+      b.appendChild(ghEl('span', 'ghv-chip-n', bfF(n)));
+      b.setAttribute('aria-pressed', 'true'); b.setAttribute('aria-label', w+', '+bfF(n)); b.tabIndex = 0;
+      chips.appendChild(b);
+    }
+    if(I.length) c.appendChild(chips);
+    if(!BF.more) BF.more = bfPage();
+    const L = I.filter(x=> bfMatch(x, k)), list = ghEl('ol', 'ga-bflist');
+    list.setAttribute('role', 'list');
+    L.slice(0, BF.more).forEach(x=>{
+      const g = x.e.g, me = x.e.b.me, toks = gaToks(g), li = ghEl('li', 'ga-bfli'), b = gaBtn('ga-bfrow', '', 'bfgo', 'bfl|'+g.id+'|'+x.p);
+      BF.by.set(b.dataset.fid, x);
+      const E = gevOf(g), s = E ? E.s : null, ph = bfPhase(g, me, x.p);
+      const l1 = ghEl('span', 'ga-bfr1'), l2 = ghEl('span', 'ga-bfr2'), f = [];
+      l1.appendChild(ghEl('span', 'ga-bfrd', ctDay(x.e.at)));
+      l1.appendChild(ghEl('b', 'ga-bfrm', ghClampLabel(x.p, toks[x.p - 1], 0)));
+      l1.appendChild(ghEl('span', 'ga-bfrs', s ? bfCp(s[x.p - 1], me)+' \u2192 '+bfCp(s[x.p], me) : ''));
+      if(ph) f.push(ph);
+      if(x.sl) f.push('right after their mistake');
+      const hw = x.how && x.how.k!=='other' ? bfHowText(x) : '';          // (something else: not said on every row)
+      if(hw) f.push(hw.charAt(0).toLowerCase()+hw.slice(1));
+      const hd = x.hb==='1' || x.hb==='2-9' || x.hb==='10+' ? bfHeldW(x.hb) : '';
+      if(hd) f.push(hd);
+      if(x.cl >= 0) f.push(gaTookW(x.tk)+' on it, '+gaClockW(x.cl)+' left');
+      l2.textContent = f.join(' \u00b7 ');
+      b.appendChild(l1);
+      b.appendChild(l2);
+      if(x.ch.length){ const d = ghEl('span', 'ga-bfrc'); x.ch.forEach(ch=> d.appendChild(ctDisc(CLAMP_BY[ch]))); b.appendChild(d); }
+      const opp = ghoOppOf(g);
+      b.setAttribute('aria-label', ctDay(x.e.at)+(opp ? ' vs '+opp : '')+', '+ghClampLabel(x.p, toks[x.p - 1], 0)+(s ? ', '+bfCp(s[x.p - 1], me)+' to '+bfCp(s[x.p], me) : '')+(f.length ? ', '+f.join(', ') : '')
+        +(x.ch.length ? ', your CLAMP letter'+(x.ch.length > 1 ? 's ' : ' ')+x.ch.join(' ') : '')+'. Open the review at this move');
+      li.appendChild(b);
+      list.appendChild(li);
+    });
+    if(!I.length) c.appendChild(ghEl('p', 'ga-say', 'No ?? while the game was in the balance in your '+sw+' games of '+wds+' with a review or Lichess\u2019s analysis.'));
+    else c.appendChild(list);
+    if(L.length > BF.more){ const p = ghEl('p', 'ga-ln'), b = gaBtn('btn btn-ghost ga-bfmore', 'Show '+Math.min(bfPage(), L.length - BF.more)+' more', 'bfmore', 'bf|more'); p.appendChild(b); c.appendChild(p); }
+    c.appendChild(ghEl('p', 'ct-vs ga-cov ga-bflb', bfF(I.length)+' ?? in the balance in your '+sw+' games of '+wds+(k!=='all' ? '; '+bfF(L.length)+' shown' : '')+', newest first.'));
+    gaSrc(c, 'A row opens the review at that move: the position before it, then the move. Only one move held = the review\u2019s second-best move there was 15 points of winning chances or more behind its best; 2 to 9 and 10 or more held: this device\u2019s check of the ?? (What fell and Moves that held say how). Not marked yet = no CLAMP letter of yours on that move; the letters at the end are your own. Time on it and the clock left: the game\u2019s clocks. From reviews and Lichess\u2019s analysis only (a named move never comes from quick scores).');
+    frag.appendChild(c);
+  }
+  function bfExWords(X){ const m = BF_EXM.find(z=> z[0]===X.moves); return m ? m[1] : 'Every move'; }
+  function bfX(x){ return 'x'+(x >= 10 ? x.toFixed(0) : x.toFixed(2)); }
+  // one habit's numbers (the open one, or an ended one): since and before (the before as kept at Start), the ratio so far and the range
+  // chance alone gives it, and the answer once its games are in (read once, never again after)
+  function bfExBody(X, R, box, open){
+    const sw = gaSpeedW(X.speed).toLowerCase(), b = R.b;
+    box.appendChild(ghEl('p', 'ga-ln ga-bfxh is-bold', 'Habit: \u201c'+X.habit+'\u201d'));
+    const end = X.end!=null ? X.end : X.endShown;
+    box.appendChild(ghEl('p', 'ct-vs ga-bfxd', (end!=null ? ctDay(X.start)+' to '+ctDay(end) : 'Since '+ctDay(X.start))+' \u00b7 '+gaSpeedW(X.speed)+(X.moves!=='all' ? ' \u00b7 '+bfExWords(X) : '')
+      +(X.was && X.was.length ? ' \u00b7 also written as \u201c'+X.was[0]+'\u201d on another device' : '')));
+    if(!R.ok){
+      const p = ghEl('p', 'ga-ln ga-bfxneed');
+      p.appendChild(document.createTextNode('It needs '+BF_BEF_MIN+' reviewed '+sw+' games before it to compare with; it had '+R.nb+'. '));
+      if(open && !hrRl()) p.appendChild(bfOlder());
+      box.appendChild(p);
+      return;
+    }
+    const ra = bfR(R.a.K, R.a.O), rb = bfR(b.K, b.O), seen = R.m!=null ? R.m : R.na;
+    const ln = ghEl('p', 'ga-ln ga-bfxn');
+    ln.textContent = (R.na ? 'Since: '+(ra || bfF(R.a.K)+' ??')+' ('+bfKN(R.a.K, R.a.O)+'; '+(R.na===seen ? ghoN(R.na, 'game')+', all reviewed' : R.na+' of '+ghoN(seen, 'game')+' reviewed')+')'
+      : 'Since: no reviewed games yet'+(seen ? ' ('+ghoN(seen, 'game')+' played)' : ''))+' \u00b7 Before: '+(rb || bfF(b.K)+' ??')+' ('+bfKN(b.K, b.O)+', '+ghoN(b.n, 'game')+').';
+    box.appendChild(ln);
+    // a start right after one of your worse stretches reads a drop by itself (part of it comes back with no habit at all)
+    if(b.q >= 0.75){ const q = ghEl('p', 'ga-ln ga-bfxq', 'You started after one of your worse stretches: worse than '+Math.round(100*b.q)+'% of your stretches of '+b.n+' reviewed games. Part of a drop can come back by itself.'); q.dataset.q = String(b.q); box.appendChild(q); }
+    const t = ghEl('p', 'ga-ln ga-bfxr');
+    if(R.ans){
+      const A = R.ans, w = A.v==='-' ? 'fewer since the habit' : A.v==='+' ? 'more since the habit' : 'no change beyond chance';
+      t.appendChild(ghEl('b', '', 'After its first '+ghoN(A.n, 'reviewed game')+': '+w+', '+bfX(A.ratio)+'.'));
+      t.appendChild(document.createTextNode(' Chance alone gives '+bfX(A.band[0])+' to '+bfX(A.band[1])+'. The answer is read once, here.'));
+      t.dataset.chg = A.v;
+    } else if(R.ratio!=null && R.band){
+      const left = R.plan > 0 ? R.plan - R.na : 0;
+      t.textContent = bfX(R.ratio)+' so far. After '+ghoN(R.na, 'game')+' a ratio from '+bfX(R.band[0])+' to '+bfX(R.band[1])+' can be chance'
+        +(R.plan > 0 ? (open ? ': keep going. The answer comes after '+ghoN(R.plan, 'reviewed game')+', '+left+' more.' : '. It ended '+left+' '+(left===1 ? 'game' : 'games')+' before its answer.')
+          : '. Against '+ghoN(b.n, 'game')+' before, a halving can\u2019t be told from chance: no answer will be read.');
+    } else if(open) t.textContent = R.plan > 0 ? 'The answer comes after '+ghoN(R.plan, 'reviewed game')+' with the habit.' : 'Against '+ghoN(b.n, 'game')+' before, a halving can\u2019t be told from chance: no answer will be read.';
+    if(t.firstChild) box.appendChild(t);
+  }
+  function bfDrawEx(md, K, frag){
+    const XM = K.ex, c = bfCard('ga-bfx', 'Try one habit', true), rl = hrRl();
+    if(XM.open){
+      const box = ghEl('div', 'ga-bfxo');
+      bfExBody(XM.open, XM.R, box, true);
+      if(!rl){ const p = ghEl('p', 'ga-ln'); p.appendChild(gaBtn('btn btn-ghost ga-bfend', 'End this experiment', 'bfend', 'bf|end')); box.appendChild(p); }
+      c.appendChild(box);
+    } else if(rl) c.appendChild(ghEl('p', 'ga-say', 'Start a habit to test in Chess Arcade.'));
+    else {
+      const F = BF.form, sw = gaSpeedW(K.sp).toLowerCase();
+      c.appendChild(ghEl('p', 'ga-say', 'Name one habit, start it, and see your '+sw+' rate before and after.'));
+      const lab = ghEl('label', 'ga-bfxl', 'Your habit');
+      lab.setAttribute('for', 'ga-bfx-in');
+      c.appendChild(lab);
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.className = 'text-input ga-bfxin'; inp.id = 'ga-bfx-in'; inp.maxLength = BF_HAB; inp.autocomplete = 'off'; inp.spellcheck = true;
+      inp.placeholder = 'A blunder check before every move while I have 5 minutes or more';
+      inp.value = F.habit; inp.dataset.fid = 'bf|habit';
+      // a redraw while you type (a review arriving) puts the words and the caret back
+      let back = !!F.sel;
+      inp.addEventListener('input', ()=>{ F.habit = inp.value; F.sel = [inp.selectionStart, inp.selectionEnd]; const b = document.querySelector('#ga-bfx .ga-bfgo'); if(b) b.disabled = !bfHabit(inp.value); });
+      inp.addEventListener('keyup', ()=>{ F.sel = [inp.selectionStart, inp.selectionEnd]; });
+      inp.addEventListener('focus', ()=>{ if(back && F.sel){ back = false; try{ inp.setSelectionRange(F.sel[0], F.sel[1]); }catch(e){} } });
+      inp.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.isComposing){ e.preventDefault(); bfExStart(); } });
+      c.appendChild(inp);
+      // (the habit is measured on every move, whatever it is for: no "For" row; spec F-6)
+      const r = ghEl('div', 'ga-row ga-bfxrow'), sw2 = ghEl('div', 'toggle-row ghv-chips ga-chips ga-bfsw');
+      r.appendChild(ghEl('span', 'ga-rl', 'Starts'));
+      sw2.setAttribute('role', 'group'); sw2.setAttribute('aria-label', 'Starts');
+      const last = K.nG ? md.A.filter(e=> e.g.speed===K.sp).reduce((m, e)=> !m || e.at > m.at ? e : m, null) : null;
+      [['now', 'Now']].concat(last ? [['last', 'With my last game ('+ctDay(last.at)+')']] : []).forEach(([v, w])=>{ const on = v===(F.last && last ? 'last' : 'now'), b = gaBtn('toggle'+(on ? ' active' : ''), w, 'bfxl', 'bf|l|'+v); b.dataset.val = v; b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; sw2.appendChild(b); });
+      r.appendChild(sw2);
+      c.appendChild(r);
+      const go = ghEl('p', 'ga-ln'), b = gaBtn('btn btn-primary ga-bfgo', 'Start', 'bfstart', 'bf|start');
+      b.disabled = !bfHabit(F.habit);
+      go.appendChild(b);
+      c.appendChild(go);
+      // what it takes, against the before a start now would keep (the last 60 reviewed games at most: the same numbers the habit then uses)
+      const P = XM.pw;
+      if(P && P.n >= BF_BEF_MIN){
+        const x = ghEl('p', 'ga-ln ga-bfxpw', 'Against your last '+ghoN(P.n, 'reviewed '+sw+' game')+' ('+(Math.round(10*P.lam)/10).toFixed(1)+' ?? a game): '
+          +(P.half ? 'a halving shows after about '+P.half+' games with the habit' : 'a halving can\u2019t be told from chance yet')+'; '+(P.qtr ? 'a quarter fewer needs about '+P.qtr+'.' : 'a quarter fewer can\u2019t be told against '+P.n+' games.'));
+        x.dataset.half = String(P.half || 0); x.dataset.qtr = String(P.qtr || 0);
+        c.appendChild(x);
+      }
+      else c.appendChild(ghEl('p', 'ct-vs ga-bfxpw', 'A habit is measured against your last '+BF_BEF_MIN+' to '+BF_BEF+' reviewed '+sw+' games before it: you have '+(P ? P.n : 0)+' so far.'));
+    }
+    // the ended ones, newest first, folded
+    if(XM.ended.length){
+      const t = gaBtn('ct-l ga-bfxend', (BF.ended ? 'Hide' : 'Show')+' ended habits ('+XM.ended.length+')', 'bfended', 'bf|ended');
+      t.setAttribute('aria-expanded', BF.ended ? 'true' : 'false');
+      const p = ghEl('p', 'ga-ln'); p.appendChild(t); c.appendChild(p);
+      if(BF.ended) XM.ended.forEach(z=>{
+        const box = ghEl('div', 'ga-bfxe');
+        box.dataset.id = z.X.id;
+        bfExBody(z.X, z.R, box, false);
+        if(!rl){ const q = ghEl('p', 'ga-ln'), d = gaBtn('ct-l ga-bfdel', 'Delete', 'bfdel', 'bf|del|'+z.X.id); d.dataset.val = z.X.id; d.setAttribute('aria-label', 'Delete the habit \u201c'+z.X.habit+'\u201d'); q.appendChild(d); box.appendChild(q); }
+        c.appendChild(box);
+      });
+    }
+    gaSrc(c, 'Before = your last 60 reviewed games of that speed before the start (at least 30), kept as they were at the start. Since = your reviewed games from the start; games not reviewed yet aren\u2019t counted. Both count the review\u2019s own ?? marks (your own badges and No badge aren\u2019t in them), on every move, whatever the habit is for. The band = the range of the ratio that chance alone gives, from the spread of your own games before. The answer = read once, after the games it takes to tell a halving from chance 4 times in 5 at the 5% level (fixed at the start): looking after every game and calling a change the first time it shows finds one far too often. A smaller change than a halving can read no change. Worse stretches = the before against every stretch of as many games among your last 300 reviewed games before the start (from twice as many): after a bad stretch the next games are usually better by themselves. One habit at a time: a new one ends the open one. Your habits are kept with your game notes and synced in your private Lichess study. A change in your opponents, your rating or your openings can move the rate too.');
+    frag.appendChild(c);
+  }
+  // the Overview's card: the headline, the typical and good lines, the split, and the way in
+  function gaDrawBlu(md, frag){
+    const K = md.bf, c = gaCard('ga-blu', 'How often do I blunder?', 'Engine scores', true), top = ghEl('div', 'ga-num');
+    c.appendChild(top);
+    const go = gaBtn('btn btn-ghost ga-bfopen', 'Open Blunder Forensics', 'bfopen', 'bf|open');
+    if(!K || !K.sp){ top.appendChild(ghEl('p', 'ga-say', 'No games with a clock speed here yet.')); frag.appendChild(c); gaX(c); return; }
+    const has = bfHead(K, top);
+    const x = gaX(c);
+    bfTypical(K, x);
+    const H = K.head, Y = H.y, all = Y.bal + Y.won + Y.lost + Y.uns;
+    if(has && all){
+      const p = ghEl('p', 'ga-ln ga-bfsplit');
+      p.textContent = 'Your '+bfF(all)+' ?? in these games: in the balance '+bfF(Y.bal)+' \u00b7 kept a won game '+bfF(Y.won)+' \u00b7 already lost '+bfF(Y.lost)+(Y.uns ? ' \u00b7 not scored '+bfF(Y.uns) : '')+'.';
+      x.appendChild(p);
+    }
+    const q = ghEl('p', 'ga-ln ga-bfgo2');
+    q.appendChild(go);
+    c.insertBefore(q, x);
+    gaSrc(x, '?? = the review\u2019s mark (a move that lost more than 3.15 pawns by its scores) or your own ?? badge. In the balance = not keeping a won game (85% winning chances or more before and after) and not already lost (15% or less before): a ?? that took a won game down to only ahead counts. Per 100 moves = of your moves when you were not already lost. Typical, good, chance alone allows and to be at good: as in Blunder Forensics\u2019 This week. Reviews only. Blunder Forensics has the weeks, where you stood, your clock, every ?? and a habit to test.');
+    frag.appendChild(c);
+  }
+  // ---- moving around ----
+  function bfSetSub(v){
+    v = v==='blunders' ? 'blunders' : 'overview';
+    if((GH_UI.asub==='blunders' ? 'blunders' : 'overview')===v) return false;
+    if(gaOn()) GA.y = null;
+    GH_UI.asub = v;
+    ghSaveFilters();
+    ghSyncHash();
+    ghUserGo = true; try{ ghRender(); } finally{ ghUserGo = false; }
+    return true;
+  }
+  // Blunder Forensics from anywhere in Game History (CLAMP's strip, the brief, the Clock card, the Overview's card), at a block
+  function bfOpen(at){
+    GH_UI.asub = 'blunders';
+    if(!gaOn()) ghoSetView('analytics');
+    else { ghSaveFilters(); ghSyncHash(); ghUserGo = true; try{ ghRender(); } finally{ ghUserGo = false; } }
+    const el = document.getElementById(at || 'ga-bfw'), sub = document.getElementById('ga-sub');
+    if(at && el) window.scrollTo({ top:Math.max(0, window.scrollY + el.getBoundingClientRect().top - 12) });
+    else if(sub) window.scrollTo({ top:Math.max(0, window.scrollY + sub.getBoundingClientRect().top - 12) });
+    const h = el && el.querySelector('.ga-bfh');
+    if(h){ h.tabIndex = -1; try{ h.focus({ preventScroll:true }); }catch(e){} }
+  }
+  // a redraw of the view for its own controls (the keyboard kept on what was pressed)
+  function bfRe(fid){
+    if(!GA.model || !bfOn()) return;
+    gaDrawAll(GA.model, null);
+    const el = fid ? Array.from(document.querySelectorAll('#ga-body [data-fid]')).find(x=> x.dataset.fid===fid) : null;
+    if(el) try{ el.focus({ preventScroll:true }); }catch(e){}
+  }
+  function bfExStart(){
+    const h = bfHabit(BF.form.habit), md = GA.model, K = md && md.bf;
+    if(hrRl() || !K || !K.sp) return false;
+    if(!h){ const i = document.getElementById('ga-bfx-in'); if(i) try{ i.focus(); }catch(e){} return false; }
+    const now = Date.now();
+    let start = now;
+    if(BF.form.last){ const last = md.A.filter(e=> e.g.speed===K.sp).reduce((m, e)=> !m || e.at > m.at ? e : m, null); if(last && last.at > 0 && last.at <= now) start = last.at; }
+    // one at a time: the open one (or two: two devices) ends where this one starts
+    bfExAll().forEach(X=>{ if(X.end==null){ X.end = Math.max(X.start, start); bfExSave(X); } });
+    const bk = bfExFreeze(K.ex.games(K.sp).A, start);          // the before, as it is now: kept in the record, never counted again
+    bfExSave({ id:'ex-'+gnFnv(h+'|'+now+'|'+Math.random()), habit:h, speed:K.sp, moves:'all', start, end:null, was:[], b:bk });
+    BF.form = { habit:'', moves:'all', last:false, sel:null };
+    GA.pk = '';
+    ghUserGo = true; try{ ghRender(); } finally{ ghUserGo = false; }
+    const b = document.querySelector('#ga-bfx .ga-bfend');
+    if(b) try{ b.focus({ preventScroll:true }); }catch(e){}
+    return true;
+  }
+  GA_ACTS.bfopen = ()=>{ bfOpen(''); };
+  GA_ACTS.bfcard = (b)=>{ const id = b.dataset.val; bfSetSub('overview'); if(id) gaOutGo(id); };
+  GA_ACTS.bfchip = (b)=>{
+    const v = b.dataset.val, fromList = !!b.closest('.ga-bfchips');
+    BF.chip = BF_CHIPS.some(z=> z[0]===v) || /^f:\w+$/.test(v || '') ? v : 'all';          // (a name of What fell: f:<kind>)
+    BF.more = bfPage();
+    bfRe(fromList ? 'bf|chip|'+BF.chip : '');
+    if(!fromList){ const l = document.getElementById('ga-bfl'); if(l){ window.scrollTo({ top:Math.max(0, window.scrollY + l.getBoundingClientRect().top - 12) }); const t = l.querySelector('.ga-bfchips .toggle.active'); if(t) try{ t.focus({ preventScroll:true }); }catch(e){} } }
+  };
+  GA_ACTS.bfmore = ()=>{
+    const n = BF.more;
+    BF.more += bfPage();
+    bfRe('');
+    const rows = document.querySelectorAll('#ga-bfl .ga-bfrow');
+    if(rows[n]) try{ rows[n].focus({ preventScroll:true }); }catch(e){}
+  };
+  GA_ACTS.bfwho = (b)=>{ BF.who = b.dataset.val==='o' ? 'o' : 'y'; bfRe('bf|who|'+BF.who); };
+  GA_ACTS.bfgrid = ()=>{ BF.grid = !BF.grid; bfRe('bf|grid'); };
+  GA_ACTS.bfended = ()=>{ BF.ended = !BF.ended; bfRe('bf|ended'); };
+  GA_ACTS.bfxm = (b)=>{ BF.form.moves = BF_EXM.some(z=> z[0]===b.dataset.val) ? b.dataset.val : 'all'; bfRe('bf|m|'+BF.form.moves); };
+  GA_ACTS.bfxl = (b)=>{ BF.form.last = b.dataset.val==='last'; bfRe('bf|l|'+(BF.form.last ? 'last' : 'now')); };
+  GA_ACTS.bfstart = ()=>{ bfExStart(); };
+  GA_ACTS.bfend = ()=>{
+    const md = GA.model, X = md && md.bf && md.bf.ex ? md.bf.ex.open : null;
+    if(!X || hrRl()) return;
+    if(!window.confirm('End the habit \u201c'+X.habit+'\u201d? It can\u2019t be started again with its date; its numbers stay under Show ended habits.')) return;
+    X.end = Math.max(X.start, Date.now());
+    bfExSave(X);
+    GA.pk = '';
+    ghUserGo = true; try{ ghRender(); } finally{ ghUserGo = false; }
+    const i = document.getElementById('ga-bfx-in');
+    if(i) try{ i.focus({ preventScroll:true }); }catch(e){}
+  };
+  GA_ACTS.bfdel = (b)=>{
+    const id = b.dataset.val, n = typeof GN==='object' && GN ? GN.notes[id] : null, X = n && n.text ? bfExParse(id, n.text) : null;
+    if(!X || hrRl() || !window.confirm('Delete the habit \u201c'+X.habit+'\u201d and its dates? Your games and reviews stay as they are.')) return;
+    gnSetNote(id, '');
+    GA.pk = '';
+    ghUserGo = true; try{ ghRender(); } finally{ ghUserGo = false; }
+    const t = document.querySelector('#ga-bfx .ga-bfxend') || document.querySelector('#ga-bfx .ga-bfh');
+    if(t){ if(!t.hasAttribute('tabindex') && t.tagName!=='BUTTON') t.tabIndex = -1; try{ t.focus({ preventScroll:true }); }catch(e){} }
+  };
+  GA_ACTS.bfgo = (b)=>{
+    const x = BF.by.get(b.dataset.fid);
+    if(!x) return;
+    GA.back = { y:window.scrollY, fid:b.dataset.fid };
+    GA.y = null;
+    ghOpenGame(x.e.g, { at:{ ply:x.p - 1 }, clamp:{ ply:x.p, ch:BL_CH } });
+  };
+  GA_DRAW_CARDS.splice(GA_DRAW_CARDS.findIndex(y=> y[0]==='ga-cas') + 1, 0, ['ga-blu', gaDrawBlu]);       // the wide card after the Where does my play drop? | Do I castle in time? pair
+  GA_ACTS.bfat = (b)=>{ bfOpen(b.dataset.val || ''); };
+  /* ---- Blunder Forensics, part 2 (2026-11-26; spec ~/blunder-work/spec.md F3.4, F3.5, F4, F5): What fell (the punishing reply's
+     mechanism, in plain words; the eight names that were right in 85%+ of 40+ ?? read against deep Stockfish 18), Moves that held (the
+     moves within 15 points of the best: only one, 2 to 9, 10 or more; How you got ahead's 15 points), the check at each ?? (bfc*: in the
+     quick pass's job, its lock, Pause, power and tablet rules; never on a phone, in a live game or in Repertoire Lab; 10 lines at the
+     position before the ??, 3 lines after it, their pass) and the move's own facts in the review's floating comment card at a ?? (bfFp*).
+     Names come from the check's lines where this device has checked the ??, else from the review's own best moves (the mates, a piece
+     taken at once, a fork, a discovered check: the same name as from the whole line in 406 of 406 read), else from the scores alone (a
+     mate allowed or lost). Quick scores never name anything (the list and the review read reviews and Lichess's analysis only). ---- */
+  // ---- the board tests: ~/blunder-work/measure/labels.py's rules (python-chess), written again on the app's own boards ----
+  var BFV = { p:1, n:3, b:3, r:5, q:9, k:100 }, BF_PRO = { q:0, r:1, b:2, n:3 };
+  function bfVal(p){ return p ? BFV[p.type] : 0; }
+  function bfCapQ(m){ return !!(m.captured || m.isEP); }
+  // python-chess's order of legal moves among equals: pieces before pawns, the higher square first, a queen promotion first
+  function bfFirst(a, b){
+    const pa = a.piece==='p' ? 1 : 0, pb = b.piece==='p' ? 1 : 0;
+    if(pa!==pb) return pa < pb;
+    if(a.from!==b.from) return a.from > b.from;
+    return (BF_PRO[a.promotion] || 0) < (BF_PRO[b.promotion] || 0);
+  }
+  // the legal captures on an occupied square (only the pieces that attack it can)
+  function bfCapsOn(st, sq){
+    const out = [], B = st.board;
+    for(let i = 0; i < 64; i++){
+      const p = B[i];
+      if(!p || p.color!==st.turn || !attacksSquare(B, i, p, sq)) continue;
+      for(const x of pzPseudoMovesFor(st, i)) if(x.to===sq && !pzIsInCheck(pzApplyMoveRaw(st, x), st.turn)) out.push(x);
+    }
+    return out;
+  }
+  // the most the side to move wins by capturing on sq first (0 = it doesn't), the cheapest attacker each time (a promotion counts 8 more)
+  function bfSeeSq(st, sq){
+    const t = st.board[sq];
+    if(!t) return 0;
+    let m = null, mk = 0;
+    for(const x of bfCapsOn(st, sq)){ const k = BFV[x.piece] + (x.promotion ? 8 : 0); if(!m || k < mk || (k===mk && bfFirst(x, m))){ m = x; mk = k; } }
+    if(!m || t.type==='k') return 0;
+    return Math.max(0, bfVal(t) + (m.promotion ? BFV[m.promotion] - 1 : 0) - bfSeeSq(pzApplyMoveRaw(st, m), sq));
+  }
+  // what the mover nets by m and the captures on its square that follow
+  function bfSeeMove(st, m){
+    const cap = st.board[m.to];
+    return (cap ? bfVal(cap) : m.isEP ? 1 : 0) + (m.promotion ? BFV[m.promotion] - 1 : 0) - bfSeeSq(pzApplyMoveRaw(st, m), m.to);
+  }
+  function bfAtts(B, sq){ const p = B[sq], o = []; if(p) for(let t = 0; t < 64; t++) if(attacksSquare(B, sq, p, t)) o.push(t); return o; }
+  // the pieces of c the piece on sq attacks that are worth more than it, or have no guard, or are the king (pawns left out)
+  function bfHitVal(B, sq, c){
+    const a = B[sq], out = [];
+    bfAtts(B, sq).forEach(t=>{ const p = B[t]; if(p && p.color===c && p.type!=='p' && (p.type==='k' || bfVal(p) > bfVal(a) || !attackersOf(B, t, c).length)) out.push(t); });
+    return out;
+  }
+  function bfUciMove(st, u){
+    if(typeof u!=='string' || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(u)) return null;
+    const f = pzAlgToIdx(u.slice(0, 2)), t = pzAlgToIdx(u.slice(2, 4)), pr = u.length > 4 ? u[4] : null;
+    return pzLegalMovesFrom(st, f).find(x=> x.to===t && (x.promotion || null)===pr) || null;
+  }
+  function bfMated(st){ return pzIsInCheck(st, st.turn) && !pzAllLegalMoves(st).length; }
+  // a mate in a score from the side to move (the engine's: 30000 - n mates in n, -30000 + n mated in n): +n / -n, null for none
+  function bfMateN(v){ return v==null || Math.abs(v) <= 20000 ? null : v > 0 ? 30000 - v : -(30000 + v); }
+  // One ??: st0 the position before the move m (the mover M to move), st1 after it; pv the punishing line from st1 (UCI, theirs first);
+  // mb / ma M's mate before / after (+n M mates in n, -n M is mated in n). { k, sub, chk }: k mate (sub 'back': a back-rank mate) | lost
+  // (lost a mate) | exch (your capture lost material) | moved (the piece moved was taken) | loose (another piece was taken) | fork | disc
+  // (a discovered attack; sub 'check') | other (none of these: labels.how's pin, skewer, pawn, missed, later, material and the rest)
+  function bfHow(st0, m, st1, pv, mb, ma){
+    const M = st0.turn, O = opp(M);
+    pv = Array.isArray(pv) ? pv : [];
+    if(ma!=null && ma < 0){
+      let sub = '', c = st1, ok = true;
+      for(const u of pv){ const x = bfUciMove(c, u); if(!x){ ok = false; break; } c = pzApplyMoveRaw(c, x); }
+      if(ok && bfMated(c)){
+        const ks = findKing(c.board, M), br = M==='w' ? 0 : 7;
+        if(ks >= 0 && Math.floor(ks / 8)===br && attackersOf(c.board, ks, O).some(s=> Math.floor(s / 8)===br && (c.board[s].type==='r' || c.board[s].type==='q'))) sub = 'back';
+      }
+      return { k:'mate', sub };
+    }
+    if(mb!=null && mb > 0 && !(ma!=null && ma > 0)) return { k:'lost', sub:'' };
+    if(!pv.length) return { k:'other', sub:'none' };
+    const r1 = bfUciMove(st1, pv[0]);
+    if(!r1) return { k:'other', sub:'bad' };
+    const mc = bfCapQ(m), sm = mc ? bfSeeMove(st0, m) : 0;
+    if(mc && sm <= -2 && r1.to===m.to) return { k:'exch', sub:'' };
+    const st2 = pzApplyMoveRaw(st1, r1), cap = st1.board[r1.to], trade = mc && r1.to===m.to && sm > -2, s1 = cap ? bfSeeMove(st1, r1) : 0;
+    if(cap && cap.color===M && cap.type!=='p' && s1 >= 2 && !trade) return { k:r1.to===m.to ? 'moved' : 'loose', sub:cap.type };
+    if(!cap || s1 < 2){
+      const tg = bfHitVal(st2.board, r1.to, M);
+      if(tg.length >= 2 && bfSeeSq(st2, r1.to) < bfVal(st2.board[r1.to])) return { k:'fork', sub:st2.board[r1.to].type, chk:pzIsInCheck(st2, M) };
+    }
+    const line = [];
+    let c = st1;
+    for(const u of pv.slice(0, 6)){ const x = bfUciMove(c, u); if(!x) break; line.push([c, x]); c = pzApplyMoveRaw(c, x); }
+    if(!r1.isCastle) for(let s = 0; s < 64; s++){
+      const p = st2.board[s];
+      if(!p || p.color!==O || (p.type!=='b' && p.type!=='r' && p.type!=='q') || s===r1.to) continue;
+      const was = new Set(bfAtts(st1.board, s)), hit = bfAtts(st2.board, s).filter(t=> !was.has(t) && st2.board[t] && st2.board[t].color===M && (st2.board[t].type==='k' || bfVal(st2.board[t]) >= 3));
+      if(!hit.length) continue;
+      if(hit.some(t=> st2.board[t].type==='k')) return { k:'disc', sub:'check' };
+      if(line.slice(2).some(([b, x])=> bfCapQ(x) && hit.indexOf(x.to) >= 0 && b.board[x.from] && b.board[x.from].color===O)) return { k:'disc', sub:'' };
+    }
+    return { k:'other', sub:'' };
+  }
+  // the engine's CLAMP letter for a name (spec F3.4: C 99%, L 95%, A 91% for discovered attacks on 40+ read; never counted with yours)
+  function bfLetter(h){ return !h ? '' : h.k==='mate' || h.k==='lost' ? 'C' : h.k==='fork' ? (h.chk ? 'C' : 'L') : h.k==='disc' ? 'A' : h.k==='exch' || h.k==='moved' || h.k==='loose' ? 'L' : ''; }
+  // their threat (labels.threat): their best move had you passed (N) was the very reply (or landed on its square): 'stood'
+  function bfThreat(h, N, r1u, gain){
+    if(!h || h.k==='other' || h.k==='lost') return 'na';
+    if(!N) return 'check';
+    const nb = N[1] || '';
+    if(r1u && (nb===r1u || (nb.slice(2, 4)===r1u.slice(2, 4) && nb.length===r1u.length))) return 'stood';
+    return gain!=null && gain >= 15 ? 'other' : 'created';
+  }
+  // moves that held from a search's lines (score from the side to move, best first): within 15 points of the best (How you got ahead's rule)
+  function bfHeldN(L){ if(!Array.isArray(L) || !L.length) return null; const w0 = ahcWin(L[0][0]); return L.filter(x=> w0 - ahcWin(x[0]) < AHC_HOLD).length; }
+  // the bucket: only one (the review's three lines say so, else the check's ten), 2 to 9, 10 or more (the check's ten); '2+' while
+  // only the review says it; '' unknown
+  function bfBucket(gp, cnt){
+    if(gp && gp.one) return '';
+    if(gp) return gp.two >= AHC_HOLD ? '1' : cnt==null ? '2+' : cnt >= 10 ? '10+' : '2-9';
+    return cnt==null ? '' : cnt <= 1 ? '1' : cnt >= 10 ? '10+' : '2-9';
+  }
+  var BF_HOW = { mate:'Allowed a mate', back:'Allowed a back-rank mate', lost:'Lost a mate you had', exch:'Your capture lost material', moved:'The piece you moved was taken',
+    loose:'A piece left loose was taken', fork:'A fork', disc:'A discovered attack', other:'Something else' };
+  var BF_HOWT = { lost:'lost a mate they had', exch:'their capture lost material', moved:'the piece they moved was taken' };
+  var BF_HK = ['loose', 'moved', 'exch', 'fork', 'disc', 'mate', 'lost', 'other'];
+  function bfHowW(k, sub, theirs){ const w = k==='mate' && sub==='back' ? BF_HOW.back : (theirs && BF_HOWT[k]) || BF_HOW[k] || ''; return theirs ? w.charAt(0).toLowerCase()+w.slice(1) : w; }
+
+  /* ================= THE CHECK AT EACH ?? (bfc*, 2026-11-26) =================
+     For Blunder Forensics and the review's facts at a ??: at the position before each ?? of either side (the rows' marks: your own
+     badge, else the review's; Lichess's analysis by the review's rule), in a game with a review or Lichess's analysis, a small search of
+     its own in the quick pass's job (qk*: the same lock, rules, rests and budget; never on a phone, never in Repertoire Lab, never beside
+     a game, a review or other engine work), newest game first, before the quick scores: 10 lines there (BFC_HN), 3 lines after the ??
+     (BFC_AN) and their pass (BFC_NN; skipped in check), a fresh hash every search. What fell, the engine's letter, moves that held and
+     their threat are read from those lines there and then (bfHow) and kept with them in IndexedDB BFC_DBN (store b: { k: the game's id,
+     h, n, v, src, at, ms, np, m:[[ply, ten lines, three lines, pass, { k, s, c, h, t }]] }), on this device only, never synced; tied to
+     the game's one source of scores (a new review, Lichess's analysis or Clear analysis makes it stale, and it is done again). ---- */
+  var BFC_V = 1, BFC_DBN = 'wavyChessPrepBlunderChecks', BFC_HN = 100000, BFC_HL = 10, BFC_AN = 30000, BFC_NN = 12000, BFC_VISIT = 0.5, BFC_PV = 24;
+  var BFC_DB = new Map(), BFC_SKIP = new Map(), BFC_NEED = new WeakMap(), BFC_IDBP = null, BFC_BC = null, BFC = { todo:null, loaded:false, ver:0 };
+  function bfcIdb(){
+    return BFC_IDBP || (BFC_IDBP = new Promise((res)=>{
+      try{
+        const q = indexedDB.open(BFC_DBN, 1);
+        q.onupgradeneeded = ()=>{ try{ q.result.createObjectStore('b', { keyPath:'k' }); }catch(e){} };
+        q.onsuccess = ()=>{ const db = q.result; db.onversionchange = ()=>{ try{ db.close(); }catch(e){} BFC_IDBP = Promise.resolve(null); }; db.onclose = ()=>{ BFC_IDBP = null; }; res(db); };
+        q.onerror = ()=> res(null); q.onblocked = ()=> res(null);
+      }catch(e){ res(null); }
+    }));
+  }
+  function bfcOkRec(r){ return !!r && typeof r.k==='string' && HRS_GID.test(r.k) && r.v===BFC_V && typeof r.h==='string' && Number.isInteger(r.n) && r.n > 0 && typeof r.src==='string' && Number.isFinite(r.at) && Array.isArray(r.m); }
+  // read beside the quick scores (qkStart starts it), and another tab's as they come; a store that answers late or not at all is not an
+  // empty one (nothing is listed to check until it is read; tried again 15 s later, 40 times), as the moments' (ahcLoad)
+  var BFC_LOADP = null, BFC_LOADT = 0, BFC_LOADN = 0, BFC_LOADTM = 0;
+  function bfcLoad(){
+    if(BFC.loaded) return Promise.resolve();
+    if(BFC_LOADP) return BFC_LOADP;
+    if(Date.now() - BFC_LOADT < 15000) return Promise.resolve();
+    BFC_LOADT = Date.now();
+    if(!BFC_BC) try{ BFC_BC = new BroadcastChannel(BFC_DBN); BFC_BC.onmessage = (e)=>{ const r = e.data && e.data.put; if(bfcOkRec(r)){ BFC_DB.set(r.k, r); BFC.todo = null; BFC.ver++; bfcNews(); } }; }catch(e){ BFC_BC = null; }
+    return BFC_LOADP = (async ()=>{
+      const db = await Promise.race([bfcIdb(), pdbNap(QK_OPEN).then(()=> 'late')]);
+      const L = db && db!=='late' ? await qkAll(db, 'b') : null;
+      BFC_LOADP = null; BFC_LOADT = Date.now();
+      if(!L){
+        if(db!=='late') BFC_IDBP = null;
+        clearTimeout(BFC_LOADTM);
+        if(++BFC_LOADN < 40) BFC_LOADTM = setTimeout(()=>{ BFC_LOADTM = 0; bfcLoad(); }, 15100);
+        return;
+      }
+      L.forEach(r=>{ if(bfcOkRec(r) && !BFC_DB.has(r.k)) BFC_DB.set(r.k, r); });
+      BFC.loaded = true; BFC.todo = null; BFC.ver++;
+      if(QK_LOADED) qkNews(true);
+    })();
+  }
+  function bfcPutDb(rec){
+    const p = bfcIdb().then(db=> new Promise(res=>{
+      if(!db){ res(false); return; }
+      try{ const t = db.transaction('b', 'readwrite'); t.oncomplete = ()=> res(true); t.onabort = t.onerror = (e)=>{ try{ if(e && e.preventDefault) e.preventDefault(); }catch(x){} res(false); }; t.objectStore('b').put(rec); }
+      catch(e){ BFC_IDBP = null; res(false); }
+    }));
+    return Promise.race([p, pdbNap(QK_WRITE).then(()=> false)]);
+  }
+  // this game's record while its scores are the ones it was made from; one ?? of it
+  function bfcRec(g, E){ const r = E ? BFC_DB.get(String(g.id)) : null; return r && r.h===E.h && r.n===E.n && r.src===E.src && r.at===(E.at || 0) ? r : null; }
+  function bfcRow(rec, p){ if(rec) for(const x of rec.m) if(x[0]===p) return x; return null; }
+  // a game's ?? (both sides): the rows' marks (blOf: your own badge, else the review's); Lichess's analysis: your badge, else the review's
+  // rule on its scores (bfMake's)
+  function bfMarks(g, E){
+    const rv = E.src==='review', bl = rv ? blOf(g) : null, own = gnBadgesOf(String(g.id)), c = BFC_NEED.get(E);
+    if(c && c.bl===bl && c.own===own) return c.F;
+    const n = E.n, s = E.s, F = new Uint8Array(n + 1), t0 = gevTurn(g, 0), t1 = t0==='w' ? 'b' : 'w';
+    if(rv && bl && bl.rv) bl.mine.concat(bl.theirs).forEach(x=>{ if(x[0] >= 1 && x[0] <= n) F[x[0]] = 1; });
+    else for(let p = 1; p <= n; p++){
+      const o = own && Object.prototype.hasOwnProperty.call(own, p) ? own[p] : null;
+      if(o!=null){ F[p] = o==='blunder' ? 1 : 0; continue; }
+      if(rv){ F[p] = E.b && E.b.charAt(p - 1)==='x' ? 1 : 0; continue; }
+      const A = gevObj(s[p - 1]), B = gevObj(s[p]), mv = (p - 1) % 2 ? t1 : t0;
+      if(A && B && hrMoverScore(A, mv) - hrMoverScore(B, mv) - 15 > 300) F[p] = 1;
+    }
+    BFC_NEED.set(E, { bl, own, F });
+    return F;
+  }
+  function bfcNeed(g, E){ const F = bfMarks(g, E), out = []; for(let p = 1; p <= E.n; p++) if(F[p] && E.s[p - 1]!==GEV_NONE) out.push(p); return out; }
+  function bfcAble(g, E){ return !!E && (E.src==='review' || E.src==='lichess') && gaInBase(g) && ghIsStd(g); }
+  // the games whose ?? this device hasn't checked, newest first
+  function bfcTodo(){
+    const key = [BFC.loaded ? 1 : 0, GH_STATE.games.length, GH_STATE.gen, ghCcUp() ? ccGames().length : 0, gevVer(), gaNotesStamp(), BFC_DB.size, BFC.ver, BFC_SKIP.size, Math.floor(Date.now()/300000)].join('|');
+    if(BFC.todo && BFC.todo.key===key) return BFC.todo;
+    const out = { key, list:[], all:0, done:0, n:0 };
+    if(!BFC.loaded){ BFC.todo = out; return out; }
+    let base = [];
+    try{ base = ghBaseList('all'); }catch(e){ base = []; }
+    base.forEach(g=>{
+      const E = gevOf(g);
+      if(!bfcAble(g, E)) return;
+      const need = bfcNeed(g, E);
+      if(!need.length) return;
+      out.all++;
+      const r = bfcRec(g, E), left = need.filter(p=> !bfcRow(r, p)).length;
+      if(!left){ out.done++; return; }
+      const id = String(g.id), k = BFC_SKIP.get(id);
+      if(k && k.h===E.h && k.src===E.src && (k.n >= 3 || Date.now() - k.at < 86400e3)) return;
+      out.n += left;
+      out.list.push({ g, id, at:Number(g.createdAt) || 0 });
+    });
+    out.list.sort((a, b)=> b.at - a.at);
+    BFC.todo = out;
+    return out;
+  }
+  // the time left, in quick-score positions (qkTime's unit): about 12 a ??
+  function bfcLeft(B){ return B && B.n ? B.n * (BFC_HN + BFC_AN + BFC_NN) / QK_NODES : 0; }
+  function bfcSkip(id, E){ const k = BFC_SKIP.get(id); BFC_SKIP.set(id, { h:E.h, src:E.src, at:Date.now(), n:k && k.h===E.h ? k.n + 1 : 1 }); BFC.todo = null; }
+  function bfcFail(J){ bfcSkip(J.id, J.E); }
+  function bfcSettled(J){
+    const E = gevOf(J.g);
+    if(!E || E.h!==J.h || E.n!==J.n || E.src!==J.src || (E.at || 0)!==J.at) return true;
+    const r = bfcRec(J.g, E);
+    return !!r && J.need.every(p=> bfcRow(r, p));
+  }
+  // a job (qkStart, after the moments of How you got ahead, before the next game's quick scores): the game's positions, its ??, the searches
+  async function bfcStart(x){
+    const g = x.g, E = gevOf(g);
+    if(!bfcAble(g, E)){ BFC.todo = null; return; }
+    const need = bfcNeed(g, E), was = bfcRec(g, E), left = need.filter(p=> !bfcRow(was, p));
+    if(!left.length){ BFC.todo = null; return; }
+    let T = null;
+    try{ T = await hraTree(g); }catch(e){ T = null; }
+    if(!T || T.main.length!==E.n){ bfcSkip(x.id, E); return; }
+    if(qkBlock()) return;
+    const P = [T.root].concat(T.main);
+    const J = QK.cur = { kind:'b', g, id:x.id, h:E.h, n:E.n, src:E.src, at:E.at || 0, E, P, need, q:[], cur:null, loops:0, ms:0, np:0,
+      keep:was ? was.m.filter(r=> need.indexOf(r[0]) >= 0) : [], M:left.map(p=> ({ p, L10:null, L3:null, N:null })) };
+    try{
+      J.M.forEach((z, zi)=>{
+        const j = z.p - 1, st = P[j].state;
+        J.q.push({ w:'h', z:zi, fen:P[j].fen, mpv:BFC_HL, nodes:BFC_HN });
+        if(!hvTerminal(P[z.p])) J.q.push({ w:'3', z:zi, fen:P[z.p].fen, mpv:3, nodes:BFC_AN });
+        if(!pzIsInCheck(st, st.turn)){ const f = P[j].fen.split(' '); f[1] = f[1]==='w' ? 'b' : 'w'; f[3] = '-'; J.q.push({ w:'n', z:zi, fen:f.join(' '), mpv:1, nodes:BFC_NN }); }
+      });
+    }catch(e){ QK.cur = null; bfcSkip(x.id, E); return; }
+    QK.held = false; QK.idle = Date.now();
+    qkMark(true);
+    qkDrive();
+  }
+  function bfcDrive(J, E){
+    if(!J.cur){ J.cur = J.q.shift() || null; if(J.cur) J.cur.fresh = true; }
+    const s = J.cur;
+    if(!s){ bfcEnd(J); return; }
+    if(s.fresh){ s.fresh = false; E.sync = true; qkPost(E, 'ucinewgame'); qkPost(E, 'isready'); qkDog(E, HRA_ACK); return; }
+    if((E.mpv || 1)!==s.mpv){ qkPost(E, 'setoption name MultiPV value '+s.mpv); E.mpv = s.mpv; }
+    E.fen = s.fen; E.bf = { d:{} }; E.searching = true; E.stopping = false; E.goAt = Date.now();
+    qkPost(E, 'position fen '+s.fen);
+    qkPost(E, 'go nodes '+s.nodes);
+    qkDog(E, QK_DOG);
+  }
+  // an exact line ([score from the side to move, its moves joined by spaces]), by depth and line (10 at most)
+  function bfcInfo(E, line){
+    if(!E.bf) return;
+    const dm = /\bdepth (\d+)/.exec(line), mm = /\bmultipv (\d+)/.exec(line), cp = /\bscore cp (-?\d+)/.exec(line), mt = /\bscore mate (-?\d+)/.exec(line), pv = / pv (.+)$/.exec(line);
+    if(!dm || !pv || (!cp && !mt)) return;
+    const k = mm ? Number(mm[1]) : 1, n = mt ? Number(mt[1]) : 0, v = cp ? Number(cp[1]) : n > 0 ? 30000 - n : -30000 - n;
+    if(k < 1 || k > BFC_HL) return;
+    (E.bf.d[dm[1]] || (E.bf.d[dm[1]] = []))[k - 1] = [v, pv[1].trim().split(/\s+/).slice(0, BFC_PV).join(' ')];
+  }
+  // its bestmove: the deepest depth that has all its lines (the moment check's rule)
+  function bfcGot(J, E){
+    const s = J.cur, D = E.bf ? E.bf.d : null;
+    E.bf = null;
+    const ds = D ? Object.keys(D).map(Number).sort((a, b)=> b - a) : [];
+    if(!s) return;
+    if(!ds.length){ if(++J.loops >= 3){ qkDrop(); bfcFail(J); QK.rest = Date.now() + 5000; } return; }
+    const lo = D[ds[ds.length - 1]].filter(Boolean).length, need = Math.min(s.mpv, lo), full = ds.find(d=> D[d].filter(Boolean).length >= need);
+    // the 10 lines are counted as the engine left them at that depth (the spec's measured rule): a search stopped by its node budget can
+    // leave a move twice there (10 of 59 positions in the kit); dropping the repeats agreed less with Stockfish 18 over every legal move
+    // (45 v 54 of 59). The other searches keep each move once (only their first line is read)
+    const seen = new Set(), L = [], raw = s.w==='h';
+    (D[full!==undefined ? full : ds[0]] || []).forEach(x=>{ const f = x ? x[1].split(' ')[0] : ''; if(x && (raw || !seen.has(f))){ seen.add(f); L.push(x); } });
+    J.loops = 0; J.ms += Date.now() - E.goAt; J.np++;
+    J.cur = null;
+    const z = J.M[s.z];
+    if(s.w==='h') z.L10 = L.map(x=> [x[0], x[1].split(' ')[0]]);
+    else if(s.w==='3') z.L3 = L.slice(0, 3);
+    else if(s.w==='n') z.N = L[0] ? [L[0][0], L[0][1].split(' ')[0]] : null;
+  }
+  // the facts of one checked ?? from its lines: P the game's positions, p the ply
+  function bfcFacts(P, p, L10, L3, N){
+    const b = L10 && L10[0] ? L10[0][0] : null, a = L3 && L3[0] ? -L3[0][0] : null, pv = L3 && L3[0] ? L3[0][1].split(' ') : [];
+    const h = bfHow(P[p - 1].state, P[p].move, P[p].state, pv, bfMateN(b), bfMateN(a));
+    const gain = N && b!=null ? ahcWin(N[0]) - (100 - ahcWin(b)) : null;
+    return { k:h.k, s:h.sub || '', c:bfLetter(h), h:bfHeldN(L10), t:bfThreat(h, N, pv[0] || '', gain) };
+  }
+  function bfcEnd(J){
+    const P = J.P, rows = J.keep.slice();
+    J.M.forEach(z=>{
+      let d = null;
+      try{ d = bfcFacts(P, z.p, z.L10, z.L3, z.N); }catch(e){ d = null; }
+      if(z.L10 && z.L10.length) rows.push([z.p, z.L10, z.L3, z.N, d]);
+    });
+    rows.sort((a, b)=> a[0] - b[0]);
+    const was = BFC_DB.get(J.id), keepMs = was && was.h===J.h && was.src===J.src && was.at===J.at ? was : null;
+    const rec = { k:J.id, h:J.h, n:J.n, v:BFC_V, src:J.src, at:J.at, ms:(keepMs ? keepMs.ms || 0 : 0) + J.ms, np:(keepMs ? keepMs.np || 0 : 0) + J.np, m:rows };
+    const rest = Math.max(QK_BUDGET[hraClass()].rest, QK.slow ? J.ms : 0);
+    QK.cur = null; QK.idle = Date.now();
+    QK.rest = Date.now() + rest;
+    QK.visit += BFC_VISIT; QK.done++; QK.deadN = 0;
+    qkUnmark();
+    BFC_DB.set(J.id, rec);
+    BFC.todo = null; BFC.ver++;
+    if(rows.length < J.need.length) bfcSkip(J.id, J.E);          // a search that gave no line: the rest of this game a day later
+    bfcPutDb(rec).then(ok=>{ if(ok){ if(BFC_BC) try{ BFC_BC.postMessage({ put:rec }); }catch(e){} } else if(BFC_DB.get(J.id)===rec){ BFC_DB.delete(J.id); BFC.ver++; bfcSkip(J.id, J.E); } });
+    bfcNews();
+    qkStatus();
+    setTimeout(()=>{ if(!QK.cur && !QK.starting && !document.hidden) qkTick(Date.now()); }, rest + 20);
+  }
+  // the review and the section hear of new checks; nothing else reads them, so the quick scores' version (gevVer: every card's memo) never
+  // moves for one: Blunder Forensics draws them at most every 30 s while the job runs, at once when none is left (fix round: one record
+  // recomputed the whole Overview, 119 ms of a click at 4x CPU)
+  var BFC_NEWT = 0, BFC_NEWAT = 0;
+  function bfcNews(){
+    bfFpNews();
+    const go = ()=>{ BFC_NEWT = 0; BFC_NEWAT = Date.now(); if(gaOn() && bfOn()) gaSoon(); };
+    if(!bfcTodo().list.length){ clearTimeout(BFC_NEWT); go(); return; }
+    if(!BFC_NEWT) BFC_NEWT = setTimeout(go, Math.max(0, QK_NEWS - (Date.now() - BFC_NEWAT)));
+  }
+
+  // ---- the names of the list's ?? (any device): from the check's record, else the review's best moves (the namer below), else the scores ----
+  var BF_NM = new Map(), BF_NQ = new Map(), BF_NJ = null, BF_NV = 0;
+  // M's mate before / after the move at ply p, from the game's own scores (White's side)
+  function bfMateScores(E, p, M){
+    const f = (v)=>{ const o = gevObj(v); if(!o || o.type!=='mate') return null; const x = M==='w' ? o.value : -o.value; return x===0 ? null : x; };
+    return [f(E.s[p - 1]), f(E.s[p])];
+  }
+  function bfNmKey(E){ return E.h+'|'+E.n+'|'+E.src+'|'+(E.at || 0)+'|'+(E.bm ? E.bm.length : 0); }
+  // one ?? of a game: { k, sub, ch (the engine's letter), src: 'check' | 'review' | 'score' } or { k:'u' } (not named on this device) or
+  // { k:'w' } (being named: the namer's queue); held: the bucket; cnt: the check's count; thr: their threat
+  function bfFactsOf(g, E, p, queue){
+    const rec = bfcRec(g, E), row = bfcRow(rec, p), gp = E.src==='review' ? gevGap(g, p - 1) : null, out = { how:null, hb:'', cnt:null, thr:'', chk:!!row };
+    if(row && row[4]){ const d = row[4]; out.how = { k:d.k, sub:d.s, ch:d.c, src:'check' }; out.cnt = d.h; out.thr = d.t; }
+    out.hb = bfBucket(gp, out.cnt);
+    if(out.how) return out;
+    const M = gevTurn(g, p - 1), ms = bfMateScores(E, p, M), best = gevBest(g, p), id = String(g.id);
+    const nm = best ? BF_NM.get(id) : null, x = nm && nm.key===bfNmKey(E) ? nm.rows.get(p) : null;
+    if(best && !x){ out.pend = true; if(queue) bfNmQ(g, p); }          // the namer (a mate's back rank too)
+    if(ms[1]!=null && ms[1] < 0){ out.how = { k:'mate', sub:x && x.k==='mate' ? x.sub : '', ch:'C', src:'score' }; return out; }
+    if(ms[0]!=null && ms[0] > 0 && !(ms[1]!=null && ms[1] > 0)){ out.how = { k:'lost', sub:'', ch:'C', src:'score' }; return out; }
+    if(!best){ out.how = { k:'u' }; return out; }
+    if(x){ out.how = x.k==='other' || (x.k==='disc' && x.sub!=='check') ? { k:'u', rv:x.k } : { k:x.k, sub:x.sub, ch:bfLetter(x), src:'review' }; return out; }
+    out.how = { k:'w' };
+    return out;
+  }
+  // the namer: the review's own best moves after each ?? (gevBest), on the game's own boards, a game at a time, a few ms a slice; the
+  // view is drawn again when it is done (BF_NV moves the model's key). Never the engine; only while Analytics is on
+  function bfNmQ(g, p){ const id = String(g.id), q = BF_NQ.get(id) || { g, P:new Set() }; q.P.add(p); BF_NQ.set(id, q); }
+  // (started by the section's drawing only: the Overview shows no names, so it never pays for them)
+  function bfNmGo(){
+    if(BF_NJ) return;
+    BF_NJ = (async ()=>{
+      await pdbNap(0);
+      let did = false;
+      while(BF_NQ.size){
+        const [id, q] = BF_NQ.entries().next().value;
+        BF_NQ.delete(id);
+        const g = q.g, E = gevOf(g);
+        if(!E || !E.bm) continue;
+        let T = null;
+        try{ T = await hraTree(g); }catch(e){ T = null; }
+        if(!T || T.main.length!==E.n) continue;
+        const P = [T.root].concat(T.main), key = bfNmKey(E);
+        let nm = BF_NM.get(id);
+        if(!nm || nm.key!==key){ nm = { key, rows:new Map() }; BF_NM.set(id, nm); }
+        let t0 = performance.now();
+        for(const p of q.P){
+          if(nm.rows.has(p)) continue;
+          const M = gevTurn(g, p - 1), ms = bfMateScores(E, p, M), best = gevBest(g, p);
+          let h = { k:'other', sub:'none' };
+          try{ h = bfHow(P[p - 1].state, P[p].move, P[p].state, best ? [best] : [], ms[0], ms[1]); }catch(e){ h = { k:'other', sub:'err' }; }
+          nm.rows.set(p, h);
+          did = true;
+          if(performance.now() - t0 > 8){ await pdbNap(0); t0 = performance.now(); }
+        }
+        await pdbNap(0);
+      }
+      BF_NJ = null;
+      if(did){ BF_NV++; if(gaOn()) gaSoon(); }
+    })();
+  }
+  function bfHowText(x, theirs){ return x && x.how && x.how.k!=='u' && x.how.k!=='w' ? bfHowW(x.how.k, x.how.sub, theirs) : ''; }
+  function bfHeldW(b){ return b==='1' ? 'only one move held' : b==='2-9' ? '2 to 9 moves held' : b==='10+' ? '10 or more held' : b==='2+' ? '2 or more held' : ''; }
+
+  // ---- the blocks: What fell, Moves that held ----
+  // where the rest is checked (How you got ahead's words): a phone and Repertoire Lab never check; a Mac or iPad with the quick scores
+  // on checks them in its job, newest first
+  function bfWhere(n){
+    if(!n) return '';
+    if(hrRl() || hraClass()==='phone') return 'Not checked here: '+bfF(n)+'. Chess Arcade checks them on a Mac or iPad.';
+    if(!qkOn()) return 'Not checked: '+bfF(n)+'. They are checked with the quick scores (Settings, Game reviews), which are off.';
+    return 'Still to check: '+bfF(n)+', with the quick scores, the newest first.';
+  }
+  function bfDrawFell(md, K, frag){
+    const F = K.fell, c = bfCard('ga-bff', 'What fell', false), sw = gaSpeedW(K.sp).toLowerCase(), wds = gaWinWords(md.v);
+    if(!K.items.length){ c.appendChild(ghEl('p', 'ga-say', 'No ?? while the game was in the balance in your '+sw+' games of '+wds+'.')); frag.appendChild(c); return; }
+    c.appendChild(ghEl('p', 'ct-k ga-bffk', 'What their reply took, your ?? in the balance'));
+    // (Something else isn't a name: it is a line of its own under them, its share of the same base, never a ranked row; the review found it
+    // the biggest row, 63% of the ?? in the picture)
+    const named = BF_HK.reduce((s, k)=> s + (F.y[k] || 0), 0), tb = ghEl('div', 'ga-bffl');
+    tb.setAttribute('role', 'list');
+    let rows = 0;
+    BF_HK.forEach(k=>{
+      const n = F.y[k] || 0;
+      if(!n || k==='other') return;
+      rows++;
+      const it = ghEl('div', 'ga-bffr'+(k==='other' ? ' is-other' : ''));
+      it.setAttribute('role', 'listitem');
+      it.dataset.k = k;
+      const w = k==='mate' && F.yb ? BF_HOW.mate+' ('+bfF(F.yb)+' on the back rank)' : BF_HOW[k];
+      const b = gaBtn('ga-bffb', '', 'bfchip', 'bf|f|'+k);
+      b.dataset.val = 'f:'+k;
+      b.appendChild(ghEl('span', 'ga-bffw', w));
+      b.appendChild(ghEl('span', 'ga-bffn', bfF(n)));
+      const pc = named >= BF_MIN ? gaPfPct(n, named) : '';
+      if(pc) b.appendChild(ghEl('span', 'ga-bffp', pc));
+      b.setAttribute('aria-label', w+': '+bfF(n)+(pc ? ', '+pc+' of the '+bfF(named)+' named' : '')+'. Show them in the list');
+      it.appendChild(b);
+      tb.appendChild(it);
+    });
+    if(rows) c.appendChild(tb);
+    if(F.y.other){
+      const n = F.y.other, pc = named >= BF_MIN ? gaPfPct(n, named) : '', p = ghEl('p', 'ga-ln ga-bffo');
+      p.appendChild(document.createTextNode('Something else: '+bfF(n)+' of the '+bfF(named)+(pc ? ' ('+pc+')' : '')+', a longer idea than these. '));
+      const b = gaBtn('ct-l ga-bffob', 'Show them', 'bfchip', 'bf|f|other');
+      b.dataset.val = 'f:other';
+      b.setAttribute('aria-label', 'Show the '+bfF(n)+' ?? named something else in the list');
+      p.appendChild(b);
+      p.dataset.n = String(n);
+      c.appendChild(p);
+    }
+    const u = (F.y.u || 0) + (F.y.w || 0);
+    if(F.y.w) c.appendChild(ghEl('p', 'ct-vs ga-cov ga-bffw2', 'Naming '+bfF(F.y.w)+' more from your reviews\u2026'));
+    if(F.y.u){ const p = ghEl('p', 'ct-vs ga-cov ga-bffu', bfWhere(F.y.u)); c.appendChild(p); }
+    // your own CLAMP letters on these ?? (the engine's letter is never added to them)
+    const L = K.items, mk = L.filter(x=> x.ch.length), cnt = {};
+    mk.forEach(x=> x.ch.forEach(ch=>{ cnt[ch] = (cnt[ch] || 0) + 1; }));
+    const lp = ghEl('p', 'ga-ln ga-bffc');
+    if(mk.length){
+      lp.appendChild(document.createTextNode('Your CLAMP letters on these ??: '));
+      CLAMP_K.filter(Q=> cnt[Q.ch]).forEach((Q, i)=>{ if(i) lp.appendChild(document.createTextNode(' \u00b7 ')); const s = ghEl('span', 'ga-bffl1'); s.appendChild(ctDisc(Q)); s.appendChild(document.createTextNode(' '+bfF(cnt[Q.ch]))); lp.appendChild(s); });
+      lp.appendChild(document.createTextNode(' ('+bfF(mk.length)+' of '+bfF(L.length)+' marked).'));
+    } else lp.textContent = 'Your CLAMP letters on these ??: none marked yet (0 of '+bfF(L.length)+').';
+    c.appendChild(lp);
+    c.appendChild(ghEl('p', 'ct-vs ga-cov ga-bffb2', bfF(L.length)+' ?? in your '+sw+' games of '+wds+': '+bfF(F.src.check)+' checked on this device'+(F.src.review ? ', '+bfF(F.src.review)+' named from the review alone' : '')+(F.src.score ? ', '+bfF(F.src.score)+' from the scores alone (a mate)' : '')+'.'));
+    const O = F.o, on = BF_HK.filter(k=> O[k]).map(k=> BF_HOW[k].toLowerCase()+' '+bfF(O[k])).join(', ');
+    gaSrc(c, 'What fell = what the engine\u2019s reply to your ?? did: allowed a mate (on the back rank: the mate ends with your king on its first rank, checked along it by a rook or queen), lost a mate you had, your capture lost material (the trades on that square), the piece you moved was taken, a piece left loose was taken (worth 2 pawns or more by the trades there), a fork (one piece hits two worth more than it, or with no guard), a discovered attack (a piece of theirs that didn\u2019t move hits one of yours). Something else = none of these: a longer idea; open the move. Only names that were right in 85% or more of 40 or more ?? read against a deep Stockfish 18 are used: pins, skewers, a pawn that ran and a win you didn\u2019t take were not, so they are under something else. From this device\u2019s check of the ?? (10 lines before it, 3 after it, Stockfish 16), else the review\u2019s own best moves (the mates, a piece taken at once, a fork), else the scores (a mate). Your CLAMP letters are your own marks; the engine\u2019s letter is shown only at the move, never counted with yours.'+(on ? ' Opponents\u2019 ?? in the balance in the same games: '+on+'.' : ''));
+    frag.appendChild(c);
+  }
+  function bfDrawHeld(md, K, frag){
+    const H = K.held, S = K.st, c = bfCard('ga-bfd', 'Moves that held', false), sw = gaSpeedW(K.sp).toLowerCase(), wds = gaWinWords(md.v), role = (el, r)=>{ el.setAttribute('role', r); return el; };
+    if(!K.items.length && !(S.y.h1O + S.y.h2O)){ c.appendChild(ghEl('p', 'ga-say', 'No ?? while the game was in the balance in your '+sw+' games of '+wds+'.')); frag.appendChild(c); return; }
+    // the rate where only one move held against where more did (reviews with the engine's three lines)
+    if(S.y.h1O + S.y.h2O){
+      const tb = role(ghEl('div', 'ga-aht ga-bft ga-bfdt'), 'table');
+      tb.setAttribute('aria-label', 'Your ?? and your opponents\u2019 per 100 moves, by how many moves held');
+      const hd = role(ghEl('div', 'ga-ahr is-head'), 'row');
+      [['Before the move', ''], ['You', bfF(S.y.h1O + S.y.h2O)+' moves'], ['Opponents', bfF(S.o.h1O + S.o.h2O)+' moves']].forEach(([w, n], i)=>{
+        const h = role(ghEl('span', 'ga-goh'+(i ? '' : ' is-l'), w), 'columnheader');
+        if(n) h.appendChild(ghEl('span', 'ga-ahhn', n));
+        hd.appendChild(h);
+      });
+      tb.appendChild(hd);
+      [['Only one move held', 'h1', 'one'], ['Two or more held', 'h2', '']].forEach(([w, f, chip])=>{
+        const r = role(ghEl('div', 'ga-ahr'), 'row'), l = role(ghEl('span', 'ga-ahn'), 'rowheader');
+        r.dataset.k = f;
+        l.appendChild(ghEl('span', 'ga-ahw', w));
+        r.appendChild(l);
+        r.appendChild(bfCell(S.y[f+'K'], S.y[f+'O'], w, chip));
+        r.appendChild(bfCell(S.o[f+'K'], S.o[f+'O'], w+', opponents', ''));
+        tb.appendChild(r);
+      });
+      c.appendChild(tb);
+    }
+    // your ?? by bucket
+    const n1 = H.one, n2 = H.mid, n3 = H.ten, n4 = H.two, ck = n1 + n2 + n3, tot = n1 + n2 + n3 + n4 + H.unk;
+    if(tot){
+      const p = ghEl('p', 'ga-ln ga-bfdb');
+      const part = (n, w, chip)=>{ if(chip && n){ const b = gaBtn('ct-l ga-bfdl', bfF(n)+' '+w, 'bfchip', 'bf|d|'+chip); b.dataset.val = chip; return b; } return document.createTextNode(bfF(n)+' '+w); };
+      if(!(ck + n4)) p.textContent = 'None of your '+bfF(tot)+' ?? in the balance has its moves counted yet.';
+      else {
+        p.appendChild(document.createTextNode('Your '+bfF(tot)+' ?? in the balance: '));
+        p.appendChild(part(n1, 'with only one move held', 'one'));
+        if(n2 + n3){ p.appendChild(document.createTextNode(' \u00b7 ')); p.appendChild(part(n2, 'with 2 to 9', 'mid')); p.appendChild(document.createTextNode(' \u00b7 ')); p.appendChild(part(n3, 'with 10 or more', 'ten')); }
+        if(n4){ p.appendChild(document.createTextNode(' \u00b7 ')); p.appendChild(part(n4, 'with 2 or more (not counted further yet)', '')); }
+        p.appendChild(document.createTextNode('.'));
+      }
+      c.appendChild(p);
+      const w = bfWhere(n4 + H.unk);
+      if(w) c.appendChild(ghEl('p', 'ct-vs ga-cov ga-bfdu', w));
+    }
+    c.appendChild(ghEl('p', 'ct-vs ga-cov ga-bfdb2', S.ng ? 'Per 100 moves from '+ghoN(S.ng, sw+' review')+' of '+wds+' that keep the engine\u2019s three lines.' : 'The rates where only one move held need reviews that keep the engine\u2019s three lines: none in your '+sw+' games of '+wds+' yet.'));
+    gaSrc(c, 'Moves that held = the moves within 15 points of winning chances of the engine\u2019s best before your move (How you got ahead\u2019s rule): only one, from the review\u2019s three lines (any device); 2 to 9 and 10 or more, from this device\u2019s check of the ?? (10 lines, Stockfish 16). A count, never a share of the legal moves: a share puts one safe move out of 51 and the only move out of check far apart. 4 to 9 safe moves were as risky as 2 or 3 in your games; with 10 or more, ?? came a third as often. Far ahead or far behind, many moves stay within 15 points because the chances change little there: 10 or more is common then and says little about how hard the position was. The rates: your moves when not already lost, in reviews that keep the three lines (from November 2026 on); a rate from 30 moves.');
+    frag.appendChild(c);
+  }
+
+  // ---- the move's own facts in the review's floating comment card, at a ?? (spec F4): one block, every line a fact ----
+  function bfFpNews(){ try{ const S = HV_STATE; if(S && S.cur && hvViewActive()) hvComCard(); }catch(e){} }
+  function bfFpLab(st0, mv, ply){ try{ const st1 = pzApplyMoveRaw(st0, mv); return ghClampLabel(ply, pzMoveToSAN(st0, mv, st1), 0); }catch(e){ return ''; } }
+  function bfMatOf(B, c){ let d = 0; for(let i = 0; i < 64; i++){ const x = B[i]; if(x && x.type!=='k') d += (x.color===c ? 1 : -1) * BFV[x.type]; } return d; }
+  // the time on ply q and the mover's clock before it (centiseconds), or null (bfMake's rule)
+  function bfClk(g, q){
+    const C = g.clocks, P = g.players || {}, n = gaPlies(g), bz = !!((P.white && P.white.berserk) || (P.black && P.black.berserk));
+    if(!(g.clock && Number(g.clock.initial) > 0) || gaCorr(g) || bz || !Array.isArray(C) || !C.length || C.length < n - 1 || q < 1) return null;
+    const S0 = kmStart(g, gevTurn(g, q - 1)), l0 = q <= 2 ? (g.site!=='cc' ? null : S0.ini) : C[q - 3], l1 = C[q - 1];
+    return typeof l0==='number' && typeof l1==='number' ? { cl:l0, tk:Math.max(0, l0 - l1 + S0.inc), ini:S0.ini } : null;
+  }
+  // the move on the board is a ?? worth the block (yours shown over the engine's, as in the move list): its game's scores, else null
+  // (a game with only Lichess's analysis has no ?? badge in the review: there its ?? are the section's, by the review's rule on Lichess's scores)
+  function bfFpAt(S, n){
+    const g = S && S.game, p = n && n.main ? n.ply : 0, b = p ? hvShownBadge(n) : null;
+    if(!g || !p || (b && b.id!=='blunder') || g._practice || g._puzzle || !hvAnnId() || !n.parent || !n.move || !hvPrefs.cards.comment) return null;
+    const E = gevOf(g);
+    if(!E || E.quick || E.n!==S.main.length || !gevMove(g, p)) return null;
+    if(!b && (n.noBadge || E.src!=='lichess' || !bfMarks(g, E)[p])) return null;
+    return { g, p, E, li:!b };
+  }
+  // what the block shows changes with: the game's scores, this device's check of the ??, your marks, the quick scores' switch, the names
+  function bfFpKey(S, n){
+    const A = bfFpAt(S, n);
+    if(!A) return '';
+    if(!BFC.loaded && !hrRl()) bfcLoad();
+    const row = bfcRow(bfcRec(A.g, A.E), A.p), ph = bfPhase(A.g, gevTurn(A.g, A.p - 1), A.p);
+    return ['bf', A.p, A.E.h, A.E.src, A.E.at || 0, A.E.bm ? A.E.bm.length : 0, row ? 1 : 0, ph, qkOn() ? 1 : 0, BF_NV].join('|');
+  }
+  function bfFpEl(S, n){
+    const A = bfFpAt(S, n);
+    if(!A) return null;
+    const { g, p, E } = A, mv = gevMove(g, p), M = gevTurn(g, p - 1), me = S.me==='white' ? 'w' : S.me==='black' ? 'b' : '', yours = !me || M===me, they = !!me && M!==me;
+    const side = (w)=> M==='w' ? 'White'+w : 'Black'+w, other = (w)=> M==='w' ? 'Black'+w : 'White'+w;
+    const Y = me ? (yours ? 'you' : 'they') : side(''), Yp = me ? (yours ? 'your' : 'their') : side('\u2019s'), Op = me ? (yours ? 'their' : 'your') : other('\u2019s');
+    const box = hvEl('div', 'hv-cc-bf'), line = (cls, t)=>{ const x = hvEl('p', 'hv-cc-bfl '+cls, t || ''); box.appendChild(x); return x; };
+    box.dataset.info = 'This ?? move';
+    box.setAttribute('role', 'group');
+    box.setAttribute('aria-label', 'The facts of this ??');
+    // before -> after, phase, material (before the move, the mover's side)
+    const ph = bfPhase(g, M, p), d = bfMatOf(n.parent.state.board, M);
+    const mw = !d ? 'material even' : 'material '+(d > 0 ? '+' : '\u2212')+Math.abs(d)+' for '+(me ? (yours ? 'you' : 'them') : side(''));
+    line('is-score', (A.li ? '?? by Lichess\u2019s analysis \u00b7 ' : '')+bfCp(E.s[p - 1], M)+' \u2192 '+bfCp(E.s[p], M)+' (lost '+Math.round(mv.pts)+' points) \u00b7 '+(ph ? ph+' \u00b7 ' : '')+mw);
+    // right after their mistake (the same scores)
+    if(p >= 2){
+      const a0 = gevWin(E.s[p - 2], M), a = gevWin(E.s[p - 1], M), z = gevWin(E.s[p], M), pm = n.parent;
+      if(a0!=null && a!=null && a - a0 >= BF_SLIP && pm && pm.parent && pm.move){
+        const back = z!=null && z <= a0;
+        line('is-slip', 'Right after '+Op+' mistake: '+bfFpLab(pm.parent.state, pm.move, p - 1)+' lost '+Math.round(a - a0)+' points'+(back ? '; '+Y+' gave it back.' : '.'));
+      }
+    }
+    // what fell, the engine's letter: from this device's check, else the review's best move after the ??, else the scores
+    const rec = bfcRec(g, E), row = bfcRow(rec, p);
+    let h = null, r1 = '';
+    try{
+      if(row && row[4]){ h = { k:row[4].k, sub:row[4].s, chk:row[4].c==='C' && row[4].k==='fork' }; r1 = row[2] && row[2][0] ? row[2][0][1].split(' ')[0] : ''; }
+      else {
+        const ms = bfMateScores(E, p, M), best = gevBest(g, p), x = bfHow(n.parent.state, n.move, n.state, best ? [best] : [], ms[0], ms[1]);
+        r1 = best;
+        h = x.k==='mate' || x.k==='lost' ? x : !best || x.k==='other' || (x.k==='disc' && x.sub!=='check') ? { k:'u' } : x;
+      }
+    }catch(e){ h = null; }
+    const rm = r1 ? bfUciMove(n.state, r1) : null, rl = rm ? bfFpLab(n.state, rm, p + 1) : '';
+    const fl = line('is-how', '');
+    if(h && h.k!=='u'){
+      const w = bfHowW(h.k, h.sub, they);
+      fl.appendChild(document.createTextNode('What fell: '+w.charAt(0).toLowerCase()+w.slice(1)+(rl && h.k!=='lost' ? ' ('+rl+')' : '')+'.'));
+      const L = bfLetter(h);
+      if(L && CLAMP_BY[L]){ fl.appendChild(document.createTextNode(' Found by the engine: ')); const s = hvEl('span', 'hv-cc-bfe', L); s.setAttribute('aria-label', CLAMP_BY[L].name+', found by the engine'); fl.appendChild(s); fl.appendChild(document.createTextNode('.')); }
+    } else fl.textContent = 'What fell: '+(hrRl() || hraClass()==='phone' ? 'Chess Arcade checks it on a Mac or iPad.' : !qkOn() ? 'checked with the quick scores (Settings, Game reviews), which are off.' : 'still to check, with the quick scores.');
+    // your CLAMP mark on it (their slips on their move); the move's own menu marks it
+    const ck = n.clamp && typeof n.clamp==='object' ? CLAMP_K.filter(K=> K.ch in n.clamp && hvClampIsT(n, K.ch)===they).map(K=> K.ch) : [];
+    const cl = line('is-clamp', '');
+    cl.appendChild(document.createTextNode((they ? 'Their CLAMP slip, your mark: ' : 'Your CLAMP mark: ')+(ck.length ? ck.join(' ')+'.' : 'none yet.')+' '));
+    // (Repertoire Lab too: it only opens the move's own menu, which marks there)
+    { const mb = hvEl('button', 'hv-cc-bfb hv-cc-bfmk', ck.length ? 'Change it' : 'Mark it'); mb.type = 'button'; mb._n = n; mb.setAttribute('aria-label', (ck.length ? 'Change the CLAMP mark of ' : 'Mark a CLAMP letter on ')+hvNodeLabel(n)); cl.appendChild(mb); }
+    if(row && row[4] && row[4].t==='stood' && rl && h && h.k!=='u') line('is-thr', (Op.charAt(0).toUpperCase()+Op.slice(1))+' '+rl+' was already there before '+Yp+' move.');
+    // the clock
+    const c0 = bfClk(g, p);
+    if(c0){
+      const T = [];
+      for(let q = p - 2; q >= 1 && T.length < 5; q -= 2){ const x = bfClk(g, q); if(x) T.push(x.tk); else break; }
+      line('is-clk', 'Clock: '+gaTookW(c0.tk)+' on this move, '+gaClockW(c0.cl)+' left'+(T.length ? '; '+Yp+' '+T.length+' move'+(T.length===1 ? '' : 's')+' before: '+gaTookW(T.reduce((s, x)=> s + x, 0) / T.length)+' a move' : '')+'.');
+    }
+    // moves that held
+    const gp = E.src==='review' ? gevGap(g, p - 1) : null, bk = bfBucket(gp, row && row[4] ? row[4].h : null);
+    if(bk){
+      const bu = gevBest(g, p - 1) || (row && row[1] && row[1][0] ? row[1][0][1] : ''), bm = bu ? bfUciMove(n.parent.state, bu) : null, bl = bm ? bfFpLab(n.parent.state, bm, p) : '';
+      line('is-held', 'Moves that held: '+(bk==='1' ? 'only one'+(bl ? ' (the engine\u2019s '+bl+')' : '') : bk==='2-9' ? '2 to 9' : bk==='10+' ? '10 or more' : '2 or more'+(hrRl() || hraClass()==='phone' ? ' (Chess Arcade counts them on a Mac or iPad)' : ' (counted with the quick scores)'))+'.');
+    }
+    // is it in Blunder Forensics' rates and list? (in the balance: not already lost, not keeping a won game; the list has your ?? only)
+    const wa = gevWin(E.s[p - 1], M), wb = gevWin(E.s[p], M), out = wa==null || wb==null ? '' : wa <= BF_IN ? 'lost' : wa >= BF_WON && wb >= BF_WON ? 'won' : '';
+    if(out) line('is-out', 'Not counted in Blunder Forensics: the game was already '+(out==='lost' ? 'lost (15% or less before the move).' : 'won (85% or more before and after).'));
+    // (not in Repertoire Lab: its player page has no Analytics, and its tabs couldn't bring you back)
+    if(!hrRl()){ const a = hvEl('p', 'hv-cc-bfl is-go'), bb = hvEl('button', 'hv-cc-bfb hv-cc-bfgo', they ? 'Your opponents\u2019 rates beside yours \u00b7 Blunder Forensics' : 'All your ?? in the balance \u00b7 Blunder Forensics'); bb.type = 'button'; a.appendChild(bb); box.appendChild(a); }
+    box.appendChild(hvEl('p', 'ct-src hv-cc-bfsrc', 'Points = points of winning chances, from the review\u2019s scores (Lichess\u2019s analysis where there is no review). Right after their mistake = the move before lost 15 points or more; gave it back = the chances after the ?? at or under the ones before that mistake. What fell = what the engine\u2019s reply did, from this device\u2019s check of the ?? (Stockfish 16: 10 lines before it, 3 after, their pass), else the review\u2019s best move. Found by the engine = the engine\u2019s CLAMP letter for it, never counted with your marks. Already there = had the move been passed, their best move was the same reply. Material = pieces counted 1, 3, 3, 5 and 9, before the move. Moves that held = moves within 15 points of the best: only one from the review\u2019s three lines; 2 to 9 and 10 or more from the check.'));
+    return box;
+  }
+  // from the review to Blunder Forensics
+  function bfFromReview(){ showView('history'); bfOpen(''); }
+  // its buttons: Mark it (the move's own menu, where the CLAMP letters are marked), All your ?? (Blunder Forensics)
+  document.addEventListener('click', (e)=>{
+    const t = e.target && e.target.closest ? e.target.closest('.hv-cc-bfb') : null;
+    if(!t) return;
+    if(t.classList.contains('hv-cc-bfgo')){ bfFromReview(); return; }
+    if(t.classList.contains('hv-cc-bfmk') && t._n){ const r = t.getBoundingClientRect(); hvMenuOpen(t._n, t, r.left, r.bottom, t); }
+  });
   /* ---- Puzzles from your games (2026-11-21; the user: "something ... where it would go through the game and it would have
      me play the position again", spec ~/puzzles-work/SPEC.md): Game History's sixth tab. Positions from your own games
      (Lichess and chess.com, people only) where a big swing came, found and checked by Stockfish 16 on this device: never
@@ -52329,13 +53947,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function hvComCard(){
     const el = document.getElementById('hv-com-card'), S = HV_STATE, n = S ? S.cur : null;
     const text = n && n.parent && !S.game._practice && hvPrefs.cards.comment && typeof n.comment==='string' ? n.comment.trim() : '';
-    if(!text){ hvComCardOff(el); return; }
+    let fk = '';
+    try{ fk = n && n.parent && !S.game._practice ? bfFpKey(S, n) : ''; }catch(e){ fk = ''; }          // a ?? move: its own facts (Blunder Forensics, bf*)
+    if(!text && !fk){ hvComCardOff(el); return; }
     let own = null, eng = null;
     try{ own = hvOwnBadge(n); eng = hvBadgeFor(n); }catch(e){ own = eng = null; }
     const lab = hvNodeLabel(n), at = String(S.game.id || '')+' '+JSON.stringify(hvNodeRef(n));
-    const k = [lab, own ? own.id : n.noBadge ? '-' : '', eng ? eng.id : '', n.clamp ? JSON.stringify(n.clamp) : '', hvTacAt(n) ? JSON.stringify(gnTacRow(n.tac))+(S.me || '') : '', n.gold ? 'g' : '', text].join('\n');
+    const k = [lab, own ? own.id : n.noBadge ? '-' : '', eng ? eng.id : '', n.clamp ? JSON.stringify(n.clamp) : '', hvTacAt(n) ? JSON.stringify(gnTacRow(n.tac))+(S.me || '') : '', n.gold ? 'g' : '', text, fk].join('\n');
     if(!el.hidden && el._n===n && el._k===k) return;       // nothing new
-    const again = el._at!==at, hit = again || el.hidden;
+    const again = el._at!==at, hit = (again || el.hidden) && !!text;          // (the flash and its sound: a comment's)
     el._n = n; el._k = k; el._at = at;
     el.textContent = '';
     const head = hvEl('div', 'hv-cc-head');
@@ -52348,16 +53968,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hvAddBadge(head, n);          // yours over the engine's, as in the move list
     hvAddClamp(head, n);
     hvAddTac(head, n);
-    const body = hvEl('div', 'hv-cc-body'), p = hvEl('p', 'hv-cc-text'), gold = hvGoldCom(n);
+    const body = hvEl('div', 'hv-cc-body'), p = hvEl('p', 'hv-cc-text'), gold = !!text && hvGoldCom(n);
     el.classList.toggle('is-golden', gold);
+    if(fk){ let fp = null; try{ fp = bfFpEl(S, n); }catch(e){ fp = null; } if(fp) body.appendChild(fp); }
     if(gold) body.appendChild(hvEl('span', 'hv-cc-gold', 'Golden rule'));
-    hvComText(p, text);
-    body.appendChild(p);
+    if(text){ hvComText(p, text); body.appendChild(p); }
     el.appendChild(edge);
     el.appendChild(head);
     el.appendChild(body);
     el.dataset.node = n.id;
-    el.setAttribute('aria-label', (gold ? 'Golden rule: comment on ' : 'Comment on ')+lab);
+    el.setAttribute('aria-label', (gold ? 'Golden rule: comment on ' : text ? 'Comment on ' : 'The facts of the ?? ')+lab);
     el.hidden = false;
     // a card already showing starts its arrival again (one shown after being hidden starts it by itself)
     if(again){ el.classList.add('is-again'); void el.offsetWidth; el.classList.remove('is-again'); }
@@ -58752,7 +60372,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const why = qkBlock();
     QK.why = why;
     // a game noticed on Lichess: is it over? (the reviewer asks only while it has a game to review itself)
-    if(why==='game' && !olBusy() && nowPlayingGame && hraLiveDue(30000) && (QK.cur || qkTodo().list.length || ahcTodo().list.length)) hraLive();
+    if(why==='game' && !olBusy() && nowPlayingGame && hraLiveDue(30000) && (QK.cur || qkTodo().list.length || ahcTodo().list.length || bfcTodo().list.length)) hraLive();
     if(why){ QK.clear = 0; qkHold(); } else if(!QK.clear) QK.clear = now;
     if(QK.cur && (why==='off' || why==='dead' || why==='full' || qkSettled(QK.cur))) qkDrop();
     const left = QK.visit < QK_BUDGET[hraClass()].games;
@@ -58765,7 +60385,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       } else if(!QK.starting && now >= QK.rest && now - HRA.boot >= QK_BOOT && now - HRA.input >= HRA_IDLE && left) qkStart();
     }
     if(QK.eng && (!QK.cur || QK.held) && now - QK.idle > (why==='off' || why==='dead' || why==='full' ? 0 : HRA_KEEP)) qkQuit();
-    if(QK_UNLEAD && !QK.cur && !QK.starting && !QK.asking && (why || !left || (!qkTodo().list.length && !ahcTodo().list.length))) qkUnlead();
+    if(QK_UNLEAD && !QK.cur && !QK.starting && !QK.asking && (why || !left || (!qkTodo().list.length && !ahcTodo().list.length && !bfcTodo().list.length))) qkUnlead();
   }
   // something else of the engine's starts now: at once (hraNudge, the automatic review's start)
   function qkNudge(){
@@ -58783,7 +60403,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(hraTouch()) qkQuit();
   }
   // scored (or reviewed) meanwhile: in another tab, by the Review button, from another device
-  function qkSettled(J){ if(J.kind==='m') return ahcSettled(J); const r = QK_DB.get(J.id); return (!!r && r.h===J.h && r.n===J.n) || HRS.has(J.id+'.'+J.h); }
+  function qkSettled(J){ if(J.kind==='m') return ahcSettled(J); if(J.kind==='b') return bfcSettled(J); const r = QK_DB.get(J.id); return (!!r && r.h===J.h && r.n===J.n) || HRS.has(J.id+'.'+J.h); }
   function qkDrop(){
     const J = QK.cur;
     if(!J) return;
@@ -58799,8 +60419,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     try{
       await Promise.race([qkLoad(), pdbNap(QK_OPEN)]);
       if(!QK_LOADED){ QK.rest = Date.now() + 15000; return; }          // the store hasn't answered: nothing is scored that may be in it
-      if(!AHC.loaded) ahcLoad();          // (the moments' store: until it is read, no game's moments are checked again)
-      if(QK.full || (!qkTodo().list.length && !ahcTodo().list.length)){ QK.rest = Date.now() + 5000; return; }
+      if(!AHC.loaded) ahcLoad();
+      if(!BFC.loaded) bfcLoad();          // (the checks of the ?? (bfc*): the same)          // (the moments' store: until it is read, no game's moments are checked again)
+      if(QK.full || (!qkTodo().list.length && !ahcTodo().list.length && !bfcTodo().list.length)){ QK.rest = Date.now() + 5000; return; }
       if(QK_DB.size >= QK_MAX){ QK.full = 'max'; return; }
       if(!QK.done && !QK.mark && qkMarks() >= 3){ QK.dead = 'crash'; return; }
       if(!(await hraPower())){ QK.rest = Date.now() + 15000; return; }
@@ -58810,6 +60431,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(qkBlock()) return;
       const mx = ahcTodo().list[0];          // a game's moments first (ahc*: right after its quick scores, and the reviewed games)
       if(mx){ await ahcStart(mx); return; }
+      const bx = bfcTodo().list[0];          // then the ?? of the games with a review or Lichess's analysis (bfc*), newest first
+      if(bx){ await bfcStart(bx); return; }
       const x = qkTodo().list[0];
       if(!x) return;
       const sig = hraSigOf(x.g);
@@ -58901,7 +60524,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const nat = !E.stopping, J = QK.cur;
       E.searching = false; E.stopping = false;
       clearTimeout(E.ts); clearTimeout(E.dog);
-      if(J && J.kind==='m'){ if(nat && E.job===J) ahcGot(J, E); else E.ah = null; qkDrive(); return; }          // a moment's search (ahc*)
+      if(J && J.kind==='m'){ if(nat && E.job===J) ahcGot(J, E); else E.ah = null; qkDrive(); return; }
+      if(J && J.kind==='b'){ if(nat && E.job===J) bfcGot(J, E); else E.bf = null; qkDrive(); return; }          // a ??'s search (bfc*)          // a moment's search (ahc*)
       if(nat && J && E.job===J && J.P[J.i] && E.fen===J.P[J.i].fen){
         if(E.last){ J.S[J.i--] = E.last; J.loops = 0; J.ms += Date.now() - E.goAt; J.np++; }
         else if(++J.loops >= 3){ qkDrop(); qkFail(J.g, 'stuck'); QK.rest = Date.now() + 5000; return; }          // no score, three times
@@ -58910,6 +60534,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       return;
     }
     if(!E.searching || E.sync || line.indexOf('info ')!==0 || line.indexOf(' pv ') < 0 || /\b(?:lower|upper)bound\b/.test(line)) return;
+    if(E.bf){ bfcInfo(E, line); return; }
     if(E.ah){ ahcInfo(E, line); return; }
     const x = hveParse(line, E.fen);
     if(x && x.multipv===1) E.last = x.score;
@@ -58922,6 +60547,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!E || E.st!=='ready' || E.sync || E.searching) return;
     if(E.job!==J){ E.job = J; E.sync = true; qkPost(E, 'ucinewgame'); qkPost(E, 'isready'); qkDog(E, HRA_ACK); return; }
     if(J.kind==='m'){ ahcDrive(J, E); return; }
+    if(J.kind==='b'){ bfcDrive(J, E); return; }
     if((E.mpv || 1)!==1){ qkPost(E, 'setoption name MultiPV value 1'); E.mpv = 1; }
     try{ for(let t; J.i >= 0 && (t = hvTerminal(J.P[J.i])); J.i--) J.S[J.i] = t.score; }catch(e){ qkDrop(); qkFail(J.g, 'moves'); return; }
     if(J.i < 0){ qkEnd(J); return; }
@@ -58962,15 +60588,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // ---- Settings ----
   function qkText(){
-    const T = qkTodo(), H = ahcTodo(), N = (x)=> x.toLocaleString('en-US'), J = QK.cur;
+    const T = qkTodo(), H = ahcTodo(), B = bfcTodo(), N = (x)=> x.toLocaleString('en-US'), J = QK.cur;
     if(QK.dead==='crash') return 'Stopped: the page closed three times while it scored. Press On to try again.';
     if(QK.dead || HRA.dead) return 'Stockfish can\u2019t run here.';
     if(!QK_LOADED) return QK_LOADP ? (Date.now() - QK_LOADT > QK_OPEN ? 'Waiting for this device\u2019s storage.' : '') : !qkOn() ? 'Off.' : QK.why==='game' ? 'Waiting: a game is on.' : 'Starts after the reviews.';
-    if(!T.all && !H.all) return !GH_STATE.games.length && !(ghCcUp() && ccGames().length) ? 'Open Game History to start.' : 'No rapid or blitz games without a review.';
+    if(!T.all && !H.all && !B.all) return !GH_STATE.games.length && !(ghCcUp() && ccGames().length) ? 'Open Game History to start.' : 'No rapid or blitz games without a review.';
     const c = (T.all ? 'Quick scores: '+N(T.done)+' of '+N(T.all)+(T.all===1 ? ' game.' : ' games.')+(T.failed ? ' '+N(T.failed)+' couldn\u2019t be scored.' : '') : '')
-      +(H.all ? (T.all ? ' ' : '')+'How you got ahead: '+N(H.done)+' of '+N(H.all)+(H.all===1 ? ' game' : ' games')+' checked.' : '');          // (ahc*, the same job)
+      +(H.all ? (T.all ? ' ' : '')+'How you got ahead: '+N(H.done)+' of '+N(H.all)+(H.all===1 ? ' game' : ' games')+' checked.' : '')          // (ahc*, the same job)
+      +(B.all ? (T.all || H.all ? ' ' : '')+'Blunder Forensics: '+N(B.done)+' of '+N(B.all)+(B.all===1 ? ' game' : ' games')+' checked.' : '');          // (bfc*, the same job)
     if(!qkOn()) return 'Off. '+c;
-    if(!T.list.length && !H.list.length) return c;
+    if(!T.list.length && !H.list.length && !B.list.length) return c;
     if(QK.full) return c+(QK.full==='db' ? ' This browser can\u2019t keep them.' : QK.full==='max' ? ' That\u2019s all this device keeps.' : ' No room on this device for more.');
     if(QK.paused) return 'Paused. '+c;
     const why = QK.why;
@@ -58982,15 +60609,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(HRA.bat) return c+' Waiting: battery under '+Math.round(HRA.bat*100)+'%.';
     if(HRA.save) return c+' Waiting for the engine\u2019s download.';
     if(!J && QK.visit >= QK_BUDGET[hraClass()].games) return c+' The rest next time (to save battery).';
-    return c+' '+qkTime(T, H)+'.';
+    return c+' '+qkTime(T, H, B)+'.';
   }
   // the time left, in quick-score positions (12,000 nodes each): the games to score, the checks that follow them (AHC_EST of a game's
   // positions, measured on the user's archive) and the checks of the games already scored (ahcLeft)
-  function qkTime(T, H){
+  function qkTime(T, H, B){
     let p = 0;
     T.list.forEach(x=>{ p += (gaPlies(x.g) + 1) * (1 + AHC_EST); });
     if(H) p += ahcLeft(H);
-    const m = (p * (QK.ms || 130) * (QK.slow ? 2 : 1) + (QK.slow ? 0 : (T.list.length + (H ? H.list.length : 0)) * QK_BUDGET[hraClass()].rest)) / 60000;
+    if(B) p += bfcLeft(B);
+    const m = (p * (QK.ms || 130) * (QK.slow ? 2 : 1) + (QK.slow ? 0 : (T.list.length + (H ? H.list.length : 0) + (B ? B.list.length : 0)) * QK_BUDGET[hraClass()].rest)) / 60000;
     if(m < 1.5) return 'About a minute left';
     if(m < 55) return 'About '+Math.round(m)+' minutes left';
     const h = Math.max(1, Math.round(m / 60));
@@ -59010,7 +60638,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(el.textContent!==t) el.textContent = t;
     const on = qkOn(), p = document.getElementById('qk-pause');
     document.querySelectorAll('#qk-row .toggle').forEach(b=>{ const a = (b.dataset.val==='on')===on; b.classList.toggle('active', a); b.setAttribute('aria-pressed', a ? 'true' : 'false'); });
-    p.hidden = !on || QK.full || !!QK.dead || (!QK.paused && !QK.cur && ((!qkTodo().list.length && !ahcTodo().list.length) || QK.visit >= QK_BUDGET[hraClass()].games));
+    p.hidden = !on || QK.full || !!QK.dead || (!QK.paused && !QK.cur && ((!qkTodo().list.length && !ahcTodo().list.length && !bfcTodo().list.length) || QK.visit >= QK_BUDGET[hraClass()].games));
     p.textContent = QK.paused ? 'Resume' : 'Pause';
   }
   (function qkInit(){
@@ -59133,7 +60761,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // couldn't be checked (its moves, or the engine three times at a search): a day later, three times
   function ahcSkip(id, E){ const k = AHC_SKIP.get(id); AHC_SKIP.set(id, { h:E.h, src:E.src, at:Date.now(), n:k && k.h===E.h ? k.n + 1 : 1 }); AHC.todo = null; }
   function ahcFail(J){ ahcSkip(J.id, J.E); }
-  function qkFailJ(J, why){ if(J && J.kind==='m') ahcFail(J); else if(J) qkFail(J.g, why); }
+  function qkFailJ(J, why){ if(J && J.kind==='m') ahcFail(J); else if(J && J.kind==='b') bfcFail(J); else if(J) qkFail(J.g, why); }
   function ahcSettled(J){ const E = gevOf(J.g); return !E || E.h!==J.h || E.n!==J.n || E.src!==J.src || (E.at || 0)!==J.at || !!ahcRec(J.g, E); }
   // a job (qkStart, before the next game's quick scores): the game's positions, its moments, the searches
   async function ahcStart(x){
@@ -62923,7 +64551,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // Your groups of games (gp-<hex>: name, color, position, games added and taken out) and each
   // group's north-star note (gq-<the same hex>), synced the same way (gp*); their copy, GN_GP_KEY.
   var GN_GP_KEY = 'wavyChessPrepGameGroups';
-  var GN_COPIES = [[GN_CC_KEY, /^cc-d?\d{1,15}$/], [GN_OP_KEY, /^op-[0-9a-f]{8}$/], [GN_AN_KEY, /^an-(?:\w{8}|cc-d?\d{1,15})$/], [GN_GP_KEY, /^g[pq]-[0-9a-f]{8}$/]];
+  // A habit you test in Blunder Forensics (ex-<hex>, 2026-11-26: bf*): its copy, GN_EX_KEY.
+  var GN_EX_KEY = 'wavyChessPrepExperiments';
+  var GN_COPIES = [[GN_CC_KEY, /^cc-d?\d{1,15}$/], [GN_OP_KEY, /^op-[0-9a-f]{8}$/], [GN_AN_KEY, /^an-(?:\w{8}|cc-d?\d{1,15})$/], [GN_GP_KEY, /^g[pq]-[0-9a-f]{8}$/], [GN_EX_KEY, /^ex-[0-9a-f]{8}$/]];
   var GN_STUDY_NAME = SP_STUDY_PREFIX + 'Game notes';
   var GN_MAX = 10000, GN_TOMB_TTL = 30*86400e3;
   var gnSyncTimer = 0, gnSyncRunning = false, gnSyncAgain = false, gnOtherTabValue = null;
@@ -62970,11 +64600,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // what a note can belong to: a Lichess game (8 characters), a chess.com one (cc-<n>, daily
   // cc-d<n>) or an opening (op-<hash>, gnOpId)
-  function gnIdOk(id){ return /^(?:\w{8}|cc-d?\d{1,15}|op-[0-9a-f]{8}|(?:an|lr)-(?:\w{8}|cc-d?\d{1,15})|g[pq]-[0-9a-f]{8})$/.test(String(id || '')); }
+  function gnIdOk(id){ return /^(?:\w{8}|cc-d?\d{1,15}|op-[0-9a-f]{8}|(?:an|lr)-(?:\w{8}|cc-d?\d{1,15})|g[pq]-[0-9a-f]{8}|ex-[0-9a-f]{8})$/.test(String(id || '')); }
   function gnIsOp(id){ return /^op-[0-9a-f]{8}$/.test(String(id || '')); }
   function gnIsGp(id){ return /^gp-[0-9a-f]{8}$/.test(String(id || '')); }
   // a record that isn't a game's (an opening's note, a group, a group's note): never listed as a game
-  function gnIsMeta(id){ return /^(?:op|gp|gq)-[0-9a-f]{8}$/.test(String(id || '')); }
+  function gnIsMeta(id){ return /^(?:op|gp|gq|ex)-[0-9a-f]{8}$/.test(String(id || '')); }
   function gnIsAn(id){ return /^an-(?:\w{8}|cc-d?\d{1,15})$/.test(String(id || '')); }
   // Larry's review of a game (2026-11-08, hvLr*): its own record, a game's but never listed as one. An older build
   // reads its chapter as not its own and leaves it alone (gnParseChapter: gnIdOk).
@@ -63551,7 +65181,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function gnFamilyOf(g){ return g.opening ? g.opening.split(':')[0].trim() : (g.variant && g.variant!=='standard' ? ghVariantLabel(g.variant) : ''); }
   function gnChapterName(n){
     if(gnIsOp(n.id)) return (n.id+' \u00b7 Opening \u00b7 '+((n.g && n.g.opening) || '?')).slice(0, 100);
-    if(gnIsMeta(n.id)) return (n.id+' \u00b7 '+(gnIsGp(n.id) ? 'Group' : 'Group notes')+' \u00b7 '+((n.g && n.g.opening) || '?')).slice(0, 100);
+    if(gnIsMeta(n.id)) return (n.id+' \u00b7 '+(gnIsGp(n.id) ? 'Group' : bfIsEx(n.id) ? 'Habit' : 'Group notes')+' \u00b7 '+((n.g && n.g.opening) || '?')).slice(0, 100);
     const g = n.g || {}, fam = gnFamilyOf(g);
     return (n.id+' \u00b7 '+(gnIsAn(n.id) ? 'Analysis \u00b7 ' : gnIsLr(n.id) ? 'Larry review \u00b7 ' : '')+'vs '+(g.opp || '?')+(fam ? ' \u00b7 '+fam : '')).slice(0, 100);
   }
@@ -63581,7 +65211,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       tag('Result', '*');
       tag('ChapterName', gnChapterName(n));
       const mv = gnMovetext(g.san);
-      const rd = !n.text ? '(deleted)' : (gnIsGp(n.id) ? 'A group of games in Chess Arcade: '+((n.g && n.g.opening) || '') : gnReadable(n.text));
+      const rd = !n.text ? '(deleted)' : (gnIsGp(n.id) ? 'A group of games in Chess Arcade: '+((n.g && n.g.opening) || '') : bfIsEx(n.id) ? 'A habit you test in Chess Arcade: '+String((n.g && n.g.opening) || '').replace(/^Habit: /, '') : gnReadable(n.text));
       return t.join('\n')+'\n\n{ '+gnMeta(n)+'\n'+rd+' } '+(mv ? mv+' ' : '')+'*';
     }
     const an = gnIsAn(n.id), gid = an || gnIsLr(n.id) ? n.id.slice(3) : n.id;      // an analysis record or Larry's review: its game's tags
@@ -63805,7 +65435,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const data = await res.json();
     const got = {};
     ((data && data.chapters) || []).forEach(ch=>{
-      const m = String(ch.name||'').match(/^(\w{8}|cc-d?\d{1,15}|op-[0-9a-f]{8}|(?:an|lr)-(?:\w{8}|cc-d?\d{1,15})|g[pq]-[0-9a-f]{8}) /);
+      const m = String(ch.name||'').match(/^(\w{8}|cc-d?\d{1,15}|op-[0-9a-f]{8}|(?:an|lr)-(?:\w{8}|cc-d?\d{1,15})|g[pq]-[0-9a-f]{8}|ex-[0-9a-f]{8}) /);
       if(m && /^\w{8}$/.test(String(ch.id||''))) got[m[1]] = String(ch.id);
     });
     return got;
@@ -70627,6 +72257,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       else phOpen('setup-puzzle', 'That link doesn\u2019t name a Lichess puzzle.');   // also catches the reserved A,B,C form
       return;
     }
+    // #blunders: Game History's Analytics on Blunder Forensics (a link's filters kept)
+    if(slug==='blunders'){ params.set('view', 'analytics'); params.set('sub', 'blunders'); openDeepLink('history?'+params.toString()); return; }
     const route = DEEP_LINKS[slug];
     if(!route) return;
     const btn = document.getElementById(route.card);
