@@ -54381,6 +54381,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const rv = hvBadgeFor(node);
     hvSay(hvNodeLabel(node)+': '+(none ? 'no badge' : id ? HR_BY_ID[id].label+' (your badge)' : was ? 'your badge taken off' : rv ? 'the review\u2019s badge, '+rv.label : 'the review\u2019s badge'));
     hvAnnSave();                 // kept at once, like a comment
+    // the comment card again, from the record just saved: its ?? facts read your badges there (bfMarks), and the board above was drawn
+    // before the save (a ?? of yours taken off left its facts on the card: the Larry-Duet review, 2026-11-26)
+    if(node===S.cur && HV_STATE===S) try{ hvComCard(); }catch(e){}
   }
   // A side line's highlight (2026-11-04, the user: alternate moves "stand out a little more along with" their comments; "the
   // main moves have a floating panel, the alternates have highlights"): the move menu's row on any move of the line, kept on
@@ -61448,8 +61451,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     HR_MEM.set(U.id, { sig:U.h, n:S.main.length, review:U.R });
     S.review = U.R;
     // (a badge of Larry-Duet's put on one of these moves since the clear, by another device's copy: yours wins, as everywhere, 2026-11-26)
-    const dzB = (n)=> !!n.badge && dzIs(U.id, 'b|'+dzRk(hvAnnRef(n)));
-    U.own.forEach(x=>{ const n = hvAnnNode(x[0]); if(n && n.parent && (!n.badge || dzB(n))) n.badge = x[1]; });
+    const dzB = (n)=> !!n.badge && dzIs(U.id, 'b|'+dzRk(hvAnnRef(n))), skip = dzClearSkip(U.id, U.dz);
+    U.own.forEach(x=>{ if(skip && skip.has('b|'+dzRk(x[0]))) return; const n = hvAnnNode(x[0]); if(n && n.parent && (!n.badge || dzB(n))) n.badge = x[1]; });
     U.none.forEach(p=>{ const n = S.main[p-1]; if(n && (!n.badge || dzB(n))){ delete n.badge; n.noBadge = true; } });
     // (Larry-Duet's own badges among them come back as Larry-Duet's: d's rows for them, dzDeBack in hvAnnText)
     if(U.own.length || U.none.length){ S.annDe = U.dz || null; try{ hvAnnSave(); } finally { S.annDe = null; } }
@@ -65301,12 +65304,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           return;
         }
         // one copy a pure write of Larry-Duet's and the other the user's (2026-11-25): both, with no box (dzAuto)
-        const dj = lost && on.text ? dzAuto(id, n, n.text, on.text) : null;
+        const dj = lost && on.text ? dzAuto(id, n, n.text, on.text) : null, ju = lost && !dj && on.text ? dzUnsentUndo(id, n, n.text, on.text) : null;
         if(dj){ on.base = on.updatedAt; on.text = dj; on.updatedAt = Math.max(on.updatedAt, n.updatedAt) + 1; }
+        if(ju){ on.base = on.updatedAt; on.text = ju; on.updatedAt = Math.max(on.updatedAt, n.updatedAt) + 1; }          // (an Undo pressed in this tab on an unsent edit: on the other tab's copy, the edit in the box)
         // this tab's own text lost: kept, and labeled as this device's version
         on.conflict = lost && !dj ? { text:n.text, at:n.updatedAt, mine:true, lost:true } : on.conflict;
         // an older build's copy of a game's analysis (in another tab): this tab's badges and CLAMP marks stay in it
-        const kb = dj ? '' : gnAnKeepB(id, n.text, on.text);
+        const kb = dj || ju ? '' : gnAnKeepB(id, n.text, on.text);
         if(kb){ on.base = on.updatedAt; on.text = kb; on.updatedAt += 1; localNewer = true; if(on.conflict && on.conflict.text===kb) on.conflict = null; }
         if(!on.link && !switched) on.link = n.link;
         if(!switched) on.pushedAt = Math.max(on.pushedAt, n.pushedAt);
@@ -65421,7 +65425,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(moves && n.text){ try{ mt = gnAnnMovetext(g.san, n.text) || moves; }catch(e){ mt = moves; } }
       return t.join('\n')+'\n\n{ '+gnMeta(n)+'\n'+(n.text ? 'Your analysis from Chess Arcade: comments, badges, CLAMP marks and side lines.' : '(analysis deleted)')+' } '+(mt ? mt+' ' : '')+result;
     }
-    return t.join('\n')+'\n\n{ '+gnMeta(n)+'\n'+(n.text ? (gnIsDu(n.id) ? 'What happened to the Larry-Duet review of this game (added, Undo, Put back). Chess Arcade keeps it here.' : gnReadable(n.text)) : '(note deleted)')+' } '+(moves ? moves+' ' : '')+result;
+    return t.join('\n')+'\n\n{ '+gnMeta(n)+'\n'+(n.text ? (gnIsDu(n.id) ? 'What happened to the Larry-Duet review of this game (added, Undo). Chess Arcade keeps it here.' : gnReadable(n.text)) : '(note deleted)')+' } '+(moves ? moves+' ' : '')+result;
   }
   // A game's moves with an analysis record's side lines, comments and badges, as PGN movetext:
   // '1. d4 d5 2. Nc3 $1 { Jobava } (2. c4 e6) 2... Nf6'. Every move is replayed and written by
@@ -65680,8 +65684,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           } else {
             // this device's unsent edit lost to a newer one: kept, as its own
             if(unsent) n.conflict = { text:n.text, at:n.updatedAt, mine:true, lost:true };
+            // (an Undo pressed here on that edit: on the newer copy at once, the edit in the box: dzUnsentUndo)
+            const ju = unsent ? dzUnsentUndo(gid, n, n.text, rt) : null;
             // an older build's copy of a game's analysis: this device's badges and CLAMP marks stay in it (gnAnKeepB)
-            const kb = gnAnKeepB(gid, n.text, rt);
+            const kb = ju || gnAnKeepB(gid, n.text, rt);
             n.base = n.updatedAt;
             n.text = kb || rt; n.updatedAt = kb ? Math.max(Date.now(), best.up + 1) : best.up; n.pushedAt = best.up;
             gnSaw(n, rt);
@@ -65931,7 +65937,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   var DZ_MAX = 19800, DZ_PART = 3400, DZ_RAW = 40000, DZ_SLOTS = 9000;
   var DZ_ROOM = 2000;             // what an add of Larry-Duet's leaves free of a game's 10,000 characters of analysis, for yours (2026-11-26)
   var DZ_LR_SEP = '\n\n---\n\n';  // between a review the tab held and Larry-Duet's, added below it (the app's divider line)
-  var DZ = { n:0, p:new Map(), rv:new Map(), res:new Map(), lv:new Map(), dum:new Map(), pb:new Map(), newer:new Map(), dq:new Set(), hb:null, rq:new Map(), hold:new Map(), slow:false, user:'', m:null, loaded:false, boot:Date.now(), status:'', err:'',
+  var DZ = { n:0, p:new Map(), th:new Map(), rv:new Map(), res:new Map(), lv:new Map(), dum:new Map(), newer:new Map(), dq:new Set(), hb:null, rq:new Map(), hold:new Map(), slow:false, user:'', m:null, loaded:false, boot:Date.now(), status:'', err:'',
     lookAt:0, failAt:0, req:false, busy:false, again:false, run:'', last:0, reads:[], timer:0, csp:false, ver:0, nodb:false, db:null, bc:null, li:{ a:null, n:-1, m:new Map() }, door:null, doorT:0, off:'', drawT:0, badc:new Map(), said:'', syncAt:0, againT:0 };
   var gnHold = 0, gnHeld = false, gnQuiet = false;          // gnBatch: the notes written once, after a batch of records (or not at all)
   function dzOn(){ return typeof DZ==='object' && !!DZ && !document.documentElement.classList.contains('rl-embed'); }
@@ -66036,8 +66042,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   function dzDeBack(P, X){
     const d = X && P ? dzD(P) : null;
-    if(!d || d.x!==X.x) return P;
+    if(!d || d.x!==X.x || d.op==='u') return P;          // (never onto an Undo: finding C)
     return { d:Object.assign({}, d, { e:d.e.concat(X.e.filter(r=> !d.e.some(q=> q[0]===r[0]))) }) };
+  }
+  // Clear analysis's Undo: Larry-Duet's badges among the cleared ones stay off when Larry-Duet is off the game since (its Undo pressed
+  // inside the clear's 10 seconds, or another packet in its place): they never come back as yours (finding C). A Set of their keys, or null
+  function dzClearSkip(gid, X){
+    if(!X || !Array.isArray(X.e) || !X.e.length) return null;
+    const A = dzObj(gnNoteText('an-'+gid)), d = A ? dzD(A) : null;
+    return d && d.x===X.x && d.op!=='u' ? null : new Set(X.e.map(r=> r[0]));
   }
   // hvAnnText: a record's d on what the board writes now (A, without d): kept, its entries no longer as Larry-Duet wrote them off it
   function dzDKept(P, A){
@@ -66140,6 +66153,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const has = new Set(dzArr(R, 'k').concat(dzArr(R, 'o'), dzArr(R, 'q')).map(y=> y[0]+'|'+y[1]));
     const oOut = new Map();
     dzArr(R, 'o').forEach(y=>{ if(!oOut.has(y[0])) oOut.set(y[0], y[3] || ''); });
+    // a move the record already says you punished or missed gets no letter of theirs, whatever it says (the user, 2026-11-26:
+    // "skip any move where I already set punished or missed"); read before anything of D's goes in, so D's own rows never block each other
+    const oSaid = new Set(dzArr(R, 'o').filter(y=> y[3]==='p' || y[3]==='m').map(y=> y[0]));
     const cmpK = (a, b)=> a[0] - b[0] || 'CLAMP'.indexOf(a[1]) - 'CLAMP'.indexOf(b[1]);
     dzArr(D, 'k').forEach(x=>{
       if(has.has(x[0]+'|'+x[1]) || !ins('k', x.slice(), cmpK)) return;
@@ -66147,7 +66163,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       keys.push(['C|'+x[0]+'|'+x[1]]);
     });
     dzArr(D, 'o').forEach(x=>{          // (punished or missed is said once a move: a move with theirs said otherwise is left as it is)
-      if(has.has(x[0]+'|'+x[1]) || (oOut.has(x[0]) && oOut.get(x[0])!==(x[3] || '')) || !ins('o', x.slice(), cmpK)) return;
+      if(has.has(x[0]+'|'+x[1]) || oSaid.has(x[0]) || (oOut.has(x[0]) && oOut.get(x[0])!==(x[3] || '')) || !ins('o', x.slice(), cmpK)) return;
       if(!oOut.has(x[0])) oOut.set(x[0], x[3] || '');
       keys.push(['C|'+x[0]+'|'+x[1]]);
     });
@@ -66255,7 +66271,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const live = dzLiveOf(A);
     if(!live.size) return null;
     const R = dzStrip(A, live, d.f);
-    return JSON.stringify(Object.assign(R, { d:Object.assign({ v:1, x:d.x, op:'u', h0:gnFnv(t), h1:gnFnv(JSON.stringify(R)), s:d.s ? 1 : 0 }, more || {}, { e:[] }) }));
+    return JSON.stringify(Object.assign(R, { d:Object.assign({ v:1, x:d.x, op:'u', h0:gnFnv(t), h1:gnFnv(JSON.stringify(R)), s:d.s ? 1 : 0 }, d.th===1 ? { th:1 } : null, more || {}, { e:[] }) }));
   }
   // a save that would pass 10,000 characters (hvAnnSave): Larry-Duet's live marks off it first (d: op u, rm 1: "to make room for yours");
   // null: none of its own on it. What the user wrote is never what gives way to Larry-Duet's (2026-11-26)
@@ -66277,7 +66293,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hvSay(DZ_ROOM_SAY);
     DZ.ver++;
     S.dzGone = (S.dzGone || []).concat(gone);          // (hvOpen's flush, a comment saved before it opens again: without them)
-    // the board still holds them: it opens again on what was saved, at the same move of the game, once nothing is open on it
+    dzReopen(S);
+  }
+  // the board still holds what the record no longer has (Larry-Duet's marks gave way, or another tab's or device's write of Larry-Duet's
+  // was replayed onto this board's save: fix round 5, W7): it opens again on what was saved, at the same move, once nothing is open on it
+  function dzReopen(S){
     const again = ()=>{
       try{
         if(HV_STATE!==S) return;
@@ -66328,17 +66348,24 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function dzReplay(W, V, gid){
     const B = dzObj(V);
     if(!B) return null;
-    const vd = dzD(B), x = W.d.x, off = W.d.op==='u';
-    if(vd && (vd.x > x || vd.h0===gnFnv(W.t) || (vd.x===x && (vd.op==='u')!==off && !dzOpLater(off, gid)))) return null;
+    const vd = dzD(B), x = W.d.x, off = W.d.op==='u', th = W.d.th===1;
+    // (an Undo goes onto a newer packet's copy too, when that packet was not asked for after it: Larry-Duet stays off the game, rule 4;
+    // fix round 5, N-after / N-before)
+    const onto = off && !!vd && vd.x > x && vd.op!=='u' && dzOffX(gid, vd.x);
+    if(vd && ((vd.x > x && !onto) || vd.h0===gnFnv(W.t) || (vd.x===x && (vd.op==='u')!==off && !dzOpLater(off, gid)))) return null;
+    // letters of theirs alone (d th) never go onto, or take off, another delivery of Larry-Duet's: held, as the apply holds them (the
+    // Theirs fix round, 2026-11-26: a sync's merge put them in a live review's place)
+    if(th && vd && vd.x!==x) return null;
     if(off){
       if(!vd || vd.op==='u') return null;
       const live = dzLiveOf(B);
       if(!live.size) return null;
       const R = dzStrip(B, live);
-      const t = JSON.stringify(Object.assign(R, { d:{ v:1, x, op:'u', h0:gnFnv(V), h1:gnFnv(JSON.stringify(R)), s:vd.s ? 1 : 0, e:[] } }));
+      const t = JSON.stringify(Object.assign(R, { d:Object.assign({ v:1, x:onto ? vd.x : x, op:'u', h0:gnFnv(V), h1:gnFnv(JSON.stringify(R)), s:vd.s ? 1 : 0 }, th ? { th:1 } : null, { e:[] }) }));
       return t.length <= GN_MAX ? t : null;
     }
     if(vd && vd.x===x && vd.op!=='u') return null;          // (V has W's packet already)
+    if(dzOffX(gid, x)) return false;          // (a packet not asked for after the game's Undo: never added, the user's copy whole; fix round 5)
     // (no d on V, yet a comment of Larry-Duet's in it word for word: V was made from W by a build that drops d, and what is not in it was
     // taken off there: never put back, 2026-11-26)
     if(!vd){ const SV = dzSlots(B); for(const [k, r] of dzLiveOf(W.A)) if(k.charAt(0)==='c' && SV.has(k) && dzE(SV.get(k))===r[1]) return null; }
@@ -66349,7 +66376,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const res = dzAddText(base, dzLiveMk(W.A));
     if(!dzAddOnly(base, res.A)) return null;
     const px = old ? vd.x : W.d.px;
-    const t = dzSeal(res, x, old ? 'r' : W.d.op, gnFnv(V), dzHasUser(base) ? 1 : 0, px ? { px } : null);
+    const t = dzSeal(res, x, old ? 'r' : W.d.op, gnFnv(V), dzHasUser(base) ? 1 : 0, Object.assign({}, px ? { px } : null, th ? { th:1 } : null));
     return t.length <= GN_MAX - DZ_ROOM ? t : false;          // (false: with Larry-Duet's it would leave less than 2,000 for yours: the caller keeps yours whole, 2026-11-26)
   }
   // of an Undo and an add (Put back, or a packet asked for after the Undo) of one packet on a game: is W's (off: the Undo) the later
@@ -66360,6 +66387,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function dzAuto(id, n, local, remote){
     if(!dzOn() || !gnIsAn(id) || !local || !remote || local===remote) return null;
     const Wl = dzPureOf(local), Wr = dzPureOf(remote);
+    if(Wl && Wr) return dzUndoJoin(Wl, Wr) || dzUndoOnto(id.slice(3), Wl, Wr);          // (two Undos of one packet, one on each device; an Undo and a newer packet)
+    // (a pure write made here on a text that never reached Lichess holds edits of yours from before it, which its replay would leave out:
+    // never replayed while it is unsent, the box keeps this device's text, as for the other device's pure write below. Once it was sent,
+    // it is replayed: the other device's box holds its text (finding B-B1, without round 4's B2-2: an Undo holds where it was pressed))
+    if(Wl && !Wr && dzUnsentPure(n, local, Wl)) return null;
     if(Wl && !Wr){ const j = dzReplay(Wl, remote, id.slice(3)); return j===false ? remote : j; }          // (no room for both: the user's copy whole)
     if(Wr && !Wl){
       const h = Wr.d.h0;
@@ -66368,6 +66400,46 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       return j===false ? local : j;
     }
     return null;
+  }
+  // a pure write of Larry-Duet's made here (an Undo) on a text holding edits of yours that never reached Lichess, itself unsent
+  function dzUnsentPure(n, local, W){ return !gnSeen(n || {}, local) && !(W.d.h0===gnFnv('') || (n && Array.isArray(n.seen) && n.seen.indexOf(W.d.h0) >= 0)); }
+  // such an Undo, and the other device's newer copy: the Undo onto that copy at once (Larry-Duet's marks off everywhere, as pressed), and
+  // this device's text kept in the other-version box (B-B1, B2-2). null: not that case
+  function dzUnsentUndo(id, n, local, remote){
+    if(!dzOn() || !gnIsAn(id) || !local || !remote || local===remote) return null;
+    const Wl = dzPureOf(local), Wr = dzPureOf(remote);
+    if(!Wl || Wl.d.op!=='u' || (Wr && Wr.d.x===Wl.d.x) || !dzUnsentPure(n, local, Wl)) return null;          // (a newer packet's pure write too: fix round 5)
+    return dzReplay(Wl, remote, id.slice(3)) || null;
+  }
+  // two pure Undos of one packet (each device pressed it): the same record but for d. One text, no box, the same bytes in either order
+  function dzUndoJoin(a, b){
+    const da = a.d, db = b.d;
+    if(da.op!=='u' || db.op!=='u' || da.x!==db.x || da.e.length || db.e.length) return null;
+    const Ba = Object.assign({}, a.A), Bb = Object.assign({}, b.A);
+    delete Ba.d; delete Bb.d;
+    if(!dzSame(JSON.stringify(Ba), JSON.stringify(Bb))) return null;
+    return a.t <= b.t ? a.t : b.t;
+  }
+  // two pure writes made on one text, an Undo and a newer packet's add that was not asked for after it (the other device had not heard of
+  // the Undo yet): the Undo onto the add, the same bytes on either device (Larry-Duet stays off the game, rule 4; fix round 5, N-after)
+  function dzUndoOnto(gid, a, b){
+    const U = a.d.op==='u' ? a : b.d.op==='u' ? b : null, V = U===a ? b : a;
+    if(!U || V.d.op==='u' || U.d.x===V.d.x || U.d.h0!==V.d.h0) return null;
+    return dzReplay(U, V.t, gid) || null;
+  }
+  // the other-version box between two copies of one packet's record, one of them its Undo (findings K and B2-1: "Add them to these"
+  // merged the other copy onto a board that still held Larry-Duet's marks, so yours at those places went, its words came back inside
+  // yours and the Undo no longer took them off). No Put back: the Undo stands. gone: the board's live entries of Larry-Duet's (the board
+  // opens without them before anything is merged), X: the other copy without its own, d: the Undo's. null: not such a box
+  function dzBoxUndo(tb, tx, gid){
+    if(!dzOn() || !tb || !tx || tb.indexOf('"d":{') < 0 || tx.indexOf('"d":{') < 0) return null;
+    const Ab = dzObj(tb), Ax = dzObj(tx), db = Ab ? dzD(Ab) : null, dx = Ax ? dzD(Ax) : null;
+    // (or two packets' copies: the Undo, and a newer packet's add not asked for after it; fix round 5, N-before)
+    const two = !!db && !!dx && db.x!==dx.x && (db.op==='u')!==(dx.op==='u') && dzOffX(gid, db.op==='u' ? dx.x : db.x);
+    if(!db || !dx || (db.x!==dx.x && !two) || (db.op!=='u' && dx.op!=='u')) return null;
+    const Lb = db.op==='u' ? new Map() : dzLiveOf(Ab), Lx = dx.op==='u' ? new Map() : dzLiveOf(Ax), u = db.op==='u' ? db : dx;
+    const d = Object.assign({ v:1, x:Math.max(db.x, dx.x), op:'u', h0:u.h0, h1:u.h1, s:db.s || dx.s ? 1 : 0 }, db.th===1 || dx.th===1 ? { th:1 } : null, u.rm ? { rm:1 } : null, { e:[] });
+    return { d, gone:[...Lb.values()], X:dzStrip(Ax, Lx) };
   }
   // gnReconcile: a game's analysis in two chapters (two devices each wrote it first, before either had read the other's: 2026-11-26),
   // one a pure write of Larry-Duet's made on no record and the other the user's: the user's with Larry-Duet's added, so the one
@@ -66430,7 +66502,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     DZ.dum.set(gid, { t, v });
     return v;
   }
+  // letters of theirs alone never go onto another delivery's record: a live one, one that gave way to yours, or an Undo that was not of
+  // letters of theirs (a review's: Larry-Duet is off that game; the Theirs fix rounds, 2026-11-26/27)
+  function dzThHold(P, d0){ return !!P && P.pk==='theirs' && !!d0 && d0.x!==P.x && (d0.op!=='u' || !!d0.rm || d0.th!==1); }
   function dzUndone(du, P){ return !!du.u && du.u[1]===1 && !(P && P.rq > du.u[0]); }
+  // is packet x off on game gid by its du- (rule 4: after Undo, Larry-Duet stays off a game until that game is asked for again): the last
+  // decision an Undo, and x not a packet asked for after it (this device's copy of x says when it was asked for; none here: not asked)
+  function dzOffX(gid, x){ const P = gid && typeof DZ==='object' && DZ && DZ.p ? DZ.p.get(gid) : null; return !!gid && dzUndone(dzDu(gid), P && P.x===x ? P : null); }
   // the review tab's text without the part Larry-Duet added (r), when it still ends with it exactly; else as it is
   function dzLrCut(T, r){ return r && T.length >= r[2] && gnFnv(T.slice(T.length - r[2]))===r[1] ? T.slice(0, T.length - r[2]) : T; }
   function dzLrLive(T, r){ return !!r && !!T && dzLrCut(T, r)!==T; }
@@ -66498,6 +66576,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(du.a.some(y=> y[0]===P.x)) return { st:'done' };          // (the cheap test first: every sync asks this of every packet)
     const an = GN.notes['an-'+gid], lr = GN.notes['lr-'+gid], A0 = an ? dzObj(an.text) : null, d0 = A0 ? dzD(A0) : null;
     if(d0 && d0.x >= P.x) return { st:'done' };
+    if(dzThHold(P, d0)) return { st:'held' };          // (letters of theirs alone never replace a live Larry-Duet delivery, one that gave way to yours, or a review's Undo: the Theirs backfill, 2026-11-26)
     if(dzUndone(du, P)) return { st:'off' };
     if(!(began > P.got)) return { st:'wait', why:'notes' };
     if((an && an.conflict) || (lr && lr.conflict)) return { st:'wait', why:'conflict' };
@@ -66505,33 +66584,34 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(unsent(an) || unsent(lr)) return { st:'wait', why:'unsent' };
     if(A0===undefined || (A0 && 'd' in A0 && !d0)) return { st:'odd' };
     if(dzBusyOn(gid)) return { st:'wait', why:'open' };
-    const m = DZ.rv.get(gid);
+    const m = P.pk==='theirs' ? { x:P.x, rv:'' } : DZ.rv.get(gid);          // (letters of theirs alone have no review to wait for)
     if(!m || m.x!==P.x){ dzRv(P).then(t=>{ if(t && getLichessToken()) gnScheduleSync(1500); }); return { st:'wait', why:'rv' }; }
     return { st:'go', rv:m.rv, g };
   }
   // what P adds to the records as they are now: { tA, T, du, n, st } (st: 'long', 'odd' when nothing may be written)
-  function dzPlan(P, rv, put){
+  function dzPlan(P, rv){
     const gid = P.id, cur = gnNoteText('an-'+gid), A0 = dzObj(cur), d0 = A0 ? dzD(A0) : null, du = dzDu(gid);
     if(A0===undefined || (A0 && 'd' in A0 && !d0)) return { st:'odd' };
+    if(dzThHold(P, d0)) return { st:'held' };          // (op 'r' would strip that delivery's live entries; one that gave way keeps its review)
     let base = A0 ? Object.assign({}, A0) : null, op = 'a', px = 0;
     if(base) delete base.d;
     if(d0 && d0.op!=='u' && d0.x!==P.x){ op = 'r'; px = d0.x; base = dzStrip(A0, dzLiveOf(A0), d0.f); }
-    else if(d0 && d0.op!=='u' && d0.x===P.x) base = dzStrip(A0, dzLiveOf(A0), d0.f);          // (Put back over what is left of it: as new)
     const res = dzAddText(base, P.mk);
     if(!dzAddOnly(base, res.A)){ try{ console.warn('Larry-Duet: an add that was not add-only, nothing written'); }catch(e){} return { st:'odd' }; }
     // the review: always into a record of its own (lv-), shown below what the tab holds after the divider, or alone (the user,
     // 2026-11-25: the tab always gets it; one record of 10,000 characters can't hold both). The tab's own record (lr-) is the user's
     // alone: no apply writes it, so a review pasted on another device at the same moment never races it (2026-11-26)
-    const T0 = gnNoteText('lr-'+gid), V0 = gnNoteText('lv-'+gid), rl = 0, T = T0, V = rv, r = du.r, w = [P.x, gnFnv(rv), rv.length];
+    const T0 = gnNoteText('lr-'+gid), V0 = gnNoteText('lv-'+gid), rl = 0, T = T0, th = P.pk==='theirs', V = th ? V0 : rv, r = du.r, w = th ? du.w : [P.x, gnFnv(rv), rv.length];          // (letters of theirs alone: the review's records as they are)
     const more = {};
     if(px) more.px = px;
     if(rl) more.rl = 1;
+    if(th) more.th = 1;          // (letters of theirs alone, said in d: a sync's merge holds them as the apply does, dzReplay)
     const tA = dzSeal(res, P.x, op, gnFnv(cur), dzHasUser(base) ? 1 : 0, more);
     if(tA.length > GN_MAX - DZ_ROOM) return { st:'long' };          // (room left for yours: 2026-11-26)
     const o = dzDuParse(gnNoteText('du-'+gid)), now = Date.now();
     if(!o.a.some(y=> y[0]===P.x)) o.a.push([P.x, now]);
     o.r = r; o.w = w;
-    if(put || (o.u && o.u[1]===1)) o.u = [Math.max(now, (o.u ? o.u[0] : 0) + 1), 0];          // (asked for again after an Undo: on again)
+    if(o.u && o.u[1]===1) o.u = [Math.max(now, (o.u ? o.u[0] : 0) + 1), 0];          // (a newer one asked for after an Undo: on again. No Put back: the user, 2026-11-27)
     return { st:'ok', tA, T, T0, V, V0, du:dzDuText(o), n:dzTally(res.keys.map(k=> k[0])) };
   }
   function dzWrite(gid, Q, g){
@@ -66546,7 +66626,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     });
   }
   function dzApply(P, r){
-    const Q = dzPlan(P, r.rv, false);
+    const Q = dzPlan(P, r.rv);
     if(Q.st!=='ok'){ DZ.res.set(P.id, { st:Q.st }); return false; }
     const ok = dzWrite(P.id, Q, r.g);
     DZ.res.set(P.id, ok ? { st:'done' } : { st:'storage' });
@@ -66563,6 +66643,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const du = dzDu(P.id);
       if(du.a.some(y=> y[0]===P.x) || dzUndone(du, P)) continue;
       const t = gnNoteText('an-'+P.id), A0 = t && t.indexOf('"d":{') >= 0 ? dzObj(t) : null, d0 = A0 ? dzD(A0) : null;
+      if(dzThHold(P, d0)) continue;          // (held letters of theirs: nothing a sync could add)
       if(!(d0 && d0.x >= P.x)) return true;
     }
     return false;
@@ -66597,7 +66678,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const str = (v, re)=> typeof v==='string' && re.test(v);
     if(str(R.ac, /^[a-z0-9_-]{2,30}$/)) P.ac = R.ac;
     const M = R.mk, F = ['l', 'c', 'm', 'b', 'k', 'q', 'o', 't', 'h'];
-    if(typeof R.rv==='string' && (R.rv.length < 200 || R.rv.length > GN_MAX)) P.bad = dzNo('size');
+    const th = R.pk==='theirs';          // letters of theirs alone (the Theirs backfill, 2026-11-26): no review, only o, mark v=2 and only then
+    if(typeof R.rv==='string' && (th ? R.rv!=='' : (R.rv.length < 200 || R.rv.length > GN_MAX))) P.bad = dzNo(th ? 'form' : 'size');
     try{ if(JSON.stringify(M).length > DZ_SLOTS) P.bad = dzNo('size'); }catch(e){ P.bad = dzNo('form'); }
     const note = (s)=> s===undefined || typeof s==='string';
     const okRow = {
@@ -66607,9 +66689,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       q:x=> x.length===3 && dzInt(x[0], 1, 3000) && typeof x[1]==='string' && typeof x[2]==='string', o:x=> x.length <= 5 && dzInt(x[0], 1, 3000) && typeof x[1]==='string' && x.slice(2).every(note),
       t:x=> x.length >= 6 && x.length <= 8 && (dzInt(x[0], 1, 3000) || (Array.isArray(x[0]) && x[0].length <= 6 && x[0].every(p=> dzInt(p, 1, 3000)))) && x.slice(1).every(s=> typeof s==='string') };
     const ok = !P.bad && !!P.ac && (R.me==='w' || R.me==='b') && dzInt(R.n, 1, 600) && str(R.mv, /^[a-h][1-8][a-h][1-8][qrbn]?(?: [a-h][1-8][a-h][1-8][qrbn]?)*$/) && R.mv.split(' ').length===R.n
-      && str(R.s, /^[0-9a-f]{8}$/) && gnFnv(R.mv)===R.s && (R.pk==='light' || R.pk==='deep') && str(R.en, /^[\x20-\x7e]{1,40}$/) && !dzCode(R.en) && dzInt(R.at, 1, 1e14) && (R.rq==null || dzInt(R.rq, 0, 1e14)) && typeof R.rv==='string'
+      && str(R.s, /^[0-9a-f]{8}$/) && gnFnv(R.mv)===R.s && (R.pk==='light' || R.pk==='deep' || th) && (rec.v===2)===th && str(R.en, /^[\x20-\x7e]{1,40}$/) && !dzCode(R.en) && dzInt(R.at, 1, 1e14) && (R.rq==null || dzInt(R.rq, 0, 1e14)) && !(th && R.rq) && typeof R.rv==='string'
       && !!M && typeof M==='object' && !Array.isArray(M) && Object.keys(M).every(f=> F.indexOf(f) >= 0)
-      && F.every(f=> M[f]===undefined || (Array.isArray(M[f]) && M[f].length <= 200 && M[f].every(x=> Array.isArray(x) && okRow[f](x))));
+      && F.every(f=> M[f]===undefined || (Array.isArray(M[f]) && M[f].length <= 200 && M[f].every(x=> Array.isArray(x) && okRow[f](x))))
+      && (!th || (Array.isArray(M.o) && M.o.length > 0 && F.every(f=> f==='o' || !M[f] || !M[f].length)));
     if(!ok){ if(!P.bad) P.bad = dzNo('form'); return { P }; }
     P.me = R.me; P.n = R.n; P.mv = R.mv; P.sum = R.s; P.pk = R.pk; P.en = R.en; P.at = R.at; P.rq = R.rq || 0; P.rv = R.rv;
     F.forEach(f=>{ P.mk[f] = (M[f] || []).map(x=> x.map(y=> Array.isArray(y) ? y.slice() : y)); });
@@ -66619,7 +66702,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // the rest, with the game (g) and the review's text (rv): yields between its steps, returns { ok, code, say }
   function* dzDoorGen(P, rv, g){
     const D = P.mk, J = JSON.stringify, bad = dzNo, me = ghMyColor(g, dzMe(g))==='white' ? 'w' : 'b';
-    if(!rv) return bad('form');
+    const th = P.pk==='theirs';
+    if(th ? !!rv : !rv) return bad('form');
     if(!ghIsStd(g) || (typeof g.initialFen==='string' && g.initialFen.trim()) || ghVsComputer(g) || me!==P.me) return bad('game');
     if(!g.status || ['created', 'started', 'aborted', 'noStart'].indexOf(String(g.status)) >= 0 || P.at < hraEnd(g) - 300e3 || P.at > Date.now() + 86400e3) return bad('live');
     const toks = String(g.moves || '').trim().split(/\s+/), root = { state:pzStartPosition(), off:0, children:[], main:true, uci:'' }, main = [];
@@ -66682,7 +66766,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     yield;
     if([rv].concat(all).some(dzCode)) return bad('html');
     const L0 = rv.split('\n').map(s=> s.trim()).filter(Boolean);
-    if(!L0.length || /^\*\*White:\*\*/.test(L0[0]) || !L0.some(s=> /^\*\*White:\*\* \S/.test(s))) return bad('form');
+    if(!th && (!L0.length || /^\*\*White:\*\*/.test(L0[0]) || !L0.some(s=> /^\*\*White:\*\* \S/.test(s)))) return bad('form');
     // every move written is legal from this game, to its line's last, by the very reading that makes the links
     const box = document.createElement('div');
     hvLrBlocks(box, rv);
@@ -66744,8 +66828,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const sg = dzSg(g);
     let r = null;
     try{
-      const rv = await dzRv(P);
-      if(!rv){          // its text isn't to be had just now: that's no verdict. Again in a while, the third time from Lichess
+      const rv = P.pk==='theirs' ? '' : await dzRv(P);
+      if(!rv && P.pk!=='theirs'){          // its text isn't to be had just now: that's no verdict. Again in a while, the third time from Lichess
         DZ.door = null;
         const n = P.norv = (P.norv || 0) + 1;
         DZ.hold.set(P.id, Date.now() + 4000);
@@ -66805,9 +66889,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   function dzKey(id){ return DZ.user+'/'+id; }
   function dzPut(list){
     if(!DZ.user) return;
-    dzStore('p', list.map(P=>{ const r = Object.assign({ k:dzKey(P.id), o:DZ.user }, P); delete r.rv; return r; })).then(ok=>{ if(ok && DZ.bc) try{ DZ.bc.postMessage({ ids:list.map(P=> P.id), o:DZ.user }); }catch(e){} });
+    // (letters of theirs alone kept with their marks as mt, mk none: an older build's dzKept refuses them and reads the chapter as
+    // "newer", instead of waiting for a review that never comes, a sync every 15 s: the Theirs fix round, 2026-11-26)
+    dzStore('p', list.map(P=>{ const r = Object.assign({ k:dzKey(P.id), o:DZ.user }, P); delete r.rv; if(P.pk==='theirs'){ r.mt = r.mk; r.mk = null; } return r; })).then(ok=>{ if(ok && DZ.bc) try{ DZ.bc.postMessage({ ids:list.map(P=> P.id), o:DZ.user }); }catch(e){} });
   }
   async function dzRv(P){          // a packet's review: in memory while it can't be kept, else read when it's wanted
+    if(P.pk==='theirs') return '';          // (none: letters of theirs alone)
     const m = DZ.rv.get(P.id);
     if(m && m.x===P.x) return m.rv;
     const r = await dzIn8(dzIdb().then(db=> !db ? null : new Promise(res=>{ try{ const q = db.transaction('r').objectStore('r').get(dzKey(P.id)); q.onsuccess = ()=> res(q.result || null); q.onerror = ()=> res(null); }catch(e){ res(null); } })), null);
@@ -66817,11 +66904,22 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   function dzRvMem(P, rv){ DZ.rv.delete(P.id); DZ.rv.set(P.id, { x:P.x, rv }); if(!DZ.nodb) while(DZ.rv.size > 16) DZ.rv.delete(DZ.rv.keys().next().value); }          // (a night's games added in one sync)
   function dzKept(r){
+    if(r && r.pk==='theirs' && r.mk===null && r.mt && typeof r.mt==='object' && !Array.isArray(r.mt)) r = Object.assign({}, r, { mk:r.mt });          // (letters of theirs alone: dzPut)
     if(!r || !DZ_ID.test(String(r.id || '')) || !Number.isFinite(r.x) || !r.mk || typeof r.mk!=='object' || typeof r.mv!=='string' || (!r.bad && ['l', 'c', 'm', 'b', 'k', 'q', 'o', 't', 'h'].some(f=> !Array.isArray(r.mk[f])))) return null;
     const P = Object.assign({}, r);
-    delete P.k; delete P.o; delete P.rv;
+    delete P.k; delete P.o; delete P.rv; delete P.mt;
     return P;
   }
+  // a review of Larry-Duet's this device holds for a game (refused ones aside): letters of theirs alone for that game never take its
+  // place here; they are held beside it, in memory (DZ.th), so its line and Undo stay the review's (the Theirs fix round)
+  function dzHolder(cur){ return !!cur && cur.pk!=='theirs' && !cur.bad && cur.ac===DZ.user && !(cur.door && !cur.door.ok); }
+  function dzHoldTh(P, cur){
+    if(!P || P.pk!=='theirs' || !dzHolder(cur) || !(P.x > cur.x)) return false;
+    const w = DZ.th.get(P.id);
+    if(!w || w.x < P.x) DZ.th.set(P.id, { x:P.x, s:P.s || '' });
+    return true;
+  }
+  function dzThHeld(gid, P){ const w = DZ.th.get(gid); return !!w && !!P && dzHolder(P) && w.x > P.x; }
   function dzCleanM(o){
     const M = { k:'state', user:'', tk:'', luser:'', listAt:0, desk:[], parts:[], full:{}, noHb:0, seen:0, hb:null };
     if(!o || typeof o!=='object') return M;
@@ -66839,7 +66937,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   async function dzOwner(user){
     if(DZ.m && user && DZ.m.user!==user){ DZ.m.hb = null; DZ.m.full = {}; DZ.m.seen = 0; DZ.m.noHb = 0; }          // another account's check-in and reads
     DZ.dq.clear();
-    DZ.user = user; DZ.p = new Map(); DZ.rv.clear(); DZ.res.clear(); DZ.lv.clear(); DZ.pb.clear(); DZ.newer.clear(); DZ.n = 0; DZ.ver++;
+    DZ.user = user; DZ.p = new Map(); DZ.th.clear(); DZ.rv.clear(); DZ.res.clear(); DZ.lv.clear(); DZ.newer.clear(); DZ.n = 0; DZ.ver++;
     if(!user) return;
     const all = DZ.db ? await dzIn8(dzIdb().then(db=> db ? hrsAll(db, 'p') : []), []) : [];          // (none opened: nothing was ever kept)
     if(DZ.user===user) all.forEach(r=>{ if(r && r.o===user && r.k===user+'/'+r.id){ const P = dzKept(r); if(P){ DZ.p.set(P.id, P); if(!P.bad && !(P.door && P.door.v===DZ_DOOR)) DZ.dq.add(P.id); } } });
@@ -66903,7 +67001,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const L = dzMarks(ch.body, 'dzp').filter(r=> DZ_ID.test(r.id)).sort((a, b)=> b.x - a.x);
     for(const rec of L){
       const cur = DZ.p.get(rec.id);
-      if(rec.v!==1){ if(!cur || cur.x < rec.x) DZ.newer.set(rec.id, rec.x); continue; }          // a build that knows more reads it
+      if(rec.v!==1 && rec.v!==2){ if(!cur || cur.x < rec.x) DZ.newer.set(rec.id, rec.x); continue; }          // a build that knows more reads it (2: letters of theirs alone, no review: pk 'theirs', 2026-11-26)
       if(cur && (cur.x > rec.x || (cur.x===rec.x && (cur.c || '') <= ch.c))) return 0;
       const R = await dzInflate(rec.d), F = R ? dzForm(R, rec) : null;
       if(F){ best = F.P; break; }
@@ -66911,6 +67009,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!best) return -1;
     const cur = DZ.p.get(best.id);
     if(cur && (cur.x > best.x || (cur.x===best.x && (cur.c || '') <= ch.c))) return 0;
+    if(best.pk==='theirs' && dzHolder(cur) && best.x > cur.x){ const w = DZ.th.get(best.id); best.s = ch.s; dzHoldTh(best, cur); return w && w.x >= best.x ? 0 : 1; }          // (held beside the review: dzHolder)
+    { const w = DZ.th.get(best.id); if(w && w.x <= best.x) DZ.th.delete(best.id); }
     DZ.hold.delete(best.id);
     best.s = ch.s; best.c = ch.c; best.got = Date.now(); best.nok = 0; best.door = null;
     if(cur && cur.nok) best.nok = 1;          // a newer one of a game whose notes were read before its first: what arrives since re-tests it all the same
@@ -67065,7 +67165,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       }
       if(M.desk.length) DZ.rq = rq;
       if(hb && (!M.hb || hb.at >= M.hb.at)) M.hb = hb;
-      const H = hb || null, have = (id, x)=>{ const P = DZ.p.get(id); return !!P && P.x >= x; };
+      const H = hb || null, have = (id, x)=>{ const P = DZ.p.get(id), w = DZ.th.get(id); return (!!P && P.x >= x) || (!!w && w.x >= x && dzHolder(P)); };          // (held letters of theirs: read once)
       let want = H ? H.d.filter(x=> !have(x[0], x[1]) && !(DZ.newer.get(x[0]) >= x[1]) && (DZ.badc.get(x[3]+x[1]) || 0) < 2) : [];
       const full = new Set();
       if(want.length > DZ_ONE){ want.forEach(x=> full.add(x[2])); want = []; }
@@ -67077,6 +67177,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       }
       const parts = H ? H.parts.concat([...full].filter(s=> !H.parts.some(p=> p[0]===s)).map(s=> [s, 64, 0])) : Date.now() - M.noHb > 3600e3 ? M.parts.map(p=> [p.id, 64, 0]) : [], held = {};
       DZ.p.forEach(P=>{ if(P.s) held[P.s] = (held[P.s] || 0) + 1; });
+      DZ.th.forEach((w, id)=>{ if(w.s && dzHolder(DZ.p.get(id))) held[w.s] = (held[w.s] || 0) + 1; });
       if(!H && parts.length) M.noHb = Date.now();
       const due = parts.filter(p=> !H || (M.full[p[0]]!==p[1]+':'+p[2] && (full.has(p[0]) || (held[p[0]] || 0) < p[1]))).sort((a, b)=> b[2] - a[2]).slice(0, DZ_PARTS);
       for(const [s, n, x] of due){
@@ -67208,26 +67309,18 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!g || !P.door || P.door.v!==DZ_DOOR || P.door.sg!==dzSg(g)){ if(g){ DZ.dq.add(gid); dzDoorSoon(); } return { st:'check', P }; }          // (checked again for the game as it is now)
     if(!P.door.ok) return { st:'failed', code:P.door.code, say:P.door.say, P };
     const on = du.a.some(y=> y[0]===P.x) || (d && d.x >= P.x);
-    if(dzUndone(du, P)) return { st:'undone', P };
+    // letters of theirs here while the record is another packet's Undo that was not of letters of theirs (a review undone, its packet
+    // never read on this device): the review's own words (dzThHold; the Theirs fix round 2)
+    if(P.pk==='theirs' && d && d.op==='u' && d.x!==P.x && d.th!==1 && !d.rm && dzUndone(du, null)) return { st:'undone', P:null };
+    if(dzUndone(du, P)) return d && d.op!=='u' && v && v.n ? { st:'added', P, n:v.n, lo:d.lo || 0, rl:d.rl || 0 } : { st:'undone', P };          // (never "off" over live marks)
+    if(on && d && d.x===P.x && d.op!=='u' && dzThHeld(gid, P)) return { st:'held', P };          // (letters of theirs held beside the review added: dzHoldTh; only while the record is the review's own)
     if(on) return !d || d.x < P.x || d.op==='u' ? { st:'lost', P, rm:!!(d && d.op==='u' && d.rm) } : { st:'added', P, n:v.n, lo:d.lo || 0, rl:d.rl || 0 };
     const r = DZ.res.get(gid);
-    if(r && ['long', 'storage', 'odd'].indexOf(r.st) >= 0) return { st:r.st, P };
+    if(r && ['long', 'storage', 'odd', 'held'].indexOf(r.st) >= 0) return { st:r.st, P, th:r.st==='held' && !!d && d.op!=='u' && d.th===1 };          // (th: held over letters of theirs, not a review)
     return { st:'wait', why:r && r.st==='wait' ? r.why : 'notes', P };
   }
-  // what Put back would add, now (the undone line's count): memoized by the record's text and the packet
-  function dzBackN(gid, P){
-    if(!P) return 0;
-    const t = gnNoteText('an-'+gid), k = P.x+'|'+t, was = DZ.pb.get(gid);
-    if(was && was.k===k) return was.n;
-    const A0 = dzObj(t);
-    let n = 0;
-    if(A0!==undefined){ const base = A0 ? Object.assign({}, A0) : null; if(base) delete base.d; n = dzTally(dzAddText(base, P.mk).keys.map(x=> x[0])); }
-    if(DZ.pb.size > 200) DZ.pb.clear();
-    DZ.pb.set(gid, { k, n });
-    return n;
-  }
-
-  // ---- Undo, Put back, Close: the user's own edits of the records (on every device after its next sync; offline too) ----
+  // ---- Undo, Close: the user's own edits of the records (on every device after its next sync; offline too). No Put back (the user,
+  // 2026-11-27, "Simplify Undo"): after Undo, Larry-Duet stays off the game until that game is asked for again ----
   function dzUndoNow(gid, g){
     const cur = gnNoteText('an-'+gid), tA = cur ? dzUndoText(cur) : null, o = dzDuParse(gnNoteText('du-'+gid)), T0 = gnNoteText('lr-'+gid), T = o.r ? dzLrCut(T0, o.r) : T0, V0 = gnNoteText('lv-'+gid), now = Date.now();
     const P = DZ.p.get(gid);
@@ -67241,20 +67334,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       gnSetNote('du-'+gid, dzDuText(o), g);
     });
   }
-  // false: not now (said why); 'wait': the review's text is being read from this device first
-  function dzPutBack(gid, g){
-    const P = DZ.p.get(gid), an = GN.notes['an-'+gid];
-    if(!P || !P.door || !P.door.ok || P.ac!==DZ.user){ hvSay(DZ_PB_LATER); return false; }
-    if(an && an.conflict){ hvSay('Choose between the two versions of this game\u2019s analysis first.'); return false; }
-    const m = DZ.rv.get(gid);
-    if(!m || m.x!==P.x){ dzRv(P).then(t=>{ if(t && HV_STATE && String(HV_STATE.game.id || '')===gid) dzUndo(false); }); return 'wait'; }
-    const Q = dzPlan(P, m.rv, true);
-    if(Q.st==='long'){ hvSay('Larry-Duet\u2019s marks can\u2019t go back: with them, this game\u2019s analysis would leave fewer than 2,000 of its 10,000 characters for yours.'); return false; }
-    if(Q.st!=='ok') return false;
-    return dzWrite(gid, Q, g);
-  }
-  var DZ_PB_LATER = 'Put back shows once Chess Arcade has read the review from Lichess again.';
-  function dzUndo(off){
+  function dzUndo(){
     const S = HV_STATE, id = S && hvAnnId() ? String(S.game.id) : '';
     if(!id || !dzOn()) return;
     if(hvCalcOn()) hvCalcEnd('done');
@@ -67262,19 +67342,18 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(HV_TAC_BOX) hvTacClose(true);
     hvAnnSave();
     const a = document.activeElement, inTab = !!(a && a.closest && a.closest('#hv-lr-wrap')), n = dzN(id), had = !!dzLrParts(id);
-    const ok = off ? dzUndoNow(id, S.game) : dzPutBack(id, S.game);
-    if(ok==='wait') return;
-    if(!ok){ if(off) hvSay('That couldn\u2019t be saved: this browser\u2019s storage is full.'); DZ.err2 = off ? id : ''; hvRenderMoveList(); return; }
-    DZ.off = off ? id : '';
-    DZ.offRv = off && had;          // (the bar says what went: its review too, when its part of the tab was there)
+    if(!dzUndoNow(id, S.game)){ hvSay('That couldn\u2019t be saved: this browser\u2019s storage is full.'); DZ.err2 = id; hvRenderMoveList(); return; }
+    DZ.off = id;
+    DZ.offRv = had;          // (the bar says what went: its review too, when its part of the tab was there)
     DZ.said = id;
     DZ.ver++;
     hvLrDraw();
     hvAnnRefresh();
     hvRenderMoveList();
-    hvSay(off ? 'Larry-Duet\u2019s '+(had ? 'review and ' : '')+ghoN(n, 'mark')+(n===1 ? ' is' : ' are')+' off for this game.' : 'Larry-Duet\u2019s marks are back.');
-    const to = off ? ['#hv-movelist .dz-bar .dz-back', '#dz-state .dz-back'] : ['#hv-movelist .dz-bar .dz-undo', '#hv-lr-undo'];
-    const b = (inTab ? to.reverse() : to).map(q=> document.querySelector(q)).find(x=> x && x.getClientRects().length);
+    hvSay('Larry-Duet\u2019s '+(had ? 'review and ' : '')+ghoN(n, 'mark')+(n===1 ? ' is' : ' are')+' off for this game.');
+    // (the Undo pressed is gone with them: the keyboard goes to the tab it was in, as Close does)
+    const to = inTab ? ['#hv-lr-tab', '#hv-tab-notes', '#hv-tab-moves'] : ['#hv-tab-moves', '#hv-lr-tab', '#hv-tab-notes'];
+    const b = to.map(q=> document.querySelector(q)).find(x=> x && x.getClientRects().length);
     if(b) try{ b.focus({ preventScroll:true }); }catch(e){}
   }
   function dzClose(id, x){
@@ -67286,11 +67365,11 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(f) try{ f.focus({ preventScroll:true }); }catch(e){}
     hvSay('Closed. Undo stays in the Larry-Duet Review tab.');
   }
-  // the bar over the moves, a reminder: what was added, Undo, Close; after Undo, Put back until the game is left
+  // the bar over the moves, a reminder: what was added, Undo, Close; after Undo, that they are off until the game is left (no Put back)
   function dzBar(){
     const S = HV_STATE, id = S && hvAnnId() && dzOn() && typeof DZ==='object' && DZ ? String(S.game.id) : '';
     if(!id) return null;
-    const v = dzLive(id), du = dzDu(id), off = DZ.off===id && !!du.u && du.u[1]===1, full = DZ.err2===id, n = v && v.d.op!=='u' ? v.n : 0;
+    const v = dzLive(id), du = dzDu(id), n = v && v.d.op!=='u' ? v.n : 0, off = DZ.off===id && !!du.u && du.u[1]===1 && !n, full = DZ.err2===id;
     if(!off && !full && (!n || (du.c && du.c[0]===v.d.x))) return null;
     if(off && dzTabSeen()) return null;
     const row = hvEl('div', 'dz-bar'), b = (cls, label, fn)=>{ const x = hvEl('button', 'btn-link '+cls, label); x.type = 'button'; x.addEventListener('click', (e)=>{ e.stopPropagation(); fn(); }); row.appendChild(x); return x; };
@@ -67300,16 +67379,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(full && !off){ row.appendChild(hvEl('span', 'dz-bar-t', 'That couldn\u2019t be saved: this browser\u2019s storage is full.')); return row; }
     const had = !!dzLrParts(id);
     row.appendChild(hvEl('span', 'dz-bar-t', off ? (DZ.offRv ? 'Larry-Duet\u2019s marks and review are off.' : 'Larry-Duet\u2019s marks are off.') : 'Larry-Duet added '+ghoN(n, 'mark')));
-    if(off) b('dz-back', 'Put back', ()=> dzUndo(false));
-    else {
-      b('dz-undo', 'Undo', ()=> dzUndo(true)).title = 'Take Larry-Duet\u2019s '+(had ? 'review and ' : '')+'marks off this game, on all your devices. What you added or changed stays.';
+    if(!off){
+      b('dz-undo', 'Undo', ()=> dzUndo()).title = 'Take Larry-Duet\u2019s '+(had ? 'review and ' : '')+'marks off this game, on all your devices. What you added or changed stays.';
       b('dz-close', 'Close', ()=> dzClose(id, v.d.x)).title = 'Close this reminder. The marks stay; Undo stays in the Larry-Duet Review tab.';
       if(DZ.said!==id){ DZ.said = id; setTimeout(()=>{ if(HV_STATE===S) hvSay('Larry-Duet added '+ghoN(n, 'mark')+' to this game.'); }, 900); }
     }
     return row;
   }
-  // the tab's own line (with its Put back) is on screen: the bar doesn't say it a second time
-  function dzTabSeen(){ const e = document.getElementById('dz-state'); return !!e && !e.hidden && !!e.querySelector('.dz-back') && e.getClientRects().length > 0; }
+  // the tab's own line is on screen: the bar doesn't say it a second time
+  function dzTabSeen(){ const e = document.getElementById('dz-state'); return !!e && !e.hidden && !!e.querySelector('.dz-line') && e.getClientRects().length > 0; }
 
   // ---- the Larry-Duet Review tab ----
   function dzClock(ms){ try{ return new Date(ms).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }); }catch(e){ return ''; } }          // (as pdbTime: 4:09 PM)
@@ -67326,7 +67404,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const before = dzLrCut(T, du.r), tail = T.slice(before.length);
     return { before, duet:before && tail.indexOf(DZ_LR_SEP)===0 ? tail.slice(DZ_LR_SEP.length) : tail, P:of(du.r) };
   }
-  // the line at the top of the tab: { t, back, wait }, null: nothing to say
+  // the line at the top of the tab: { t, wait }, null: nothing to say
   function dzLine(gid, game){
     if(!dzOn() || !DZ.user || !getLichessToken()) return null;
     const v = dzState(gid, game), M = DZ.m || {}, hb = M.hb, rq = DZ.rq.get(gid), q = hb ? hb.q.find(x=> x[0]===gid) : null, newRq = rq && (!v.P || rq.at > v.P.x);
@@ -67343,8 +67421,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(v.st==='long') return { t:'Larry-Duet\u2019s marks were not added: with them, this game\u2019s analysis would leave fewer than 2,000 of its 10,000 characters for yours. Nothing was changed.' };
     if(v.st==='storage') return { t:'Larry-Duet\u2019s review could not be added: this browser\u2019s storage is full.' };
     if(v.st==='odd') return { t:'Larry-Duet\u2019s review was not added: this game\u2019s analysis could not be read here. Nothing was changed.' };
-    if(v.st==='undone'){ const n = dzBackN(gid, v.P); return { t:'Larry-Duet\u2019s review and '+(n ? ghoN(n, 'mark') : 'marks')+' are off for this game.', back:true }; }
-    if(v.st==='lost') return { t:v.rm ? 'Larry-Duet\u2019s marks were taken off this game to make room for yours: its analysis holds 10,000 characters.' : 'Larry-Duet\u2019s marks are no longer on this game.', back:true };
+    if(v.st==='held') return { t:v.th ? 'Larry-Duet\u2019s newer letters of theirs were not added: this game has Larry-Duet\u2019s letters of theirs already. Nothing was changed.' : 'Larry-Duet\u2019s letters of theirs were not added: this game has a Larry-Duet review already. Nothing was changed.' };          // (words: pictures first; th: over letters of theirs)
+    if(v.st==='undone') return { t:v.P && v.P.pk==='theirs' ? 'Larry-Duet\u2019s letters of theirs are off for this game, and so is Larry-Duet until you ask it for a review.' : 'Larry-Duet\u2019s review and marks are off for this game, and so is Larry-Duet until you ask it for a review.' };          // (no Put back, the user's "Simplify Undo" 2026-11-27: words, pictures first)
+    if(v.st==='lost') return { t:v.rm ? 'Larry-Duet\u2019s marks were taken off this game to make room for yours: its analysis holds 10,000 characters.' : 'Larry-Duet\u2019s marks are no longer on this game.' };
     if(v.st==='added'){
       const say = [];
       if(v.lo) say.push((v.lo===1 ? '1 of Larry-Duet\u2019s comments' : v.lo+' of Larry-Duet\u2019s comments')+' did not fit beside yours (2,000 characters a comment).');
@@ -67388,7 +67467,6 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(L){
       const p = hvEl('div', 'dz-line');
       p.appendChild(hvEl('span', '', L.t));
-      if(L.back){ const b = hvEl('button', 'btn-link dz-back', 'Put back'); b.type = 'button'; b.addEventListener('click', ()=> dzUndo(false)); p.appendChild(b); }
       box.appendChild(p);
     }
     if(ask){
@@ -67483,6 +67561,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           for(const id of Array.isArray(e.data.ids) ? e.data.ids.slice(0, 200) : []){
             const r = await new Promise(res=>{ try{ const q = d.transaction('p').objectStore('p').get(user+'/'+id); q.onsuccess = ()=> res(q.result || null); q.onerror = ()=> res(null); }catch(x){ res(null); } });
             const P = r && r.o===user && DZ.user===user ? dzKept(r) : null, cur = P && DZ.p.get(P.id);
+            if(P && dzHoldTh(P, cur)){ n++; continue; }          // (letters of theirs alone beside a review here: held, dzHolder)
             if(P && (!cur || P.x > cur.x || (P.x===cur.x && JSON.stringify([P.door, P.nok])!==JSON.stringify([cur.door, cur.nok])))){ DZ.p.set(P.id, P); DZ.dq.add(P.id); n++; }
           }
           DZ.n = DZ.p.size;
@@ -70551,7 +70630,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       hvLr.editing = false; inp.value = '';
       hvLrDraw();
     });
-    $('hv-lr-undo').addEventListener('click', ()=> dzUndo(true));          // Larry-Duet's review and marks off (Put back in the line above)
+    $('hv-lr-undo').addEventListener('click', ()=> dzUndo());          // Larry-Duet's review and marks off (no Put back: the user, 2026-11-27)
     hvOnGame(()=>{ hvLrDraw(); let v = ''; try{ v = localStorage.getItem(HV_LR_VIEW) || ''; }catch(e){} hvLrShow(v==='larry', true); });
   })();
 
@@ -70588,7 +70667,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     let P = null;
     try{ P = S.annText ? JSON.parse(S.annText) : null; }catch(e){ P = null; }
     const hadB = !!P && Array.isArray(P.b), hadK = !!P && Array.isArray(P.k), hadQ = !!P && Array.isArray(P.q), hadT = !!P && Array.isArray(P.t), hadH = !!P && Array.isArray(P.h), hadO = !!P && Array.isArray(P.o), hadZ = !!P && Array.isArray(P.z), hadN = !!P && Array.isArray(P.n), hadG = !!P && Array.isArray(P.g), extra = gnAnExtra(P);
-    const prof = annoProfile(), dsrc = P && 'd' in P ? P : S.annD ? { d:S.annD } : null;          // (S.annD: "Add them to these" with the other version's)
+    const prof = annoProfile(), dsrc = S.annDj ? { d:S.annDj } : P && 'd' in P ? P : S.annD ? { d:S.annD } : null;          // (S.annD: "Add them to these" with the other version's; S.annDj: one packet's Undo, dzBoxUndo)
     const marks = (n)=>{
       if(noMarks) return;
       const r = hvAnnMarkRow(n, prof);
@@ -70762,7 +70841,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     // an edit made since it ended waits in the other-version notice (hvAnnHold), never silently dropped
     if(S.annStale && hvTacStale()){ if(!hvCalcOn()) hvAnnHold(S, id); return; }
     if(hvCalcOn() && hvTacStale()) return;          // (its end holds what's new: hvCalcEnd)
-    let t = hvAnnText(false), gave = null;
+    let t = hvAnnText(false), gave = null, again = false;
     if(S.dzGone) t = dzStripGone(t, S.dzGone);          // (Larry-Duet's marks gave way on this board: never saved back from it)
     // too much to keep (10,000): Larry-Duet's marks give way first, never the room of yours (2026-11-26); then the arrows
     const full = t;
@@ -70779,7 +70858,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const W = dzOn() ? dzPureOf(cur) : null, j = W && W.d.h0===gnFnv(S.annText || '') ? dzReplay(W, t, id.slice(3)) : null;
       if(j===false){}          // (no room for both: the board's own, made on that same text; Larry-Duet's off it)
       else if(!j){ hvAnnHold(S, id); return; }
-      else t = j;
+      else { if(W.d.op==='u') S.dzGone = (S.dzGone || []).concat(dzGoneOf(t)); t = j; again = true; }          // (the board opens again on it: W7)
     }
     gnSetNote(id, t, S.game);
     S.annD = null;
@@ -70787,6 +70866,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(S.tree) S.tree.rec = S.annText;
     dzSilverAgain(S);          // (your first mark on a game Larry-Duet annotated: its comments silver from now on)
     if(gave) dzGaveWay(S, gave);
+    if(again) dzReopen(S);
   }
   // The tree is from before another device's version (the Capture Calculator was on when it came) and an edit was made on
   // it since (a comment written as it ended, review 2026-11-19): what's new is held as this device's own in the
@@ -70861,13 +70941,32 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const id = hvAnnId(), n = id ? GN.notes[id] : null, S = HV_STATE;
     if(!n || !n.conflict) return;
     const a = document.activeElement, kb = !!(a && a.closest && a.closest('#hv-movelist .hv-ann-conflict'));
+    // one packet's two copies, one its Undo (findings K, B2-1): the board opens first on its own record without Larry-Duet's marks (the
+    // Undo stands: no Put back), and only then is the other copy, without them too, added to it or left out
+    const J = dzBoxUndo(S.annText || '', n.conflict.text, id.slice(3));
+    if(J && J.gone.length){
+      // (the board as it is, an edit still waiting to be saved in it too: written once, here, without Larry-Duet's)
+      clearTimeout(hvAnnTimer); hvAnnTimer = 0;
+      const tb = hvAnnText(false), Jb = dzBoxUndo(tb, n.conflict.text, id.slice(3)), cut = (t, K)=> JSON.stringify(Object.assign(dzStrip(dzObj(t), new Map(K.gone.map(r=> [r[0], r]))), { d:K.d }));
+      let tU = Jb ? cut(tb, Jb) : '';
+      if(!tU || tU.length > GN_MAX) tU = cut(S.annText, J);
+      gnSetNote(id, tU, S.game);
+      let at = S.cur;
+      while(at && !at.main) at = at.parent;
+      HV_TREES.delete(String(S.game.id));
+      hvOpen(S.game, S.username, { at:{ ply:at ? at.ply : 0 }, flip:S.flipped });
+      const T = HV_STATE, m = T && T!==S && GN.notes[id];
+      if(m && m.conflict && dzD(dzObj(T.annText || '') || {}) && dzD(dzObj(T.annText || '')).op==='u') hvAnnResolve(merge);
+      return;
+    }
     let left = 0;
-    if(merge){ let A = null; try{ A = JSON.parse(n.conflict.text); }catch(e){ A = null; } left = hvAnnMerge(A, true, !!n.conflict.lost) || 0; if(A && 'd' in A && !(S.annText || '').includes('"d":')) S.annD = A.d; }          // (the d of the side that has one)
+    if(merge){ let A = null; try{ A = J ? J.X : JSON.parse(n.conflict.text); }catch(e){ A = null; } left = hvAnnMerge(A, true, !!n.conflict.lost) || 0; if(A && 'd' in A && !(S.annText || '').includes('"d":')) S.annD = A.d; }          // (the d of the side that has one)
     else { const X = dzOn() ? dzObj(n.conflict.text) : null, xd = X ? dzD(X) : null; if(xd && xd.op!=='u' && dzLiveOf(X).size && !(S.annText || '').includes('"d":')) S.annD = { v:1, x:xd.x, op:'u', h0:gnFnv(S.annText || ''), h1:'', s:0, e:[] }; }          // (kept without Larry-Duet's: said in d, so the device that added them never puts them back, 2026-11-26)
+    if(J) S.annDj = J.d;          // (the Undo's d, whichever side held it)
     n.conflict = null;
     S.annNote = left ? HV_SQ_LEFT : '';
     gnPersist();
-    hvAnnSave();
+    try{ hvAnnSave(); } finally { S.annDj = null; }
     hvRedraw();
     if(!left) return;
     hvSay(HV_SQ_LEFT);
