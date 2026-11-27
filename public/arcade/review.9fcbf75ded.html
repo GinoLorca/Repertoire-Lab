@@ -10367,7 +10367,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       <div class="toggle-row hvcards-row" id="hvcards-row" role="group" aria-labelledby="hvcards-label">
         <button type="button" class="toggle active" data-card="head" aria-pressed="true">Game review</button>
         <button type="button" class="toggle active" data-card="phase" aria-pressed="true">Phase of the game</button>
-        <button type="button" class="toggle active" data-card="notes" aria-pressed="true">Wavy Review</button>
+        <button type="button" class="toggle active" data-card="notes" aria-pressed="true">Arcade Review</button>
         <button type="button" class="toggle active" data-card="comment" aria-pressed="true">Comment</button>
         <button type="button" class="toggle active" data-card="engine" aria-pressed="true">Engine</button>
         <button type="button" class="toggle active" data-card="tabs" aria-pressed="true">Moves &#183; Review &#183; Explorer</button>
@@ -11517,7 +11517,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
           <button class="hv-tab" role="tab" type="button" id="hv-tab-review" aria-controls="hv-pane-review" aria-selected="false" tabindex="-1" aria-keyshortcuts="4" title="Review (4)"><span class="hv-tab-name" id="hv-tab-review-name">Review</span></button>
           <button class="hv-tab" role="tab" type="button" id="hv-tab-explorer" aria-controls="hv-pane-explorer" aria-selected="false" tabindex="-1" aria-keyshortcuts="7" title="Explorer (7)">Explorer</button>
           <button class="hv-tab hv-tab-gone" role="tab" type="button" id="hv-tab-similar" aria-controls="hv-pane-similar" aria-selected="false" tabindex="-1" aria-keyshortcuts="8" title="Similar openings (8)">Similar</button>
-          <button class="hv-tab" role="tab" type="button" id="hv-tab-notes" aria-controls="hv-pane-notes" aria-selected="false" tabindex="-1" aria-keyshortcuts="6" title="Wavy Review (6)">Wavy Review</button>
+          <button class="hv-tab" role="tab" type="button" id="hv-tab-notes" aria-controls="hv-pane-notes" aria-selected="false" tabindex="-1" aria-keyshortcuts="6" title="Arcade Review (6)">Arcade Review</button>
         </div>
         <div class="hv-pane hv-pane-moves active" role="tabpanel" id="hv-pane-moves" aria-labelledby="hv-tab-moves">
           <div class="ol-movelist hv-movelist" id="hv-movelist"></div>
@@ -11527,7 +11527,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <!-- Similar openings (sm*): the lines in your repertoire this position resembles -->
         <div class="hv-pane hv-pane-similar" role="tabpanel" id="hv-pane-similar" aria-labelledby="hv-tab-similar"></div>
         <div class="hv-pane hv-pane-notes" role="tabpanel" id="hv-pane-notes" aria-labelledby="hv-tab-notes">
-          <div class="hv-notes-head"><label class="field-label" id="hv-note-label" for="hv-note">Wavy Review</label><button class="field-label hv-lr-tab" id="hv-lr-tab" type="button" aria-pressed="false" aria-controls="hv-lr-wrap" title="The Larry-Duet review of this game: paste it here, and every move in it takes the board there">Larry-Duet Review</button><button class="hv-fold" id="hv-fold-notes" type="button" aria-expanded="true" aria-controls="hv-note"><span class="hv-fold-chev" aria-hidden="true"></span></button></div>
+          <div class="hv-notes-head"><label class="field-label" id="hv-note-label" for="hv-note">Arcade Review</label><button class="field-label hv-lr-tab" id="hv-lr-tab" type="button" aria-pressed="false" aria-controls="hv-lr-wrap" title="The Larry-Duet review of this game: paste it here, and every move in it takes the board there">Larry-Duet Review</button><button class="hv-fold" id="hv-fold-notes" type="button" aria-expanded="true" aria-controls="hv-note"><span class="hv-fold-chev" aria-hidden="true"></span></button></div>
           <div class="text-input gn-ta hv-note" id="hv-note" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true" aria-labelledby="hv-note-label" data-placeholder="Your analysis: key moments, mistakes, plans, what to try next time."></div>
           <div class="gn-status" id="hv-note-status" aria-live="polite"></div>
           <!-- Larry's review (hvLr*): pasted once, then shown as text, every move in it a link (HV_MV_EDS) -->
@@ -62141,8 +62141,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // A folded card keeps its first lines (the review: the players, the result, the game and its
   // opening; Notes: its title) and the other card takes the room at once (CSS). Kept on this device.
   // (the arrow's name stays put; aria-expanded says open or folded)
-  const HV_FOLD = { head:['hv-head', 'hv-fold-head', 'Game review card', 'Fold to its first lines (Wavy Review takes the room)'],
-    notes:['hv-notes-card', 'hv-fold-notes', 'Wavy Review card', 'Fold to its title (the game review takes the room)'] };          // (Repertoire Lab: "Notes", hvTabWords)
+  const HV_FOLD = { head:['hv-head', 'hv-fold-head', 'Game review card', 'Fold to its first lines (Arcade Review takes the room)'],
+    notes:['hv-notes-card', 'hv-fold-notes', 'Arcade Review card', 'Fold to its title (the game review takes the room)'] };          // (Repertoire Lab: "Notes", hvTabWords)
   function hvApplyFold(){
     Object.keys(HV_FOLD).forEach(k=>{
       const [id, bid, name, tip] = HV_FOLD[k], folded = !!hvPrefs.fold[k], b = document.getElementById(bid);
@@ -67335,15 +67335,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     view.appendChild(hvEl('p', 'hv-lr-p hv-lr-gap dz-foot', foot));
     return true;
   }
-  // Repertoire Lab keeps the tab's old name (the user, 2026-11-25: "Wavy Review" in Chess Arcade only; RL another time)
-  var HV_WAVY = [['hv-note-label', 'Wavy Review', 'Notes'], ['hv-tab-notes', 'Wavy Review', 'Notes']];
+  // Repertoire Lab keeps the tab's old name (the user: its own name in Chess Arcade only, 2026-11-25; renamed "Arcade Review" 2026-11-27; RL another time)
+  var HV_WAVY = [['hv-note-label', 'Arcade Review', 'Notes'], ['hv-tab-notes', 'Arcade Review', 'Notes']];
   function hvTabWords(){
     const rl = document.documentElement.classList.contains('rl-embed');
     HV_WAVY.forEach(([id, ca, rlw])=>{ const e = document.getElementById(id); if(e && e.textContent!==(rl ? rlw : ca)) e.textContent = rl ? rlw : ca; });
     const t = document.getElementById('hv-tab-notes');
-    if(t) t.title = (rl ? 'Notes' : 'Wavy Review')+' (6)';
+    if(t) t.title = (rl ? 'Notes' : 'Arcade Review')+' (6)';
     const c = document.querySelector('#hvcards-row [data-card="notes"]');
-    if(c && c.textContent!==(rl ? 'Notes' : 'Wavy Review')) c.textContent = rl ? 'Notes' : 'Wavy Review';
+    if(c && c.textContent!==(rl ? 'Notes' : 'Arcade Review')) c.textContent = rl ? 'Notes' : 'Arcade Review';
     if(rl && typeof HV_FOLD==='object' && HV_FOLD && HV_FOLD.notes[2]!=='Notes card'){ HV_FOLD.notes[2] = 'Notes card'; HV_FOLD.head[3] = 'Fold to its first lines (Notes takes the room)'; try{ hvApplyFold(); }catch(e){} }
   }
 
