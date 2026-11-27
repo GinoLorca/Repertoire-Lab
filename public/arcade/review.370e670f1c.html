@@ -3279,7 +3279,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .ib-fab:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
   .ib-fab[aria-expanded="true"]{ background:var(--ink); color:var(--surface); border-color:var(--ink); }
   :root[data-skin="bauhaus"] .ib-fab{ border-radius:0; border-width:2px; }
-  body.tx-marking-phone :is(.ib-fab, .ib-rvw, .ib){ display:none !important; }
+  body.tx-marking-phone :is(.ib-fab, .ib-rvw, .ib, .ib-tab){ display:none !important; }
   @media (min-width:768px) and (max-width:899.98px), (min-width:1260px) and (max-width:1363.98px){ .ib-fab:not(.in-rv){ top:66px; right:16px; } }      /* the logo's rook, or the page, is to the gear's left: under it */
   @media (min-width:900px) and (max-width:1259.98px){ .ib-fab:not(.in-rv){ top:14px; width:36px; height:36px; } .ib-fab:not(.in-rv)::before{ inset:-5px; } }      /* (the rook is under it too: a little smaller, over it) */
   @media (max-width:1259.98px){
@@ -3315,15 +3315,18 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .ib-on{ outline:2px solid color-mix(in srgb, var(--brass-text) 80%, var(--ink)) !important; outline-offset:-2px !important; }
   .ib-on.ib-on-out{ outline-offset:6px !important; border-radius:4px; }
 #gho-lev.ib-on.ib-on-out{ outline-offset:2px !important; }      /* (6px under "Where your games end up": the ring clear of it) */
-  /* the box */
-  :root{ --ib-h:min(136px, 34vh); --ib-h:min(136px, 34dvh); }
+  /* the box: as tall as its words (--ib-fit, measured when it opens and when the card it explains changes), up to --ib-cap: 70% of
+     the window, 85% on a phone (2026-11-26, the user: "I need to be able to see the entire text instead of a tiny area"); --ib-h
+     is its height before the first measure */
+  :root{ --ib-h:min(136px, 34vh); --ib-h:min(136px, 34dvh); --ib-cap:70vh; }
   @media (max-width:1024px){ :root{ --ib-h:min(168px, 34vh); --ib-h:min(168px, 34dvh); } }
-  @media (max-width:700px){ :root{ --ib-h:min(206px, 34vh); --ib-h:min(206px, 34dvh); } }
+  @media (max-width:700px){ :root{ --ib-h:min(206px, 34vh); --ib-h:min(206px, 34dvh); --ib-cap:85vh; } }
+  @supports (height:1dvh){ :root{ --ib-cap:70dvh; } @media (max-width:700px){ :root{ --ib-cap:85dvh; } } }
   .ib{ box-sizing:border-box; z-index:28; display:grid; grid-template-columns:minmax(170px, 250px) minmax(0, 1fr) 44px; gap:0 22px; align-items:start; background:var(--surface); color:var(--ink);
     border:1px solid color-mix(in srgb, var(--line), var(--ink) 25%); padding:12px 6px 10px 18px; overflow:hidden; text-align:left; }
-  .ib.is-strip{ position:fixed; left:50%; bottom:var(--ib-lift, 0px); transform:translateX(-50%); width:min(1140px, 100vw); height:calc(var(--ib-h) + env(safe-area-inset-bottom)); padding-bottom:calc(10px + env(safe-area-inset-bottom));
+  .ib.is-strip{ position:fixed; left:50%; bottom:var(--ib-lift, 0px); transform:translateX(-50%); width:min(1140px, 100vw); height:min(var(--ib-cap), var(--ib-fit, calc(var(--ib-h) + env(safe-area-inset-bottom)))); padding-bottom:calc(10px + env(safe-area-inset-bottom));
     border-radius:12px 12px 0 0; border-bottom:0; box-shadow:0 -6px 22px rgba(0,0,0,.16); transition:opacity .14s ease, visibility .14s; }
-  html.rl-history .ib.is-strip{ bottom:calc(var(--ib-lift, 0px) + 6px); width:min(1140px, 100vw - 8px); height:var(--ib-h); padding-bottom:10px; border-radius:12px; border-bottom:1px solid color-mix(in srgb, var(--line), var(--ink) 25%); box-shadow:0 2px 22px rgba(0,0,0,.28); }
+  html.rl-history .ib.is-strip{ bottom:calc(var(--ib-lift, 0px) + 6px); width:min(1140px, 100vw - 8px); height:min(var(--ib-cap), var(--ib-fit, var(--ib-h))); padding-bottom:10px; border-radius:12px; border-bottom:1px solid color-mix(in srgb, var(--line), var(--ink) 25%); box-shadow:0 2px 22px rgba(0,0,0,.28); }
   .ib.is-strip::before{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:var(--brass); }
   .ib.is-off{ opacity:0; visibility:hidden; }
   .ib.is-strip.is-slim{ height:calc(48px + env(safe-area-inset-bottom)); padding-top:3px; padding-bottom:env(safe-area-inset-bottom); }
@@ -3335,6 +3338,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .ib-t{ margin:0; font-family:inherit; font-size:15px; font-weight:800; line-height:1.3; letter-spacing:0; text-transform:none; color:var(--ink); overflow-wrap:anywhere; }
   .ib-hd{ min-width:0; max-height:100%; overflow:hidden; }
   .ib-m{ min-width:0; height:100%; max-height:100%; overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; padding-right:6px; box-sizing:border-box; }
+  .ib:not(.is-over) .ib-m{ overscroll-behavior:auto; }      /* (words that fit: the wheel or a finger over them scrolls the page, as anywhere else) */
   .ib-m:focus-visible, .ib-close:focus-visible{ outline:2px solid var(--focus); outline-offset:-2px; border-radius:6px; }
   .ib-m p{ margin:0 0 3px; max-width:96ch; font-size:14px; line-height:1.42; color:var(--ink); }
   .ib-m p.is-1:not(:first-child), .ib-m .ib-src:not(:first-child){ margin-top:8px; }          /* another paragraph */
@@ -3353,8 +3357,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     .ib.is-strip .ib-close{ grid-column:2; grid-row:1; margin:-5px 0 -8px; }
   }
   /* the review beside the board: under the left column on a Mac, else at the foot of the side column */
-  .ib.is-col{ position:fixed; box-shadow:var(--shadow); }
-  .ib.is-flow{ position:relative; flex:0 0 auto; height:150px; box-shadow:var(--shadow); }
+  .ib.is-col{ position:fixed; height:var(--ib-fit, 150px); box-shadow:var(--shadow); }          /* (its max-height: the room under the column, set where it is placed) */
+  .ib.is-flow{ position:relative; flex:0 0 auto; height:var(--ib-fit, 150px); box-shadow:var(--shadow); }          /* (its max-height: half its column) */
   .ib.is-col, .ib.is-flow{ grid-template-columns:minmax(0,1fr) 40px; grid-template-rows:auto minmax(0,1fr); gap:0; padding:8px 4px 5px 14px; border-radius:10px; }
   :root[data-skin="bauhaus"] :is(.ib.is-col, .ib.is-flow){ border-radius:0; }
   .ib:is(.is-col, .is-flow) .ib-m{ grid-column:1 / -1; grid-row:2; padding-right:8px; margin-top:2px; }
@@ -3364,21 +3368,83 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .ib:is(.is-col, .is-flow) .ib-t{ font-size:13.5px; }
   .ib:is(.is-col, .is-flow) .ib-m p{ font-size:12px; line-height:1.38; margin-bottom:3px; }
   .ib:is(.is-col, .is-flow) .ib-m :is(.ib-more, .ib-src){ font-size:12px; }
-  /* room to scroll the page's last numbers, and the corner pills, past the strip */
-  html.ib-strip{ scroll-padding-bottom:calc(var(--ib-h) + 14px); }
-  html.ib-strip :is(#view-history, #view-puzzle-dash, .wrap.play-mode #view-play-history).active{ padding-bottom:calc(var(--ib-h) + 14px + env(safe-area-inset-bottom)); }
+  /* room to scroll the page's last numbers, and the corner pills, past the strip: as tall as the strip is (--ib-room, set while it is open) */
+  @property --ib-room{ syntax:'*'; inherits:false; }      /* (not inherited, and set on the views that read it, never on <html>: a new height restyles those few and not the page's thousands of elements) */
+  @property --ib-keep{ syntax:'*'; inherits:false; }
+  :is(#view-history, #view-puzzle-dash, #view-play-history).ib-kept::after{ content:""; display:block; flex:0 0 auto; --ib-keep:inherit; height:var(--ib-keep, 0px); }      /* (put away at the page's foot: its room stays while it is in sight, and goes as the page is scrolled up) */
+  html.ib-strip{ scroll-padding-bottom:calc(var(--ib-h) + 14px); }      /* (before its first measure; then the strip's height + 14px, written on <html> as this plain property: see room()) */
+  html.ib-strip :is(#view-history, #view-puzzle-dash, .wrap.play-mode #view-play-history).active{ padding-bottom:calc(var(--ib-room, calc(var(--ib-h) + env(safe-area-inset-bottom))) + 14px); }
   html.ib-strip.rl-history #view-history.active{ padding-bottom:0; }
-  html.ib-strip.rl-history #view-history.active::after{ content:""; display:block; flex:0 0 auto; height:calc(var(--ib-h) + 20px); }      /* (a box of its own, not padding: Repertoire Lab's frame follows the view's content height) */
+  html.ib-strip.rl-history #view-history.active::after{ content:""; display:block; flex:0 0 auto; --ib-room:inherit; height:calc(var(--ib-room, var(--ib-h)) + 20px); }      /* (a box of its own, not padding: Repertoire Lab's frame follows the view's content height) */
   html.ib-strip :is(.friends-widget, #rl-menu){ bottom:calc(var(--ib-now, 0px) + 16px); }
   html.ib-strip .spotify-widget:not([style*="top"]){ bottom:calc(var(--ib-now, 0px) + 16px); }
   /* where the page runs under them they step aside meanwhile (as they do for the review in one column) */
   @media (max-width:1259.98px){ html.ib-strip #friends-widget{ visibility:hidden; } }
   @media (max-width:767.98px){ html.ib-strip #lichess-activity-widget{ visibility:hidden; } }
-  @media (prefers-reduced-motion:reduce){ .ib, .ib-fab{ transition:none !important; } .ib.is-in .ib-m, .ib.is-in .ib-hd{ animation:none; } }
+  :is(#lichess-activity-widget, #friends-widget, #spotify-widget).ib-aside{ visibility:hidden; }      /* a chip the open box would meet (the Lichess activity chip, one moved by hand): aside meanwhile */
+  /* ---- From the side (2026-11-26, the user: "can we have it sliding from the side? ... You click it, and then it opens up on the side ...
+     all the way from the top to the bottom of the page", the Sign Up drawer of 8wavesmusic.com; Settings, Info box: From the bottom | From
+     the side). A drawer from the left, top to bottom (in Repertoire Lab's frame: of what of it is on screen, --ib-top / --ib-bot), as wide
+     as --ib-sw (min(34rem, 44vw), less where the page needs its 780px; set where it is placed); the vertical tab on its edge opens and
+     closes it. No scrim: the box explains what you point at, so the page stays readable and pointable, moved right beside the drawer
+     (#wrap's margin, --ib-px). Never on a phone, nor in the review (its own box beside the board) ---- */
+  .ib-tab{ position:fixed; left:0; top:var(--ib-tt, 50%); z-index:42; box-sizing:border-box; width:32px; min-height:124px; margin:0; padding:12px 0 14px; display:flex; flex-direction:column; align-items:center; gap:10px;
+    background:var(--surface); color:var(--ink); border:1px solid color-mix(in srgb, var(--line), var(--ink) 25%); border-left:0; border-radius:0 10px 10px 0; box-shadow:var(--shadow); cursor:pointer;
+    font:800 11px/1 "JetBrains Mono", monospace; letter-spacing:.16em; text-transform:uppercase; transform:translate(0, -50%);
+    transition:transform .72s cubic-bezier(0.14, 0.9, 0.22, 1), background-color .2s ease, color .2s ease, border-color .2s ease, opacity .14s ease; }
+  .ib-tab[hidden]{ display:none; }
+  .ib-tab::before{ content:""; position:absolute; inset:-4px -12px -4px 0; }      /* (44px and more to a finger) */
+  .ib-tab-ic{ position:relative; display:block; width:18px; height:18px; flex:0 0 auto; }
+  .ib-tab-ic svg{ position:absolute; inset:0; width:18px; height:18px; display:block; pointer-events:none; transition:opacity .2s ease, transform .3s ease; }
+  .ib-tab-ic svg + svg{ opacity:0; transform:rotate(-90deg); }
+  .ib-tab[aria-expanded="true"] .ib-tab-ic svg:first-child{ opacity:0; transform:rotate(90deg); }
+  .ib-tab[aria-expanded="true"] .ib-tab-ic svg + svg{ opacity:1; transform:none; }
+  .ib-tab-w{ writing-mode:vertical-rl; pointer-events:none; }
+  @media (hover:hover){ .ib-tab:hover{ color:var(--brass-text); border-color:var(--brass-soft); transform:translate(.22rem, -50%); } }
+  .ib-tab[aria-expanded="true"]{ background:var(--ink); color:var(--surface); border-color:var(--ink); transform:translate(var(--ib-sw, 0px), -50%); }
+  @media (hover:hover){ .ib-tab[aria-expanded="true"]:hover{ transform:translate(calc(var(--ib-sw, 0px) + .22rem), -50%); } }
+  .ib-tab:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  :root[data-skin="bauhaus"] .ib-tab{ border-radius:0; border-width:2px; border-left:0; }
+  .ib.is-side{ position:fixed; left:0; top:0; bottom:0; width:var(--ib-sw, 34rem); max-width:calc(100vw - 32px); height:auto; z-index:41;
+    display:flex; flex-direction:column; gap:0; padding:calc(var(--ib-top, 0px) + 22px) 20px calc(var(--ib-bot, 0px) + 18px) 26px; border:0; border-right:1px solid color-mix(in srgb, var(--line), var(--ink) 25%); border-radius:0;
+    box-shadow:4px 0 26px rgba(0,0,0,.22); transform:translateX(calc(-100% - 48px)); visibility:hidden;
+    transition:transform .72s cubic-bezier(0.14, 0.9, 0.22, 1), visibility 0s linear .72s; }
+  .ib.is-side.is-open{ transform:none; visibility:visible; transition:transform .72s cubic-bezier(0.14, 0.9, 0.22, 1), visibility 0s; }
+  :is(.ib.is-side, .ib-tab).is-still{ transition:none !important; }
+  .ib.is-side :is(.ib-hd, .ib-m){ transition:opacity .14s ease; }
+  .ib.is-side.is-scr :is(.ib-hd, .ib-m){ opacity:0; animation:none; transition:none; }          /* (Repertoire Lab's page scrolling: gone at once (ibIn's fill held them), placed again once it rests, where ibIn brings them in again) */
+  .ib-tab.is-scr{ opacity:0; pointer-events:none; transition-property:transform, background-color, color, border-color; }
+  .ib.is-side:not(.is-over){ touch-action:none; }          /* (words that fit: a finger on the drawer moves nothing behind it) */
+  .ib.is-side::before{ content:""; position:absolute; top:0; bottom:0; right:0; width:3px; background:var(--brass); }
+  .ib.is-side .ib-close{ display:none; }          /* (the tab closes it: its icon is an X while it is open) */
+  .ib.is-side .ib-hd{ flex:0 0 auto; max-height:none; overflow:visible; padding-right:10px; }
+  .ib.is-side .ib-k{ font-size:11px; margin-bottom:7px; }
+  .ib.is-side .ib-t{ font-size:21px; line-height:1.25; }
+  .ib.is-side .ib-m{ flex:1 1 auto; height:auto; min-height:0; max-height:none; margin-top:16px; padding-right:14px; }
+  .ib.is-side .ib-m p{ font-size:15px; line-height:1.5; margin-bottom:5px; max-width:none; }
+  .ib.is-side .ib-m p.is-1:not(:first-child), .ib.is-side .ib-m .ib-src:not(:first-child){ margin-top:12px; }
+  .ib.is-side .ib-m :is(.ib-more, .ib-src){ font-size:14px; line-height:1.5; }
+  /* the page beside it: #wrap moved right by --ib-px (registered, not inherited: a new width restyles #wrap alone), centered in what is
+     left and as narrow as that, never in a play view (the review keeps its own box); the rows that need more room take the narrower
+     windows' shapes there (ib-n1: of 960-1179px windows, ib-n2: a phone's) */
+  @property --ib-px{ syntax:'<length>'; inherits:false; initial-value:0px; }
+  #wrap.ib-push:not(.play-mode){ margin-left:var(--ib-px); min-width:0; }
+  #wrap.ib-push.ib-n1:not(.play-mode) .ga-r4{ grid-template-columns:104px minmax(40px,1fr) 76px 92px 36px; gap:4px 8px; }
+  #wrap.ib-push.ib-n2:not(.play-mode) .ga-r4{ grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"l s" "b b" "n x"; row-gap:2px; padding:4px 0; }
+  #wrap.ib-push.ib-n2:not(.play-mode) .ga-body{ grid-template-columns:minmax(0,1fr); }          /* (Analytics in one column, as in a window under 960px: two of 380px broke "5 s" across lines, 2026-11-26) */
+  #wrap.ib-push.ib-n2:not(.play-mode) .ga-r4l{ grid-area:l; }
+  #wrap.ib-push.ib-n2:not(.play-mode) .ga-r4s{ grid-area:s; }
+  #wrap.ib-push.ib-n2:not(.play-mode) .ga-r4b{ grid-area:b; }
+  #wrap.ib-push.ib-n2:not(.play-mode) .ga-r4n{ grid-area:n; text-align:left; }
+  #wrap.ib-push.ib-n2:not(.play-mode) .ga-r4x{ grid-area:x; }
+  @media (prefers-reduced-motion:reduce){ .ib, .ib-fab, .ib-tab, .home-fab{ transition:none !important; } .ib.is-in .ib-m, .ib.is-in .ib-hd{ animation:none; } }
   @media print{
-    .ib, .ib-fab, .ib-rvw{ display:none !important; }
+    .ib, .ib-fab, .ib-rvw, .ib-tab{ display:none !important; }
+    #wrap.ib-push:not(.play-mode){ margin-left:0; }
+    #wrap, .home-fab{ translate:none !important; }
     html.ib-strip :is(#view-history, #view-puzzle-dash, .wrap.play-mode #view-play-history).active{ padding-bottom:0; }
     html.ib-strip.rl-history #view-history.active::after{ display:none; }
+    :is(#view-history, #view-puzzle-dash, #view-play-history).ib-kept::after{ display:none; }
     .ib-on{ outline:none !important; }
   }
 
@@ -6464,7 +6530,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     color:var(--brass-ink);
   }
   #dn-field{ margin-bottom:8px; }      /* Appearance, above Theme in the same field */
-  @media (pointer:coarse){ #dn-row .toggle{ min-height:44px; min-width:44px; } }
+  @media (pointer:coarse){ #dn-row .toggle, #ibat-row .toggle{ min-height:44px; min-width:44px; } }
   .btn-row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
   .btn{
     font-weight:700;
@@ -10262,6 +10328,16 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <label class="custom-color-item"><span>Highlight color</span><input type="color" id="custom-color-pieceStroke"></label>
       </div>
       <div class="field-hint">The outline drawn around each piece, separate from its fill color above. Turn it off for a flat, outline-free look, or pick a color to override it.</div>
+    </div>
+
+    <!-- Info box: from the bottom or from the side (2026-11-26; lookPrefs.infoBoxAt, this device only; ibBoot) -->
+    <div class="field" id="ibat-field">
+      <div class="field-label" id="ibat-label">Info box</div>
+      <div class="toggle-row" id="ibat-row" role="group" aria-labelledby="ibat-label" aria-describedby="ibat-hint">
+        <button type="button" class="toggle" data-val="bottom" aria-pressed="false">From the bottom</button>
+        <button type="button" class="toggle active" data-val="side" aria-pressed="true">From the side</button>
+      </div>
+      <div class="field-hint" id="ibat-hint">Where the box that explains a card opens (the I key): a drawer down the left side, with the page moved beside it, or a box along the foot of the screen. The review of a game keeps its box beside the board. Kept on this device only.</div>
     </div>
 
     <div class="field">
@@ -30550,7 +30626,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         if(rr > l && b > t && rr > 0 && b > 0 && l < vw && t < vh) out.push({ l:l - pad, t:t - pad, r:rr + pad, b:b + pad });
       }
     };
-    ['home-fab', 'settings-fab', 'ib-fab', 'ib', 'friends-widget', 'spotify-widget', 'lichess-activity-widget', 'plaque-logo-wrap', 'pull-refresh-indicator'].forEach(id=> add(document.getElementById(id), 8));
+    ['home-fab', 'settings-fab', 'ib-fab', 'ib-tab', 'ib', 'friends-widget', 'spotify-widget', 'lichess-activity-widget', 'plaque-logo-wrap', 'pull-refresh-indicator'].forEach(id=> add(document.getElementById(id), 8));
     const v = views[currentView];
     if(v){
       v.querySelectorAll('.board, .board-col').forEach(el=> add(el, 8));
@@ -46890,6 +46966,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const A = md.why.ah;
     if(!A || !(A.y.N + A.o.N)) return;
     const box = ghEl('div', 'ga-ah'), two = ghEl('div', 'ga-ah2'), left = ghEl('div', 'ga-ahl');
+    box.id = 'ga-ah'; box.dataset.info = 'How you got ahead';          // (its own heading in the Info box, its own rules there: gaAhSrc; 2026-11-26)
     box.appendChild(ghEl('h4', 'ct-k ga-ahh', 'How you got ahead'));
     gaAhTable(md, left, wds);
     two.appendChild(left);
@@ -46980,9 +47057,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     box.appendChild(p);
   }
-  // its rules, after the card's own source line (a source line of its own)
+  // its rules, in its own block (the Info box's "How you got ahead"; on paper under its table)
   function gaAhSrc(md, x){
     if(!md.why.ah || !(md.why.ah.y.N + md.why.ah.o.N)) return;
+    x = x.querySelector('.ga-ah') || x;
     gaSrc(x, 'Up by 3 = 3 pawns or more better for two positions in a row; the first time in each game counts. The climb = from the last position at half a pawn or less. '+
       'Their move = their biggest move in the climb that cost 15 points of winning chances or more and that the next move kept. Built in the opening = no such move, and 1.5 or better when the middlegame began, or up by 3 before it. Ahead when the opening ended = the same, whatever did it. '+
       'Bit by bit = no such move, later. Combination = your reply was the only good move, not a plain capture, and it wins 2 points of material against any answer, or mates. Time trouble = the side that slipped had under 10% of its starting clock. '+
@@ -72434,8 +72512,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       'ga-why':[['.ga-num', /^Ahead = /], ['.ga-wyr[data-k="n"]', /^Never ahead = /], ['.ga-wyr[data-k="c"]', /^A chance not taken = /],
         ['.ga-wyr[data-k="o"]', /^(Gone in one move = |A tactic at once = |No tactic at once = )/], ['.ga-wyr[data-k="s"]', /^Slid away = /],
         ['.ga-wyr:is([data-k="t"], [data-k="e"], [data-k="r"], [data-k="d"], [data-k="x"], [data-k="z"])', /^While better = /], ['.ga-wyr[data-k="3"]', /^(Score once up by 3 = |Opponents = the games )/],
-        ['.ga-wyr.is-head > :nth-child(3), .ga-wyr:not(.is-head) > .ga-goc:nth-child(3)', /^Opponents = the games /], ['.ga-wysrc', /^(Scores = |Quick scores = )/], ['.ga-wybd', /^(Gone in one move = |A tactic at once = |No tactic at once = |Quick scores = )/],
-        ['.ga-ahh, .ga-ahr.is-head > :first-child', /^(Up by 3 = |The climb = |Their move = )/], ['.ga-ahr[data-k="ho"]', /^(Built in the opening = |Ahead when the opening ended = )/],
+        ['.ga-wyr.is-head > :nth-child(3), .ga-wyr:not(.is-head) > .ga-goc:nth-child(3)', /^Opponents = the games /], ['.ga-wysrc', /^(Scores = |Quick scores = )/], ['.ga-wybd', /^(Gone in one move = |A tactic at once = |No tactic at once = |Quick scores = )/]],
+      'ga-ah':[['.ga-ahh, .ga-ahr.is-head > :first-child', /^(Up by 3 = |The climb = |Their move = )/], ['.ga-ahr[data-k="ho"]', /^(Built in the opening = |Ahead when the opening ended = )/],
         ['.ga-ahlit', /^Ahead when the opening ended = /], ['.ga-ahr[data-k="hc"]', /^Combination = /], ['.ga-ahr[data-k="hp"]', /^Under pressure = /], ['.ga-ahr[data-k="hg"]', /^A gift = /],
         ['.ga-ahr[data-k="ht"]', /^Time trouble = /], ['.ga-ahr[data-k="hb"]', /^Bit by bit = /],
         ['.ga-ahr.is-head > :nth-child(3), .ga-ahr:not(.is-head) > .ga-goc:nth-child(3)', /^Opponents = the same rule /], ['.ga-ahcov', /^(Up by 3 = |Checked = )/], ['.ga-ahbd', /^(Their move = |Boards from )/]],
@@ -72453,6 +72531,13 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!gear || !bk) return;
     gear.insertAdjacentElement('beforebegin', fab);
     bk.insertAdjacentElement('afterend', rvw);
+    // From the side (2026-11-26): the drawer's tab on the left edge, the one way in where the drawer is used (the "i" hides there); its
+    // icon turns into an X while the drawer is open
+    const sTab = ghEl('button', 'ib-tab');
+    sTab.type = 'button'; sTab.id = 'ib-tab'; sTab.hidden = true; sTab.title = 'Info box (I)';
+    sTab.setAttribute('aria-label', 'Info box'); sTab.setAttribute('aria-keyshortcuts', 'I'); sTab.setAttribute('aria-controls', 'ib'); sTab.setAttribute('aria-expanded', 'false');
+    sTab.innerHTML = '<span class="ib-tab-ic">'+SVG+'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 7l10 10M17 7 7 17"/></svg></span><span class="ib-tab-w" aria-hidden="true">Info</span>';
+    fab.insertAdjacentElement('beforebegin', sTab);
     const box = ghEl('section', 'ib'), hd = ghEl('div', 'ib-hd'), k = ghEl('p', 'ib-k'), t = ghEl('h2', 'ib-t'), m = ghEl('div', 'ib-m'), cl = ghEl('button', 'ib-close', '\u00d7');
     box.id = 'ib'; box.hidden = true;
     box.setAttribute('role', 'region'); box.setAttribute('aria-label', 'Info box');
@@ -72465,6 +72550,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     document.body.appendChild(box);
 
     let open = get(), touch = mq('(hover:none)'), cur = null, scr = '', sig = '', onEl = null, pend = null, pendT = 0, lastT = 0, px = -1, py = -1, trail = [], byKey = false, due = 0;
+    let fitK = '', fitW = 0, fitN = 0, last = null, downAt = null, hush = false, kv = null, kg = 0, kh = 0;          // (its height: for which words and width; what it says; where a press began; a try, not shown yet)
+    const fade = ()=>{ box.classList.remove('is-in'); void box.offsetWidth; box.classList.add('is-in'); };
     // ---- which screen: { el, name, key }, or null where there is no Info box (never over a live game or a position played out) ----
     function screen(){
       if(currentView==='history'){
@@ -72526,7 +72613,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(!lit.length){ more = []; B.forEach(b=> (inner(b) ? lit : more).push({ s:b.t, b })); }
       if(!lit.length || !more.length){ lit = B.map(b=> ({ s:b.t, b })); more = []; }
       const join = (L)=>{ const out = []; L.forEach((x, i)=>{ if(i && L[i - 1].b===x.b) out[out.length - 1] += ' '+x.s; else out.push(x.s); }); return out; };
-      return { c, title, lit:join(lit), more:join(more), src:src.map(b=> b.t).join(' ') };
+      return { c, n, title, lit:join(lit), more:join(more), src:src.map(b=> b.t).join(' '), all:B.map(b=> b.t) };
     }
     // ---- drawn ----
     function ring(c){
@@ -72539,23 +72626,51 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const g = getComputedStyle(c);
       if(Math.min(parseFloat(g.paddingTop), parseFloat(g.paddingLeft), parseFloat(g.paddingRight)) < 8) c.classList.add('ib-on-out');
     }
-    function draw(S, title, lit, more, src, c){
+    function draw(S, title, lit, more, src, c, all){
       const s = JSON.stringify([S.name, title, lit, more, src]), turn = !cur || cur.title!==title;
       cur = c ? { c, id:c.id, title } : null;
       ring(c);
       if(s===sig) return;
       sig = s;
+      last = [S, title, lit, more, src, c, all];
       k.textContent = S.name; t.textContent = title;
+      // How tall: set when the box opens and when the card it explains changes (or its words, or the box's width). A part of the
+      // same card pointed at only puts other sentences first: the box holds still, at the larger of the whole card's height and this.
+      const key = JSON.stringify([S.name, title, src, lit.concat(more).map(sents).reduce((a, x)=> a.concat(x), []).sort()]), again = key!==fitK || box.clientWidth!==fitW;
+      let h = 0;
+      if(box.classList.contains('is-side')){ fill(lit, more, src, c); fitK = ''; }          // (the drawer: top to bottom, nothing to fit)
+      else {
+        if(again && c && all && (more.length || lit.join('\u0001')!==all.join('\u0001'))){ fill(all, [], src, c); h = natural(); }
+        fill(lit, more, src, c);
+        if(again){ h = Math.max(h, natural()); fitK = h > 0 ? key : ''; fitW = box.clientWidth; if(h > 0) setFit(h); }
+      }
+      m.scrollTop = 0;
+      if(c && !touch && say.textContent!==title) say.textContent = title;
+      if(turn && !hush) fade();
+      if(S.rv && box.classList.contains('is-strip')) stand(S, 'is-strip');
+      reach();
+      settle();
+    }
+    function fill(lit, more, src, c){
       m.textContent = '';
       lit.forEach(x=>{ if(c) lines(x, 'ib-lit'); else m.appendChild(ghEl('p', 'ib-lit', x)); });
       more.forEach(x=> lines(x, 'ib-more'));
       if(src){ const p = ghEl('p', 'ib-src'); p.append(ghEl('b', '', 'Everywhere on this screen: '), document.createTextNode(src)); m.appendChild(p); }
-      m.scrollTop = 0;
-      if(c && !touch && say.textContent!==title) say.textContent = title;
-      if(turn){ box.classList.remove('is-in'); void box.offsetWidth; box.classList.add('is-in'); }
-      if(S.rv && box.classList.contains('is-strip')) stand(S, 'is-strip');
-      reach();
     }
+    // the height the box needs for all its words (and its heading, where that stands beside them), read where they stand
+    function natural(){
+      const was = box.classList.contains('is-slim'); if(was) box.classList.remove('is-slim');
+      const L = m.children, a = L[0], z = L[L.length - 1];
+      let h = 0;
+      if(a && m.getClientRects().length){
+        const wh = z.getBoundingClientRect().bottom - a.getBoundingClientRect().top + (parseFloat(getComputedStyle(z).marginBottom) || 0), hr = hd.getBoundingClientRect(), mr = m.getBoundingClientRect();
+        const side = Math.abs(hr.top - mr.top) < 4 && hr.right <= mr.left + 1;
+        h = Math.ceil(box.offsetHeight - m.clientHeight + (side ? Math.max(wh, hd.scrollHeight, 32) : wh)) + 1;
+      }
+      if(was) box.classList.add('is-slim');
+      return h;
+    }
+    function setFit(h){ fitN = h; const v = h+'px'; if(box.style.getPropertyValue('--ib-fit')!==v) box.style.setProperty('--ib-fit', v); }
     // one sentence a line: "Behind = ...", "Move 25: ..."
     function lines(x, cls){
       sents(x).forEach((y, i)=>{
@@ -72565,16 +72680,36 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         m.appendChild(p);
       });
     }
-    // words past the box's height: reached with Tab, then the arrow keys
-    function reach(){ if(box.hidden) return; const o = m.scrollHeight > m.clientHeight + 1; if(o!==(m.tabIndex===0)) m.tabIndex = o ? 0 : -1; more(); }
+    // words past the box's height (only where they are taller than its cap): reached with Tab, then the arrow keys; the wheel, a
+    // trackpad or a finger anywhere over the box scrolls them (below)
+    function reach(){
+      if(box.hidden) return;
+      let o = m.scrollHeight > m.clientHeight + 1;
+      if(o && fitN && !box.classList.contains('is-side') && Math.abs(box.offsetHeight - fitN) < 1.5){ setFit(fitN + m.scrollHeight - m.clientHeight); o = m.scrollHeight > m.clientHeight + 1; }          // (a few pixels more than measured: it grows to them, up to its cap)
+      if(o!==(m.tabIndex===0)) m.tabIndex = o ? 0 : -1;
+      if(box.classList.contains('is-over')!==o) box.classList.toggle('is-over', o);
+      more();
+    }
     function more(){ m.classList.toggle('is-more', m.scrollHeight - m.clientHeight - m.scrollTop > 3); }
     m.addEventListener('scroll', more, { passive:true });
     m.addEventListener('keydown', (e)=>{ if(m.tabIndex===0 && /^(Arrow(Up|Down)|Page(Up|Down)|Home|End| )$/.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) e.stopPropagation(); });      // the arrows scroll the words, never the review's moves
+    // over the heading, the margins or the X: the wheel and a finger scroll the words too, never the page behind (over the words they
+    // scroll as ever, and stop at their ends)
+    box.addEventListener('wheel', (e)=>{
+      if(!box.classList.contains('is-over') || m.contains(e.target) || e.ctrlKey) return;
+      e.preventDefault();
+      m.scrollTop += e.deltaY*(e.deltaMode===1 ? 18 : e.deltaMode===2 ? m.clientHeight : 1);
+    }, { passive:false });
+    let fy = null;
+    let fz = false;
+    box.addEventListener('touchstart', (e)=>{ fy = box.classList.contains('is-over') && e.touches.length===1 && !m.contains(e.target) ? e.touches[0].clientY : null; fz = box.classList.contains('is-side') && !box.classList.contains('is-over'); }, { passive:true });
+    box.addEventListener('touchmove', (e)=>{ if(fz){ if(e.cancelable) e.preventDefault(); return; } if(fy==null || e.touches.length!==1) return; const y = e.touches[0].clientY; if(e.cancelable) e.preventDefault(); m.scrollTop += fy - y; fy = y; }, { passive:false });
+    box.addEventListener('touchend', ()=>{ fy = null; fz = false; }, { passive:true });
     function rest(S){
       cur = null;
       draw(S, 'Info box', [touch ? 'Scroll: the rule or source of the card you are looking at shows here, if it has one.' : 'Point at a number or a card, or reach it with Tab: its rule or source shows here, if it has one.'], [], blocks(S, null).map(b=> b.t).join(' '), null);
     }
-    function show(S, x){ draw(S, x.title, x.lit, x.more, x.src, x.c); }
+    function show(S, x){ draw(S, x.title, x.lit, x.more, x.src, x.c, x.all); if(cur && cur.c===x.c) cur.n = x.n; }          // (n: the part pointed at)
     // ---- where it stands ----
     // In Repertoire Lab this page is a frame that can be taller than the window (its player page) or partly scrolled out of it: then
     // what of it is on screen there counts, not the frame's own edges
@@ -72595,35 +72730,154 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     }
     function view(){ const T = tall(), top = T ? seen(T) : { top:0, bottom:window.innerHeight }; return { top:top.top, bottom:top.bottom - (box.hidden || box.classList.contains('is-off') || !box.classList.contains('is-strip') ? 0 : box.offsetHeight) }; }
     function place(){
-      const S = screen(), on = !!S && open;
-      fab.hidden = !S; rvw.hidden = !(S && S.rv);
+      const S = screen(), on = !!S && open, W = S ? sideW(S) : 0;
+      // (the drawer opened or put away, or another width, by no hand or key: at once; else it slides, unless motion is reduced)
+      const was = !box.hidden && box.classList.contains('is-side') && box.classList.contains('is-open'), calm = (!anim || still()) && ((on && W > 0)!==was || (was && box.style.getPropertyValue('--ib-sw')!==W+'px'));
+      if(calm){ box.classList.add('is-still'); sTab.classList.add('is-still'); }
+      fab.hidden = !S || W > 0; sTab.hidden = !W; rvw.hidden = !(S && S.rv);
       const vh = $('view-history').classList;
       fab.classList.toggle('in-rv', !!(S && S.rv)); fab.classList.toggle('is-wide', vh.contains('is-gho') || vh.contains('is-gha') || vh.contains('is-ghz'));
-      [fab, rv].forEach(b=>{ const x = on ? 'true' : 'false'; if(b.getAttribute('aria-expanded')!==x) b.setAttribute('aria-expanded', x); });
-      if(!on){ box.hidden = true; root.classList.remove('ib-strip'); root.style.removeProperty('--ib-lift'); ring(null); return; }
+      [fab, rv, sTab].forEach(b=>{ const x = on ? 'true' : 'false'; if(b.getAttribute('aria-expanded')!==x) b.setAttribute('aria-expanded', x); });
+      atShow();
+      if(W) stick(W);
+      if(!on){
+        if(root.classList.contains('ib-strip')) root.classList.remove('ib-strip');          // (only when it is there: a class list written to the same value still tells every observer of <html>, and one here calls this again, each frame)
+        box.style.removeProperty('--ib-lift'); box.style.removeProperty('--ib-cap'); ring(null);
+        shift(W ? gut() : 0);
+        if(was && W && anim && !still()){          // (slides out with its words, then is put away)
+          box.classList.remove('is-open');
+          clearTimeout(hideT); hideT = setTimeout(()=>{ hideT = 0; if(!open && box.classList.contains('is-side')){ box.hidden = true; box.classList.remove('is-side'); } }, 760);
+        }
+        else if(!(hideT && W)){ clearTimeout(hideT); hideT = 0; if(!box.hidden) box.hidden = true; if(box.classList.contains('is-side') || box.classList.contains('is-open')) box.classList.remove('is-side', 'is-open'); }          // (on its way out it goes on)
+        unstill(calm); settle(); mode0 = ''; return;
+      }
+      clearTimeout(hideT); hideT = 0;
+      if(kv){ const K = kg + kh - (root.classList.contains('rl-history') ? kg + 20 : 14); unkeep(); if(K > 0 && !W) rooms().forEach(e=> e.style.setProperty('--ib-room', K+'px')); }          // (opened again where its room was kept: that room at first, so the page holds still)
       let mode = 'is-strip', host = document.body, css = null;
-      if(S.rv && mq('(min-width:900px)')){
+      if(W) mode = 'is-side';
+      else if(S.rv && mq('(min-width:900px)')){
         const three = mq('(min-width:1440px) and (min-height:561px)'), side = document.querySelector('#view-play-history .hv-side'), L = document.querySelector('#view-play-history .hv-sidecol-review');
         const r = three ? L.getBoundingClientRect() : null;
         mode = 'is-flow'; host = three ? L : side;
         const T = three && tall(), foot = T ? Math.min(window.innerHeight, seen(T).bottom) : window.innerHeight;
-        if(three && foot - r.bottom >= 130){ mode = 'is-col'; host = document.body; css = { left:r.left+'px', width:r.width+'px', top:(r.bottom + 6)+'px', height:Math.min(230, foot - r.bottom - 12)+'px' }; }
+        if(three && foot - r.bottom >= 130){ mode = 'is-col'; host = document.body; css = { left:r.left+'px', width:r.width+'px', top:(r.bottom + 6)+'px', maxHeight:(foot - r.bottom - 12)+'px' }; }          // (as tall as its words, down to the window's foot)
+        else css = { maxHeight:Math.max(150, Math.round(Math.min(host.clientHeight || window.innerHeight, window.innerHeight)*.5))+'px' };          // (in its column: half of it at most, the cards above keep the rest)
       }
       if(box.parentNode!==host) host.appendChild(box);
-      ['left', 'width', 'top', 'height'].forEach(p=>{ box.style[p] = css ? css[p] : ''; });
-      ['is-strip', 'is-col', 'is-flow'].forEach(c=> box.classList.toggle(c, c===mode));
+      ['left', 'width', 'top', 'height', 'maxHeight'].forEach(p=>{ const v = css && css[p] || ''; if(box.style[p]!==v) box.style[p] = v; });
+      ['is-strip', 'is-col', 'is-flow', 'is-side'].forEach(c=> box.classList.toggle(c, c===mode));
       box.hidden = false;
-      root.classList.toggle('ib-strip', mode==='is-strip');
+      if(root.classList.contains('ib-strip')!==(mode==='is-strip')) root.classList.toggle('ib-strip', mode==='is-strip');
+      if(W){ if(!box.classList.contains('is-open')){ void box.offsetWidth; box.classList.add('is-open'); } shift(W + TABW, true); }          // (from where it is: off the screen's edge, or on its way out)
+      else { box.classList.remove('is-open'); shift(0); }
+      unstill(calm);
       stand(S, mode);
+      if(last && last[0].key===S.key && (mode!==mode0 || (mode!=='is-side' && fitW && box.clientWidth!==fitW))){ sig = ''; fitK = ''; draw.apply(null, last); }          // (another width, or another place: the words wrap anew)
+      mode0 = mode;
       reach();
     }
+    // ---- from the side (2026-11-26) ----
+    // The drawer's width where this window has room for it and the page beside it (0: none, the box comes from the bottom): min(34rem,
+    // 44vw), less where the page needs its 780px (Game History's wide tabs lay out well down to there), never under 360px; never on a
+    // phone, nor in the review (its board, the cards it explains on its left and the moves fill the width: it keeps its own box beside
+    // the board), nor where Settings says From the bottom (lookPrefs.infoBoxAt, this device only; Repertoire Lab has no Settings: the side)
+    const TABW = 32, SIDE_MIN = 360, PAGE_MIN = 780, N1 = 1180, N2 = 900;
+    const ibAt = ()=>{ try{ return lookPrefs.infoBoxAt==='bottom' ? 'bottom' : 'side'; }catch(e){ return 'side'; } };
+    let REM = 0, anim = false, anc = null, pushed = 0, hideT = 0, flipT = 0, mode0 = '', hold = null, sideT = 0, selfS = 0;
+    function sideRoom(){
+      if(mq('(max-width:700px)')) return 0;
+      if(!REM) REM = parseFloat(getComputedStyle(root).fontSize) || 16;
+      const vw = root.clientWidth || window.innerWidth, w = Math.floor(Math.min(34*REM, window.innerWidth*.44, vw - (root.classList.contains('rl-history') ? 700 : PAGE_MIN) - TABW));          // (Repertoire Lab's player page: its tabs, without Game History's head, lay out well down to 700px)
+      return w >= SIDE_MIN ? w : 0;
+    }
+    const sideW = (S)=> !S || S.rv || ibAt()==='bottom' ? 0 : sideRoom();
+    const still = ()=> mq('(prefers-reduced-motion:reduce)');
+    function unstill(calm){ if(calm) requestAnimationFrame(()=> requestAnimationFrame(()=>{ box.classList.remove('is-still'); sTab.classList.remove('is-still'); })); }
+    const setp = (e, k, v)=>{ if(e.style.getPropertyValue(k)!==v){ if(v) e.style.setProperty(k, v); else e.style.removeProperty(k); } };
+    // its width, and in Repertoire Lab's frame (taller than the window) what of it is on screen: the drawer over that, the tab at its middle
+    function stick(W){
+      const T = tall(), v = T ? seen(T) : null, H = window.innerHeight, top = v ? Math.max(0, Math.round(v.top)) : 0, bot = v ? Math.max(0, Math.round(H - v.bottom)) : 0;
+      setp(box, '--ib-sw', W+'px'); setp(sTab, '--ib-sw', W+'px');
+      setp(box, '--ib-top', top ? top+'px' : ''); setp(box, '--ib-bot', bot ? bot+'px' : ''); setp(sTab, '--ib-tt', v ? Math.round((top + H - bot)/2)+'px' : '');
+    }
+    let sideF = 0;
+    const sideSoon = ()=>{
+      if(sTab.hidden) return;
+      if(tall() && performance.now() - selfS > 250){ [box, sTab].forEach(e=>{ if(!e.classList.contains('is-scr')) e.classList.add('is-scr'); }); clearTimeout(sideT); sideT = setTimeout(sideRest, 170); return; }          // (Repertoire Lab's page scrolling: what is placed by what is on screen would follow a frame late)
+      if(!sideF) sideF = requestAnimationFrame(()=>{ sideF = 0; const W = sideW(screen()); if(W && !sTab.hidden) stick(W); });
+    };
+    function sideRest(){ sideT = 0; const W = sideW(screen()); if(W && !sTab.hidden) stick(W); [box, sTab].forEach(e=>{ if(e.classList.contains('is-scr')) e.classList.remove('is-scr'); }); if(open && touch && box.classList.contains('is-side')) read(true); }
+    // The page beside it: #wrap moved right by P (0: back) and as narrow as what is left, the home button to the drawer's edge; smoothly when it is
+    // opened or closed (the wrap laid out at once, then slid from where it was), and what was in sight (the card explained, else the
+    // one a third down the screen) stays where it was on the screen
+    function shift(P, D){
+      const w = $('wrap');
+      if(!w) return;
+      P = Math.max(0, Math.round(P));
+      const room = P ? (root.clientWidth || window.innerWidth) - P : 0, n1 = !!P && room < N1, n2 = !!P && room < N2;          // (nothing read when there is nothing to move: the bottom box's kept room is set before the page is laid out again)
+      if(Math.abs(P - pushed) < 1 && w.classList.contains('ib-n1')===n1 && w.classList.contains('ib-n2')===n2) return;
+      const T = tall(), a = anc || pivot(), a0 = a ? a.getBoundingClientRect().top : 0, x0 = w.getBoundingClientRect().left, go = anim && !still();
+      pushed = P;
+      root.style.overflowAnchor = 'none';          // (the browser's own scroll anchoring would move the page twice; a plain property, which restyles <html> alone)
+      if(P){ w.style.setProperty('--ib-px', P+'px'); w.classList.add('ib-push'); } else { w.classList.remove('ib-push'); w.style.removeProperty('--ib-px'); }
+      if(w.classList.contains('ib-n1')!==n1) w.classList.toggle('ib-n1', n1);
+      if(w.classList.contains('ib-n2')!==n2) w.classList.toggle('ib-n2', n2);
+      const x1 = w.getBoundingClientRect().left;
+      if(a && a.isConnected){ const dy = a.getBoundingClientRect().top - a0; if(Math.abs(dy) >= 1){ if(T) selfS = performance.now(); try{ (T ? T.P : window).scrollBy({ top:dy, behavior:'instant' }); }catch(e){} } }          // (Repertoire Lab's page moved by this, not by you: the drawer's words stay as it slides in)
+      requestAnimationFrame(()=>{ if(root.style.overflowAnchor) root.style.overflowAnchor = ''; });
+      const h = $('home-fab');
+      if(h){ h.style.transition = go ? 'translate .72s cubic-bezier(0.14, 0.9, 0.22, 1)' : 'none'; h.style.translate = D && P ? (P - TABW - 8)+'px 0' : ''; }          // (on the drawer's edge, above its tab: clear of the cards)
+      clearTimeout(flipT);
+      if(go && Math.abs(x1 - x0) > 1){
+        w.style.transition = 'none'; w.style.translate = Math.round(x0 - x1)+'px 0';
+        void w.offsetWidth;
+        w.style.transition = 'translate .72s cubic-bezier(0.14, 0.9, 0.22, 1)'; w.style.translate = '';
+      } else { w.style.translate = ''; w.style.transition = ''; }
+      flipT = setTimeout(()=>{ w.style.transition = ''; if(h) h.style.transition = ''; }, 800);
+    }
+    // the closed tab's room: where the page's cards would start under the tab and its finger's reach (a wide page, 1180px, in a window
+    // under about 1230px: an iPad on its side), the page starts beside it, 16px past the tab
+    function gut(){
+      const w = $('wrap');
+      if(!w || w.classList.contains('play-mode')) return 0;
+      const g = getComputedStyle(w), pl = parseFloat(g.paddingLeft) || 0, mw = parseFloat(g.maxWidth), vw = root.clientWidth || window.innerWidth, need = TABW + 16;
+      return (vw - Math.min(mw > 0 ? mw : vw, vw))/2 + pl < need ? need - pl : 0;
+    }
+    function pivot(){
+      const S = screen();
+      if(!S) return null;
+      const v = view(), y = v.top + (v.bottom - v.top)*.3, ok = (r)=> r.height > 2 && r.bottom > v.top && r.top < v.bottom;
+      if(cur && cur.c.isConnected && ok(cur.c.getBoundingClientRect())) return cur.c;
+      let below = null;
+      for(const c of S.el.querySelectorAll(SCOPE)){ const r = c.getBoundingClientRect(); if(!ok(r)) continue; if(r.top <= y && r.bottom > y) return c; if(!below && r.top > y) below = c; }
+      return below;
+    }
+    // Settings: From the bottom | From the side, and what it means on this screen
+    const atRow = $('ibat-row'), atHint = $('ibat-hint'), AT_HINT = atHint ? atHint.textContent : '';
+    const AT_PHONE = 'On a phone the Info box always comes from the bottom. From the side is for an iPad or a Mac.';
+    const AT_NARROW = ()=> navigator.maxTouchPoints > 1 ? (window.innerHeight > window.innerWidth ? 'Upright, this screen is too narrow for the drawer beside the page, so here the box comes from the bottom. Turn the iPad on its side for the drawer.' : 'This screen is too narrow for the drawer beside the page, so here the box comes from the bottom.')
+      : 'This window is too narrow for the drawer beside the page, so here the box comes from the bottom. Widen the window for the drawer.';
+    function atShow(){
+      if(!atRow || !atHint) return;
+      const v = ibAt();
+      atRow.querySelectorAll('.toggle').forEach(b=>{ const on = b.dataset.val===v, p = on ? 'true' : 'false'; if(b.classList.contains('active')!==on) b.classList.toggle('active', on); if(b.getAttribute('aria-pressed')!==p) b.setAttribute('aria-pressed', p); });
+      const t = mq('(max-width:700px)') ? AT_PHONE : v==='side' && !sideRoom() ? AT_NARROW() : AT_HINT;
+      if(atHint.textContent!==t) atHint.textContent = t;
+    }
+    if(atRow) atRow.addEventListener('click', (e)=>{
+      const b = e.target.closest ? e.target.closest('.toggle') : null;
+      if(!b || !atRow.contains(b)) return;
+      const v = b.dataset.val==='bottom' ? 'bottom' : 'side';
+      if(ibAt()!==v){ try{ lookPrefs.infoBoxAt = v; saveLookPrefs(); }catch(err){} }
+      atShow(); soon();
+    });
     // the strip: never over the board and its controls (one column), in Repertoire Lab's player page at the foot of what is on screen
     function stand(S, mode){
       let off = false, slim = false;
       if(mode==='is-strip'){
         const T = tall(), v = T ? seen(T) : null;
-        if(v){ off = v.bottom - v.top < 220; root.style.setProperty('--ib-lift', Math.max(0, Math.round(window.innerHeight - v.bottom))+'px'); }
-        else root.style.removeProperty('--ib-lift');
+        if(v){ off = v.bottom - v.top < 220; box.style.setProperty('--ib-lift', Math.max(0, Math.round(window.innerHeight - v.bottom))+'px'); box.style.setProperty('--ib-cap', Math.round((v.bottom - v.top)*(mq('(max-width:700px)') ? .85 : .7))+'px'); }          // (its cap: of what is on screen)
+        else { box.style.removeProperty('--ib-lift'); box.style.removeProperty('--ib-cap'); }
         const ed = S.rv ? null : editor(S);
         if(ed && !off){ const H = v ? v.bottom : window.innerHeight, h = strip(); off = ed.some(e=>{ const r = e && e.getClientRects().length ? e.getBoundingClientRect() : null; return !!r && r.height > 0 && r.bottom > H - h && r.top < H; }); }
         if(S.rv){
@@ -72634,7 +72888,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         }
       }
       box.classList.toggle('is-slim', slim); box.classList.toggle('is-off', off);
-      if(mode==='is-strip'){ const now = (off ? 0 : box.offsetHeight)+'px'; if(root.style.getPropertyValue('--ib-now')!==now) root.style.setProperty('--ib-now', now); }          // the corner pills stand on it
+      settle();
       const x = cur ? cur.title : slim ? (touch ? 'Info box: scroll to a card' : 'Info box: point at a card') : 'Info box';
       if(t.textContent!==x) t.textContent = x;
     }
@@ -72642,6 +72896,90 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const editor = (S)=> S.key.slice(0, 9)==='positions' && $('ghp-setup').getClientRects().length ? [$('ghp-board'), $('ghp-palette')].concat(Array.from($('ghp-setup').querySelectorAll('button, input'))) : null;
     // the strip's whole height, slim or not
     function strip(){ const was = box.classList.contains('is-slim'); if(was) box.classList.remove('is-slim'); const h = box.offsetHeight; if(was) box.classList.add('is-slim'); return h; }
+    // once its height may have changed: the corner pills stand on the strip, the page gets room for it at its foot, a chip it meets steps aside
+    function settle(){
+      const on = open && !box.hidden && box.classList.contains('is-strip'), now = (on && !box.classList.contains('is-off') ? box.offsetHeight : 0)+'px';
+      document.querySelectorAll('.friends-widget, #rl-menu, .spotify-widget').forEach(e=>{ const v = e.style.getPropertyValue('--ib-now'); if(!on){ if(v) e.style.removeProperty('--ib-now'); } else if(v!==now) e.style.setProperty('--ib-now', now); });
+      room(on);
+      aside();
+    }
+    // the room: as tall as the strip; never made smaller where that would pull the page down under the pointer (it is, at the next card)
+    function room(on){
+      const was = parseFloat($('view-history').style.getPropertyValue('--ib-room')) || 0;
+      if(!on){ liftN = 0; if(was) rooms().forEach(e=> e.style.removeProperty('--ib-room')); if(root.style.scrollPaddingBottom) root.style.scrollPaddingBottom = ''; return; }
+      let h = strip();
+      const se = document.scrollingElement || root, ih = window.innerHeight;
+      if(h < was - .5){ if(tall() || se.scrollTop + ih > se.scrollHeight - (was - h) - 2) h = was; }
+      // taller with the window's foot in the room (2026-11-26, the merge review: at the page's end the strip grew over the last card and
+      // nothing moved): the page goes up as much, so what was clear of the strip stays clear. Not when it opens, nor in Repertoire Lab's
+      // player page (its frame is as tall as its page: nothing of its own to scroll)
+      const up = was > .5 && h > was + .5 && !tall() && se.scrollHeight - ih > 1 && se.scrollTop + ih > se.scrollHeight - was + .5 ? h - was : 0;
+      if(Math.abs(h - was) > .5) rooms().forEach(e=> e.style.setProperty('--ib-room', h+'px'));
+      if(up) lift(up);
+      const sp = Math.round(h + 14)+'px'; if(root.style.scrollPaddingBottom!==sp) root.style.scrollPaddingBottom = sp;          // (the page's scroll padding: what is scrolled into view stays above the strip; a plain property, which restyles <html> alone)
+    }
+    // the page up by dy, at once; while you scroll it waits until the page rests (lifted()). The pointer held still: the card it was on
+    // stays explained until it has gone 40px, as when the page moves beside the drawer
+    let liftN = 0;
+    function lift(dy){
+      if(performance.now() - lastT < 150){ liftN += dy; return; }
+      liftN = 0;
+      if(!touch && mx >= 0) hold = [mx, my, performance.now()];
+      try{ window.scrollBy({ top:dy, behavior:'instant' }); }catch(e){}
+    }
+    function lifted(){          // (once the page rests: the lift kept while you scrolled, if the window's foot is still in the room)
+      const n = liftN; liftN = 0;
+      if(!n || !open || box.hidden || !box.classList.contains('is-strip')) return;
+      const se = document.scrollingElement || root, r = parseFloat($('view-history').style.getPropertyValue('--ib-room')) || 0;
+      if(r > .5 && se.scrollTop + window.innerHeight > se.scrollHeight - r + .5) lift(n);
+    }
+    const rooms = ()=> [$('view-history'), $('view-puzzle-dash'), $('view-play-history')].filter(Boolean);          // (where --ib-room is read; it is not inherited; never <html>, whose every change restyles the whole page)
+    // Put away at the page's foot (2026-11-26): the room it had stays while it is in sight and goes as the page is scrolled up, so
+    // the page never jumps down under the pointer: a box of its own after the view's last child (Repertoire Lab's frame follows the
+    // view's content height), so nothing of the page is read while it is put away. kv: the view kept taller, kg: the gap before
+    // that box, kh: the box's height
+    const ROOMV = '#view-history.active, #view-puzzle-dash.active, .wrap.play-mode #view-play-history.active';
+    function roll(){          // [scrolled, window, page], of Repertoire Lab's page where this one is a frame taller than the window
+      const T = tall(), D = T ? T.P.document : document, se = D.scrollingElement || D.documentElement;
+      return [se.scrollTop, T ? T.P.innerHeight : window.innerHeight, se.scrollHeight];
+    }
+    function keepPre(){          // (while it is still open: the room's height, where the page is)
+      if(box.hidden || box.classList.contains('is-off') || !root.classList.contains('ib-strip')) return null;
+      const v = document.querySelector(ROOMV); if(!v) return null;
+      const g = getComputedStyle(v), a = root.classList.contains('rl-history') ? getComputedStyle(v, '::after') : null, gap = parseFloat(g.rowGap) || 0;
+      return { v, gap, p:(parseFloat(g.paddingBottom) || 0) + (a && a.content!=='none' ? (parseFloat(a.height) || 0) + gap : 0), s:roll() };
+    }
+    function keepPost(k){          // (once it is put away; nothing read, so the page is not laid out before the room is back)
+      unkeep();
+      const need = Math.min(k.p, k.s[0] + k.s[1] - k.s[2] + k.p);          // (as if the view had no padding of its own when closed: a few pixels too many at most)
+      if(need < 1 || !k.v.isConnected) return;
+      kv = k.v; kg = k.gap; kh = Math.max(0, need - kg);
+      kv.style.setProperty('--ib-keep', kh+'px'); kv.classList.add('ib-kept');
+      window.addEventListener('scroll', kfit, { passive:true }); window.addEventListener('resize', kfit);
+    }
+    function kfit(){
+      if(!kv) return;
+      if(open || !kv.isConnected || !kv.matches(ROOMV)){ unkeep(); return; }
+      const s = roll(), K = kg + kh, need = s[0] + s[1] - (s[2] - K);          // (how far the window's foot is into the room)
+      if(need >= K - .5) return;
+      if(need <= .5){ unkeep(); return; }
+      kh = Math.max(0, need - kg); kv.style.setProperty('--ib-keep', kh+'px');
+    }
+    function unkeep(){ if(!kv) return; const v = kv; kv = null; v.classList.remove('ib-kept'); v.style.removeProperty('--ib-keep'); window.removeEventListener('scroll', kfit); window.removeEventListener('resize', kfit); }
+    const CHIPS = ['lichess-activity-widget', 'friends-widget', 'spotify-widget'];
+    let chipT = 0;
+    const chipSoon = ()=>{ if(!chipT) chipT = requestAnimationFrame(()=>{ chipT = 0; aside(); }); };          // (a chip filled in, opened or moved while the box is open)
+    const chipRo = typeof ResizeObserver==='function' ? new ResizeObserver(chipSoon) : null, chipMo = new MutationObserver(chipSoon);
+    function aside(){
+      const sd = open && !box.hidden && box.classList.contains('is-side'), b = sd ? { left:0, top:0, right:pushed || (box.offsetWidth + TABW), bottom:window.innerHeight, height:window.innerHeight }
+        : open && !box.hidden && !box.classList.contains('is-off') ? box.getBoundingClientRect() : null, hi = !!b && box.classList.contains('is-strip') && b.height > window.innerHeight*.4;
+      CHIPS.forEach(id=>{
+        const e = $(id); if(!e) return;
+        let x = false;
+        if(b){ const r = e.getBoundingClientRect(); x = (hi && id==='friends-widget') || (r.width > 0 && r.height > 0 && r.left < b.right - 1 && r.right > b.left + 1 && r.top < b.bottom - 1 && r.bottom > b.top + 1); }          // (the Friends pill stands on the strip: on one taller than 40% of the window it would float over the cards)
+        if(e.classList.contains('ib-aside')!==x) e.classList.toggle('ib-aside', x);
+      });
+    }
     // ---- opened, closed ----
     function under(S){          // what the pointer is on right now, else what the keyboard is on
       let x = null;
@@ -72651,25 +72989,34 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       return x;
     }
     function set(v, why){
+      const k = !v && open ? keepPre() : null;
       open = v; put(v);
       const S = screen();
       if(v) listen(); else unlisten();
-      place();
-      if(!v){ cur = null; sig = ''; return; }
+      const side = !!(v && S && sideW(S)), x0 = side && (why==='key' || !touch) ? under(S) : null;          // (the drawer: what the pointer is on before the page moves beside it)
+      anc = x0 ? x0.c : null; anim = true;
+      hold = v && x0 && mx >= 0 ? [mx, my, performance.now()] : null;          // (the page moves beside the drawer under the still pointer: the card it was on stays explained until the pointer has gone 40px)
+      try{ place(); }finally{ anim = false; anc = null; }
+      if(k) keepPost(k);
+      if(!v){ cur = null; sig = ''; fitK = ''; last = null; return; }
       if(!S) return;
-      const x = why==='key' || !touch ? under(S) : null;
+      const x = side ? x0 : why==='key' || !touch ? under(S) : null;
       if(x) show(S, x); else if(touch) read(true); else rest(S);
     }
     const toggle = (why)=> set(!open, why);
-    [fab, rv].forEach(b=> b.addEventListener('click', (e)=>{ if(e.pointerType) touch = e.pointerType==='touch'; toggle('icon'); }));
-    cl.addEventListener('click', (e)=>{ set(false); if(e.detail===0){ const b = [rv, fab].find(x=> x.getClientRects().length); if(b) try{ b.focus({ preventScroll:true }); }catch(err){} } });
+    [fab, rv, sTab].forEach(b=> b.addEventListener('click', (e)=>{ if(e.pointerType) touch = e.pointerType==='touch'; toggle('icon'); }));
+    cl.addEventListener('click', (e)=>{ set(false); if(e.detail===0){ const b = [rv, sTab, fab].find(x=> x.getClientRects().length); if(b) try{ b.focus({ preventScroll:true }); }catch(err){} } });
     const typing = (T)=> !!T && (/^(INPUT|TEXTAREA|SELECT)$/.test(T.tagName) || T.isContentEditable);
     const free = (e)=> (e.key==='i' || e.key==='I') && !e.metaKey && !e.ctrlKey && !e.altKey && !e.isComposing && !e.defaultPrevented;
+    const esc = (e)=> e.key==='Escape' && open && !box.hidden && !box.classList.contains('is-off') && !e.metaKey && !e.ctrlKey && !e.altKey && !e.defaultPrevented;
     document.addEventListener('keydown', (e)=>{
-      if(!free(e) || !screen() || typing(e.target) || typing(document.activeElement) || document.querySelector('.modal-overlay.active')) return;
+      const x = esc(e);
+      if(!(free(e) || x) || !screen() || typing(e.target) || typing(document.activeElement) || document.querySelector('.modal-overlay.active')) return;
       if((typeof HV_TAC_BOX!=='undefined' && HV_TAC_BOX) || (e.target.closest && e.target.closest('[role="menu"], [role="dialog"]')) || document.querySelector('.hv-pop, #gh-clamp-pop, #nb-wl')) return;
+      if(x && screen().rv) return;          // (in the review Esc goes back to Game History, as ever: I and the X close the box there)
       e.preventDefault();
-      if(!e.repeat) toggle('key');
+      if(x){ const f = box.contains(document.activeElement); set(false, 'key'); if(f){ const b = [rv, sTab, fab].find(y=> y.getClientRects().length); if(b) try{ b.focus({ preventScroll:true }); }catch(err){} } }
+      else if(!e.repeat){ const f = box.contains(document.activeElement); toggle('key'); if(f && !open){ const b = [rv, sTab, fab].find(y=> y.getClientRects().length); if(b) try{ b.focus({ preventScroll:true }); }catch(err){} } }
     });
     // ---- pointing ----
     const NONE = { none:true };          // (nothing to say about what is pointed at)
@@ -72699,7 +73046,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       hand(false);
       const S = screen();
       if(!S || box.hidden) return;
-      if(box.contains(e.target)){ drop(); return; }
+      if(hold){ if(Math.hypot(px - hold[0], py - hold[1]) < 40){ drop(); return; } hold = null; }
+      if(e.target.closest && e.target.closest('.modal-overlay')){ drop(); return; }          // (Settings or another dialog over the page: what the box says stays)
+      if(box.contains(e.target) || sTab.contains(e.target)){ drop(); return; }
       if(e.target!==memoN){ memoN = e.target; memoX = explain(S, memoN); }          // (worked out once for each thing the pointer comes to)
       const x = memoX;
       if(!x){
@@ -72731,16 +73080,29 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       const S = screen();
       if(!S || !open) return;
       const c = atLine(S);
-      if(now || c===cand){ if(!c){ if(now) rest(S); } else if(!(cur && cur.c===c)){ const x = explain(S, c); if(x) show(S, x); else rest(S); } }
+      if(now || c===cand){ if(!c){ if(now) rest(S); } else if(!(cur && cur.c===c)) readOn(S, c); }
       cand = c;
+    }
+    // the next card, if it is still at the reading line once the box is as tall as its words are (the line is 40% down what the box
+    // leaves of the screen); if the line would fall back on the card before, that one stays a little longer, so the box never goes
+    // back and forth as you scroll (all before the screen is drawn again)
+    function readOn(S, c){
+      const back = cur && last ? last : null, x = explain(S, c);
+      if(!x){ rest(S); return; }
+      hush = true; show(S, x); hush = false;
+      const c2 = back ? atLine(S) : c;
+      if(c2 && c2!==c && c2===back[5]){ hush = true; sig = ''; draw.apply(null, back); hush = false; return; }
+      fade();
     }
     function onScroll(e){
       const T = e && e.target;
       if(T && T!==document && T!==root && T!==document.body) return;
       lastT = performance.now();
       drop();
+      if(hold && lastT - hold[2] > 300) hold = null;          // (a scroll of yours, not the page's own as it moved beside the drawer)
       if(box.hidden && !open) return;
       if(!e){          // the page around this frame scrolled: out of the way, then back at the foot of what is on screen
+        if(box.classList.contains('is-side')){ sideSoon(); return; }          // (the drawer: over what is on screen at once)
         if(!box.hidden) box.classList.add('is-off');
         clearTimeout(idleT);
         idleT = setTimeout(()=>{ const S = screen(); if(S && open){ place(); if(touch) read(true); } }, 170);
@@ -72748,15 +73110,41 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       }
       if(!readT) readT = setTimeout(()=>{ readT = 0; const S = screen(); if(!S || box.hidden) return; if((S.rv || /^positions/.test(S.key)) && box.classList.contains('is-strip')) stand(S, 'is-strip'); if(touch) read(false); }, 130);
       clearTimeout(idleT);
-      idleT = setTimeout(()=>{ const S = screen(); if(!S || box.hidden) return; if((S.rv || /^positions/.test(S.key)) && box.classList.contains('is-strip')) stand(S, 'is-strip'); if(touch) read(true); }, 170);
+      idleT = setTimeout(()=>{ const S = screen(); if(!S || box.hidden) return; if((S.rv || /^positions/.test(S.key)) && box.classList.contains('is-strip')) stand(S, 'is-strip'); if(liftN) lifted(); if(touch) read(true); }, 170);
     }
-    function hand(v){ if(touch===v) return; touch = v; if(!cur){ const S = screen(); if(S && !box.hidden) rest(S); } }          // a finger, or a mouse or trackpad: the words at rest are its own
-    function onDown(e){ byKey = false; hand(e.pointerType==='touch'); }
+    function hand(v){ if(touch===v) return; touch = v; if(!cur){ const S = screen(); if(S && open && !box.hidden) rest(S); } }          // a finger, or a mouse or trackpad: the words at rest are its own
+    function onDown(e){ byKey = false; hand(e.pointerType==='touch'); downAt = box.contains(e.target) ? null : [e.clientX, e.clientY, performance.now()]; }
+    const away = (n, d0, x, y)=> !!d0 && open && !box.hidden && !box.classList.contains('is-off') && !!n && !box.contains(n) && !(n.closest && n.closest('.ib-fab, .ib-tab, .modal-overlay')) && Math.abs(x - d0[0]) + Math.abs(y - d0[1]) <= 12;
+    function onUp(e){
+      if(e.pointerType!=='touch') return;
+      const d0 = downAt;
+      if(!d0) return;
+      downAt = null;          // (the click that may follow does nothing more; nor does a long press)
+      if(performance.now() - d0[2] < 500 && away(e.target, d0, e.clientX, e.clientY)) tapped(e.target);
+    }
+    function onCancel(){ downAt = null; }
+    // Put away by a click or a tap on an empty spot outside it (2026-11-26, the user: "have it put away by just outer clicking on an
+    // empty spot on the page"). A control (a link, a button, a field, a tab, a row, a board, a move: anything with a hand pointer) does
+    // its own job and the box stays. Not a drag, nor a selection begun in the box, nor the keys, nor its "i" buttons (they close it
+    // themselves), nor while it is out of the way
+    const CTRL = 'a[href], button, input, select, textarea, label, summary, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="option"], [role="checkbox"], [role="radio"], [role="switch"], [role="slider"], [contenteditable]:not([contenteditable="false"]), [tabindex="0"], .board-frame, .board, [data-node]';
+    function control(n){
+      if(!n || !n.closest) return false;
+      if(n.closest(CTRL)) return true;
+      try{ return /^(pointer|grab|grabbing|move|crosshair|cell|copy|zoom-in|zoom-out|context-menu|col-resize|row-resize|ew-resize|ns-resize)$/.test(n.ownerDocument.defaultView.getComputedStyle(n).cursor); }catch(e){ return false; }
+    }
     function onClick(e){
-      if(e.pointerType!=='touch' && !(touch && e.detail)) { soon(); return; }
-      const S = screen(), n = e.target;
-      if(!S || box.hidden || box.contains(n)) return;
-      requestAnimationFrame(()=>{ const S2 = screen(); if(!S2 || S2.key!==scr || !n.isConnected){ soon(); return; } const x = explain(S2, n); if(x) show(S2, x); else if(cur && !gap(S2, n)) rest(S2); soon(); });
+      const d0 = downAt;
+      downAt = null;
+      if(e.detail && away(e.target, d0, e.clientX, e.clientY) && !control(e.target)) set(false, 'out');
+      soon();
+    }
+    // a tap (no pointer hovers on a touch screen): on a card the box does not explain yet, that card is explained, as pointing does;
+    // on the card it explains, or on an empty spot, it is put away; a control does its own job
+    function tapped(n){
+      const S = screen(), x = S ? explain(S, n) : null;
+      if(x && !(cur && cur.c===x.c)){ requestAnimationFrame(()=>{ const S2 = screen(); if(!S2 || S2.key!==scr || !open || !n.isConnected) return; const y = explain(S2, n); if(y) show(S2, y); }); return; }
+      if(!control(n)) set(false, 'out');
     }
     function onKey(e){ byKey = e.key==='Tab'; if(byKey) hand(false); soon(); }
     function onFocus(e){
@@ -72771,19 +73159,23 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     function clear(n){
       if(!box.classList.contains('is-strip') || box.classList.contains('is-off') || box.contains(n)) return;
       const r = n.getBoundingClientRect(), b = box.getBoundingClientRect(), T = tall();
-      if(r.bottom > b.top - 8 && r.top < b.bottom) try{ (T ? T.P : window).scrollBy({ top:r.bottom - b.top + 24, behavior:'instant' }); }catch(e){}
+      if(r.bottom > b.top - 8 && r.top < b.bottom) try{ (T ? T.P : window).scrollBy({ top:Math.min(r.bottom - b.top + 24, r.top - (T ? seen(T).top : 0) - 8), behavior:'instant' }); }catch(e){}          // (one taller than the room above the box: its top in sight)
     }
     // ---- another screen, another game, a card drawn again ----
     function sync(){
-      due = 0; memoN = memoX = null;
+      due = 0; memoN = memoX = null; const re = redo; redo = false;
       const S = screen(), key = S ? S.key : '';
-      if(key!==scr){ scr = key; cur = null; cand = null; sig = ''; drop(); place(); if(S && open){ rest(S); if(touch) read(true); } return; }
+      if(key!==scr){ unkeep(); scr = key; cur = null; cand = null; sig = ''; hold = null; drop(); place(); if(S && open){ rest(S); if(touch) read(true); } return; }
       place();
       if(!S || !open || !cur) { if(S && open && !cur && touch) read(true); else if(S && open && !cur) rest(S); return; }
       let c = cur.c;
       if(!c.isConnected){ const id = cur.id; ring(null); c = id ? $(id) : null; }
       if(!c || !S.el.contains(c) || !c.getClientRects().length){ cur = null; rest(S); if(touch) read(true); return; }
-      if(c!==cur.c){ const x = explain(S, c); if(x) show(S, x); else { cur = null; rest(S); } }
+      if(c!==cur.c){ const x = explain(S, c); if(x) show(S, x); else { cur = null; rest(S); } return; }
+      // the same card, its words changed in it (a line drawn again: CLAMP's Moments as the blunder bar is pressed): explained again,
+      // from the part pointed at if it is still there; only when its words, its name or the screen's own words differ (2026-11-26)
+      const x = re && last ? explain(S, cur.n && cur.n.isConnected && c.contains(cur.n) ? cur.n : c) : null;
+      if(x && x.c===c && JSON.stringify([x.title, x.all, x.src])!==JSON.stringify([last[1], last[6], last[4]])) show(S, x);
       else if(!c.classList.contains('ib-on')){ onEl = null; ring(c); }
     }
     function soon(){ if(!due) due = requestAnimationFrame(sync); }
@@ -72795,7 +73187,8 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     hvOnGame(soon);
     onLeavePlay(soon);
     // only while it is open
-    const mo2 = new MutationObserver((L)=>{ if(L.some(x=> !box.contains(x.target))) soon(); });
+    let redo = false;          // (a change inside the card explained)
+    const mo2 = new MutationObserver((L)=>{ let any = false; L.forEach(x=>{ if(box.contains(x.target)) return; any = true; if(!redo && cur && cur.c.contains(x.target)) redo = true; }); if(any) soon(); });
     let heard = false, par = null, mx = -1, my = -1;
     // all it does while it is closed: where the mouse is, for the key I
     document.addEventListener('pointermove', (e)=>{ if(e.pointerType!=='touch'){ mx = e.clientX; my = e.clientY; } }, { passive:true });
@@ -72807,11 +73200,14 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       document.addEventListener('pointermove', onMove, { passive:true });
       document.addEventListener('pointerdown', onDown, { passive:true, capture:true });
       document.addEventListener('click', onClick, true);
+      document.addEventListener('pointerup', onUp, { passive:true, capture:true });
+      document.addEventListener('pointercancel', onCancel, { passive:true, capture:true });
       document.addEventListener('focusin', onFocus);
       document.addEventListener('keydown', onKey, true);
       window.addEventListener('scroll', onScroll, { passive:true });
       Object.keys(TABS).forEach(x=>{ const e = $(TABS[x][0]); if(e) mo2.observe(e, { childList:true, subtree:true }); });
       const z = $('pzd-body'); if(z) mo2.observe(z, { childList:true });
+      CHIPS.forEach(id=>{ const e = $(id); if(!e) return; if(chipRo) chipRo.observe(e); chipMo.observe(e, { attributes:true, attributeFilter:['style', 'class'] }); });
     }
     function unlisten(){
       if(!heard) return;
@@ -72819,27 +73215,37 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerdown', onDown, true);
       document.removeEventListener('click', onClick, true);
+      document.removeEventListener('pointerup', onUp, true);
+      document.removeEventListener('pointercancel', onCancel, true);
       document.removeEventListener('focusin', onFocus);
       document.removeEventListener('keydown', onKey, true);
       window.removeEventListener('scroll', onScroll);
-      mo2.disconnect();
+      mo2.disconnect(); if(chipRo) chipRo.disconnect(); chipMo.disconnect();
     }
     // Repertoire Lab: its page's scroll moves this frame; on its player page the key I reaches it when the keyboard is on that page
     function frame(){
       if(par || window.parent===window || !root.classList.contains('rl-embed')) return;
       let P = null;
       try{ P = window.parent; if(P.location.origin!==location.origin || !window.frameElement) return; }catch(e){ return; }
-      const gone = ()=>{ if(!par) return; try{ P.removeEventListener('scroll', onP, true); P.removeEventListener('resize', onP); P.document.removeEventListener('keydown', onPK); }catch(e){} par = null; };
+      const gone = ()=>{ if(!par) return; try{ P.removeEventListener('scroll', onP, true); P.removeEventListener('resize', onP); P.document.removeEventListener('keydown', onPK); P.document.removeEventListener('pointerdown', onPD, true); P.document.removeEventListener('click', onPC, true); P.document.removeEventListener('pointerup', onPU, true); }catch(e){} par = null; };
       const live = ()=>{ if(window.frameElement && window.frameElement.isConnected) return true; gone(); return false; };
-      const onP = ()=>{ if(live() && open && screen()) onScroll(null); };
+      const onP = ()=>{ if(!live()) return; if(kv) kfit(); if(!sTab.hidden) sideSoon(); if(open && screen()) onScroll(null); };
       const onPK = (e)=>{
-        if(!live() || !root.classList.contains('rl-history') || !free(e) || e.repeat || !screen() || typing(e.target) || typing(P.document.activeElement) || P.document.querySelector('[role="dialog"], dialog[open]') || !window.frameElement.getClientRects().length) return;
-        e.preventDefault(); toggle('key');
+        const x = esc(e);
+        if(!live() || !root.classList.contains('rl-history') || !(free(e) || x) || e.repeat || !screen() || typing(e.target) || typing(P.document.activeElement) || P.document.querySelector('[role="dialog"], dialog[open]') || !window.frameElement.getClientRects().length) return;
+        e.preventDefault(); if(x) set(false, 'key'); else toggle('key');
       };
+      let pd = null;
+      const onPD = (e)=>{ pd = [e.clientX, e.clientY, performance.now()]; };
+      const onPC = (e)=>{ const a = pd; pd = null; if(!a || !e.detail || !live() || !open || box.hidden || box.classList.contains('is-off') || Math.abs(e.clientX - a[0]) + Math.abs(e.clientY - a[1]) > 12 || control(e.target)) return; set(false, 'out'); };
+      const onPU = (e)=>{ const a = pd; if(e.pointerType!=='touch' || !a) return; pd = null; if(performance.now() - a[2] >= 500 || !live() || !open || box.hidden || box.classList.contains('is-off') || Math.abs(e.clientX - a[0]) + Math.abs(e.clientY - a[1]) > 12 || control(e.target)) return; set(false, 'out'); };
       par = gone;
       P.addEventListener('scroll', onP, { passive:true, capture:true });
       P.addEventListener('resize', onP);
       P.document.addEventListener('keydown', onPK);
+      P.document.addEventListener('pointerdown', onPD, { passive:true, capture:true });
+      P.document.addEventListener('click', onPC, true);
+      P.document.addEventListener('pointerup', onPU, { passive:true, capture:true });
       window.addEventListener('pagehide', gone);
     }
     new MutationObserver(()=>{ frame(); soon(); }).observe(root, { attributes:true, attributeFilter:['class'] });
@@ -72855,7 +73261,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(fab.classList.contains('is-away')!==away) fab.classList.toggle('is-away', away);
     }, { passive:true });
     let rz = 0;
-    window.addEventListener('resize', ()=>{ soon(); clearTimeout(rz); rz = setTimeout(soon, 180); });          // (and once the review has laid itself out again)
+    window.addEventListener('resize', ()=>{ REM = 0; soon(); clearTimeout(rz); rz = setTimeout(soon, 180); });          // (and once the review has laid itself out again)
     if(open) listen();
     soon();
   })();
