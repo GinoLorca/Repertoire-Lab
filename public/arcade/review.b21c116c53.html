@@ -11385,7 +11385,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         <button class="btn btn-ghost" id="hv-flip" type="button" title="Flip board (X)">&#8635; Flip</button>
         <button class="btn btn-ghost" id="hv-start" type="button" title="Start (Home)" aria-label="Start">&#8676;</button>
         <button class="btn btn-ghost" id="hv-prev" type="button" title="Previous move (&larr;)" aria-label="Previous move">&#8592;</button>
-        <button class="btn btn-ghost" id="hv-next" type="button" title="Next move (&rarr;)" aria-label="Next move">&#8594;</button>
+        <button class="btn btn-ghost" id="hv-next" type="button" title="Next move (&rarr;) &#183; A: the alternate move" aria-label="Next move">&#8594;</button>
         <button class="btn btn-ghost" id="hv-end" type="button" title="End of the line (End)" aria-label="End of the line">&#8677;</button>
         <button class="btn btn-ghost hv-px-here" id="hv-px-here" type="button" title="Play this position out against Stockfish, on this device">Play it out</button>
         <button class="btn btn-ghost hv-share" id="hv-share" type="button" aria-haspopup="menu" aria-expanded="false" title="Share the game at this move, or this position">Share</button>
@@ -53728,6 +53728,46 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const n = S.cur;
     if(dir<0){ if(n.parent) hvGoNode(n.parent); }
     else if(n.children.length) hvGoNode(n.children[0], { sound:true, rep:!!rep });
+    else if(hvAltStart(n) && !pxPlaying()) hvAltGo(hvAltOrig(hvAltStart(n)), rep);       // a side line's last move: on with the move it replaced
+  }
+  /* ---- A: the alternate move (2026-11-27) ----
+     The user: "You come up to the move where you have the original move, and you hit the shortcut. It goes to the alternate
+     instead. And as you play the line, once you get to the last [move] of the alternate and you hit forward again, it just
+     continues on to the original game with the original move." A on a move that has alternates (other moves from the same
+     position: any saved side line, the user's, Larry-Duet's, a kept engine line) puts the first one's first move on the board,
+     again the next one, after the last the original move again. Deeper in a side line, A goes back to the move the line
+     replaced (in a line inside a line, one level up). The right arrow (and its button) at a side line's last move goes on with
+     the move it replaced (hvStep). Only the move on the board changes: nothing is saved. Never in the Capture Calculator's
+     sequence (a move out of it would end it, its moves gone) or while a position is played out (the key handler). */
+  // the first move of the side line n is on (n itself, or up its line); null on the game's own moves
+  function hvAltStart(n){
+    let x = n;
+    while(x && x.parent && x.parent.children[0]===x) x = x.parent;
+    return x && x.parent ? x : null;
+  }
+  // the original of a side line's first move: the move it replaced, from the same position
+  function hvAltOrig(s){ return s && s.parent ? s.parent.children[0] : null; }
+  function hvAltSay(to){
+    const sib = to.parent.children, i = sib.indexOf(to);
+    clearTimeout(hvLiveT);          // (the move's own announcement gives way)
+    hvSay(i > 0 ? 'Alternate'+(sib.length > 2 ? ' '+i+' of '+(sib.length-1) : '')+': '+hvNodeLabel(to) : (to.main ? 'Back to the game: ' : 'Back to the line: ')+hvNodeLabel(to));
+  }
+  // the move put on the board in place of another: its sound (no slide: the board was showing another position)
+  function hvAltGo(to, rep){
+    hvGoNode(to, { sound:true, rep:!!rep });
+    let keys = [];
+    if(to.move) try{ keys = pzMoveSoundKeys(to.state, to.move, !!to.move.captured || !!to.move.isEP); playSoundSequence(keys); }catch(e){}
+    hvTacCue(to, keys, !!rep);              // a marked move: the tactic's cue after the move's own sound, as a step plays it
+    hvAltSay(to);
+  }
+  function hvAltKey(){
+    const S = HV_STATE;
+    if(!S) return;
+    if(hvCalcOn()){ hvSay('No alternate moves in the Capture Calculator'); return; }
+    const n = S.cur, sib = n.parent ? n.parent.children : [];
+    const to = sib.length > 1 ? sib[(sib.indexOf(n)+1) % sib.length] : hvAltOrig(hvAltStart(n));
+    if(!to || to===n){ hvSay('No alternate move here'); return; }
+    hvAltGo(to, false);
   }
   function hvRedraw(){ if(!HV_STATE) return; hvRenderBoard(); hvRenderMoveList(); hvRenderEngineNow(); }
 
@@ -53808,7 +53848,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(!S) return;
     const n = S.cur, c = hvCalcAt(n);
     const back = c!=null ? c < 0 : !n.parent, fwd = c!=null ? !CALC.path[c+1] && !n.children.length : !n.children.length;
-    const off = { 'hv-start':back, 'hv-prev':back, 'hv-next':fwd, 'hv-end':fwd };
+    const off = { 'hv-start':back, 'hv-prev':back, 'hv-next':fwd && (c!=null || pxPlaying() || !hvAltStart(n)), 'hv-end':fwd };      // (next: a side line's last move goes on with the move it replaced)
     const a = document.activeElement, aid = a && a.id;
     Object.keys(off).forEach(id=>{ document.getElementById(id).disabled = off[id]; });
     // Play it out: not on a finished position, not while one is played, not while the game review runs (it would end it)
@@ -57890,7 +57930,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(e.ctrlKey || e.metaKey || e.altKey) return;
     if(a && a.closest && a.closest('.hv-pop')) return;
     const k = e.key;
-    if(pxPlaying() && (k==='l' || k==='L' || k==='e' || k==='E' || k==='b' || k==='B' || k==='t' || k==='T' || k==='m' || k==='M' || k==='h' || k==='H' || hvArrowKeyOf(e))){
+    if(pxPlaying() && (k==='l' || k==='L' || k==='e' || k==='E' || k==='b' || k==='B' || k==='t' || k==='T' || k==='m' || k==='M' || k==='h' || k==='H' || k==='a' || k==='A' || hvArrowKeyOf(e))){
       e.preventDefault(); return;
     }
     if(k==='ArrowLeft'){ e.preventDefault(); hvStep(-1); }
@@ -57912,6 +57952,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     else if(k==='m' || k==='M'){ e.preventDefault(); if(!e.repeat) hvMenuKey(); }
     // H: the move on the board's comment is a golden rule, or not anymore; Shift+H: on to the game's next one (2026-11-24)
     else if(k==='h' || k==='H'){ e.preventDefault(); if(!e.repeat){ if(e.shiftKey) hvGoldStep(); else hvGoldKey(); } }
+    // A: the alternate move instead of the one on the board, again the next, then the original; deeper in a side line, back to
+    // the move it replaced (2026-11-27). Not with Shift.
+    else if((k==='a' || k==='A') && !e.shiftKey){ e.preventDefault(); if(!e.repeat) hvAltKey(); }
     else if(k==='Escape' && hvCalcOn()){ e.preventDefault(); hvCalcToggle(); }      // Esc ends the Capture Calculator first
     else if(k==='Escape'){ e.preventDefault(); if(HV_STATE.game._practice) pxBack(); else if(HV_STATE.game._puzzle) pzaReturn(); else showView('history'); }
   });
