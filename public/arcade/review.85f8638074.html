@@ -5535,6 +5535,56 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   .ct-mft b{ color:var(--ink); }
   .ct-more{ align-self:flex-start; }
   .ct-src{ margin:0 0 4px; padding:8px 12px; font-size:12px; line-height:1.45; color:var(--ink-soft); text-align:center; background:var(--surface); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }      /* on its own card: readable on every wallpaper (as .gho-foot) */
+  /* the card's Period and View (2026-11-27): two chip rows on a strip of their own over the card, shared by Mine and Theirs */
+  .ct-flt{ display:flex; flex-wrap:wrap; gap:8px 22px; align-items:center; padding:8px 12px; background:var(--surface); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); }
+  .ct-flt[hidden]{ display:none; }
+  :root[data-skin="bauhaus"] .ct-flt{ border-radius:0; border-width:2px; }
+  .ct-frow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-width:0; }
+  .ct-frow > .ct-k{ margin-right:4px; }
+  .ct-fchip{ display:inline-flex; align-items:center; gap:6px; font:inherit; font-size:12.5px; line-height:1.2; padding:5px 12px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--ink-soft); cursor:pointer; }
+  .ct-fchip.is-l{ padding:4px 12px 4px 4px; }
+  .ct-fchip[aria-pressed="true"]{ background:var(--ink); border-color:var(--ink); color:var(--surface); font-weight:600; }
+  .ct-fchip[aria-pressed="true"] .clamp-d{ box-shadow:0 0 0 1.5px var(--surface); }
+  .ct-fchip:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  :root[data-skin="bauhaus"] .ct-fchip{ border-radius:0; }
+  /* the card's two sides, yours and theirs in the same unit (slips), and the letters side by side */
+  .ct-duo{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; }
+  .ct-dcol{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .ct-dcol + .ct-dcol{ padding-left:18px; border-left:1px solid var(--line); }
+  .ct-dbig{ display:flex; align-items:center; gap:10px; margin-top:2px; }
+  .ct-dbig .clamp-d{ width:30px; height:30px; font-size:14px; border-width:3px; }
+  .ct-pbar{ display:flex; margin:6px 0 2px; max-width:320px; }
+  .ct-pbar i{ flex:0 0 auto; border-radius:0; }
+  .ct-pbar i.is-p{ background:var(--cw); }
+  .ct-pbar i.is-m{ background:repeating-linear-gradient(135deg, var(--cw) 0 3px, transparent 3px 6px); }
+  .ct-pbar i.is-n{ background:color-mix(in srgb, var(--cw) 30%, transparent); }
+  .ct-dpun{ font-size:13px; font-weight:600; line-height:1.35; }
+  .ct-ltab{ display:flex; flex-direction:column; gap:2px; padding-top:10px; border-top:1px solid var(--line); }
+  .ct-lrow{ display:grid; grid-template-columns:minmax(120px,1.1fr) minmax(0,1fr) minmax(0,1fr); align-items:center; gap:12px; padding:3px 6px; font:inherit; font-size:12.5px; color:var(--ink); background:none; border:0; border-radius:6px; text-align:left; }
+  .ct-lrow.is-head{ padding-top:0; padding-bottom:0; }
+  button.ct-lrow{ cursor:pointer; }
+  @media (hover:hover){ button.ct-lrow:hover .ct-bar-n{ text-decoration:underline; text-underline-offset:2px; } }
+  .ct-lrow[aria-pressed="true"]{ background:color-mix(in srgb, var(--ink) 8%, transparent); font-weight:700; }
+  .ct-lrow:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+  .ct-lname{ display:inline-flex; align-items:center; gap:8px; min-width:0; white-space:nowrap; }
+  .ct-lcell{ display:grid; grid-template-columns:minmax(0,1fr) 30px; align-items:center; gap:6px; min-width:0; }
+  .ct-lcell b{ text-align:right; font:700 12.5px/1 "JetBrains Mono",monospace; font-variant-numeric:tabular-nums; }
+  .ct-lcell .ct-tr i{ background:var(--cw); }
+  .ct-lcell .ct-tr i.is-t{ background:none; box-shadow:inset 0 0 0 1.5px var(--cw); }      /* theirs: an outline, as their letters are rings */
+  @media (max-width:520px){
+    .ct-fn{ display:none; }
+    .ct-fchip.is-l{ padding:4px; }
+    .ct-frow{ gap:4px; }
+    .ct-frow > .ct-k{ flex:0 0 100%; }          /* a phone: each row's name over its chips, so the six View chips fit one line */
+    .ct-flt{ gap:8px 14px; padding:8px; }
+    .ct-fchip{ padding:5px 10px; }
+    .ct-duo{ gap:12px; }
+    .ct-dcol + .ct-dcol{ padding-left:12px; }
+    .ct-dcol .ct-big{ font-size:32px; }
+    .ct-lrow{ grid-template-columns:28px minmax(0,1fr) minmax(0,1fr); gap:10px; }
+    .ct-lname .ct-bar-n{ display:none; }
+  }
+  @media (pointer:coarse){ .ct-fchip{ min-height:44px; } .ct-fchip.is-l{ min-width:44px; justify-content:center; } .ct-lrow{ min-height:40px; } }
   @media (max-width:640px){
     .ct-two{ grid-template-columns:minmax(0,1fr); }
     .ct-bars{ padding:12px 0 0; border-left:0; border-top:1px solid var(--line); }
@@ -11172,6 +11222,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
          board. Built in the script (ctRender); nothing here is guessed by the engine. -->
     <section class="ct" id="ct" role="tabpanel" aria-labelledby="gh-site-all" hidden>
       <div class="ct-side" id="ct-side" role="group" aria-label="Whose slips"><button type="button" class="ct-sideb" data-side="mine" aria-pressed="true">Mine</button><button type="button" class="ct-sideb" data-side="theirs" aria-pressed="false">Theirs</button></div>
+      <div class="ct-flt" id="ct-flt" hidden>
+        <div class="ct-frow" role="group" aria-label="Period" id="ct-fper"><span class="ct-k" aria-hidden="true">Period</span><button type="button" class="ct-fchip" data-per="7" aria-pressed="false">7 days</button><button type="button" class="ct-fchip" data-per="30" aria-pressed="true">30 days</button><button type="button" class="ct-fchip" data-per="90" aria-pressed="false">90 days</button><button type="button" class="ct-fchip" data-per="all" aria-pressed="false">All</button></div>
+        <div class="ct-frow" role="group" aria-label="View" id="ct-fvw"><span class="ct-k" aria-hidden="true">View</span><button type="button" class="ct-fchip" data-vw="" aria-pressed="true">Overview</button></div>
+      </div>
       <div class="ct-card ct-empty" id="ct-empty" hidden></div>
       <section class="ct-card ct-pat" id="ct-pat" aria-labelledby="ct-pat-k" hidden></section>
       <section class="ct-card" id="ct-grid" aria-labelledby="ct-grid-h" hidden></section>
@@ -40309,7 +40363,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
      nothing touches nothing (CT.sig, CT.msig); boards fill in as they come on screen. Nothing is guessed by the engine. ---- */
   const CT_DAYS = 30, CT_MIN = 5, CT_LAST = 12, CT_GRID = 24, CT_HALF = 12, CT_MOM_N = 16;
   const CT_PHASES = ['Opening', 'Middlegame', 'Endgame'];
-  var CT = { sig:'', msig:'', m:{ ch:'', b:null, out:'' }, shown:CT_MOM_N, model:null, back:null, y:null, ps:null, psN:0, gx:null, side:ctSideLoad() };     // gx: the grid's sideways scroll (null: never moved)
+  var CT = { sig:'', msig:'', m:{ ch:'', b:null, out:'' }, shown:CT_MOM_N, model:null, back:null, y:null, ps:null, psN:0, gx:null, side:ctSideLoad(), flt:ctFltLoad(), hsig:'' };     // gx: the grid's sideways scroll (null: never moved)
   var CT_DRILL = null;          // filters a CLAMP drill-down set (a letter, losses, a date): put back on return, unless changed since
   var CT_RP = new Map();        // game id -> the review's replay of a marked game (ctReplay)
   var BL_RP = new Map();        // the same for the games with blunders, up to the last of them (either side's: blPlies)
@@ -40319,6 +40373,12 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // (read while CT itself is made, before any const below it exists: the key is written out)
   // ('larry', the third side there was 2026-11-19 to 2026-11-25: Mine)
   function ctSideLoad(){ try{ return localStorage.getItem('wavyChessPrepClampSide')==='theirs' ? 'theirs' : 'mine'; }catch(e){ return 'mine'; } }
+  // the card's Period and View (2026-11-27): kept on this device, the same for Mine and Theirs (written out as ctSideLoad is)
+  function ctFltLoad(){
+    let p = '30', v = '';
+    try{ const o = JSON.parse(localStorage.getItem('wavyChessPrepClampView') || 'null'); if(o && ['7', '30', '90', 'all'].indexOf(o.p) >= 0) p = o.p; if(o && typeof o.v==='string' && /^[CLAMP]$/.test(o.v)) v = o.v; }catch(e){}
+    return { p, v };
+  }
   try{ localStorage.removeItem('wavyChessPrepLarry'); }catch(e){}          // that side's copy of two Lichess studies (they stay as they are)
   function ctT(){ return CT.side==='theirs'; }
   // a game's marks for the side shown, as [ply, letter, note?]
@@ -40415,14 +40475,18 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     if(k==='color') return m.e.color;
     if(k==='speed') return m.e.g.speed || '';
     if(k==='none') return m.nl ? '1' : null;              // a blunder with no CLAMP letter yet
+    if(k==='per') return null;                              // (the card's period: ctInB)
     return m.clk && m.clk.low ? 'low' : null;
   }
+  // a moment in one of Where's groups, or in the card's period
+  function ctInB(m, b){ return b.g==='per' ? m.e.at >= ctPerFrom(b.v, ghoBriefNow()) : ctBucket(m, b.g)===b.v; }
   function ctSpeedName(s){ const x = GHO_SPEEDS.find(y=> y[0]===s); return x ? x[1] : (s ? s.charAt(0).toUpperCase()+s.slice(1) : 'Other'); }
   function ctBucketName(k, v){
     if(k==='phase') return CT_PHASES[Number(v)] || '';
     if(k==='color') return v==='white' ? 'White' : 'Black';
     if(k==='speed') return ctSpeedName(v);
     if(k==='none') return 'no letter yet';
+    if(k==='per') return ctPerName(v);
     return 'Low on time';
   }
   // the game has a move of yours (one you could mark): White's is the first ply, Black's the second (the first in a set-up
@@ -40431,14 +40495,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   // your marked games that aren't loaded yet (older than the games loaded so far): from their analysis records' summaries,
   // as the Games view's "Has notes" adds them (ghBaseList), so a mark on an old game never drops out of the tab on a reload.
   // Lichess games only (the Chess.com tab holds all its games); never one against the computer
-  // bl: those with a badge of yours on a move instead (their blunders count, 2026-11-23)
-  function ctExtras(base, bl){
+  // bl: those with a badge of yours on a move instead (their blunders count, 2026-11-23); sd: 'mine' | 'theirs', that side's marks
+  // instead of the side shown (the card's both sides, 2026-11-27)
+  function ctExtras(base, bl, sd){
     if(typeof GN!=='object' || !GN || GH_UI.site==='chesscom') return [];
     const have = new Set(base.map(g=> String(g.id))), out = [];
     Object.keys(GN.notes).forEach(id=>{
       if(!gnIsAn(id)) return;
       const n = GN.notes[id], gid = id.slice(3);
-      if(!n || !n.g || ccIsId(gid) || have.has(gid) || GH_STATE.ids.has(gid) || !(bl ? Object.values(gnBadgesOf(gid) || {}).some(Boolean) : ctMarks(gid).length)) return;
+      if(!n || !n.g || ccIsId(gid) || have.has(gid) || GH_STATE.ids.has(gid) || !(bl ? Object.values(gnBadgesOf(gid) || {}).some(Boolean) : (sd ? (sd==='theirs' ? gnClampOOf(gid) : gnClampOf(gid)) : ctMarks(gid)).length)) return;
       const g = GH_STATE.extras.get(gid) || ghGameFromSummary(Object.assign({}, n, { id:gid }));
       if(!ghVsComputer(g)) out.push(g);
     });
@@ -40450,9 +40515,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const u = ghMe(), f = Object.assign({}, GH_FILTERS, { ck:'', ga:'' }), now = ghoBriefNow(), from = now - CT_DAYS*86400e3;
     const all = base.concat(ctExtras(base));
     const scope = all.filter(g=> ghMatch(g, u, f));
-    // Not marked yet: your losses of the last 30 days (the Date filter's days when it is shorter) with no letters
+    // Not marked yet: your losses of the card's period (the Date filter's days when they are fewer) with no letters
     const df = f.date ? (f.date==='year' ? new Date(new Date(now).getFullYear(), 0, 1).getTime() : now - Number(f.date)*86400e3) : 0;
-    const lossFrom = Math.max(from, df), lossDate = lossFrom===from ? '30' : f.date;
+    const per = CT.flt.p, pf = ctPerFrom(per, now), lossFrom = Math.max(pf, df), lossDate = lossFrom===pf ? (per==='all' ? '' : per) : f.date;
     const G = [], T = ctT();
     let loss = 0;
     scope.forEach(g=>{
@@ -40476,8 +40541,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       if(v.has) BG.push({ g, bl:T ? v.theirs : v.mine, sig:v.sig, q:[], o:T ? {} : null, at:Number(g.createdAt) || 0, res:ghGameResult(g, u), color:ghMyColor(g, u)==='white' ? 'white' : 'black' });
     });
     BG.sort((a, b)=> b.at - a.at);
-    return Object.assign({ T, scope, G, BG, BW:blWin(BG, from), any, other, loading:!base.length && ghTabBusy(), M:null, loss, lossDate,
-      lossWhen: lossFrom===from ? 'in the last '+CT_DAYS+' days' : /^\d+$/.test(f.date) ? 'in the last '+f.date+' days' : 'this year' }, ctWin(G, from));
+    const md = Object.assign({ T, scope, G, BG, BW:blWin(BG, from), any, other, loading:!base.length && ghTabBusy(), M:null, loss, lossDate,
+      lossWhen: lossFrom===pf ? (per==='all' ? '' : 'in the last '+per+' days') : /^\d+$/.test(f.date) ? 'in the last '+f.date+' days' : 'this year' }, ctWin(G, from));
+    md.D = ctDuo(md, base, u, f, now, all, df);
+    return md;
   }
   // the blunders' window, by the pattern's rule: the last 30 days with 5+ games that have a review or a badge, else the last 12
   function blWin(BG, from){
@@ -40548,7 +40615,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
   }
   // what the cards are drawn from: the same games (loaded or not), marks (notes too), Filters, tab and hour draw nothing again
   function ctSig(md){
-    return [GH_UI.site, CT.side, JSON.stringify(Object.assign({}, GH_FILTERS, { ck:'', ga:'' })), Math.floor(ghoBriefNow()/36e5), md.scope.length, md.loss, md.any ? 1 : 0, md.other ? 1 : 0,
+    return [GH_UI.site, CT.side, JSON.stringify(Object.assign({}, GH_FILTERS, { ck:'', ga:'' })), Math.floor(ghoBriefNow()/36e5), md.scope.length, md.any ? 1 : 0, md.other ? 1 : 0,
       md.loading ? 1 : 0, md.G.map(e=> e.g.id+'@'+e.at+e.res+(e.g._summary ? 's' : '')+JSON.stringify(e.k)+(e.q.length ? JSON.stringify(e.q) : '')+(e.o ? JSON.stringify(e.o) : '')).join(';'),
       md.BG.map(e=> e.g.id+'@'+e.at+e.res+(e.g._summary ? 's' : '')+e.sig+(e.bl.length ? JSON.stringify(md.T ? gnClampOOf(String(e.g.id)) : gnClampOf(String(e.g.id))) : '')).join(';')].join('|');
   }
@@ -40559,6 +40626,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const ct = md.loading ? '' : (md.T ? ghoN(md.G.length, 'game')+' with their slips marked' : ghoN(md.G.length, 'marked game'))+' of '+ghoN(md.scope.length, 'game')+' against people';
     document.querySelectorAll('#ct-side .ct-sideb').forEach(b=>{ const on = b.dataset.side===CT.side; if(b.getAttribute('aria-pressed')!==String(on)) b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     if(cnt.textContent!==ct) cnt.textContent = ct;
+    ctFltSync();
     const sig = ctSig(md);
     if(sig!==CT.sig || !CT.model){
       const fa = document.activeElement, fid = fa && sec.contains(fa) && fa.dataset ? fa.dataset.fid || '' : '';
@@ -40568,7 +40636,17 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       ctDrawAll(md, all);
       ctDrawMoments();
       if(fid){ const el = Array.from(sec.querySelectorAll('[data-fid]')).find(x=> x.dataset.fid===fid); if(el) try{ el.focus({ preventScroll:true }); }catch(e){} }
-    } else ctDrawMoments();              // its own state (a chip, Show more, the piece set) may have changed
+    } else {
+      // the same marks and games: the card alone when its period, view or own numbers changed (a chip), the rest as it is
+      Object.assign(CT.model, { D:md.D, loss:md.loss, lossDate:md.lossDate, lossWhen:md.lossWhen });
+      const pat = document.getElementById('ct-pat');
+      if(!pat.hidden && pat.querySelector('.ct-duo') && ctHeadSig(CT.model)!==CT.hsig){
+        const fa = document.activeElement, fid = fa && pat.contains(fa) && fa.dataset ? fa.dataset.fid || '' : '';
+        ctDrawHead(CT.model);
+        if(fid){ const el = Array.from(pat.querySelectorAll('[data-fid]')).find(x=> x.dataset.fid===fid); if(el) try{ el.focus({ preventScroll:true }); }catch(e){} }
+      }
+      ctDrawMoments();              // its own state (a chip, Show more, the piece set) may have changed
+    }
     ctBack();
     CT_MS = performance.now() - t0;
   }
@@ -40577,6 +40655,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const show = md.G.length > 0 || md.BM.length > 0;             // (letters, or blunders alone: no grid then, its columns are marked games)
     const hide = (el, v)=>{ if(el.hidden!==v) el.hidden = v; };           // (nothing is written that stays as it is)
     ids.forEach(id=> hide(document.getElementById(id), !show || (id==='ct-grid' && !md.G.length)));
+    hide(document.getElementById('ct-flt'), !show);
     const src = document.getElementById('ct-src'), dzk = dzGames(md.G, md.T ? 'o' : 'k'), dzt = dzk ? ' and Larry-Duet\u2019s ('+dzk+' of '+ghoN(md.G.length, 'marked game')+')' : '';
     hide(src, !show);
     // (the parts: 0 on the card, 1 in the Info box. Larry-Duet's count stays on the card in its sentence; without it all of it is in the box)
@@ -40612,7 +40691,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       empty.appendChild(b);
       return;
     }
-    if(!md.G.length) blDrawPat(md); else if(md.T) ctDrawPatO(md); else ctDrawPat(md);
+    if(!md.G.length && !md.D.S.mine.length && !md.D.S.theirs.length) blDrawPat(md); else ctDrawHead(md);
     // a review that brings no blunder here changes the pattern card's base alone: the grid and Where stay as they are
     const key = [GH_UI.site, CT.side, Math.floor(ghoBriefNow()/36e5)].join('|');
     const gs = key+'|'+md.G.map(e=> e.g.id+'@'+e.at+e.res+(e.g._summary ? 's' : '')+JSON.stringify(e.k)+(e.o ? JSON.stringify(e.o) : '')).join(';')+'|'+md.GG.map(e=>{ const v = blOf(e.g); return v.has ? (md.T ? v.theirs : v.mine).length : '-'; }).join(',');
@@ -40622,22 +40701,6 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     CT.gsig = md.G.length ? gs : '';
     CT.wsig = ws;
   }
-  // Blunders in the pattern card (2026-11-23). Under P in By letter: in how many games of the same kind of window (30 days,
-  // else the last 12), counting only games with a review or a badge; it opens the moments
-  function blBar(md){
-    const X = md.BW, b = ghEl(X.n ? 'button' : 'div', 'ct-bar ct-blbar'), tr = ghEl('span', 'ct-tr'), i = ghEl('i');
-    i.style.width = (X.W.length ? 100*X.n/X.W.length : 0).toFixed(1)+'%';
-    i.style.background = BL_K.color;
-    tr.appendChild(i);
-    b.append(blDisc(), ghEl('span', 'ct-bar-n', BL_K.short), tr, ghEl('b', '', X.n+' of '+(md.T ? ghoN(X.W.length, 'game') : X.W.length)));          // (Theirs: the letters' numbers are slips, punished of all)
-    if(X.n){
-      b.type = 'button'; b.dataset.act = 'mom'; b.dataset.ch = BL_CH; b.dataset.fid = 'bar|'+BL_CH;
-      b.setAttribute('aria-label', (md.T ? 'Their blunders' : 'Blunders')+': in '+X.n+' of '+ghoN(X.W.length, 'game')+' with a review or a badge, '+blWhen(X)+'. Show the moments');
-    }
-    return b;
-  }
-  function blWhen(X){ return X.days ? 'last '+CT_DAYS+' days' : X.W.length===1 ? 'the last one' : 'the last '+X.W.length; }
-  function blBarNote(md){ return ghEl('p', 'ct-sub ct-blnote info-only', 'Blunders: games with one, of those with a review or a badge ('+blWhen(md.BW)+').'); }
   // the why, over every blunder here: how many also carry a letter and which, those with none yet (a press opens them, to be
   // marked), and where the numbers come from
   function blStrip(md){
@@ -40678,130 +40741,243 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       ghEl('div', 'ct-vs', ghoN(X.moves, 'blunder')+' in them.'+(X.n ? ' You scored '+ghoPct(X.score)+' in the games with one.' : '')+' Mark a blunder with its CLAMP letter and your pattern shows here.'), acts);
     box.append(head, hero, blStrip(md));
   }
-  // Theirs (2026-11-12, the user: the eval swung because "my opponent had the loose piece" and the better move wasn't played):
-  // how often you punished the slips of theirs you marked, over the pattern's window. A slip: one move of theirs you marked,
-  // its letters together (punished or missed is said once for the move). L: the model's moves, newest first
-  function ctSlips(L){
-    const by = new Map();
-    L.forEach(m=>{ const key = m.e.g.id+'|'+m.p; let x = by.get(key); if(!x){ x = { e:m.e, p:m.p, out:m.out, chs:[] }; by.set(key, x); } x.chs.push(m.ch); });
-    return [...by.values()];
+  // ---- the headline's Period and View (2026-11-27, the user: "it says 30 out of 33 for alignment. And ... for theirs, it says
+  // 100 out of 149 that I've punished. So the comparison ... they're not even comparing the same things ... let's add a way
+  // where you can filter the alignment - what's it been over the last X amount of days, what was the loose pieces over the X
+  // amount of days - and then a general overview"). Two chip rows over the card, shared by Mine and Theirs and kept on this
+  // device (CT.flt): Period 7 days | 30 days | 90 days | All, View Overview | C | L | A | M | P. The card counts both sides in one
+  // unit, slips (one marked move, its letters together): yours and theirs, how many were punished each way (theirs as you
+  // said it; yours read here from the game's saved review, ctTheyOut, never written), against as many days before. The grid,
+  // Where they happen and Moments below keep every game the Filters keep, as before; Moments takes the period from the card's
+  // own links (the bucket 'per'). ----
+  const CT_PERS = ['7', '30', '90', 'all'], CT_GIFT = 5, CT_KEPT = 0.5;
+  const CT_PUN = ['brilliant', 'great', 'best', 'excellent'], CT_MISS = ['miss', 'mistake', 'blunder'];         // hvClampGuess's
+  function ctFltSave(){ try{ localStorage.setItem('wavyChessPrepClampView', JSON.stringify({ p:CT.flt.p, v:CT.flt.v })); }catch(e){} }
+  // the period's first moment (0: All)
+  function ctPerFrom(p, now){ return p==='all' ? 0 : now - Number(p)*86400e3; }
+  function ctPerName(p){ return p==='all' ? 'all your games' : 'last '+p+' days'; }
+  function ctFlt(patch){
+    const was = CT.flt.p+'|'+CT.flt.v;
+    if('p' in patch && CT_PERS.indexOf(patch.p) >= 0) CT.flt.p = patch.p;
+    if('v' in patch) CT.flt.v = CLAMP_BY[patch.v] ? patch.v : '';
+    if(CT.flt.p+'|'+CT.flt.v===was) return;
+    ctFltSave();
+    ghRender();
   }
-  function ctDrawPatO(md){
-    const box = document.getElementById('ct-pat'), ids = new Set(md.W.map(e=> String(e.g.id)));
-    box.textContent = '';
-    const S = ctSlips(md.M.filter(m=> ids.has(String(m.e.g.id)))), n = S.length, cnt = (L, o)=> L.filter(x=> x.out===o).length;
-    const np = cnt(S, 'p'), nm = cnt(S, 'm'), nn = n - np - nm;
-    const per = CLAMP_K.map(K=>{ const L = S.filter(x=> x.chs.indexOf(K.ch) >= 0); return { K, n:L.length, p:cnt(L, 'p'), m:cnt(L, 'm') }; });
-    // their most common letter; a tie: the one in their newest slip (then C L A M P)
-    const best = Math.max(...per.map(x=> x.n)), tied = per.filter(x=> x.n===best);
-    let top = tied[0];
-    if(tied.length > 1) for(const x of S){ const y = tied.find(z=> x.chs.indexOf(z.K.ch) >= 0); if(y){ top = y; break; } }
-    const K = top.K, head = ghEl('div', 'ct-head');
-    const h = ghEl('h3', 'ct-k', md.days ? 'Their slips \u00b7 last '+CT_DAYS+' days' : 'Their slips \u00b7 your last '+ghoN(md.W.length, 'game')+' with them');
-    h.id = 'ct-pat-k';
-    head.append(h, ghEl('span', 'ct-n', ghoN(n, 'slip')+' in '+ghoN(md.W.length, 'game')));
-    box.appendChild(head);
-    const two = ghEl('div', 'ct-two'), hero = ghEl('div', 'ct-hero'), fig = ghEl('div', 'ct-fig is-theirs', K.ch);
-    fig.style.setProperty('--cw', K.color);
-    fig.setAttribute('aria-hidden', 'true');
-    let vs = 'Their most common slip: '+K.what+' ('+top.n+'). '+(top.n===1 ? (top.p ? 'You punished it.' : top.m ? 'You missed it.' : 'Not said yet whether you punished it.') : 'You punished '+top.p+' of those '+top.n+'.');
-    if(nn) vs += ' '+(nn===1 ? '1 slip isn\u2019t' : nn+' slips aren\u2019t')+' said yet: punished or missed is in the review\u2019s move menu.';
-    vs += ' You scored '+ghoPct(ctPts(md.W))+' in these games.';
-    hero.append(fig, ghEl('div', 'ct-big', np+' of '+n), ghEl('div', 'ct-what', 'of their slips you punished'), ghEl('div', 'ct-vs', vs));
-    const acts = ghEl('div', 'ct-acts'), act = (t, out, fid, lab)=>{ const a = ghEl('button', 'ct-l', t); a.type = 'button'; a.dataset.act = 'momo'; a.dataset.out = out; a.dataset.fid = fid; a.setAttribute('aria-label', lab); acts.appendChild(a); };
-    if(nm) act('See the ones you missed', 'm', 'pat|missed', 'See the moments of the '+ghoN(nm, 'slip')+' of theirs you missed');
-    act('See them all', '', 'pat|all', 'See every slip of theirs you marked');
-    hero.appendChild(acts);
-    two.appendChild(hero);
-    // each letter: its slips across the window's width, punished (solid), missed (striped), not said (pale); a row opens them
-    const bars = ghEl('div', 'ct-bars');
-    bars.appendChild(ghEl('h4', 'ct-k', 'By letter \u00b7 punished of their slips'));
-    per.forEach(x=>{
-      const b = ghEl(x.n ? 'button' : 'div', 'ct-bar ct-obar'), tr = ghEl('span', 'ct-tr');
-      [['p', x.p], ['m', x.m], ['n', x.n - x.p - x.m]].forEach(([c, v])=>{ const i = ghEl('i', 'is-'+c); i.style.width = (n ? 100*v/n : 0).toFixed(1)+'%'; i.style.setProperty('--cw', x.K.color); tr.appendChild(i); });
-      b.append(ctDisc(x.K, true), ghEl('span', 'ct-bar-n', x.K.short), tr, ghEl('b', '', x.n ? x.p+' of '+x.n : '0'));
-      if(x.n){
-        b.type = 'button'; b.dataset.act = 'mom'; b.dataset.ch = x.K.ch; b.dataset.fid = 'bar|'+x.K.ch;
-        b.setAttribute('aria-label', x.K.name+': '+ghoN(x.n, 'slip')+' of theirs, you punished '+x.p+' and missed '+x.m+'. Show them');
-      }
-      bars.appendChild(b);
+  // the chips' pressed state (written only when it changes)
+  function ctFltSync(){
+    document.querySelectorAll('#ct-flt .ct-fchip').forEach(b=>{
+      const on = b.dataset.per!=null ? b.dataset.per===CT.flt.p : b.dataset.vw===CT.flt.v;
+      if(b.getAttribute('aria-pressed')!==String(on)) b.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
-    const key = ghEl('div', 'ct-okey');
-    key.setAttribute('aria-hidden', 'true');
-    [['p', 'punished'], ['m', 'missed']].concat(nn ? [['n', 'not said']] : []).forEach(([c, t])=>{ const k = ghEl('span', ''); k.append(ghEl('i', 'is-'+c), document.createTextNode(t)); key.appendChild(k); });
-    bars.appendChild(key);
-    if(md.BG.length) bars.append(blBar(md), blBarNote(md));          // (after the key: it is about the letters' bars)
-    two.appendChild(bars);
-    box.appendChild(two);
-    // both sides: your own marked moves over the same days (the same games when the window is your last ones with theirs)
-    const from = ghoBriefNow() - CT_DAYS*86400e3;
-    const mine = (md.days ? md.scope.filter(g=> (Number(g.createdAt) || 0) >= from) : md.W.map(e=> e.g)).map(g=> gnClampOf(String(g.id))).filter(k=> k.length);
-    const mm = mine.reduce((t, k)=> t + new Set(k.map(x=> x[0])).size, 0), mc = {};
-    mine.forEach(k=> k.forEach(x=>{ mc[x[1]] = (mc[x[1]] || 0) + 1; }));
-    const mtop = CLAMP_K.reduce((a, X)=> (mc[X.ch] || 0) > (mc[a.ch] || 0) ? X : a, CLAMP_K[0]);
-    let bt = 'You marked '+ghoN(mm, 'slip')+' of yours '+(md.days ? 'in the same '+CT_DAYS+' days' : 'in these games')+', '+ghoN(n, 'slip')+' of theirs.';
-    if(mm) bt += mtop.ch===K.ch ? ' '+K.short+' top both lists.' : ' Yours: mostly '+mtop.what+'. Theirs: mostly '+K.what+'.';
-    const both = ghEl('div', 'ct-todo ct-both');
-    both.append(ghEl('span', 'ct-k', 'Both sides'), ghEl('span', 'ct-todo-t', bt));
-    box.appendChild(both);
-    if(md.BG.length) box.appendChild(blStrip(md));
   }
-  function ctDrawPat(md){
-    const box = document.getElementById('ct-pat'), P = md.P, K = CLAMP_BY[P.ch];
+  // A slip of yours as their reply met it: 'p' they punished it, 'm' they missed it, 'n' not said, 'x' not said (no review).
+  // Read at view time, never written (your marks, k, have no such field). The rule a slip of theirs is said by: the badge on the
+  // reply as the board shows it (your own badge on that move first, No badge: none, else the game review's), as hvClampGuess
+  // reads it; else the review's scores (Lichess's winning chances, hpfWinPct, from their side): what your move gave them, punished
+  // when their reply kept half of it or more, missed when less; under 5 points, the game ended on your move, or a mark on one of
+  // their moves: not said. P: the plies of your marked moves. Kept per game while its record, reviews and moves are the same
+  var CT_TO = new Map();
+  function ctTheyOut(g, P){
+    const id = String(g.id), b = gnBadgesOf(id), mv = String(g.moves || '').trim(), me = ghMyColor(g, ghMe()), key = P.join(',');
+    const bf = !ghIsStd(g) && (/ b /.test(String(g.initialFen || '')) || !!g._bf);
+    let mem = null, loc = null, arc = null;
+    try{ ojRevs(); mem = HR_MEM.get(id) || null; loc = OJ_RS.loc[id] || null; arc = (hrsOn() && HRS_ID.get(id)) || null; }catch(e){ mem = loc = arc = null; }
+    const was = CT_TO.get(id);
+    if(was && was.b===b && was.mem===mem && was.loc===loc && was.arc===arc && was.me===me && was.bf===bf && was.mv===mv && was.key===key) return was.v;
+    const sg = mv ? hraSigOf(g) : null, n = sg ? sg.n : 0;
+    let x = null;
+    try{ x = n && (mem || loc || arc) ? hrFind(id, n, sg.h, loc) : null; }catch(e){ x = null; }
+    const ids = x ? (x.R ? x.R.b : x.e.b) : null, enc = x && !x.R ? String(x.e.e || '').split(',') : null;
+    const score = (i)=>{ if(!x) return null; if(x.R) return x.R.ev[i] || null; const t = enc[i]; return t==null || t==='' ? null : hrDecScore(t); };
+    const badge = (r)=>{
+      if(b && r in b) return b[r] || null;
+      if(!ids) return null;
+      const c = ids[r-1];
+      return x.R ? c || null : HR_BY_CODE[c] ? HR_BY_CODE[c].id : null;
+    };
+    const mine = (p)=> ((p + (bf ? 1 : 0)) % 2===1)===(me==='white'), opp = me==='white' ? 'b' : 'w', v = {};
+    P.forEach(p=>{
+      const r = p + (mine(p) ? 1 : 2);
+      if(!n || r > n){ v[p] = 'n'; return; }
+      const bd = badge(r);
+      if(CT_PUN.indexOf(bd) >= 0){ v[p] = 'p'; return; }
+      if(CT_MISS.indexOf(bd) >= 0){ v[p] = 'm'; return; }
+      if(!x){ v[p] = 'x'; return; }
+      const s0 = mine(p) ? score(p - 1) : null, s1 = s0 ? score(p) : null, s2 = s1 ? score(r) : null;
+      if(!s0 || !s1 || !s2){ v[p] = 'n'; return; }
+      const w0 = hpfWinPct(s0, opp), gift = hpfWinPct(s1, opp) - w0, kept = hpfWinPct(s2, opp) - w0;
+      v[p] = gift < CT_GIFT ? 'n' : kept >= gift*CT_KEPT ? 'p' : 'm';
+    });
+    if(CT_TO.size > 3000) CT_TO.clear();
+    CT_TO.set(id, { b, mem, loc, arc, me, bf, mv, key, v });
+    return v;
+  }
+  // both sides' slips in the games the Filters keep (marked games not loaded yet too), the period's and the days before it:
+  // { p, from, from0, cut, dw, S:{ mine, theirs }: [{ id, g, at, res, p, chs, out }] newest first, bl: the ?? row, sig }. The quick
+  // part (records read once per text, ctTheyOut kept per game): drawn again only when sig changes.
+  // all: the tab's games before the Filters; df: the Date filter's first day (0: none). A Date filter shorter than the period (it
+  // starts after the period does, or any with All): the card counts its days, dw names them, and has no days before (cut). Else
+  // the days before are counted without the Date filter, the other Filters still applying (Analytics' rule), never cut by it
+  function ctDuo(md, base, u, f, now, all, df){
+    const p = CT.flt.p, from = ctPerFrom(p, now), from0 = p==='all' ? 0 : now - 2*Number(p)*86400e3;
+    const cut = !!df && df > from, wide = p!=='all' && !cut && df > from0, dw = !cut ? '' : /^\d+$/.test(f.date) ? 'last '+f.date+' days' : 'this year';
+    const fb = wide ? Object.assign({}, f, { date:'' }) : f, have = new Set(md.scope.map(g=> String(g.id)));
+    const pre = wide ? all.filter(g=>{ const at = Number(g.createdAt) || 0; return at >= from0 && at < from && !have.has(String(g.id)) && ghMatch(g, u, fb); }) : [];
+    pre.forEach(g=> have.add(String(g.id)));
+    const more = ctExtras(base, false, md.T ? 'mine' : 'theirs').filter(g=> !have.has(String(g.id)) && ghMatch(g, u, fb));
+    const S = { mine:[], theirs:[] };
+    md.scope.concat(pre, more).forEach(g=>{
+      const id = String(g.id), k = gnClampOf(id), o = gnClampOOf(id);
+      if(!k.length && !o.length) return;
+      const at = Number(g.createdAt) || 0;
+      if(at < from0) return;
+      const res = ghGameResult(g, u), add = (L, sd)=>{
+        const by = new Map();
+        L.forEach(x=>{
+          let s = by.get(x[0]);
+          if(!s){ s = { id, g, at, res, p:x[0], chs:[], out:'' }; by.set(x[0], s); S[sd].push(s); }
+          s.chs.push(x[1]);
+          if(sd==='theirs' && !s.out && x[3]) s.out = x[3];
+        });
+        return by;
+      };
+      const bm = add(k, 'mine');
+      if(bm.size){ const v = ctTheyOut(g, [...bm.keys()]); bm.forEach((s, pl)=>{ s.out = v[pl]==='n' ? '' : v[pl] || ''; }); }
+      add(o, 'theirs');
+    });
+    const ord = (a, b)=> b.at - a.at || b.p - a.p;
+    S.mine.sort(ord); S.theirs.sort(ord);
+    // the ?? row: the period's games with a review or a badge, each side's ?? moves in them
+    const bl = { g:0, mine:0, theirs:0 };
+    md.BG.forEach(e=>{ if(e.at < from) return; const v = blOf(e.g); bl.g++; bl.mine += v.mine.length; bl.theirs += v.theirs.length; });
+    const sl = (L)=> L.map(s=> s.id+'@'+s.at+s.res+':'+s.p+s.chs.join('')+s.out).join(';');
+    return { p, from, from0, cut, dw, S, bl, sig:[p, dw, Math.floor(now/36e5), sl(S.mine), sl(S.theirs), bl.g, bl.mine, bl.theirs].join('|') };
+  }
+  // a side's slips in the period (ch: those with that letter): how many, in how many games, punished, missed, without a review
+  // (yours), the days before (null for All), your score in those games
+  function ctDuoStat(L, D, ch){
+    const has = (s)=> !ch || s.chs.indexOf(ch) >= 0, W = L.filter(s=> s.at >= D.from && has(s)), games = new Map();
+    W.forEach(s=>{ if(!games.has(s.id)) games.set(s.id, s); });
+    return { n:W.length, g:games.size, p:W.filter(s=> s.out==='p').length, m:W.filter(s=> s.out==='m').length, x:W.filter(s=> s.out==='x').length,
+      nB:D.p==='all' || D.cut ? null : L.filter(s=> s.at >= D.from0 && s.at < D.from && has(s)).length, score:ctPts([...games.values()]), W };
+  }
+  function ctHeadSig(md){ return [md.D.sig, CT.flt.v, CT.side, md.loss, md.lossWhen, md.BG.length, md.BM ? md.BM.length : ''].join('|'); }
+  // the card: the view's two sides, the letters side by side, the side's blunders strip and losses not marked yet
+  function ctDrawHead(md){
+    const box = document.getElementById('ct-pat'), D = md.D, K = CT.flt.v ? CLAMP_BY[CT.flt.v] : null, p = D.p, T = md.T;
+    CT.hsig = ctHeadSig(md);
     box.textContent = '';
-    const head = ghEl('div', 'ct-head'), h = ghEl('h3', 'ct-k', md.days ? 'Your pattern \u00b7 last '+CT_DAYS+' days' : 'Your pattern \u00b7 your last '+ghoN(md.W.length, 'marked game'));
+    const sides = T ? ['theirs', 'mine'] : ['mine', 'theirs'], st = { mine:ctDuoStat(D.S.mine, D, K && K.ch), theirs:ctDuoStat(D.S.theirs, D, K && K.ch) };
+    const games = new Set(st.mine.W.concat(st.theirs.W).map(s=> s.id)).size, what = K ? K.what : 'slips', before = 'the '+p+' days before';
+    // what the card counts: the period, or the Date filter's days when they are fewer (named so in the heading)
+    const wn = D.cut ? D.dw : ctPerName(p), inWn = wn==='this year' ? wn : 'in the '+wn;
+    const head = ghEl('div', 'ct-head'), h = ghEl('h3', 'ct-k', (K ? K.name : 'Overview')+' \u00b7 '+wn+(D.cut ? ' (Date filter)' : ''));
     h.id = 'ct-pat-k';
-    head.append(h, ghEl('span', 'ct-n', md.days ? ghoN(md.W.length, 'marked game') : 'Fewer than '+CT_MIN+' in the last '+CT_DAYS+' days'));
+    head.append(h, ghEl('span', 'ct-n', ghoN(games, 'game')+' with '+what+' marked'));
     box.appendChild(head);
-    const two = ghEl('div', 'ct-two'), hero = ghEl('div', 'ct-hero'), fig = ghEl('div', 'ct-fig', K.ch);
-    fig.style.background = K.color;
-    fig.setAttribute('aria-hidden', 'true');
-    let vs = P.tied ? 'Tied for your most repeated letter' : 'Your most repeated letter';
-    if(P.ofB){
-      const a = P.n/P.of, b = P.nB/P.ofB;
-      vs += ', '+(Math.abs(a - b) < 1e-9 ? 'same as ' : a > b ? 'up from ' : 'down from ')+P.nB+' of '+P.ofB+(md.days ? ' in the '+CT_DAYS+' days before' : ' before');
-    }
-    vs += '. You scored '+ghoPct(P.score)+' in those games.';
-    hero.append(fig, ghEl('div', 'ct-big', P.n+' of '+P.of), ghEl('div', 'ct-what', (P.of===1 ? 'game had ' : 'games had ')+K.what), ghEl('div', 'ct-vs', vs));
-    // the Games view can't list "your last 12 marked games": there, a letter opens every game with it (and says how many)
-    const allOf = (ch)=> !md.days && md.nG[ch] > md.nW[ch] ? 'All '+md.nG[ch]+' games with '+(/[ALM]/.test(ch) ? 'an ' : 'a ')+ch : '';
-    const acts = ghEl('div', 'ct-acts'), nm = md.M.filter(m=> m.ch===P.ch).length, ao = allOf(P.ch);
-    const a1 = ghEl('button', 'ct-l', nm===1 ? 'See the moment' : 'See the '+nm+' moments'), a2 = ghEl('button', 'ct-l', ao || 'Their games');
-    a1.type = a2.type = 'button';
-    a1.dataset.act = 'mom'; a1.dataset.ch = P.ch; a1.dataset.fid = 'pat|mom';
-    a1.setAttribute('aria-label', (nm===1 ? 'See the move' : 'See the '+nm+' moves')+' you marked '+K.name);
-    a2.dataset.act = 'games'; a2.dataset.ch = P.ch; a2.dataset.win = '1'; a2.dataset.fid = 'pat|games';
-    a2.setAttribute('aria-label', ao ? ao+': all your games with '+K.name : 'Their games: your games with '+K.name+(md.days ? ' in the last '+CT_DAYS+' days' : ''));
-    acts.append(a1, a2);
-    hero.appendChild(acts);
-    two.appendChild(hero);
-    // each letter's games in the window (a bar's width: its share of them); a bar opens those games
-    const bars = ghEl('div', 'ct-bars');
-    bars.appendChild(ghEl('h4', 'ct-k', 'By letter'));
-    CLAMP_K.forEach(X=>{
-      const n = md.nW[X.ch], b = ghEl(n ? 'button' : 'div', 'ct-bar'), tr = ghEl('span', 'ct-tr'), i = ghEl('i');
-      i.style.width = (md.W.length ? 100*n/md.W.length : 0).toFixed(1)+'%';
-      i.style.background = X.color;
+    const duo = ghEl('div', 'ct-duo');
+    sides.forEach(sd=>{
+      const X = st[sd], my = sd==='mine', col = ghEl('div', 'ct-dcol'), nn = X.n - X.p - X.m;
+      col.dataset.side = sd;
+      col.appendChild(ghEl('h4', 'ct-k', (my ? 'Your ' : 'Their ')+what));
+      const big = ghEl('div', 'ct-dbig');
+      if(K) big.appendChild(ctDisc(K, !my));
+      big.appendChild(ghEl('span', 'ct-big', String(X.n)));
+      col.append(big, ghEl('div', 'ct-what', (X.n===1 ? 'slip' : 'slips')+' in '+ghoN(X.g, 'game')));
+      if(X.n){
+        const tr = ghEl('span', 'ct-tr ct-pbar');
+        tr.setAttribute('aria-hidden', 'true');
+        [['p', X.p], ['m', X.m], ['n', nn]].forEach(([c, v])=>{ const i = ghEl('i', 'is-'+c); i.style.width = (100*v/X.n).toFixed(1)+'%'; i.style.setProperty('--cw', K ? K.color : 'var(--ink-soft)'); tr.appendChild(i); });
+        col.append(tr, ghEl('div', 'ct-dpun', (my ? 'They punished ' : 'You punished ')+X.p+' ('+ghoPct(100*X.p/X.n)+') \u00b7 missed '+X.m+(nn ? ' \u00b7 '+nn+' not said' : '')));
+        if(nn && my && X.x) col.appendChild(ghEl('div', 'ct-vs', X.x===nn ? (nn===1 ? 'It is in a game with no review yet.' : 'All '+nn+' are in games with no review yet.') : X.x+' of them in games with no review yet.'));
+        if(nn && !my) col.appendChild(ghEl('div', 'ct-vs', (nn===1 ? 'It isn\u2019t' : 'They aren\u2019t')+' said yet: punished or missed is in the review\u2019s move menu.'));
+      } else col.appendChild(ghEl('div', 'ct-vs', p==='all' && !D.cut ? 'None marked yet.' : 'None marked '+inWn+'.'));
+      if(X.nB!=null){
+        const d = X.n - X.nB;
+        col.appendChild(ghEl('div', 'ct-vs ct-dvs', d ? Math.abs(d)+(d > 0 ? ' more' : ' fewer')+' than '+before+' ('+X.nB+').' : 'As many as '+before+' ('+X.nB+').'));
+      }
+      if(X.g) col.appendChild(ghEl('div', 'ct-vs', 'You scored '+ghoPct(X.score)+' in '+(X.g===1 ? 'that game.' : 'those games.')));
+      if(K && X.n){
+        const acts = ghEl('div', 'ct-acts'), a = ghEl('button', 'ct-l', X.n===1 ? 'See the moment' : 'See the '+X.n+' moments');
+        a.type = 'button'; a.dataset.act = 'momp'; a.dataset.side = sd; a.dataset.ch = K.ch; a.dataset.fid = 'head|mom|'+sd;
+        a.setAttribute('aria-label', 'See '+(my ? 'your ' : 'their ')+ghoN(X.n, 'slip')+' with '+K.name+', '+wn);
+        acts.appendChild(a);
+        if(my){          // the Games view: every game of the period with the letter of yours (its CLAMP filter is yours)
+          const g = ghEl('button', 'ct-l', 'Their games');
+          g.type = 'button'; g.dataset.act = 'games'; g.dataset.ch = K.ch; g.dataset.win = '1'; g.dataset.fid = 'head|games';
+          g.setAttribute('aria-label', 'Their games: your games with '+K.name+', '+wn);
+          acts.appendChild(g);
+        }
+        col.appendChild(acts);
+      }
+      duo.appendChild(col);
+    });
+    box.appendChild(duo);
+    // a Date filter shorter than the period: no days before to set against (the card says why, once for both sides)
+    if(D.cut && p!=='all') box.appendChild(ghEl('p', 'ct-sub ct-dcut', 'No comparison with '+before+': the Date filter above keeps only '+(wn==='this year' ? wn : 'the '+wn)+'.'));
+    // the letters, yours and theirs in the same unit; a row shows that letter (the View), the ?? row the side's blunder moments
+    const tab = ghEl('div', 'ct-ltab'), th = ghEl('div', 'ct-lrow is-head');
+    th.append(ghEl('span', ''), ghEl('span', 'ct-k', T ? 'Theirs' : 'Yours'), ghEl('span', 'ct-k', T ? 'Yours' : 'Theirs'));
+    tab.append(ghEl('h4', 'ct-k', 'By letter \u00b7 slips'), th);
+    const c = {};
+    CLAMP_K.forEach(X=>{ c[X.ch] = { mine:D.S.mine.filter(s=> s.at >= D.from && s.chs.indexOf(X.ch) >= 0).length, theirs:D.S.theirs.filter(s=> s.at >= D.from && s.chs.indexOf(X.ch) >= 0).length }; });
+    const max = Math.max(1, ...CLAMP_K.map(X=> Math.max(c[X.ch].mine, c[X.ch].theirs)), md.BG.length ? Math.max(D.bl.mine, D.bl.theirs) : 0);          // (the ?? row's too: every bar inside its track)
+    const cell = (n, sd, color)=>{
+      const e = ghEl('span', 'ct-lcell'), tr = ghEl('span', 'ct-tr'), i = ghEl('i', sd==='mine' ? '' : 'is-t');
+      i.style.width = Math.min(100, 100*n/max).toFixed(1)+'%';
+      i.style.setProperty('--cw', color);
       tr.appendChild(i);
-      b.append(ctDisc(X), ghEl('span', 'ct-bar-n', X.short), tr, ghEl('b', '', String(n)));
-      if(n){
-        b.type = 'button'; b.dataset.act = 'games'; b.dataset.ch = X.ch; b.dataset.win = '1'; b.dataset.fid = 'bar|'+X.ch;
-        const ao = allOf(X.ch);
-        b.setAttribute('aria-label', X.name+': '+n+' of '+md.W.length+' games. '+(ao ? 'Show all '+md.nG[X.ch]+' of your games with it' : 'Show them'));
-        if(ao) b.title = 'Show all '+md.nG[X.ch]+' of your games with it';
-      }
-      bars.appendChild(b);
+      e.append(tr, ghEl('b', '', String(n)));
+      return e;
+    };
+    CLAMP_K.forEach(X=>{
+      const r = ghEl('button', 'ct-lrow'), nm = ghEl('span', 'ct-lname');
+      r.type = 'button'; r.dataset.act = 'vw'; r.dataset.ch = X.ch; r.dataset.fid = 'head|vw|'+X.ch;
+      r.setAttribute('aria-pressed', CT.flt.v===X.ch ? 'true' : 'false');
+      r.setAttribute('aria-label', X.name+': '+c[X.ch].mine+' of yours, '+c[X.ch].theirs+' of theirs, '+wn+'. Show this letter');
+      nm.append(ctDisc(X), ghEl('span', 'ct-bar-n', X.short));
+      r.appendChild(nm);
+      sides.forEach(sd=> r.appendChild(cell(c[X.ch][sd], sd, X.color)));
+      tab.appendChild(r);
     });
-    if(md.BG.length) bars.append(blBar(md), blBarNote(md));
-    two.appendChild(bars);
-    box.appendChild(two);
-    if(md.BG.length) box.appendChild(blStrip(md));
-    if(md.loss){
+    if(md.BG.length){
+      const r = ghEl(D.bl[T ? 'theirs' : 'mine'] ? 'button' : 'div', 'ct-lrow is-bl'), nm = ghEl('span', 'ct-lname');
+      nm.append(blDisc(), ghEl('span', 'ct-bar-n', BL_K.short));
+      r.appendChild(nm);
+      sides.forEach(sd=> r.appendChild(cell(D.bl[sd], sd, BL_K.color)));
+      if(r.tagName==='BUTTON'){
+        r.type = 'button'; r.dataset.act = 'momp'; r.dataset.side = CT.side; r.dataset.ch = BL_CH; r.dataset.fid = 'head|bl';
+        r.setAttribute('aria-label', 'Blunders, ?? moves: '+D.bl.mine+' of yours, '+D.bl.theirs+' of theirs in '+ghoN(D.bl.g, 'game')+' with a review or a badge, '+wn+'. Show '+(T ? 'theirs' : 'yours'));
+      }
+      tab.appendChild(r);
+      tab.appendChild(ghEl('p', 'ct-sub ct-blnote', '??: moves, in the '+ghoN(D.bl.g, 'game')+' with a review or a badge.'));
+    }
+    box.appendChild(tab);
+    // the rules, in the Info box
+    [(p==='all' ? 'Period: All = every game the Filters above keep; with a Date filter there, its days (the heading names them).'
+      : 'Period: the games played in the '+ctPerName(p)+', as the Filters above keep them; '+before+' = as many days just before them, counted without the Date filter (the other Filters still apply). When the Date filter above is shorter than the period, the card counts its days instead (the heading names them) and has no comparison.')
+      +' A slip = one move marked with CLAMP letters, its letters together: a move with two letters is one slip in the totals and counts in both letters\u2019 rows.',
+     'Their slips, punished or missed: as said in the review\u2019s move menu (filled in from your reply\u2019s badge when that was plain).',
+     'Your slips, punished or missed: read here from the game\u2019s saved review, never written to your marks. First the badge on their reply as the board shows it (your own badge on that move first): Brilliant, Great, Best or Excellent = punished; Miss, Mistake or Blunder = missed. Else the review\u2019s scores: punished when their reply kept at least half of the winning chances your move gave them, missed when it kept less. Not said: your move gave them under 5 points of winning chances, the game ended on it, the letter is on one of their moves, or the game has no review.',
+     'Letters Larry-Duet put on a game are in the same set as yours, counted once. The grid, Where they happen and Moments below cover every game the Filters keep, whatever the period; a See the moments link opens them for the period.']
+      .forEach(t=> box.appendChild(ghEl('p', 'ct-sub info-only', t)));
+    if(md.BG.length && md.BM) box.appendChild(blStrip(md));
+    if(!games && p!=='all'){
+      // (never with a shorter Date filter: its days are all the Filters keep, so a game with marks there has slips in the card)
+      const todo = ghEl('div', 'ct-todo'), o = ghEl('button', 'ct-l', 'Show All');
+      todo.append(ghEl('span', 'ct-k', 'Nothing marked'), ghEl('span', 'ct-todo-t', 'No slips marked, yours or theirs, in the '+ctPerName(p)+'.'));
+      o.type = 'button'; o.dataset.act = 'per'; o.dataset.per = 'all'; o.dataset.fid = 'head|all';
+      o.setAttribute('aria-label', 'Show all your games: the Period All');
+      todo.appendChild(o);
+      box.appendChild(todo);
+    }
+    if(!T && md.loss){
       const todo = ghEl('div', 'ct-todo'), t = ghEl('span', 'ct-todo-t'), o = ghEl('button', 'ct-l', 'Open them');
       todo.appendChild(ghEl('span', 'ct-k', 'Not marked yet'));
-      t.append(ghEl('b', '', md.loss===1 ? '1 loss' : md.loss+' losses'), document.createTextNode(' '+md.lossWhen+(md.loss===1 ? ' has' : ' have')+' no letters.'));
+      t.append(ghEl('b', '', md.loss===1 ? '1 loss' : md.loss+' losses'), document.createTextNode((md.lossWhen ? ' '+md.lossWhen : '')+(md.loss===1 ? ' has' : ' have')+' no letters.'));
       o.type = 'button'; o.dataset.act = 'todo'; o.dataset.fid = 'todo';
-      o.setAttribute('aria-label', 'Open them: your '+(md.loss===1 ? 'loss' : md.loss+' losses')+' '+md.lossWhen+' with no CLAMP letters');
+      o.setAttribute('aria-label', 'Open them: your '+(md.loss===1 ? 'loss' : md.loss+' losses')+(md.lossWhen ? ' '+md.lossWhen : '')+' with no CLAMP letters');
       todo.append(t, o);
       box.appendChild(todo);
     }
@@ -40980,9 +41156,9 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const pool = ()=> CT.m.ch===BL_CH ? md.BM : md.M;
     if(CT.m.ch && !pool().some(x=> x.ch===CT.m.ch)){ CT.m = { ch:'', b:null, out:'' }; CT.shown = CT_MOM_N; }
     if(!CT.m.ch && !md.M.length) CT.m = { ch:BL_CH, b:null, out:'' };
-    if(CT.m.b && !pool().some(x=> x.ch===CT.m.ch && ctBucket(x, CT.m.b.g)===CT.m.b.v)){ CT.m = { ch:CT.m.ch, b:null, out:CT.m.out }; CT.shown = CT_MOM_N; }
+    if(CT.m.b && !pool().some(x=> x.ch===CT.m.ch && ctInB(x, CT.m.b))){ CT.m = { ch:CT.m.ch, b:null, out:CT.m.out }; CT.shown = CT_MOM_N; }
     if(CT.m.out && (!md.T || CT.m.ch===BL_CH || !md.M.some(x=> x.out===CT.m.out))){ CT.m = Object.assign({}, CT.m, { out:'' }); CT.shown = CT_MOM_N; }
-    const m = CT.m, bk = m.b, L = pool().filter(x=> (!m.ch || x.ch===m.ch) && (!bk || ctBucket(x, bk.g)===bk.v) && (!m.out || x.out===m.out));
+    const m = CT.m, bk = m.b, L = pool().filter(x=> (!m.ch || x.ch===m.ch) && (!bk || ctInB(x, bk)) && (!m.out || x.out===m.out));
     const shown = L.slice(0, Math.max(CT_MOM_N, CT.shown));
     const msig = CT.sig+'|'+m.ch+'|'+(bk ? bk.g+':'+bk.v : '')+'|'+m.out+'|'+shown.length+'|'+CT.psN;
     if(msig===CT.msig && box.firstChild){ box.hidden = false; return; }
@@ -41160,10 +41336,10 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     const chip = document.getElementById('gh-ck-chip');
     try{ (first || (chip && !chip.hidden ? chip : null) || document.getElementById('gh-count')).focus({ preventScroll:true }); }catch(e){}
   }
-  // a letter's games: in the pattern's window too (its last 30 days) when win is set
+  // a letter's games: in the card's period too when win is set (the Date filter's days when they are fewer)
   function ctGames(ch, win){
     const md = CT.model, patch = { ck:ch };
-    if(win && md && md.days) patch.date = md.lossDate;
+    if(win && md) patch.date = md.lossDate;
     ctApply(patch);
   }
   // the Games view's CLAMP filter, as a chip to take it off (Openings and CLAMP don't use it)
@@ -41205,12 +41381,34 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
     else if(r.right > b.right) sc.scrollLeft += r.right - b.right + 4;
   }
   (function ctWire(){
+    // the View's letters (their names shown from 521px), and Left / Right (Home, End) along a row of chips, pressing them
+    const vw = document.getElementById('ct-fvw');
+    CLAMP_K.forEach(K=>{
+      const b = ghEl('button', 'ct-fchip is-l');
+      b.type = 'button'; b.dataset.vw = K.ch;
+      b.setAttribute('aria-pressed', 'false');
+      b.setAttribute('aria-label', K.name);
+      b.append(ctDisc(K), ghEl('span', 'ct-fn', K.short));
+      vw.appendChild(b);
+    });
+    ctFltSync();
+    document.getElementById('ct-flt').addEventListener('keydown', (e)=>{
+      const t = e.target.closest('.ct-fchip');
+      if(!t || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      const L = Array.from(t.parentNode.querySelectorAll('.ct-fchip')), i = L.indexOf(t);
+      const j = e.key==='ArrowRight' ? (i + 1) % L.length : e.key==='ArrowLeft' ? (i + L.length - 1) % L.length : e.key==='Home' ? 0 : e.key==='End' ? L.length - 1 : -1;
+      if(j < 0) return;
+      e.preventDefault();
+      L[j].focus();
+      L[j].click();
+    });
     document.getElementById('gh-ck-chip').addEventListener('click', ()=>{ if(!ghoOn() && !ctOn()){ ghSetFilters({ ck:'' }); ctFocusList(); } });
     const sec = document.getElementById('ct');
     sec.addEventListener('click', (e)=>{
       const t = e.target.closest('button');
       if(!t || !sec.contains(t)) return;
       if(t.classList.contains('ct-sideb')){ ctSide(t.dataset.side); return; }
+      if(t.classList.contains('ct-fchip')){ ctFlt(t.dataset.per!=null ? { p:t.dataset.per } : { v:t.dataset.vw }); return; }
       const md = CT.model, a = t.dataset.act;
       if(!md) return;
       if(t.classList.contains('ct-gcol') || t.classList.contains('ct-m')){
@@ -41220,6 +41418,15 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
         return;
       }
       if(a==='mom') ctSetMoments(t.dataset.ch, null, true);
+      else if(a==='vw') ctFlt({ v:t.dataset.ch });
+      else if(a==='per'){ ctFlt({ p:t.dataset.per }); ctFocus(document.querySelector('#ct-fper .ct-fchip[aria-pressed="true"]')); }
+      else if(a==='momp'){
+        // the card's link: that side's moments of the letter (or its blunders) in the period; the Date filter's days when they are
+        // fewer (Moments keep the Filters' games: no period chip then, it would name days the Date filter leaves out)
+        const sd = t.dataset.side, ch = t.dataset.ch, p = CT.flt.p, cut = !!(CT.model && CT.model.D && CT.model.D.cut);
+        if(sd!==CT.side) ctSide(sd);
+        ctSetMoments(ch, p==='all' || cut ? null : { g:'per', v:p }, true);
+      }
       else if(a==='games') ctGames(t.dataset.ch, !!t.dataset.win);
       else if(a==='todo') ctApply({ result:'loss', date:md.lossDate, ck:'none' });
       else if(a==='bucket') ctSetMoments(t.dataset.ch, { g:t.dataset.g, v:t.dataset.v }, true);
@@ -41240,7 +41447,7 @@ html,body{margin:0;padding:0;overscroll-behavior:none;}
       else if(a==='to-games'){ ghoSetView('games'); ctFocusList(); }
       else if(a==='clear' || a==='all'){
         if(a==='clear') ghClearFilters(); else ghSetSite('all');
-        ctFocus(document.querySelector('#ct-pat:not([hidden]) .ct-l, #ct-empty:not([hidden]) button') || document.querySelector('#gh-view .toggle[aria-pressed="true"]'));
+        ctFocus(document.querySelector('#ct-flt:not([hidden]) #ct-fvw .ct-fchip[aria-pressed="true"], #ct-empty:not([hidden]) button') || document.querySelector('#gh-view .toggle[aria-pressed="true"]'));
       }
     });
   })();
